@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.anyObject;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -270,7 +270,7 @@ public class ANQPRequestManagerTest extends WifiBaseTest {
         when(mClock.getElapsedSinceBootMillis()).thenReturn(startTime + 1);
         mManager.requestANQPElements(TEST_BSSID, TEST_ANQP_KEY, false,
                 NetworkDetail.HSRelease.R1);
-        verify(mHandler, never()).requestANQP(anyLong(), anyObject());
+        verify(mHandler, never()).requestANQP(anyLong(), any());
 
         // Attempt another request will succeed after the hold off time is up.
         when(mHandler.requestANQP(TEST_BSSID, R1_ANQP_WITHOUT_RC)).thenReturn(true);
@@ -309,7 +309,7 @@ public class ANQPRequestManagerTest extends WifiBaseTest {
             when(mClock.getElapsedSinceBootMillis()).thenReturn(currentTime);
             mManager.requestANQPElements(TEST_BSSID, TEST_ANQP_KEY, false,
                     NetworkDetail.HSRelease.R1);
-            verify(mHandler, never()).requestANQP(anyLong(), anyObject());
+            verify(mHandler, never()).requestANQP(anyLong(), any());
 
             // Request will succeed when the hold off time is up.
             currentTime += 1;
@@ -329,7 +329,7 @@ public class ANQPRequestManagerTest extends WifiBaseTest {
         when(mClock.getElapsedSinceBootMillis()).thenReturn(currentTime);
         mManager.requestANQPElements(TEST_BSSID, TEST_ANQP_KEY, false,
                 NetworkDetail.HSRelease.R1);
-        verify(mHandler, never()).requestANQP(anyLong(), anyObject());
+        verify(mHandler, never()).requestANQP(anyLong(), any());
 
         currentTime += 1;
         when(mHandler.requestANQP(TEST_BSSID, R1_ANQP_WITHOUT_RC)).thenReturn(true);

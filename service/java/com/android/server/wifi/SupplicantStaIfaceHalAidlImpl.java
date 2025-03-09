@@ -75,6 +75,7 @@ import android.hardware.wifi.supplicant.QosPolicyStatusCode;
 import android.hardware.wifi.supplicant.RxFilterType;
 import android.hardware.wifi.supplicant.SignalPollResult;
 import android.hardware.wifi.supplicant.SupplicantStatusCode;
+import android.hardware.wifi.supplicant.UsdBaseConfig;
 import android.hardware.wifi.supplicant.UsdCapabilities;
 import android.hardware.wifi.supplicant.UsdMessageInfo;
 import android.hardware.wifi.supplicant.UsdPublishConfig;
@@ -4221,16 +4222,21 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         aidlConfig.transmissionType = frameworkToHalTransmissionType(
                 frameworkConfig.getSolicitedTransmissionType());
         aidlConfig.announcementPeriodMillis = frameworkConfig.getAnnouncementPeriodMillis();
+        aidlConfig.usdBaseConfig = new UsdBaseConfig();
         aidlConfig.usdBaseConfig.ttlSec = frameworkConfig.getTtlSeconds();
         int[] freqs = frameworkConfig.getOperatingFrequenciesMhz();
         aidlConfig.usdBaseConfig.defaultFreqMhz = (freqs == null) ? 2437 : freqs[0];
         aidlConfig.usdBaseConfig.freqsMhz =
-                (freqs == null || freqs.length <= 1) ? null : Arrays.copyOfRange(freqs, 1,
+                (freqs == null || freqs.length <= 1) ? new int[0] : Arrays.copyOfRange(freqs, 1,
                         freqs.length);
         aidlConfig.usdBaseConfig.serviceName = Arrays.toString(frameworkConfig.getServiceName());
-        aidlConfig.usdBaseConfig.serviceSpecificInfo = frameworkConfig.getServiceSpecificInfo();
-        aidlConfig.usdBaseConfig.rxMatchFilter = frameworkConfig.getRxMatchFilterTlv();
-        aidlConfig.usdBaseConfig.txMatchFilter = frameworkConfig.getTxMatchFilterTlv();
+        aidlConfig.usdBaseConfig.serviceSpecificInfo =
+                frameworkConfig.getServiceSpecificInfo() != null
+                        ? frameworkConfig.getServiceSpecificInfo() : new byte[0];
+        aidlConfig.usdBaseConfig.rxMatchFilter = frameworkConfig.getRxMatchFilterTlv() != null
+                ? frameworkConfig.getRxMatchFilterTlv() : new byte[0];
+        aidlConfig.usdBaseConfig.txMatchFilter = frameworkConfig.getTxMatchFilterTlv() != null
+                ? frameworkConfig.getTxMatchFilterTlv() : new byte[0];
         aidlConfig.usdBaseConfig.serviceProtoType = frameworkToHalProtoType(
                 frameworkConfig.getServiceProtoType());
         return aidlConfig;
@@ -4279,16 +4285,21 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         UsdSubscribeConfig aidlconfig = new UsdSubscribeConfig();
         aidlconfig.subscribeType = frameworkToHalSubscriberType(frameworkConfig.getSubscribeType());
         aidlconfig.queryPeriodMillis = frameworkConfig.getQueryPeriodMillis();
+        aidlconfig.usdBaseConfig = new UsdBaseConfig();
         aidlconfig.usdBaseConfig.ttlSec = frameworkConfig.getTtlSeconds();
         int[] freqs = frameworkConfig.getOperatingFrequenciesMhz();
         aidlconfig.usdBaseConfig.defaultFreqMhz = (freqs == null) ? 2437 : freqs[0];
         aidlconfig.usdBaseConfig.freqsMhz =
-                (freqs == null || freqs.length < 2) ? null : Arrays.copyOfRange(freqs, 1,
+                (freqs == null || freqs.length <= 1) ? new int[0] : Arrays.copyOfRange(freqs, 1,
                         freqs.length);
         aidlconfig.usdBaseConfig.serviceName = Arrays.toString(frameworkConfig.getServiceName());
-        aidlconfig.usdBaseConfig.serviceSpecificInfo = frameworkConfig.getServiceSpecificInfo();
-        aidlconfig.usdBaseConfig.rxMatchFilter = frameworkConfig.getRxMatchFilterTlv();
-        aidlconfig.usdBaseConfig.txMatchFilter = frameworkConfig.getTxMatchFilterTlv();
+        aidlconfig.usdBaseConfig.serviceSpecificInfo =
+                frameworkConfig.getServiceSpecificInfo() != null
+                        ? frameworkConfig.getServiceSpecificInfo() : new byte[0];
+        aidlconfig.usdBaseConfig.rxMatchFilter = frameworkConfig.getRxMatchFilterTlv() != null
+                ? frameworkConfig.getRxMatchFilterTlv() : new byte[0];
+        aidlconfig.usdBaseConfig.txMatchFilter = frameworkConfig.getTxMatchFilterTlv() != null
+                ? frameworkConfig.getTxMatchFilterTlv() : new byte[0];
         aidlconfig.usdBaseConfig.serviceProtoType = frameworkToHalProtoType(
                 frameworkConfig.getServiceProtoType());
         return aidlconfig;

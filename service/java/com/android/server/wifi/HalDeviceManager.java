@@ -1409,7 +1409,8 @@ public class HalDeviceManager {
      * Returns 'true' if there are no discrepancies - 'false' otherwise.
      *
      * A discrepancy is if any local state contains references to a chip or interface which are not
-     * found on the information read from the chip.
+     * found on the information read from the chip, or if the chip has interfaces that don't match
+     * the local state.
      *
      * Also, fills in the |requestorWs| corresponding to each active iface in |WifiChipInfo|.
      */
@@ -1417,6 +1418,7 @@ public class HalDeviceManager {
         if (VDBG) Log.d(TAG, "validateInterfaceCache");
 
         synchronized (mLock) {
+            // Check that each cache entry has a corresponding WifiIfaceInfo from the chip.
             for (InterfaceCacheEntry entry: mInterfaceInfoCache.values()) {
                 // search for chip
                 WifiChipInfo matchingChipInfo = null;
@@ -1455,6 +1457,35 @@ public class HalDeviceManager {
                     Log.e(TAG, "validateInterfaceCache: no interface found for " + entry);
                     return false;
                 }
+            }
+            // Check that each WifiIfaceInfo from the chip has a cache entry corresponding to it.
+            // WifiIfaceInfo#requestorWsHelper should be populated from the cache entry in the loop
+            // above. If it's null here, then that means we didn't find a cache entry for it.
+            List<WifiIfaceInfo> ifaceInfosWithoutWsHelper = new ArrayList<>();
+            for (WifiChipInfo chipInfo : chipInfos) {
+                for (int createType : CREATE_TYPES_BY_PRIORITY) {
+                    WifiIfaceInfo[] ifaceInfoList = chipInfo.ifaces[createType];
+                    if (ifaceInfoList == null) {
+                        // Shouldn't happen.
+                        Log.wtf(TAG, "validateInterfaceCache: no iface info list for type "
+                                + createType);
+                        return false;
+                    }
+                    for (WifiIfaceInfo ifaceInfo : ifaceInfoList) {
+                        if (ifaceInfo.requestorWsHelper == null) {
+                            ifaceInfosWithoutWsHelper.add(ifaceInfo);
+                        }
+                    }
+                }
+            }
+            if (!ifaceInfosWithoutWsHelper.isEmpty()) {
+                Log.wtf(TAG, "validateInterfaceCache: no interface cache entries found"
+                        + " for ifaceInfos: " + ifaceInfosWithoutWsHelper);
+                mWifiInjector.getWifiDiagnostics().takeBugReport(
+                        "Wi-Fi HalDeviceManager bugreport", "No iface cache entries found for iface"
+                                + " infos: " + ifaceInfosWithoutWsHelper
+                                + ". Current mInterfaceInfoCache: " + mInterfaceInfoCache);
+                return false;
             }
         }
 

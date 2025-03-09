@@ -134,6 +134,7 @@ python_test_host {
         "aware_lib_utils",
         "mobly",
         "wifi_aware_constants",
+        "platform-test-py-annotations",
     ],
     test_suites: [
         "general-tests",
@@ -176,6 +177,7 @@ python_test_host {
         "aware_lib_utils",
         "mobly",
         "wifi_aware_constants",
+        "platform-test-py-annotations",
     ],
     test_suites: [
         "general-tests",

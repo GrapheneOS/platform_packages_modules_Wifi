@@ -2422,7 +2422,7 @@ public class SupplicantStaIfaceHal {
 
     public static class UsdCapabilitiesInternal {
         /** Whether USD Publisher is supported on this device. */
-        public final boolean isUsdPublisherSupported;
+        public boolean isUsdPublisherSupported;
         /** Whether USD Subscriber is supported on this device. */
         public final boolean isUsdSubscriberSupported;
         /** Maximum allowed length (in bytes) for the Service Specific Info (SSI). */

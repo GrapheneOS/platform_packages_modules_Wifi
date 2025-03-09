@@ -32,7 +32,6 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyObject;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -1421,7 +1420,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
         mWifiChipEventCallback.onDebugRingBufferDataAvailable(
                 new WifiNative.RingBufferStatus(), errorData);
         mLooper.dispatchAll();
-        verify(eventHandler, never()).onRingBufferData(anyObject(), anyObject());
+        verify(eventHandler, never()).onRingBufferData(any(), any());
     }
 
     /**
@@ -1683,7 +1682,7 @@ public class WifiVendorHalTest extends WifiBaseTest {
         assertTrue(mWifiVendorHal.resetLogHandler());
         chipCallback.onDebugErrorAlert(errorCode, errorData);
         mLooper.dispatchAll();
-        verify(eventHandler, never()).onWifiAlert(anyInt(), anyObject());
+        verify(eventHandler, never()).onWifiAlert(anyInt(), any());
     }
 
     private void startBgScan(WifiNative.ScanEventHandler eventHandler) throws Exception {

@@ -18,6 +18,7 @@ import logging
 import sys
 import time
 
+from android.platform.test.annotations import ApiTest
 from aware import aware_lib_utils as autils
 from aware import constants
 from mobly import asserts
@@ -235,6 +236,14 @@ class ProtocolsMultiCountryTest(base_test.BaseTestClass):
         s_ipv6,
     )
 
+  @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.ConnectivityManager#requestNetwork(android.net.NetworkRequest request, android.net.ConnectivityManager.NetworkCallback networkCallback, int timeoutMs)',
+    ]
+  )
   def test_ping6_ib_unsolicited_passive_multicountry(self):
     """Validate ping6 works with UNSOLICITED/PASSIVE sessions.
 
@@ -244,6 +253,14 @@ class ProtocolsMultiCountryTest(base_test.BaseTestClass):
     self.ib_ping6_test(pub_type=constants.PublishType.UNSOLICITED,
                        sub_type=constants.SubscribeType.PASSIVE)
 
+  @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.ConnectivityManager#requestNetwork(android.net.NetworkRequest request, android.net.ConnectivityManager.NetworkCallback networkCallback, int timeoutMs)',
+    ]
+  )
   def test_ping6_ib_solicited_active_multicountry(self):
     """"Validate ping6 works with SOLICITED/ACTIVE session.
 

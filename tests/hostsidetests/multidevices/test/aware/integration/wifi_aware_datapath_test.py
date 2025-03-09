@@ -1046,7 +1046,7 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             _DATA_PATH_INITIATOR,
             resp_mac,
             init_passphrase,
-            resp_pmk,
+            init_pmk,
             network_id
             )
         # Initiator & Responder:
@@ -1657,6 +1657,14 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
     # peer using the Aware-provided peer handle (as opposed to a MAC address).
     #######################################
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        ]
+    )
+
     def test_ib_unsolicited_passive_open_specific(self):
         """Data-path: in-band, unsolicited/passive, open encryption, specific peer
 
@@ -1667,6 +1675,14 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             stype=_SUBSCRIBE_TYPE_PASSIVE,
             encr_type=self.ENCR_TYPE_OPEN,
             use_peer_id=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        ]
+    )
 
     def test_ib_unsolicited_passive_open_any(self):
         """Data-path: in-band, unsolicited/passive, open encryption, any peer
@@ -1679,6 +1695,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             encr_type=self.ENCR_TYPE_OPEN,
             use_peer_id=False)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#setPskPassphrase(String)',
+        ]
+    )
+
     def test_ib_unsolicited_passive_passphrase_specific(self):
         """Data-path: in-band, unsolicited/passive, passphrase, specific peer
 
@@ -1689,6 +1714,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             stype=_SUBSCRIBE_TYPE_PASSIVE,
             encr_type=self.ENCR_TYPE_PASSPHRASE,
             use_peer_id=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#setPskPassphrase(String)',
+        ]
+    )
 
     def test_ib_unsolicited_passive_passphrase_any(self):
         """Data-path: in-band, unsolicited/passive, passphrase, any peer
@@ -1701,6 +1735,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             encr_type=self.ENCR_TYPE_PASSPHRASE,
             use_peer_id=False)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#setPmk(byte[])',
+        ]
+    )
+
     def test_ib_unsolicited_passive_pmk_specific(self):
         """Data-path: in-band, unsolicited/passive, PMK, specific peer
 
@@ -1711,6 +1754,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             stype=_SUBSCRIBE_TYPE_PASSIVE,
             encr_type=self.ENCR_TYPE_PMK,
             use_peer_id=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#setPmk(byte[])',
+        ]
+    )
 
     def test_ib_unsolicited_passive_pmk_any(self):
         """Data-path: in-band, unsolicited/passive, PMK, any peer
@@ -1723,6 +1775,14 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             encr_type=self.ENCR_TYPE_PMK,
             use_peer_id=False)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        ]
+    )
+
     def test_ib_solicited_active_open_specific(self):
         """Data-path: in-band, solicited/active, open encryption, specific peer
 
@@ -1733,6 +1793,14 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             stype=_SUBSCRIBE_TYPE_ACTIVE,
             encr_type=self.ENCR_TYPE_OPEN,
             use_peer_id=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        ]
+    )
 
     def test_ib_solicited_active_open_any(self):
         """Data-path: in-band, solicited/active, open encryption, any peer
@@ -1745,6 +1813,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             encr_type=self.ENCR_TYPE_OPEN,
             use_peer_id=False)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#setPskPassphrase(String)',
+        ]
+    )
+
     def test_ib_solicited_active_passphrase_specific(self):
         """Data-path: in-band, solicited/active, passphrase, specific peer
 
@@ -1755,6 +1832,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             stype=_SUBSCRIBE_TYPE_ACTIVE,
             encr_type=self.ENCR_TYPE_PASSPHRASE,
             use_peer_id=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#setPskPassphrase(String)',
+        ]
+    )
 
     def test_ib_solicited_active_passphrase_any(self):
         """Data-path: in-band, solicited/active, passphrase, any peer
@@ -1767,6 +1853,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             encr_type=self.ENCR_TYPE_PASSPHRASE,
             use_peer_id=False)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#setPmk(byte[])',
+        ]
+    )
+
     def test_ib_solicited_active_pmk_specific(self):
         """Data-path: in-band, solicited/active, PMK, specific peer
 
@@ -1777,6 +1872,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             stype=_SUBSCRIBE_TYPE_ACTIVE,
             encr_type=self.ENCR_TYPE_PMK,
             use_peer_id=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#setPmk(byte[])',
+        ]
+    )
 
     def test_ib_solicited_active_pmk_any(self):
         """Data-path: in-band, solicited/active, PMK, any peer
@@ -1809,9 +1913,17 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
     # peer using the Aware-provided peer handle (as opposed to a MAC address).
     #######################################
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        ]
+    )
+
     def test_ib_extra_pub_same_unsolicited_passive_open_specific(self):
         """Data-path: in-band, unsolicited/passive, open encryption.
-                      specific peer.
+                    specific peer.
 
         Configuration contains a publisher (for the same service)
         running on *both* devices.
@@ -1826,10 +1938,17 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             pub_on_both=True,
             pub_on_both_same=True)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        ]
+    )
 
     def test_ib_extra_pub_same_unsolicited_passive_open_any(self):
         """Data-path: in-band, unsolicited/passive, open encryption.
-                      any peer.
+                    any peer.
 
         Configuration contains a publisher (for the same service) running on
         *both* devices.
@@ -1844,9 +1963,17 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             pub_on_both=True,
             pub_on_both_same=True)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        ]
+    )
+
     def test_ib_extra_pub_diff_unsolicited_passive_open_specific(self):
         """Data-path: in-band, unsolicited/passive, open encryption.
-                      specific peer.
+                    specific peer.
 
         Configuration contains a publisher (for a different service) running on
         *both* devices.
@@ -1860,6 +1987,14 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             use_peer_id=True,
             pub_on_both=True,
             pub_on_both_same=False)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        ]
+    )
 
     def test_ib_extra_pub_diff_unsolicited_passive_open_any(self):
         """Data-path: in-band, unsolicited/passive, open encryption, any peer.
@@ -1879,6 +2014,14 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
 
     ##############################################################
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#setPskPassphrase(String)',
+        ]
+    )
+
     def test_passphrase_min(self):
         """Data-path: minimum passphrase length
 
@@ -1891,11 +2034,19 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             use_peer_id=False,
             passphrase_to_use=self.PASSPHRASE_MIN)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#setPskPassphrase(String)',
+        ]
+    )
+
     def test_passphrase_max(self):
         """Data-path: maximum passphrase length
 
         Use in-band, unsolicited/passive, any peer combination
-         """
+        """
         self.run_ib_data_path_test(
             ptype=_PUBLISH_TYPE_UNSOLICITED,
             stype=_SUBSCRIBE_TYPE_PASSIVE,
@@ -1903,21 +2054,50 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             use_peer_id=False,
             passphrase_to_use=self.PASSPHRASE_MAX)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        ]
+    )
+
     def test_negative_mismatch_init_mac(self):
         """Data-path: failure when Initiator MAC address mismatch"""
         self.run_mismatched_oob_data_path_test(
             init_mismatch_mac=True, resp_mismatch_mac=False)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        ]
+    )
 
     def test_negative_mismatch_resp_mac(self):
         """Data-path: failure when Responder MAC address mismatch"""
         self.run_mismatched_oob_data_path_test(
             init_mismatch_mac=False, resp_mismatch_mac=True)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        ]
+    )
+
     def test_negative_mismatch_passphrase(self):
         """Data-path: failure when passphrases mismatch"""
         self.run_mismatched_oob_data_path_test(
             init_encr_type=self.ENCR_TYPE_PASSPHRASE,
             resp_encr_type=self.ENCR_TYPE_PASSPHRASE)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        ]
+    )
 
     def test_negative_mismatch_open_passphrase(self):
         """Data-path:
@@ -1927,6 +2107,14 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             init_encr_type=self.ENCR_TYPE_OPEN,
             resp_encr_type=self.ENCR_TYPE_PASSPHRASE)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        ]
+    )
+
     def test_negative_mismatch_passphrase_open(self):
         """Data-path:
             failure when initiator is passphrase, and responder open
@@ -1935,11 +2123,26 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             init_encr_type=self.ENCR_TYPE_PASSPHRASE,
             resp_encr_type=self.ENCR_TYPE_OPEN)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        ]
+    )
+
     def test_negative_mismatch_pmk(self):
         """Data-path: failure when PMK mismatch"""
         self.run_mismatched_oob_data_path_test(
             init_encr_type=self.ENCR_TYPE_PMK,
             resp_encr_type=self.ENCR_TYPE_PMK)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        ]
+    )
 
     def test_negative_mismatch_open_pmk(self):
         """Data-path: failure when initiator is open, and responder PMK"""
@@ -1947,17 +2150,41 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             init_encr_type=self.ENCR_TYPE_OPEN,
             resp_encr_type=self.ENCR_TYPE_PMK)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        ]
+    )
+
     def test_negative_mismatch_pmk_passphrase(self):
         """Data-path: failure when initiator is pmk, and responder passphrase"""
         self.run_mismatched_oob_data_path_test(
             init_encr_type=self.ENCR_TYPE_PMK,
             resp_encr_type=self.ENCR_TYPE_PASSPHRASE)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        ]
+    )
+
     def test_negative_mismatch_pmk_open(self):
         """Data-path: failure when initiator is PMK, and responder open"""
         self.run_mismatched_oob_data_path_test(
             init_encr_type=self.ENCR_TYPE_PMK,
             resp_encr_type=self.ENCR_TYPE_OPEN)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        ]
+    )
 
     def test_negative_mismatch_passphrase_pmk(self):
         """Data-path: failure when initiator is passphrase, and responder pmk"""
@@ -1981,6 +2208,13 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
     # and exchange of MAC addresses and then Wi-Fi Aware for data-path.
     #######################################
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        ]
+    )
+
     def test_oob_open_specific(self):
         """Data-path: out-of-band, open encryption, specific peer
 
@@ -1988,6 +2222,13 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
     """
         self.run_oob_data_path_test(
             encr_type=self.ENCR_TYPE_OPEN, use_peer_id=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        ]
+    )
 
     def test_oob_passphrase_specific(self):
         """Data-path: out-of-band, passphrase, specific peer
@@ -1997,6 +2238,13 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         self.run_oob_data_path_test(
             encr_type=self.ENCR_TYPE_PASSPHRASE, use_peer_id=True)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        ]
+    )
+
     def test_oob_pmk_specific(self):
         """Data-path: out-of-band, PMK, specific peer
 
@@ -2004,6 +2252,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
     """
         self.run_oob_data_path_test(
             encr_type=self.ENCR_TYPE_PMK, use_peer_id=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        ]
+    )
 
     def test_oob_ib_coex_open_specific(self):
         """Data-path: out-of-band, open encryption, specific peer - in-band coex:
@@ -2015,6 +2272,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         self.run_oob_data_path_test(
             encr_type=self.ENCR_TYPE_OPEN,
             setup_discovery_sessions=True , use_peer_id=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
 
     def test_multiple_identical_networks(self):
         """Validate that creating multiple networks between 2 devices, each network
@@ -2149,6 +2415,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             )
             init_dut.wifi_aware_snippet.connectivityUnregisterNetwork(
                 init_req_callback_event.callback_id)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
 
     def test_identical_network_from_both_sides(self):
         """Validate that requesting two identical NDPs (Open) each being initiated
@@ -2550,6 +2825,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
             dut2.wifi_aware_snippet.connectivityUnregisterNetwork(
                 dut2_key_even.callback_id)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
+
     def test_multiple_ndi_open_passphrase(self):
         """Verify that between 2 DUTs can create 2 NDPs with different security
         configuration (one open, one using passphrase). The result should use
@@ -2558,12 +2842,29 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         # self.run_multiple_ndi(self.PASSPHRASE)
         self.run_multiple_ndi([None, self.PASSPHRASE])
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
+
     def test_multiple_ndi_passphrases(self):
         """Verify that between 2 DUTs can create 2 NDPs with different security
         configuration (using different passphrases). The result should use two
         different NDIs
         """
         self.run_multiple_ndi([self.PASSPHRASE, self.PASSPHRASE2])
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
 
     def test_multiple_ndi_open_passphrase_flip(self):
         """Verify that between 2 DUTs can create 2 NDPs with different security
@@ -2573,6 +2874,14 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         Flip Initiator and Responder roles.
         """
         self.run_multiple_ndi([None, self.PASSPHRASE], flip_init_resp=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
 
     def test_multiple_ndi_passphrases_flip(self):
         """Verify that between 2 DUTs can create 2 NDPs with different security
@@ -2584,12 +2893,30 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         self.run_multiple_ndi(
             [self.PASSPHRASE, self.PASSPHRASE2], flip_init_resp=True)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
+
     def test_multiple_ndi_open_pmk(self):
         """Verify that between 2 DUTs can create 2 NDPs with different security
         configuration (one open, one using pmk). The result should use two
         different NDIs
         """
         self.run_multiple_ndi([None, self.PMK])
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
 
     def test_multiple_ndi_passphrase_pmk(self):
         """Verify that between 2 DUTs can create 2 NDPs with different security
@@ -2598,12 +2925,29 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         """
         self.run_multiple_ndi([self.PASSPHRASE, self.PMK])
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
+
     def test_multiple_ndi_pmks(self):
         """Verify that between 2 DUTs can create 2 NDPs with different security
         configuration (using different PMKS). The result should use two
         different NDIs
         """
         self.run_multiple_ndi([self.PMK, self.PMK2])
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
 
     def test_multiple_ndi_open_pmk_flip(self):
         """Verify that between 2 DUTs can create 2 NDPs with different security
@@ -2614,6 +2958,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         """
         self.run_multiple_ndi([None, self.PMK], flip_init_resp=True)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
+
     def test_multiple_ndi_passphrase_pmk_flip(self):
         """Verify that between 2 DUTs can create 2 NDPs with different security
         configuration (one using passphrase, one using pmk). The result should
@@ -2622,6 +2975,14 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         Flip Initiator and Responder roles.
         """
         self.run_multiple_ndi([self.PASSPHRASE, self.PMK], flip_init_resp=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPmk(byte[],string)',
+        'android.net.NetworkCapabilities#TRANSPORT_WIFI_AWARE',
+        ]
+    )
 
     def test_multiple_ndi_pmks_flip(self):
         """Verify that between 2 DUTs can create 2 NDPs with different security
@@ -2649,6 +3010,16 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
     #
     #######################################
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        ]
+    )
+
     def test_identical_ndps_mix_ib_oob_ib_first_same_polarity(self):
         """Validate that a single NDP is created for multiple identical
         requests which are issued through either in-band (ib) or out-of-band
@@ -2659,6 +3030,16 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         """
         self.run_mix_ib_oob(
             same_request=True, ib_first=True, inits_on_same_dut=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        ]
+    )
 
     def test_identical_ndps_mix_ib_oob_oob_first_same_polarity(self):
         """Validate that a single NDP is created for multiple identical
@@ -2672,6 +3053,16 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         self.run_mix_ib_oob(
             same_request=True, ib_first=False, inits_on_same_dut=True)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        ]
+    )
+
     def test_identical_ndps_mix_ib_oob_ib_first_diff_polarity(self):
         """Validate that a single NDP is created for multiple identical
         requests which are issued through either in-band (ib) or out-of-band
@@ -2683,6 +3074,16 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         self.run_mix_ib_oob(
             same_request=True, ib_first=True, inits_on_same_dut=False)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        ]
+    )
+
     def test_identical_ndps_mix_ib_oob_oob_first_diff_polarity(self):
         """Validate that a single NDP is created for multiple identical
         requests which are issued through either in-band (ib) or out-of-band
@@ -2693,6 +3094,16 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         """
         self.run_mix_ib_oob(
             same_request=True, ib_first=False, inits_on_same_dut=False)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        ]
+    )
 
     def test_multiple_ndis_mix_ib_oob_ib_first_same_polarity(self):
 
@@ -2706,6 +3117,16 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         self.run_mix_ib_oob(
             same_request=False, ib_first=True, inits_on_same_dut=True)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        ]
+    )
+
     def test_multiple_ndis_mix_ib_oob_oob_first_same_polarity(self):
         """Validate that multiple NDIs are created for NDPs which are requested
         with different security configurations. Use a mix of in-band and
@@ -2716,6 +3137,16 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         """
         self.run_mix_ib_oob(
             same_request=False, ib_first=False, inits_on_same_dut=True)
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        ]
+    )
 
     def test_multiple_ndis_mix_ib_oob_ib_first_diff_polarity(self):
         """Validate that multiple NDIs are created for NDPs which are requested
@@ -2728,6 +3159,15 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
         self.run_mix_ib_oob(
             same_request=False, ib_first=True, inits_on_same_dut=False)
 
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierPassphrase(byte[],string)',
+        ]
+    )
 
     def test_multiple_ndis_mix_ib_oob_oob_first_diff_polarity(self):
         """Validate that multiple NDIs are created for NDPs which are requested
@@ -2748,6 +3188,16 @@ class WifiAwareDatapathTest(base_test.BaseTestClass):
     # resp_domain: The regulator domain of the Responder/Publisher.
     #
     #######################################
+
+    @ApiTest(
+    apis=[
+        'android.net.wifi.aware.WifiAwareManager#attach(android.net.wifi.aware.AttachCallback, android.net.wifi.aware.IdentityChangedListener, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#publish(android.net.wifi.aware.PublishConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareSession#subscrible(android.net.wifi.aware.SubscribeConfig, android.net.wifi.aware.DiscoverySessionCallback, android.os.Handler)',
+        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build',
+        'android.net.wifi.aware.WifiAwareSession#createNetworkSpecifierOpen(byte[])',
+        ]
+    )
 
     def test_multiple_regulator_domains_ib_us_jp(self):
         """Verify data-path setup across multiple regulator domains.

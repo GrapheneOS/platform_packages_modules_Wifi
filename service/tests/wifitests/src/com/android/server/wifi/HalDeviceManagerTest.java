@@ -39,10 +39,10 @@ import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
@@ -347,13 +347,13 @@ public class HalDeviceManagerTest extends WifiBaseTest {
 
     /**
      * Validates that when (for some reason) the cache is out-of-sync with the actual chip status
-     * then Wi-Fi is shut-down.
+     * (cache returns more ifaces than the chip reports) then Wi-Fi is shut-down.
      *
      * Uses TestChipV1 - but nothing specific to its configuration. The test validates internal
      * HDM behavior.
      */
     @Test
-    public void testCacheMismatchError() throws Exception {
+    public void testCacheHasMoreInterfacesThanChipMismatchError() throws Exception {
         TestChipV1 chipMock = new TestChipV1();
         chipMock.initialize();
         mInOrder = inOrder(mWifiMock, chipMock.chip, mManagerStatusListenerMock);
@@ -410,6 +410,38 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         verifyNoMoreInteractions(mManagerStatusListenerMock, staDestroyedListener,
                 nanDestroyedListener);
     }
+
+    /**
+     * Validates that when (for some reason) the cache is out-of-sync with the actual chip status
+     * (chip returns more ifaces than we have in the cache) then Wi-Fi is shut-down.
+     *
+     * Uses TestChipV1 - but nothing specific to its configuration. The test validates internal
+     * HDM behavior.
+     */
+    @Test
+    public void testChipHasMoreInterfacesThanCacheMismatchError() throws Exception {
+        TestChipV1 chipMock = new TestChipV1();
+        chipMock.initialize();
+        mInOrder = inOrder(mWifiMock, chipMock.chip, mManagerStatusListenerMock);
+        executeAndValidateStartupSequence();
+
+        InterfaceDestroyedListener nanDestroyedListener = mock(
+                InterfaceDestroyedListener.class);
+
+        // fiddle with the "chip" by adding a STA that we haven't added to our cache.
+        chipMock.interfaceNames.get(WifiChip.IFACE_TYPE_STA).add("wlan0");
+
+        // Now try to request a NAN.
+        WifiNanIface nanIface =
+                mDut.createNanIface(nanDestroyedListener, mHandler, TEST_WORKSOURCE_0);
+        collector.checkThat("NAN can't be created", nanIface, IsNull.nullValue());
+        mTestLooper.dispatchAll();
+
+        // verify that Wi-Fi is shut-down.
+        verify(mWifiMock).stop();
+        verify(mManagerStatusListenerMock, times(2)).onStatusChanged();
+    }
+
 
     /**
      * Validate that when no chip info is found an empty list is returned.

@@ -16,13 +16,15 @@
 
 package android.system.wifi.mainline_supplicant;
 
+import android.system.wifi.mainline_supplicant.IStaInterfaceCallback;
 import android.system.wifi.mainline_supplicant.UsdMessageInfo;
 import android.system.wifi.mainline_supplicant.UsdServiceProtoType;
 
 /**
- * Interface for performing Unsynchronized Service Discovery (USD) operations.
+ * Interface exposed by the supplicant for each station mode network
+ * interface (ex. wlan0) it controls.
  */
-interface IUsdInterface {
+interface IStaInterface {
     /**
      * Capabilities supported by USD. Values are only valid if |isUsdPublisherSupported|
      * and/or |isUsdSubscriberSupported| are true.
@@ -239,6 +241,13 @@ interface IUsdInterface {
          */
         PublishTransmissionType transmissionType;
     }
+
+    /**
+     * Register for callbacks on this interface.
+     *
+     * @param callback Callback object to invoke.
+     */
+    void registerCallback(in IStaInterfaceCallback callback);
 
     /**
      * Retrieve capabilities related to Unsynchronized Service Discovery (USD).

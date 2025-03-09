@@ -265,6 +265,11 @@ public class WifiNativeTest extends WifiBaseTest {
     private static final RadioChainInfo MOCK_NATIVE_RADIO_CHAIN_INFO_2 = new RadioChainInfo(0, -78);
     private static final WorkSource TEST_WORKSOURCE = new WorkSource();
     private static final WorkSource TEST_WORKSOURCE2 = new WorkSource();
+    private static final int USD_MAX_SSI_LEN = 1024;
+    private static final int USD_MAX_SERVICE_NAME_LEN = 255;
+    private static final int USD_MAX_MATCH_FILTER_LEN = 255;
+    private static final int USD_MAX_NUM_PUBLISH_SESSIONS = 10;
+    private static final int USD_MAX_NUM_SUBSCRIBE_SESSIONS = 10;
 
     MockResources mResources;
 
@@ -351,6 +356,7 @@ public class WifiNativeTest extends WifiBaseTest {
         when(mWifiInjector.getWifiP2pNative()).thenReturn(mWifiP2pNative);
         mResources = getMockResources();
         mResources.setBoolean(R.bool.config_wifiNetworkCentricQosPolicyFeatureEnabled, false);
+        mResources.setBoolean(R.bool.config_wifiUsdPublisherSupported, false);
         when(mContext.getResources()).thenReturn(mResources);
         when(mSettingsConfigStore.get(eq(WIFI_NATIVE_EXTENDED_SUPPORTED_FEATURES)))
                 .thenReturn(WIFI_TEST_FEATURE.toLongArray());
@@ -2031,5 +2037,51 @@ public class WifiNativeTest extends WifiBaseTest {
         when(Flags.mloSap()).thenReturn(true);
         when(mWifiGlobals.isMLDApSupported()).thenReturn(false);
         assertFalse(mWifiNative.isMLDApSupportMLO());
+    }
+
+    /**
+     * Test USD capabilities when config_wifiUsdPublisherSupported = false in the overlay.
+     */
+    @Test
+    public void testUsdPublishSupportOverriddenByOverlay() throws Exception {
+        mResources.setBoolean(R.bool.config_wifiUsdPublisherSupported, false);
+        SupplicantStaIfaceHal.UsdCapabilitiesInternal usdCapabilities =
+                new SupplicantStaIfaceHal.UsdCapabilitiesInternal(true, true, USD_MAX_SSI_LEN,
+                        USD_MAX_SERVICE_NAME_LEN, USD_MAX_MATCH_FILTER_LEN,
+                        USD_MAX_NUM_PUBLISH_SESSIONS, USD_MAX_NUM_SUBSCRIBE_SESSIONS);
+
+        when(mStaIfaceHal.getUsdCapabilities(WIFI_IFACE_NAME)).thenReturn(usdCapabilities);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
+        SupplicantStaIfaceHal.UsdCapabilitiesInternal halUsdCapabilities =
+                mWifiNative.getUsdCapabilities();
+        // Publisher is disabled even though the device is capable of supporting.
+        assertFalse(halUsdCapabilities.isUsdPublisherSupported);
+    }
+
+    /**
+     * Test USD capabilities when config_wifiUsdPublisherSupported = true in the overlay.
+     */
+    @Test
+    public void testGetUsdCapabilities() {
+        mResources.setBoolean(R.bool.config_wifiUsdPublisherSupported, true);
+        SupplicantStaIfaceHal.UsdCapabilitiesInternal usdCapabilities =
+                new SupplicantStaIfaceHal.UsdCapabilitiesInternal(true, true, USD_MAX_SSI_LEN,
+                        USD_MAX_SERVICE_NAME_LEN, USD_MAX_MATCH_FILTER_LEN,
+                        USD_MAX_NUM_PUBLISH_SESSIONS, USD_MAX_NUM_SUBSCRIBE_SESSIONS);
+
+        when(mStaIfaceHal.getUsdCapabilities(WIFI_IFACE_NAME)).thenReturn(usdCapabilities);
+        mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
+                mConcreteClientModeManager);
+        SupplicantStaIfaceHal.UsdCapabilitiesInternal halUsdCapabilities =
+                mWifiNative.getUsdCapabilities();
+        // Publisher is supported and enabled
+        assertTrue(halUsdCapabilities.isUsdPublisherSupported);
+        assertTrue(halUsdCapabilities.isUsdSubscriberSupported);
+        assertEquals(USD_MAX_SSI_LEN, halUsdCapabilities.maxLocalSsiLengthBytes);
+        assertEquals(USD_MAX_SERVICE_NAME_LEN, halUsdCapabilities.maxServiceNameLengthBytes);
+        assertEquals(USD_MAX_MATCH_FILTER_LEN, halUsdCapabilities.maxMatchFilterLengthBytes);
+        assertEquals(USD_MAX_NUM_PUBLISH_SESSIONS, halUsdCapabilities.maxNumPublishSessions);
+        assertEquals(USD_MAX_NUM_SUBSCRIBE_SESSIONS, halUsdCapabilities.maxNumSubscribeSessions);
     }
 }

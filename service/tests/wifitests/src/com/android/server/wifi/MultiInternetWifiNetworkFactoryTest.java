@@ -20,7 +20,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyObject;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -243,7 +243,7 @@ public class MultiInternetWifiNetworkFactoryTest extends WifiBaseTest {
         mMultiInternetWifiNetworkFactory.needNetworkFor(mNetworkRequest2G);
         mMultiInternetWifiNetworkFactory.needNetworkFor(mNetworkRequest5G);
         verify(mMultiInternetManager, never()).setMultiInternetConnectionWorksource(anyInt(),
-                anyObject(), anyObject());
+                any(), any());
         verifyNoMoreInteractions(mWifiConnectivityManager);
     }
 

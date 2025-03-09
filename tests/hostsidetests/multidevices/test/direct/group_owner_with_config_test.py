@@ -23,6 +23,7 @@ import logging
 from mobly import asserts
 from mobly import base_test
 from mobly import records
+from mobly import signals
 from mobly import test_runner
 from mobly import utils
 from mobly.controllers import android_device
@@ -33,6 +34,7 @@ import wifi_test_utils
 from android.platform.test.annotations import ApiTest
 
 _FREQ_2G = 2447
+_GROUP_OWNER_DISCOVER_RETRY = 3
 
 
 class GroupOwnerWithConfigTest(base_test.BaseTestClass):
@@ -155,9 +157,23 @@ class GroupOwnerWithConfigTest(base_test.BaseTestClass):
         p2p_utils.create_group(group_owner, config=p2p_config)
 
         # Step 3. Initiate p2p device discovery on the client device.
-        peer_p2p_device = p2p_utils.discover_group_owner(
-            client=client, group_owner_address=group_owner.p2p_device.device_address
-        )
+        # Adding a retry because GC might fail to discover GO in one scan
+        # attempt. GO is operating on channel 149, P2P protocol scans channel
+        # 149 only once as a part of full scan in P2P_FIND.
+        for i in range(_GROUP_OWNER_DISCOVER_RETRY):
+            try:
+                peer_p2p_device = p2p_utils.discover_group_owner(
+                    client=client,
+                    group_owner_address=group_owner.p2p_device.device_address
+                )
+                break
+            except signals.TestFailure:
+                if i == _GROUP_OWNER_DISCOVER_RETRY - 1:
+                    raise
+                client.ad.log.exception(
+                    'Failed to discover group owner %s. Trying again...',
+                    group_owner.p2p_device.device_address
+                )
         asserts.assert_true(
             peer_p2p_device.is_group_owner,
             f'P2p device {peer_p2p_device} should be group owner.',

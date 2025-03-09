@@ -41,6 +41,9 @@ import com.google.android.mobly.snippet.rpc.Rpc;
 
 import org.json.JSONException;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 public class WifiDirectSnippet implements Snippet {
 
     private static final String TAG = "WifiDirectSnippet";
@@ -110,17 +113,25 @@ public class WifiDirectSnippet implements Snippet {
 
     class WifiP2pActionListener implements WifiP2pManager.ActionListener {
         private final String mOperation;
+        private final CountDownLatch mCountDownLatch;
         WifiP2pActionListener(String action) {
+            mCountDownLatch = new CountDownLatch(1);
             mOperation = action;
+        }
+
+        public void await() throws InterruptedException {
+            mCountDownLatch.await(1000, TimeUnit.MILLISECONDS);
         }
 
         @Override
         public void onSuccess() {
             Log.d(TAG, mOperation + " OnSuccess");
+            mCountDownLatch.countDown();
         }
         @Override
         public void onFailure(int reason) {
             Log.d(TAG, mOperation + " onFailure - reason: " + reason);
+            mCountDownLatch.countDown();
         }
     }
 
@@ -174,6 +185,13 @@ public class WifiDirectSnippet implements Snippet {
     @Rpc(description = "Close P2P channel")
     public void closeP2p() throws JSONException {
         if (mChannel != null) {
+            try {
+                WifiP2pActionListener actionListener = new WifiP2pActionListener("RemoveGroup");
+                mP2pManager.removeGroup(mChannel, actionListener);
+                actionListener.await();
+            } catch (InterruptedException e) {
+                Log.d(TAG, "RemoveGroup request failed");
+            }
             mChannel.close();
             mChannel = null;
             Log.d(TAG, "Wifi Direct close called");
@@ -189,9 +207,15 @@ public class WifiDirectSnippet implements Snippet {
             Log.d(TAG, "p2pCreateGroup failed -should call initializeP2p first ");
             return false;
         }
+        WifiP2pActionListener actionListener = new WifiP2pActionListener("CreateGroup");
         WifiP2pConfig wifiP2pConfig = buildWifiP2pConfig(networkName, passphrase, frequency);
-        mP2pManager.createGroup(mChannel, wifiP2pConfig,
-                new WifiP2pActionListener("CreateGroup"));
+        try {
+            mP2pManager.createGroup(mChannel, wifiP2pConfig, actionListener);
+            actionListener.await();
+        } catch (InterruptedException e) {
+            Log.d(TAG, "p2pCreateGroup request failed");
+            return false;
+        }
         Log.d(TAG, "p2pCreateGroup succeeded");
         return true;
     }
@@ -203,10 +227,16 @@ public class WifiDirectSnippet implements Snippet {
             Log.d(TAG, "p2pConnect failed- should call initializeP2p first");
             return -1;
         }
+        WifiP2pActionListener actionListener = new WifiP2pActionListener("Connect");
         WifiP2pConfig wifiP2pConfig = buildWifiP2pConfig(networkName, passphrase, frequency);
         long startTime = System.currentTimeMillis();
-        mP2pManager.connect(mChannel, wifiP2pConfig,
-                new WifiP2pActionListener("Connect"));
+        try {
+            mP2pManager.connect(mChannel, wifiP2pConfig, actionListener);
+            actionListener.await();
+        } catch (InterruptedException e) {
+            Log.d(TAG, "p2pConnect request failed");
+            return -1;
+        }
 
         synchronized (mLock) {
             mLock.wait(5000);

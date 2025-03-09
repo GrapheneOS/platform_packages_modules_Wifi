@@ -64,7 +64,6 @@ import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyByte;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.anyObject;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.atLeast;
@@ -634,7 +633,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         cap.wifiStandard = ScanResult.WIFI_STANDARD_11AC;
         when(mWifiNative.getConnectionCapabilities(WIFI_IFACE_NAME))
                 .thenReturn(mConnectionCapabilities);
-        when(mWifiNative.setStaMacAddress(eq(WIFI_IFACE_NAME), anyObject()))
+        when(mWifiNative.setStaMacAddress(eq(WIFI_IFACE_NAME), any()))
                 .then(new AnswerWithArguments() {
                     public boolean answer(String iface, MacAddress mac) {
                         when(mWifiNative.getMacAddress(iface)).thenReturn(mac.toString());
@@ -6465,7 +6464,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Test
     public void testRandomizeMacAddressFailedRetryOnInterfaceUp() throws Exception {
         // mock setting the MAC address to fail
-        when(mWifiNative.setStaMacAddress(eq(WIFI_IFACE_NAME), anyObject())).thenReturn(false);
+        when(mWifiNative.setStaMacAddress(eq(WIFI_IFACE_NAME), any())).thenReturn(false);
         initializeCmi();
 
         ArgumentCaptor<MacAddress> macAddressCaptor = ArgumentCaptor.forClass(MacAddress.class);
@@ -6473,7 +6472,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         MacAddress currentMac = macAddressCaptor.getValue();
 
         // mock setting the MAC address to succeed
-        when(mWifiNative.setStaMacAddress(eq(WIFI_IFACE_NAME), anyObject()))
+        when(mWifiNative.setStaMacAddress(eq(WIFI_IFACE_NAME), any()))
                 .then(new AnswerWithArguments() {
                     public boolean answer(String iface, MacAddress mac) {
                         when(mWifiNative.getMacAddress(iface)).thenReturn(mac.toString());
@@ -6588,6 +6587,26 @@ public class ClientModeImplTest extends WifiBaseTest {
         assumeTrue(mWifiInfo.isRestricted());
         assertEquals(OP_PACKAGE_NAME,
                 mWifiInfo.getRequestingPackageName());
+
+        verify(mWifiConfigManager, never()).userTemporarilyDisabledNetwork(
+                eq(mConnectedNetwork.SSID), anyInt());
+        // Setup new manual connection to another network
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
+        config.networkId = TEST_NETWORK_ID;
+        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(config);
+
+        IActionListener connectActionListener = mock(IActionListener.class);
+        mCmi.connectNetwork(
+                new NetworkUpdateResult(TEST_NETWORK_ID),
+                new ActionListenerWrapper(connectActionListener),
+                Process.SYSTEM_UID, OP_PACKAGE_NAME, null);
+        mLooper.dispatchAll();
+        verify(connectActionListener).onSuccess();
+
+        // verify new manual connection will add the wifi network specifier network to temporary
+        // blocklist
+        verify(mWifiConfigManager).userTemporarilyDisabledNetwork(eq(mConnectedNetwork.SSID),
+                anyInt());
     }
 
     /**

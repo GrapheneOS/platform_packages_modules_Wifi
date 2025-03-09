@@ -18,6 +18,7 @@ import re
 import sys
 import time
 
+from android.platform.test.annotations import ApiTest
 from aware import aware_lib_utils as autils
 from aware import constants
 from mobly import asserts
@@ -162,6 +163,12 @@ class MacRandomTest(base_test.BaseTestClass):
         'cmd wifiaware native_api set mac_random_interval_sec %d' % interval_sec
     )
 
+  @ApiTest(
+    apis=[
+        'android.net.wifi.WifiManager#getConnectionInfo()',
+        'android.net.wifi.WifiInfo#getMacAddress()',
+    ]
+  )
   def test_nmi_ndi_randomization_on_enable(self):
     """Validate randomization of the NMI.
 
@@ -219,6 +226,11 @@ class MacRandomTest(base_test.BaseTestClass):
         % (infra_mac, mac_addresses),
     )
 
+  @ApiTest(
+    apis=[
+        'android.net.wifi.aware.IdentityChangedListener#onIdentityChanged(byte[] mac)',
+    ]
+  )
   def test_nmi_randomization_on_interval(self):
     """Validate randomization of the NMI on different intervals.
 

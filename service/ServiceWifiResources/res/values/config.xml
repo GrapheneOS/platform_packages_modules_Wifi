@@ -1415,4 +1415,9 @@
     <!-- Boolean indicating whether to use wifi VoIP detection module to detect VoIP over Wi-FI to
          ehance Wi-Fi VoIP quality -->
     <bool translatable="false" name="config_wifiVoipDetectionEnabled">false</bool>
+    <!-- Boolean indicating whether USD publisher is supported. This flag overrides device's USD
+         publisher support capability if set to false. It is disabled by default since USD publisher
+         has longer off-channel dwell time (500 milliseconds to 1 sec) and a much longer pause
+         timeout (60 sec) once it finds a subscriber. -->
+    <bool translatable="false" name="config_wifiUsdPublisherSupported">false</bool>
 </resources>

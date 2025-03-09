@@ -69,8 +69,7 @@ public class UsdServiceImpl extends IUsdManager.Stub {
         mUsdNativeManager = new UsdNativeManager(mWifiInjector.getWifiNative());
         mUsdRequestManager = new UsdRequestManager(mUsdNativeManager,
                 mWifiInjector.getWifiThreadRunner(),
-                mWifiInjector.getActiveModeWarden().getPrimaryClientModeManager()
-                        .getInterfaceName(),
+                mWifiInjector.getActiveModeWarden(),
                 mWifiInjector.getClock(), mWifiInjector.getAlarmManager());
         mWifiThreadRunner = mWifiInjector.getWifiThreadRunner();
         Log.i(TAG, "start");
@@ -81,6 +80,8 @@ public class UsdServiceImpl extends IUsdManager.Stub {
      */
     public void startLate() {
         Log.i(TAG, "startLate");
+        // Get USD capabilities to update the cache in UsdRequestManager
+        mUsdRequestManager.getCharacteristics();
     }
 
     /**

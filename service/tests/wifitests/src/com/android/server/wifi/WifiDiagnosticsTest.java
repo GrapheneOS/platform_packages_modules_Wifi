@@ -22,10 +22,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.AdditionalMatchers.gt;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.contains;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyObject;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
@@ -183,7 +183,7 @@ public class WifiDiagnosticsTest extends WifiBaseTest {
     public void startLoggingRegistersLogEventHandler() throws Exception {
         mWifiDiagnostics.enableVerboseLogging(false, false);
         mWifiDiagnostics.startLogging(STA_IF_NAME);
-        verify(mWifiNative).setLoggingEventHandler(anyObject());
+        verify(mWifiNative).setLoggingEventHandler(any());
     }
 
     /**
@@ -195,32 +195,32 @@ public class WifiDiagnosticsTest extends WifiBaseTest {
             throws Exception {
         final boolean verbosityToggle = false;  // even default mode registers handler
 
-        when(mWifiNative.setLoggingEventHandler(anyObject())).thenReturn(false);
+        when(mWifiNative.setLoggingEventHandler(any())).thenReturn(false);
         mWifiDiagnostics.enableVerboseLogging(verbosityToggle, false);
         mWifiDiagnostics.startLogging(STA_IF_NAME);
-        verify(mWifiNative).setLoggingEventHandler(anyObject());
+        verify(mWifiNative).setLoggingEventHandler(any());
         mWifiDiagnostics.stopLogging(STA_IF_NAME);
         reset(mWifiNative);
 
-        when(mWifiNative.setLoggingEventHandler(anyObject())).thenReturn(true);
+        when(mWifiNative.setLoggingEventHandler(any())).thenReturn(true);
         mWifiDiagnostics.enableVerboseLogging(verbosityToggle, false);
         mWifiDiagnostics.startLogging(STA_IF_NAME);
-        verify(mWifiNative).setLoggingEventHandler(anyObject());
+        verify(mWifiNative).setLoggingEventHandler(any());
     }
 
     /** Verifies that startLogging() does not make redundant calls to setLoggingEventHandler(). */
     @Test
     public void startLoggingDoesNotRegisterLogEventHandlerIfPriorAttemptSucceeded()
             throws Exception {
-        when(mWifiNative.setLoggingEventHandler(anyObject())).thenReturn(true);
+        when(mWifiNative.setLoggingEventHandler(any())).thenReturn(true);
         mWifiDiagnostics.enableVerboseLogging(false, false);
         mWifiDiagnostics.startLogging(STA_IF_NAME);
-        verify(mWifiNative).setLoggingEventHandler(anyObject());
+        verify(mWifiNative).setLoggingEventHandler(any());
         reset(mWifiNative);
 
         mWifiDiagnostics.enableVerboseLogging(false, false);
         mWifiDiagnostics.startLogging(STA_IF_NAME);
-        verify(mWifiNative, never()).setLoggingEventHandler(anyObject());
+        verify(mWifiNative, never()).setLoggingEventHandler(any());
     }
 
     /**
@@ -262,7 +262,7 @@ public class WifiDiagnosticsTest extends WifiBaseTest {
         final boolean verbosityToggle = false;  // even default mode registers handler
 
         mWifiDiagnostics.enableVerboseLogging(verbosityToggle, verbosityToggle);
-        when(mWifiNative.setLoggingEventHandler(anyObject())).thenReturn(true);
+        when(mWifiNative.setLoggingEventHandler(any())).thenReturn(true);
         mWifiDiagnostics.startLogging(STA_IF_NAME);
         reset(mWifiNative);
 
@@ -282,7 +282,7 @@ public class WifiDiagnosticsTest extends WifiBaseTest {
     public void multipleStopLoggingCallsOnlyResetLogHandlerOnce() throws Exception {
         final boolean verbosityToggle = false;  // even default mode registers handler
 
-        when(mWifiNative.setLoggingEventHandler(anyObject())).thenReturn(true);
+        when(mWifiNative.setLoggingEventHandler(any())).thenReturn(true);
         mWifiDiagnostics.enableVerboseLogging(verbosityToggle, verbosityToggle);
         mWifiDiagnostics.startLogging(STA_IF_NAME);
         reset(mWifiNative);
@@ -917,7 +917,7 @@ public class WifiDiagnosticsTest extends WifiBaseTest {
     public void dumpRequestsLastMileLoggerDump() {
         mWifiDiagnostics.dump(
                 new FileDescriptor(), new PrintWriter(new StringWriter()), new String[]{});
-        verify(mLastMileLogger).dump(anyObject());
+        verify(mLastMileLogger).dump(any());
     }
 
     @Test

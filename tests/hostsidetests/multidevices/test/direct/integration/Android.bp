@@ -42,9 +42,4 @@ python_test_host {
         tags: ["mobly"],
     },
     test_suites: ["general-tests"],
-    version: {
-        py3: {
-            embedded_launcher: true,
-        },
-    },
 }

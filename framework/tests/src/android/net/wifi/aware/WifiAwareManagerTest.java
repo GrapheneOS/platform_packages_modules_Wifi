@@ -120,6 +120,8 @@ public class WifiAwareManagerTest {
     private static final String PASSPHRASE_TOO_SHORT = "012";
     private static final String PASSPHRASE_TOO_LONG =
             "0123456789012345678901234567890123456789012345678901234567890123456789";
+    @Mock
+    private Characteristics mCharacteristics;
 
     @Before
     public void setUp() throws Exception {
@@ -134,6 +136,14 @@ public class WifiAwareManagerTest {
         mDut = new WifiAwareManager(mockContext, mockAwareService);
         mMockLooper = new TestLooper();
         mMockLooperHandler = new Handler(mMockLooper.getLooper());
+        // Set default values for mock object
+        when(mCharacteristics.getMaxServiceNameLength()).thenReturn(255);
+        when(mCharacteristics.getMaxServiceSpecificInfoLength()).thenReturn(255);
+        when(mCharacteristics.getMaxMatchFilterLength()).thenReturn(255);
+        when(mCharacteristics.isInstantCommunicationModeSupported()).thenReturn(true);
+        when(mCharacteristics.isSuspensionSupported()).thenReturn(true);
+        when(mCharacteristics.isAwarePairingSupported()).thenReturn(true);
+        when(mCharacteristics.isPeriodicRangingSupported()).thenReturn(true);
     }
 
     /*
@@ -1981,5 +1991,19 @@ public class WifiAwareManagerTest {
         verify(mockAwareService).isOpportunisticModeEnabled(anyString(), captor.capture());
         captor.getValue().onResult(true);
         verify(resultsCallback).accept(true);
+    }
+
+    /**
+     * Verify that SubscribeConfig.assertValid() does not throw an exception when min distance is
+     * greater than max distance
+     */
+    @Test
+    public void testSubscribeConfigAssertValidMinDistanceGreaterThanMaxDistance() {
+        SubscribeConfig config = new SubscribeConfig.Builder()
+                .setServiceName("TestService")
+                .setMinDistanceMm(1000)
+                .setMaxDistanceMm(100)
+                .build();
+        config.assertValid(mCharacteristics, true);
     }
 }

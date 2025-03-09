@@ -26,6 +26,7 @@ from mobly.controllers import android_device
 from direct import constants
 
 _DEFAULT_TIMEOUT = datetime.timedelta(seconds=45)
+_GROUP_OWNER_DISCOVERY_TIMEOUT = datetime.timedelta(seconds=60)
 
 
 @dataclasses.dataclass
@@ -265,7 +266,7 @@ def discover_group_owner(
         event = client.broadcast_receiver.waitForEvent(
             event_name=constants.WIFI_P2P_PEERS_CHANGED_ACTION,
             predicate=lambda event: len(_filter_target_group_owner(event)) > 0,
-            timeout=_DEFAULT_TIMEOUT.total_seconds(),
+            timeout=_GROUP_OWNER_DISCOVERY_TIMEOUT.total_seconds(),
         )
     except errors.CallbackHandlerTimeoutError as e:
         asserts.fail(

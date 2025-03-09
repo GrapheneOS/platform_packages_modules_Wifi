@@ -20,6 +20,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 import android.net.wifi.util.Environment;
 import android.os.IBinder;
 import android.system.wifi.mainline_supplicant.IMainlineSupplicant;
+import android.system.wifi.mainline_supplicant.IStaInterface;
 
 import com.android.server.wifi.WifiNative;
 
@@ -42,9 +44,12 @@ import org.mockito.MockitoAnnotations;
  * Unit tests for {@link MainlineSupplicant}.
  */
 public class MainlineSupplicantTest {
+    private static final String IFACE_NAME = "wlan0";
+
     private @Mock IMainlineSupplicant mIMainlineSupplicantMock;
     private @Mock IBinder mIBinderMock;
     private @Mock WifiNative.SupplicantDeathEventHandler mFrameworkDeathHandler;
+    private @Mock IStaInterface mIStaInterface;
     private MainlineSupplicantSpy mDut;
 
     private ArgumentCaptor<IBinder.DeathRecipient> mDeathRecipientCaptor =
@@ -67,6 +72,7 @@ public class MainlineSupplicantTest {
         assumeTrue(Environment.isSdkAtLeastB());
         MockitoAnnotations.initMocks(this);
         when(mIMainlineSupplicantMock.asBinder()).thenReturn(mIBinderMock);
+        when(mIMainlineSupplicantMock.addStaInterface(anyString())).thenReturn(mIStaInterface);
         mDut = new MainlineSupplicantSpy();
     }
 
@@ -134,5 +140,36 @@ public class MainlineSupplicantTest {
 
         mDeathRecipientCaptor.getValue().binderDied(mIBinderMock);
         verify(mFrameworkDeathHandler, never()).onDeath();
+    }
+
+    /**
+     * Verify the behavior of {@link MainlineSupplicant#addStaInterface(String)}
+     */
+    @Test
+    public void testAddStaInterface() throws Exception {
+        validateServiceStart();
+        assertTrue(mDut.addStaInterface(IFACE_NAME));
+
+        // Re-adding an existing interface should return a result from the cache
+        assertTrue(mDut.addStaInterface(IFACE_NAME));
+        verify(mIMainlineSupplicantMock, times(1)).addStaInterface(anyString());
+    }
+
+    /**
+     * Verify the behavior of {@link MainlineSupplicant#removeStaInterface(String)}
+     */
+    @Test
+    public void testRemoveStaInterface() throws Exception {
+        // Normal add and remove should succeed
+        validateServiceStart();
+        assertTrue(mDut.addStaInterface(IFACE_NAME));
+        assertTrue(mDut.removeStaInterface(IFACE_NAME));
+
+        // Removal a non-existent interface should fail
+        assertFalse(mDut.removeStaInterface(IFACE_NAME)); // already removed
+        assertFalse(mDut.removeStaInterface(IFACE_NAME + "new")); // never existed
+
+        // Only the valid remove request should reach have reached the service
+        verify(mIMainlineSupplicantMock, times(1)).removeStaInterface(anyString());
     }
 }

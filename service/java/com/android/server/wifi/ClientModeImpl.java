@@ -1525,6 +1525,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 mWifiMetrics.setNominatorForNetwork(netId,
                         WifiMetricsProto.ConnectionEvent.NOMINATOR_MANUAL);
             }
+            if (isPrimary()) {
+                WifiConfiguration config = getConnectedWifiConfigurationInternal();
+                if (config != null && getClientRoleForMetrics(config)
+                        == WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_LOCAL_ONLY) {
+                    // User manually trigger switch from a local-only network to primary.
+                    // Temporarily block re-connection to the local-only network to avoid app
+                    // automatically connecting back to it.
+                    mWifiConfigManager.userTemporarilyDisabledNetwork(config.SSID,
+                            Process.WIFI_UID);
+                }
+            }
             startConnectToNetwork(netId, uid, SUPPLICANT_BSSID_ANY);
         }
     }

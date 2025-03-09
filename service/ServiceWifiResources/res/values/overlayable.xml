@@ -356,6 +356,7 @@
           <item type="bool" name="config_wifiRsnOverridingEnabled" />
           <item type="bool" name="config_wifi_subsystem_restart_bugreport_enabled" />
           <item type="bool" name="config_wifiVoipDetectionEnabled" />
+          <item type="bool" name="config_wifiUsdPublisherSupported" />
 
           <!-- Params from config.xml that can be overlayed -->
 

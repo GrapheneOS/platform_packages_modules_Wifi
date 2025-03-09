@@ -42,11 +42,6 @@ python_defaults {
         "cts-interactive",
         "general-tests",
     ],
-    version: {
-        py3: {
-            embedded_launcher: true,
-        },
-    },
 }
 
 python_test_host {
@@ -90,11 +85,6 @@ python_test_host {
         "general-tests",
         "cts-v-host",
     ],
-    version: {
-        py3: {
-            embedded_launcher: true,
-        },
-    },
 }
 
 python_library_host {
@@ -125,11 +115,6 @@ python_test_host {
         tags: ["mobly"],
     },
     test_suites: ["general-tests"],
-    version: {
-        py3: {
-            embedded_launcher: true,
-        },
-    },
 }
 
 python_test_host {
@@ -159,11 +144,6 @@ python_test_host {
         "general-tests",
         "cts-v-host",
     ],
-    version: {
-        py3: {
-            embedded_launcher: true,
-        },
-    },
 }
 
 python_library_host {
@@ -190,9 +170,4 @@ python_test_host {
         "general-tests",
         "cts-v-host",
     ],
-    version: {
-        py3: {
-            embedded_launcher: true,
-        },
-    },
 }

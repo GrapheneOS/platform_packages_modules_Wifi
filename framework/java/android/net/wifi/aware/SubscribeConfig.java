@@ -507,10 +507,6 @@ public final class SubscribeConfig implements Parcelable {
         if (mMaxDistanceMmSet && mMaxDistanceMm < 0) {
             throw new IllegalArgumentException("Maximum distance must be non-negative");
         }
-        if (mMinDistanceMmSet && mMaxDistanceMmSet && mMaxDistanceMm <= mMinDistanceMm) {
-            throw new IllegalArgumentException(
-                    "Maximum distance must be greater than minimum distance");
-        }
 
         if (mPeriodicRangingEnabled && (mMinDistanceMmSet || mMaxDistanceMmSet)) {
             throw new IllegalArgumentException(
@@ -886,6 +882,10 @@ public final class SubscribeConfig implements Parcelable {
          * <p>
          * The device must support Wi-Fi RTT for this feature to be used. Feature support is checked
          * as described in {@link android.net.wifi.rtt}.
+         * <p>
+         * Note: The minimum distance is same as outer threshold of egress geofence. This can be
+         * more than {@link #setMaxDistanceMm(int)} which is same as inner threshold of ingress
+         * geofence i.e. discovery with  distance <= max or distance >= min.
          *
          * @param minDistanceMm Minimum distance, in mm, to the publisher above which to trigger
          *                      discovery.
@@ -921,6 +921,10 @@ public final class SubscribeConfig implements Parcelable {
          * <p>
          * The device must support Wi-Fi RTT for this feature to be used. Feature support is checked
          * as described in {@link android.net.wifi.rtt}.
+         * <p>
+         * Note: The maximum distance is same as inner threshold of ingress geofence. This can be
+         * less than {@link #setMinDistanceMm(int)} which is same as outer threshold of egress
+         * geofence i.e. discovery with  distance <= max or distance >= min.
          *
          * @param maxDistanceMm Maximum distance, in mm, to the publisher below which to trigger
          *                      discovery.
