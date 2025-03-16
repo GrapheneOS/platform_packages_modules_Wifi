@@ -42,6 +42,7 @@ android_test {
         "frameworks-base-testutils",
         "guava",
         "wifi-modules-utils",
+        "mockito-target-extended-minus-junit4",
         "net-tests-utils",
         "net-utils-framework-common",
         "truth",
@@ -54,7 +55,6 @@ android_test {
     ],
 
     // These are required for mockito static/final mocking
-    // mockito-target-extended-minus-junit4 is already included in frameworks-base-testutils
     jni_libs: [
         "libdexmakerjvmtiagent",
         "libstaticjvmtiagent",

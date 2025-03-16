@@ -73,10 +73,11 @@ interface IStaInterfaceCallback {
     }
 
     /**
-     * Codes indicating the status of USD operations.
+     * Codes indicating the reason for terminating a USD session.
+     * Returned by |onUsdPublishTerminated| and |onUsdSubscribeTerminated|.
      */
     @Backing(type="int")
-    enum UsdReasonCode {
+    enum UsdTerminateReasonCode {
         /**
          * Unknown failure occurred.
          */
@@ -96,6 +97,25 @@ interface IStaInterfaceCallback {
          * Invalid arguments were provided.
          */
         INVALID_ARGS = 3
+    }
+
+    /**
+     * Error codes returned by |onUsdPublishConfigFailed| and |onUsdSubscribeConfigFailed|.
+     */
+    @Backing(type="int")
+    enum UsdConfigErrorCode {
+        /**
+         * Unknown failure.
+         */
+        FAILURE_UNKNOWN = 0,
+        /**
+         * The requested operation timed out.
+         */
+        FAILURE_TIMEOUT = 1,
+        /**
+         * The requested operation is currently not available.
+         */
+        FAILURE_NOT_AVAILABLE = 2,
     }
 
     /**
@@ -121,16 +141,18 @@ interface IStaInterfaceCallback {
      * publish session could not be configured.
      *
      * @param cmdId Identifier for the original request.
+     * @param errorCode Code indicating the failure reason.
      */
-    void onUsdPublishConfigFailed(in int cmdId);
+    void onUsdPublishConfigFailed(in int cmdId, in UsdConfigErrorCode errorCode);
 
     /**
      * Called in response to |IUsdInterface.startSubscribe| to indicate that the
      * subscribe session could not be configured.
      *
      * @param cmdId Identifier for the original request.
+     * @param errorCode Code indicating the failure reason.
      */
-    void onUsdSubscribeConfigFailed(in int cmdId);
+    void onUsdSubscribeConfigFailed(in int cmdId, in UsdConfigErrorCode errorCode);
 
     /**
      * Called in response to |IUsdInterface.cancelPublish| to indicate that the session
@@ -140,7 +162,7 @@ interface IStaInterfaceCallback {
      * @param publishId Identifier for the publish session.
      * @param reasonCode Code indicating the reason for the session cancellation.
      */
-    void onUsdPublishTerminated(in int publishId, in UsdReasonCode reasonCode);
+    void onUsdPublishTerminated(in int publishId, in UsdTerminateReasonCode reasonCode);
 
     /**
      * Called in response to |IUsdInterface.cancelSubscribe| to indicate that the session
@@ -150,7 +172,7 @@ interface IStaInterfaceCallback {
      * @param subscribeId Identifier for the subscribe session.
      * @param reasonCode Code indicating the reason for the session cancellation.
      */
-    void onUsdSubscribeTerminated(in int subscribeId, in UsdReasonCode reasonCode);
+    void onUsdSubscribeTerminated(in int subscribeId, in UsdTerminateReasonCode reasonCode);
 
     /**
      * Indicates that the publisher sent solicited publish message to the subscriber.

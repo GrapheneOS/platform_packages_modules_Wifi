@@ -442,6 +442,12 @@ public final class ScanResult implements Parcelable {
      */
     @SystemApi
     public static final int CIPHER_BIP_CMAC_256 = 9;
+    /**
+     * @hide
+     * Cipher suite: CCMP_256
+     */
+    public static final int CIPHER_CCMP_256 = 10;
+
 
     /**
      * The detected signal level in dBm, also known as the RSSI.

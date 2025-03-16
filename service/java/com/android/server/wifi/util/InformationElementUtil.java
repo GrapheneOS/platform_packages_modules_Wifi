@@ -1895,6 +1895,7 @@ public class InformationElementUtil {
         private static final int RSN_CIPHER_CCMP = 0x04ac0f00;
         private static final int RSN_CIPHER_NO_GROUP_ADDRESSED = 0x07ac0f00;
         private static final int RSN_CIPHER_GCMP_256 = 0x09ac0f00;
+        private static final int RSN_CIPHER_CCMP_256 = 0x0aac0f00;
         private static final int RSN_CIPHER_GCMP_128 = 0x08ac0f00;
         private static final int RSN_CIPHER_BIP_GMAC_128 = 0x0bac0f00;
         private static final int RSN_CIPHER_BIP_GMAC_256 = 0x0cac0f00;
@@ -2129,6 +2130,8 @@ public class InformationElementUtil {
                     return ScanResult.CIPHER_TKIP;
                 case RSN_CIPHER_CCMP:
                     return ScanResult.CIPHER_CCMP;
+                case RSN_CIPHER_CCMP_256:
+                    return ScanResult.CIPHER_CCMP_256;
                 case RSN_CIPHER_GCMP_256:
                     return ScanResult.CIPHER_GCMP_256;
                 case RSN_CIPHER_NO_GROUP_ADDRESSED:
@@ -2490,6 +2493,10 @@ public class InformationElementUtil {
                     return "None";
                 case ScanResult.CIPHER_CCMP:
                     return "CCMP";
+                case ScanResult.CIPHER_CCMP_256:
+                    return "CCMP-256";
+                case ScanResult.CIPHER_GCMP_128:
+                    return "GCMP";
                 case ScanResult.CIPHER_GCMP_256:
                     return "GCMP-256";
                 case ScanResult.CIPHER_TKIP:

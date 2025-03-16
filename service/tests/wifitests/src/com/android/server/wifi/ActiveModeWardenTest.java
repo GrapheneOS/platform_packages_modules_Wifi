@@ -64,7 +64,6 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import android.annotation.Nullable;
@@ -1239,7 +1238,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         verify(mWifiNative).isStaStaConcurrencySupported();
         verify(mWifiNative).isP2pStaConcurrencySupported();
         verify(mWifiNative).isNanStaConcurrencySupported();
-        verifyZeroInteractions(mWifiNative);
+        verifyNoMoreInteractions(mWifiNative);
     }
 
     /**

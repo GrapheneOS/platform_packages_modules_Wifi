@@ -948,13 +948,13 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
 
     @Test
     public void test11BERequires11AXConfigInValidateApWifiConfigurationCheck() {
-        assumeTrue(SdkLevel.isAtLeastT());
+        assumeTrue(SdkLevel.isAtLeastB());
         assertFalse(WifiApConfigStore.validateApWifiConfiguration(
                 new SoftApConfiguration.Builder()
                 .setSsid(TEST_DEFAULT_HOTSPOT_SSID)
                 .setIeee80211axEnabled(false)
                 .setIeee80211beEnabled(true)
-                .build(), true, mContext, mWifiNative));
+                .buildWithoutCheck(), true, mContext, mWifiNative));
     }
 
     /**

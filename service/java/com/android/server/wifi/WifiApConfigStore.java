@@ -733,7 +733,7 @@ public class WifiApConfigStore {
         }
 
         // Hostapd requires 11AX to configure 11BE
-        if (SdkLevel.isAtLeastT() && apConfig.isIeee80211beEnabled()
+        if (SdkLevel.isAtLeastB() && apConfig.isIeee80211beEnabled()
                 && !apConfig.isIeee80211axEnabledInternal()) {
             Log.d(TAG, "11AX is required when configuring 11BE");
             return false;

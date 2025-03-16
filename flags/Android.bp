@@ -37,6 +37,7 @@ java_aconfig_library {
         "//frameworks/opt/net/wifi/libs/WifiTrackerLib:__subpackages__",
         "//packages/modules/Wifi:__subpackages__",
         "//cts/tests/tests/wifi:__subpackages__",
+        "//cts/tests/tests/security",
     ],
 }
 

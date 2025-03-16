@@ -41,6 +41,7 @@ public class PasnConfigTest {
     private static final int TEST_CIPHER = PasnConfig.CIPHER_CCMP_128;
     private static final String TEST_SSID = "\"Test_SSID\"";
     private static final String TEST_PASSWORD = "password";
+    private static final String TEST_PASSWORD_MASKED = "*";
     private static final byte[] TEST_COOKIE = new byte[]{1, 2, 3};
 
     /**
@@ -134,8 +135,8 @@ public class PasnConfigTest {
                 .build();
 
         String expectedString = "PasnConfig{" + "mBaseAkms=" + TEST_AKM + ", mCiphers="
-                + TEST_CIPHER + ", mPassword='" + TEST_PASSWORD + '\'' + ", mWifiSsid=" + ssid
-                + ", mPasnComebackCookie=" + Arrays.toString(TEST_COOKIE) + '}';
+                + TEST_CIPHER + ", mPassword='" + TEST_PASSWORD_MASKED + '\'' + ", mWifiSsid="
+                + ssid + ", mPasnComebackCookie=" + Arrays.toString(TEST_COOKIE) + '}';
         assertEquals(expectedString, config.toString());
     }
 
@@ -199,8 +200,12 @@ public class PasnConfigTest {
         assertEquals(PasnConfig.CIPHER_NONE, PasnConfig.getCiphersFromCapabilities(""));
         assertEquals(PasnConfig.CIPHER_CCMP_128,
                 PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-CCMP]"));
+        assertEquals(PasnConfig.CIPHER_CCMP_256,
+                PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-CCMP-256]"));
         assertEquals(PasnConfig.CIPHER_GCMP_128,
-                PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-GCMP-128]"));
+                PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-GCMP]"));
+        assertEquals(PasnConfig.CIPHER_GCMP_256,
+                PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-GCMP-256]"));
     }
 
     /**

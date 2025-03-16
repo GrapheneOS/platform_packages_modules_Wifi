@@ -24,10 +24,12 @@ import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 import android.system.wifi.mainline_supplicant.IMainlineSupplicant;
 import android.system.wifi.mainline_supplicant.IStaInterface;
+import android.system.wifi.mainline_supplicant.IStaInterfaceCallback;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.WifiNative;
+import com.android.server.wifi.WifiThreadRunner;
 import com.android.wifi.flags.Flags;
 
 import java.util.HashMap;
@@ -48,13 +50,16 @@ public class MainlineSupplicant {
 
     private IMainlineSupplicant mIMainlineSupplicant;
     private final Object mLock = new Object();
+    private final WifiThreadRunner mWifiThreadRunner;
     private SupplicantDeathRecipient mServiceDeathRecipient;
     private WifiNative.SupplicantDeathEventHandler mFrameworkDeathHandler;
     private CountDownLatch mWaitForDeathLatch;
     private final boolean mIsServiceAvailable;
     private Map<String, IStaInterface> mActiveStaIfaces = new HashMap<>();
+    private Map<String, IStaInterfaceCallback> mStaIfaceCallbacks = new HashMap<>();
 
-    public MainlineSupplicant() {
+    public MainlineSupplicant(@NonNull WifiThreadRunner wifiThreadRunner) {
+        mWifiThreadRunner = wifiThreadRunner;
         mServiceDeathRecipient = new SupplicantDeathRecipient();
         mIsServiceAvailable = canServiceBeAccessed();
     }
@@ -125,6 +130,7 @@ public class MainlineSupplicant {
         synchronized (mLock) {
             mIMainlineSupplicant = null;
             mActiveStaIfaces.clear();
+            mStaIfaceCallbacks.clear();
         }
     }
 
@@ -195,7 +201,15 @@ public class MainlineSupplicant {
 
             try {
                 IStaInterface staIface = mIMainlineSupplicant.addStaInterface(ifaceName);
+                IStaInterfaceCallback callback = new MainlineSupplicantStaIfaceCallback(
+                        this, ifaceName, mWifiThreadRunner);
+                if (!registerStaIfaceCallback(staIface, callback)) {
+                    Log.i(TAG, "Unable to register callback with interface " + ifaceName);
+                    return false;
+                }
                 mActiveStaIfaces.put(ifaceName, staIface);
+                // Keep callback in a store to avoid recycling by the garbage collector
+                mStaIfaceCallbacks.put(ifaceName, callback);
                 Log.i(TAG, "Added STA interface " + ifaceName);
                 return true;
             } catch (ServiceSpecificException e) {
@@ -230,7 +244,32 @@ public class MainlineSupplicant {
             try {
                 mIMainlineSupplicant.removeStaInterface(ifaceName);
                 mActiveStaIfaces.remove(ifaceName);
+                mStaIfaceCallbacks.remove(ifaceName);
                 Log.i(TAG, "Removed STA interface " + ifaceName);
+                return true;
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodName);
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodName);
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Register a callback with the provided STA interface.
+     *
+     * @return true if the registration was successful, false otherwise.
+     */
+    private boolean registerStaIfaceCallback(@NonNull IStaInterface iface,
+            @NonNull IStaInterfaceCallback callback) {
+        synchronized (mLock) {
+            final String methodName = "registerStaIfaceCallback";
+            if (iface == null || callback == null) {
+                return false;
+            }
+            try {
+                iface.registerCallback(callback);
                 return true;
             } catch (ServiceSpecificException e) {
                 handleServiceSpecificException(e, methodName);

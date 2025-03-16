@@ -1251,11 +1251,11 @@ public final class RangingResult implements Parcelable {
                 .append(", numTxSpatialStreams=").append(mNumTxSpatialStreams)
                 .append(", numRxSpatialStreams=").append(mNumRxSpatialStreams)
                 .append(", vendorData=").append(mVendorData)
-                .append(", isRangingAuthenticated").append(mIsRangingAuthenticated)
-                .append(", isRangingFrameProtected").append(mIsRangingFrameProtected)
-                .append(", isSecureHeLtfEnabled").append(mIsSecureHeLtfEnabled)
-                .append(", pasnComebackCookie").append(Arrays.toString(mPasnComebackCookie))
-                .append(", pasnComebackAfterMillis").append(mPasnComebackAfterMillis)
+                .append(", isRangingAuthenticated=").append(mIsRangingAuthenticated)
+                .append(", isRangingFrameProtected=").append(mIsRangingFrameProtected)
+                .append(", isSecureHeLtfEnabled=").append(mIsSecureHeLtfEnabled)
+                .append(", pasnComebackCookie=").append(Arrays.toString(mPasnComebackCookie))
+                .append(", pasnComebackAfterMillis=").append(mPasnComebackAfterMillis)
                 .append("]").toString();
     }
 

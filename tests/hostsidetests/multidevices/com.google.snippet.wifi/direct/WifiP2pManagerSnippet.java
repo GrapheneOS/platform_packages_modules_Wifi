@@ -400,6 +400,52 @@ public class WifiP2pManagerSnippet implements Snippet {
     }
 
     /**
+     * Get p2p connect PIN code after calling {@link #wifiP2pConnect(JSONObject,Integer)} with
+     * WPS PIN.
+     *
+     * @param deviceName The name of the device to connect.
+     * @return The generated PIN as a String.
+     * @throws Throwable If failed to get PIN code.
+     */
+    @Rpc(description = "Get p2p connect PIN code after calling wifiP2pConnect with WPS PIN.")
+    public String wifiP2pGetKeypadPinCode(String deviceName) throws Throwable {
+        // Wait for the 'Invitation sent' dialog to appear
+        if (!mUiDevice.wait(Until.hasObject(By.text("Invitation to connect")),
+                UI_ACTION_LONG_TIMEOUT_MS)) {
+            throw new WifiP2pManagerException(
+                    "Invitation sent dialog did not appear within timeout.");
+        }
+        if (!mUiDevice.wait(Until.hasObject(By.text(deviceName)), UI_ACTION_SHORT_TIMEOUT_MS)) {
+            throw new WifiP2pManagerException(
+                    "The connect invitation is not triggered by expected peer device.");
+        }
+        // Find the UI lement with text='PIN:'
+        UiObject2 pinLabel = mUiDevice.findObject(By.text("PIN:"));
+        if (pinLabel == null) {
+            throw new WifiP2pManagerException("PIN label not found.");
+        }
+        Log.d("pinLabel = " + pinLabel);
+        // Get the sibling UI element that contains the PIN code. Use regex pattern "\d+" as PIN
+        // code must be composed entirely of numbers.
+        Pattern pattern = Pattern.compile("\\d+");
+        UiObject2 pinValue = pinLabel.getParent().findObject(By.text(pattern));
+        if (pinValue == null) {
+            throw new WifiP2pManagerException("Failed to find Pin code UI element.");
+        }
+        String pinCode = pinValue.getText();
+        Log.d("Retrieved PIN code: " + pinCode);
+        // Click 'OK' to close the PIN code alert
+        UiObject2 okButton = mUiDevice.findObject(By.text("Accept").clazz(Button.class));
+        if (okButton == null) {
+            throw new WifiP2pManagerException(
+                    "OK button not found in the p2p connection invitation pop-up window.");
+        }
+        okButton.click();
+        Log.d("Closed the p2p connect invitation pop-up window.");
+        return pinCode;
+    }
+
+    /**
      * Enters the given PIN code to accept a P2P connection invitation.
      *
      * @param pinCode    The PIN to enter.

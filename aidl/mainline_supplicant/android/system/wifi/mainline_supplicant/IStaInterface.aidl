@@ -67,9 +67,9 @@ interface IStaInterface {
     }
 
     /**
-     * Data used in both publish and subscribe configurations.
+     * Data used in both USD publish and subscribe configurations.
      */
-    parcelable BaseConfig {
+    parcelable UsdBaseConfig {
         /**
          * Service name of the USD session. A UTF-8 encoded string from 1 to 255 bytes in length.
          * The only acceptable single-byte UTF-8 symbols for a Service Name are alphanumeric
@@ -117,13 +117,13 @@ interface IStaInterface {
          * Max length: |UsdCapabilities.maxMatchFilterLength|.
          * NAN Spec: matching_filter_rx
          */
-        @nullable byte[] rxMatchfilter;
+        @nullable byte[] rxMatchFilter;
 
         /**
          * Time interval (in seconds) that a USD session will be alive.
          * The session will be terminated when the time to live (TTL) is reached, triggering either
-         * |IUsdCallback.onPublishTerminated| for Publish, or |IUsdCallback.onSubscribeTerminated|
-         * for Subscribe.
+         * |IStaInterfaceCallback.onPublishTerminated| for Publish, or
+         * |IStaInterfaceCallback.onSubscribeTerminated| for Subscribe.
          */
         int ttlSec;
 
@@ -141,9 +141,10 @@ interface IStaInterface {
     }
 
     /**
-     * Subscribe modes that this session can be configured in.
+     * Subscribe modes that this USD session can be configured in.
      */
-    enum SubscribeType {
+    @Backing(type="byte")
+    enum UsdSubscribeType {
         /**
          * Subscribe function does not request transmission of any Subscribe messages, but checks
          * for matches in received Publish messages.
@@ -159,16 +160,16 @@ interface IStaInterface {
     /**
      * Parameters for configuring a USD subscribe session.
      */
-    parcelable SubscribeConfig {
+    parcelable UsdSubscribeConfig {
         /**
          * Base USD session parameters.
          */
-        BaseConfig baseConfig;
+        UsdBaseConfig baseConfig;
 
         /**
          * Subscribe mode that this session should be configured in.
          */
-        SubscribeType subscribeType;
+        UsdSubscribeType subscribeType;
 
         /**
          * Recommended periodicity (in milliseconds) of query transmissions for the session.
@@ -179,7 +180,8 @@ interface IStaInterface {
     /**
      * Type of USD publishing.
      */
-    enum PublishType {
+    @Backing(type="byte")
+    enum UsdPublishType {
         /**
          * Only transmissions that are triggered by a specific event.
          */
@@ -199,8 +201,8 @@ interface IStaInterface {
     /**
      * Types of USD publish transmissions.
      */
-    @Backing(type="int")
-    enum PublishTransmissionType {
+    @Backing(type="byte")
+    enum UsdPublishTransmissionType {
         /**
          * Sends data from one device to a single, specific destination device.
          */
@@ -215,16 +217,16 @@ interface IStaInterface {
     /**
      * Parameters for configuring a USD publish session.
      */
-    parcelable PublishConfig {
+    parcelable UsdPublishConfig {
         /**
          * Base USD session parameters.
          */
-        BaseConfig baseConfig;
+        UsdBaseConfig baseConfig;
 
         /**
          * Types of transmissions (solicited vs. unsolicited) which should be generated.
          */
-        PublishType publishType;
+        UsdPublishType publishType;
 
         /**
          * Whether Further Service Discovery (FSD) is enabled.
@@ -239,7 +241,14 @@ interface IStaInterface {
         /**
          * Type of the publish transmission (ex. unicast, multicast).
          */
-        PublishTransmissionType transmissionType;
+        UsdPublishTransmissionType transmissionType;
+
+        /**
+         * Whether to enable publish replied events. If disabled, then
+         * |IStaInterfaceCallback.onUsdPublishReplied| will not be
+         * called for this session.
+         */
+        boolean eventsEnabled;
     }
 
     /**
@@ -257,30 +266,31 @@ interface IStaInterface {
     UsdCapabilities getUsdCapabilities();
 
     /**
-     * Start a USD publish session. Triggers a response via |IUsdCallback.onPublishStarted|
-     * if successful, or |IUsdCallback.onPublishConfigFailed| if failed.
+     * Start a USD publish session. Triggers a response via |IStaInterfaceCallback.onPublishStarted|
+     * if successful, or |IStaInterfaceCallback.onUsdPublishConfigFailed| if failed.
      *
      * @param cmdId Identifier for this request. Will be returned in the callback to identify
      *              the request.
-     * @param usdPublishConfig Parameters for the requested publish session.
+     * @param publishConfig Parameters for the requested publish session.
      * @throws ServiceSpecificException with one of the following values:
      *         |SupplicantStatusCode.FAILURE_UNKNOWN|
      *         |SupplicantStatusCode.FAILURE_UNSUPPORTED|
      */
-    void startUsdPublish(in int cmdId, in PublishConfig usdPublishConfig);
+    void startUsdPublish(in int cmdId, in UsdPublishConfig publishConfig);
 
     /**
-     * Start a USD subscribe session. Triggers a response via |IUsdCallback.onSubscribeStarted|
-     * if successful, or |IUsdCallback.onSubscribeConfigFailed| if failed.
+     * Start a USD subscribe session. Triggers a response via
+     * |IStaInterfaceCallback.onSubscribeStarted| if successful, or
+     * |IStaInterfaceCallback.onUsdSubscribeConfigFailed| if failed.
      *
      * @param cmdId Identifier for this request. Will be returned in the callback to identify
      *              the request.
-     * @param usdSubscribeConfig Parameters for the requested subscribe session.
+     * @param subscribeConfig Parameters for the requested subscribe session.
      * @throws ServiceSpecificException with one of the following values:
      *         |SupplicantStatusCode.FAILURE_UNKNOWN|
      *         |SupplicantStatusCode.FAILURE_UNSUPPORTED|
      */
-    void startUsdSubscribe(in int cmdId, in SubscribeConfig usdSubscribeConfig);
+    void startUsdSubscribe(in int cmdId, in UsdSubscribeConfig subscribeConfig);
 
     /**
      * Update the service-specific info for an active publish session.
@@ -295,8 +305,8 @@ interface IStaInterface {
     void updateUsdPublish(in int publishId, in byte[] serviceSpecificInfo);
 
     /**
-     * Cancel an existing USD publish session. |IUsdCallback.onPublishTerminated|
-     * will be called upon completion.
+     * Cancel an existing USD publish session.
+     * |IStaInterfaceCallback.onPublishTerminated| will be called upon completion.
      *
      * @param publishId Identifier for the publish session to cancel.
      * @throws ServiceSpecificException with one of the following values:
@@ -307,7 +317,7 @@ interface IStaInterface {
 
     /**
      * Cancel an existing USD subscribe session.
-     * |IUsdCallback.onSubscribeTerminated| will be called upon completion.
+     * |IStaInterfaceCallback.onSubscribeTerminated| will be called upon completion.
      *
      * @param subscribeId Identifier for the subscribe session to cancel.
      * @throws ServiceSpecificException with one of the following values:

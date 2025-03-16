@@ -43,3 +43,30 @@ python_test_host {
     },
     test_suites: ["general-tests"],
 }
+
+python_test_host {
+    name: "WifiP2pManagerTestCases",
+    main: "wifi_p2p_manager_test.py",
+    srcs: [
+        "wifi_p2p_manager_test.py",
+    ],
+    libs: [
+        "mobly",
+        "wifi_direct_constants",
+        "wifi_direct_test_utils",
+        "wifi_p2p_lib",
+        "wifi_test_utils",
+        "platform-test-py-annotations",
+    ],
+    device_common_data: [":wifi_mobly_snippet"],
+    test_options: {
+        unit_test: false,
+        tags: ["mobly"],
+    },
+    test_suites: ["general-tests"],
+    version: {
+        py3: {
+            embedded_launcher: true,
+        },
+    },
+}

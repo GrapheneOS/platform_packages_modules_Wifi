@@ -1015,6 +1015,38 @@ public class InformationElementUtilTest extends WifiBaseTest {
     }
 
     /**
+     * Test Capabilities.generateCapabilitiesString() with RSN IE, GCMP-128 and SUITE_B_192.
+     * Expect the function to return a string with the proper security information.
+     */
+    @Test
+    public void buildCapabilities_rsnSuiteB192ElementWithGcmp128() {
+        InformationElement ieRsn = new InformationElement();
+        ieRsn.id = InformationElement.EID_RSN;
+        ieRsn.bytes = new byte[] {
+                // RSNE Version (0x0001)
+                (byte) 0x01, (byte) 0x00,
+                // Group cipher suite: GCMP-128
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x09,
+                // Number of cipher suites (1)
+                (byte) 0x01, (byte) 0x00,
+                // Cipher suite: GCMP-256
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x08,
+                // Number of AKMs (1)
+                (byte) 0x01, (byte) 0x00,
+                // SUITE_B_192 AKM
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x0C,
+                // RSN capabilities
+                (byte) 0x40, (byte) 0x00,
+                // PMKID count
+                (byte) 0x00, (byte) 0x00,
+                // Group mgmt cipher suite: BIP_GMAC_256
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x0c,
+        };
+        verifyCapabilityStringFromIeWithoutOweSupported(ieRsn,
+                "[RSN-EAP_SUITE_B_192-GCMP][MFPR]");
+    }
+
+    /**
      * Test Capabilities.generateCapabilitiesString() with RSN IE,
      * CCMP and FILS SHA256. Expect the function to return a string
      * with the proper security information.
@@ -2862,6 +2894,36 @@ public class InformationElementUtilTest extends WifiBaseTest {
         };
         verifyCapabilityStringFromIeWithoutOweSupported(ie,
                      "[RSN-PASN+SAE-CCMP+GCMP-256][MFPR]");
+    }
+
+    /**
+     * Test Capabilities.generateCapabilitiesString() with a RSN IE.
+     * Expect the function to return a string with the proper security information.
+     */
+    @Test
+    public void buildCapabilities_rsnElementWithPasnSaeAndCcmp256() {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_RSN;
+        ie.bytes = new byte[] {
+                // Version
+                (byte) 0x01, (byte) 0x00,
+                // Group cipher suite: TKIP
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x02,
+                // Pairwise cipher count
+                (byte) 0x01, (byte) 0x00,
+                // Pairwise cipher suite: CCMP-256
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x0A,
+                // AKM count
+                (byte) 0x02, (byte) 0x00,
+                // AMK suite: PASN
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x15,
+                // AKM suite: SAE
+                (byte) 0x00, (byte) 0x0F, (byte) 0xAC, (byte) 0x08,
+                // RSN capabilities
+                (byte) 0x40, (byte) 0x00,
+        };
+        verifyCapabilityStringFromIeWithoutOweSupported(ie,
+                "[RSN-PASN+SAE-CCMP-256][MFPR]");
     }
 
     /**

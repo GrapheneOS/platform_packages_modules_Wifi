@@ -109,8 +109,6 @@ public class WifiNetworkFactory extends NetworkFactory {
     @VisibleForTesting
     public static final int PERIODIC_SCAN_INTERVAL_MS = 10 * 1000; // 10 seconds
     @VisibleForTesting
-    public static final int NETWORK_CONNECTION_TIMEOUT_MS = 30 * 1000; // 30 seconds
-    @VisibleForTesting
     public static final int USER_SELECTED_NETWORK_CONNECT_RETRY_MAX = 3; // max of 3 retries.
     @VisibleForTesting
     public static final int USER_APPROVED_SCAN_RETRY_MAX = 3; // max of 3 retries.
@@ -1125,9 +1123,6 @@ public class WifiNetworkFactory extends NetworkFactory {
     // Helper method to trigger a connection request & schedule a timeout alarm to track the
     // connection request.
     private void connectToNetwork(@NonNull WifiConfiguration network) {
-        // Cancel connection timeout alarm for any previous connection attempts.
-        cancelConnectionTimeout();
-
         // First add the network to WifiConfigManager and then use the obtained networkId
         // in the CONNECT_NETWORK request.
         // Note: We don't do any error checks on the networkId because ClientModeImpl will do the
@@ -1151,9 +1146,6 @@ public class WifiNetworkFactory extends NetworkFactory {
                 new ActionListenerWrapper(listener),
                 mActiveSpecificNetworkRequest.getRequestorUid(),
                 mActiveSpecificNetworkRequest.getRequestorPackageName(), null);
-
-        // Post an alarm to handle connection timeout.
-        scheduleConnectionTimeout();
     }
 
     private void handleConnectToNetworkUserSelectionInternal(WifiConfiguration network,
@@ -1389,7 +1381,6 @@ public class WifiNetworkFactory extends NetworkFactory {
         }
         // Cancel periodic scan, connection timeout alarm.
         cancelPeriodicScans();
-        cancelConnectionTimeout();
         // Reset the active network request.
         mActiveSpecificNetworkRequest = null;
         mActiveSpecificNetworkRequestSpecifier = null;
@@ -1471,8 +1462,6 @@ public class WifiNetworkFactory extends NetworkFactory {
             mClientModeManager.updateCapabilities();
             return;
         }
-        // Cancel connection timeout alarm.
-        cancelConnectionTimeout();
 
         mConnectionStartTimeMillis = mClock.getElapsedSinceBootMillis();
         if (mClientModeManagerRole == ROLE_CLIENT_PRIMARY) {
@@ -1733,20 +1722,6 @@ public class WifiNetworkFactory extends NetworkFactory {
             }
         }
         mRegisteredCallbacks.finishBroadcast();
-    }
-
-    private void cancelConnectionTimeout() {
-        if (mConnectionTimeoutSet) {
-            mAlarmManager.cancel(mConnectionTimeoutAlarmListener);
-            mConnectionTimeoutSet = false;
-        }
-    }
-
-    private void scheduleConnectionTimeout() {
-        mAlarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                mClock.getElapsedSinceBootMillis() + NETWORK_CONNECTION_TIMEOUT_MS,
-                TAG, mConnectionTimeoutAlarmListener, mHandler);
-        mConnectionTimeoutSet = true;
     }
 
     private @NonNull CharSequence getAppName(@NonNull String packageName, int uid) {

@@ -1256,6 +1256,10 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                             new ParceledListSlice<>(Collections.emptyList()), SHELL_PACKAGE_NAME,
                             WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT);
                     return 0;
+                case "clear-all-suggestions":
+                    mWifiThreadRunner.post(() -> mWifiNetworkSuggestionsManager.clear(),
+                            "shell#clear-all-suggestions");
+                    return 0;
                 case "list-suggestions": {
                     List<WifiNetworkSuggestion> suggestions =
                             mWifiService.getNetworkSuggestions(SHELL_PACKAGE_NAME).getList();
@@ -3268,6 +3272,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    Lists all suggested networks on this device");
         pw.println("  list-suggestions-from-app <package name>");
         pw.println("    Lists the suggested networks from the app");
+        pw.println("  clear-all-suggestions");
+        pw.println("    Clear all suggestions added into this device");
         pw.println("  set-emergency-callback-mode enabled|disabled");
         pw.println("    Sets whether Emergency Callback Mode (ECBM) is enabled.");
         pw.println("    Equivalent to receiving the "
@@ -3442,15 +3448,36 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         if (suggestions == null || suggestions.isEmpty()) {
             pw.println("No suggestions on this device");
         } else {
-            pw.println("SSID                         Security type(s)");
-            for (WifiNetworkSuggestion suggestion : suggestions) {
-                pw.println(String.format("%-32s %-4s",
-                        WifiInfo.sanitizeSsid(suggestion.getWifiConfiguration().SSID),
-                        suggestion.getWifiConfiguration().getSecurityParamsList().stream()
-                                .map(p -> WifiConfiguration.getSecurityTypeName(
-                                        p.getSecurityType())
-                                        + (p.isAddedByAutoUpgrade() ? "^" : ""))
-                                .collect(Collectors.joining("/"))));
+            if (SdkLevel.isAtLeastS()) {
+                /*
+                 * Print out SubId on S and above because WifiNetworkSuggestion.getSubscriptionId()
+                 * is supported from Android S and above.
+                 */
+                String format = "%-24s %-24s %-12s %-12s";
+                pw.println(String.format(format, "SSID", "Security type(s)", "CarrierId", "SubId"));
+                for (WifiNetworkSuggestion suggestion : suggestions) {
+                    pw.println(String.format(format,
+                            WifiInfo.sanitizeSsid(suggestion.getWifiConfiguration().SSID),
+                            suggestion.getWifiConfiguration().getSecurityParamsList().stream()
+                                    .map(p -> WifiConfiguration.getSecurityTypeName(
+                                            p.getSecurityType())
+                                            + (p.isAddedByAutoUpgrade() ? "^" : ""))
+                                    .collect(Collectors.joining("/")),
+                            suggestion.getCarrierId(), suggestion.getSubscriptionId()));
+                }
+            } else {
+                String format = "%-24s %-24s %-12s";
+                pw.println(String.format(format, "SSID", "Security type(s)", "CarrierId"));
+                for (WifiNetworkSuggestion suggestion : suggestions) {
+                    pw.println(String.format(format,
+                            WifiInfo.sanitizeSsid(suggestion.getWifiConfiguration().SSID),
+                            suggestion.getWifiConfiguration().getSecurityParamsList().stream()
+                                    .map(p -> WifiConfiguration.getSecurityTypeName(
+                                            p.getSecurityType())
+                                            + (p.isAddedByAutoUpgrade() ? "^" : ""))
+                                    .collect(Collectors.joining("/")),
+                            suggestion.getCarrierId()));
+                }
             }
         }
     }

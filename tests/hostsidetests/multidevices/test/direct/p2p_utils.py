@@ -17,6 +17,7 @@ from collections.abc import Sequence
 import dataclasses
 import datetime
 import logging
+import time
 
 from mobly import asserts
 from mobly.snippet import errors
@@ -332,17 +333,29 @@ def p2p_connect(
     requester.ad.log.info('Sent P2P connect invitation to responder.')
     # Connect with WPS config requires user inetraction through UI.
     if config.wps_setup == constants.WpsInfo.PBC:
+        time.sleep(_DEFAULT_UI_RESPONSE_TIME.total_seconds())
         responder.ad.wifi.wifiP2pAcceptInvitation(
             requester.p2p_device.device_name
         )
         responder.ad.log.info('Accepted connect invitation.')
     elif config.wps_setup == constants.WpsInfo.DISPLAY:
+        time.sleep(_DEFAULT_UI_RESPONSE_TIME.total_seconds())
         pin = requester.ad.wifi.wifiP2pGetPinCode(
             responder.p2p_device.device_name
         )
         requester.ad.log.info('p2p connection PIN code: %s', pin)
+        time.sleep(_DEFAULT_UI_RESPONSE_TIME.total_seconds())
         responder.ad.wifi.wifiP2pEnterPin(pin, requester.p2p_device.device_name)
         responder.ad.log.info('Enetered PIN code.')
+    elif config.wps_setup == constants.WpsInfo.KEYPAD:
+        time.sleep(_DEFAULT_UI_RESPONSE_TIME.total_seconds())
+        pin = responder.ad.wifi.wifiP2pGetKeypadPinCode(
+            requester.p2p_device.device_name
+        )
+        responder.ad.log.info('p2p connection Keypad PIN code: %s', pin)
+        time.sleep(_DEFAULT_UI_RESPONSE_TIME.total_seconds())
+        requester.ad.wifi.wifiP2pEnterPin(pin, responder.p2p_device.device_name)
+        requester.ad.log.info('Enetered Keypad PIN code.')
     elif config.wps_setup is not None:
         asserts.fail(f'Unsupported WPS configuration: {config.wps_setup}')
 
@@ -364,6 +377,59 @@ def p2p_connect(
         requester.p2p_device.device_address,
     )
     responder.ad.log.debug(
+        'Connected with device %s through wifi p2p.',
+        requester.p2p_device.device_address,
+    )
+    logging.info('Established wifi p2p connection.')
+
+
+def p2p_reconnect(
+    requester: DeviceState,
+    responder: DeviceState,
+    config: constants.WifiP2pConfig,
+) -> None:
+    """Establishes Wi-Fi p2p connection with WPS configuration.
+
+    This method instructs the requester to initiate a connection request and the
+    responder to accept the connection. It then verifies the connection status
+    on both devices.
+
+    Args:
+        requester: The requester device.
+        responder: The responder device.
+        config: The Wi-Fi p2p configuration.
+    """
+    logging.info(
+        'Establishing a p2p connection through p2p configuration %s.', config
+    )
+
+    # Clear events in broadcast receiver.
+    _clear_events(requester, constants.WIFI_P2P_PEERS_CHANGED_ACTION)
+    _clear_events(requester, constants.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+    _clear_events(responder, constants.WIFI_P2P_PEERS_CHANGED_ACTION)
+    _clear_events(responder, constants.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+
+    requester.ad.wifi.wifiP2pConnect(config.to_dict())
+    requester.ad.log.info('Sent P2P connect invitation to responder.')
+
+    # Check p2p status on requester.
+    _wait_connection_notice(requester.broadcast_receiver)
+    _wait_peer_connected(
+        requester.broadcast_receiver,
+        responder.p2p_device.device_address,
+    )
+    requester.ad.log.info(
+        'Connected with device %s through wifi p2p.',
+        responder.p2p_device.device_address,
+    )
+
+    # Check p2p status on responder.
+    _wait_connection_notice(responder.broadcast_receiver)
+    _wait_peer_connected(
+        responder.broadcast_receiver,
+        requester.p2p_device.device_address,
+    )
+    responder.ad.log.info(
         'Connected with device %s through wifi p2p.',
         requester.p2p_device.device_address,
     )

@@ -21,7 +21,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import androidx.test.filters.SmallTest;
@@ -76,7 +76,7 @@ public class LastMileLoggerTest extends WifiBaseTest {
     public void ctorDoesNotCrash() throws Exception {
         new LastMileLogger(mWifiInjector, mTraceDataFile.getPath(), mTraceEnableFile.getPath(),
                 mTraceReleaseFile.getPath());
-        verifyZeroInteractions(mLog);
+        verifyNoMoreInteractions(mLog);
     }
 
     @Test
@@ -114,7 +114,7 @@ public class LastMileLoggerTest extends WifiBaseTest {
         // FileInputStream.
         mTraceReleaseFile.delete();
         mLastMileLogger.reportConnectionEvent(WLAN0, WifiDiagnostics.CONNECTION_EVENT_STARTED);
-        verifyZeroInteractions(mLog);
+        verifyNoMoreInteractions(mLog);
     }
 
     @Test

@@ -1074,7 +1074,7 @@ public final class ResponderConfig implements Parcelable {
             if (secureRangingConfig != null) {
                 builder.setSecureRangingConfig(secureRangingConfig);
             }
-            return builder.build();
+            return new ResponderConfig(builder);
 
         }
     };

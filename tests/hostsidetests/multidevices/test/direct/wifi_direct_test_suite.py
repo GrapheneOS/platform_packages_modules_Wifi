@@ -13,7 +13,7 @@
 #  limitations under the License.
 
 # Lint as: python3
-"""CTS Wi-Fi Direct test suite."""
+"""Wi-Fi Direct test suite."""
 
 from mobly import base_suite
 from mobly import suite_runner
@@ -24,8 +24,8 @@ from direct import group_owner_with_config_test
 from direct import service_discovery_test
 
 
-class CtsWifiDirectTestSuite(base_suite.BaseSuite):
-    """CTS Wi-Fi Direct test suite."""
+class WifiDirectTestSuite(base_suite.BaseSuite):
+    """Wi-Fi Direct test suite."""
 
     def setup_suite(self, config):
         del config  # unused

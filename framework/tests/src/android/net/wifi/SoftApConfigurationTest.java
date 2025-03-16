@@ -962,4 +962,21 @@ public class SoftApConfigurationTest {
         OuiKeyedData unparceledOuiKeyedData = unparceled.getVendorData().get(0);
         assertEquals(bundle.getInt(fieldKey), unparceledOuiKeyedData.getData().getInt(fieldKey));
     }
+
+    @Test
+    public void testForce11BeToFalseWhen11AxIsFalse() {
+        assumeTrue(SdkLevel.isAtLeastB());
+        // Only 11be is false, it should be ok.
+        SoftApConfiguration config = new SoftApConfiguration.Builder()
+                .setIeee80211axEnabled(true)
+                .setIeee80211beEnabled(false).build();
+        assertTrue(config.isIeee80211axEnabled());
+        assertFalse(config.isIeee80211beEnabled());
+        // Only 11ax is false, 11be should force to false too.
+        config = new SoftApConfiguration.Builder()
+                .setIeee80211axEnabled(false)
+                .setIeee80211beEnabled(true).build();
+        assertFalse(config.isIeee80211axEnabled());
+        assertFalse(config.isIeee80211beEnabled());
+    }
 }

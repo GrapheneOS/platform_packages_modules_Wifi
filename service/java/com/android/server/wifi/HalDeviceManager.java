@@ -1584,7 +1584,7 @@ public class HalDeviceManager {
         @Override
         public void onSubsystemRestart(int status) {
             Log.i(TAG, "onSubsystemRestart");
-            mEventHandler.post(() -> {
+            mEventHandler.postAtFrontOfQueue(() -> {
                 Log.i(TAG, "IWifiEventCallback.onSubsystemRestart. Status: " + status);
                 synchronized (mLock) {
                     Log.i(TAG, "Attempting to invoke mSubsystemRestartListener");

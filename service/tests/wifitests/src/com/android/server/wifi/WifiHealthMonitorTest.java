@@ -270,7 +270,7 @@ public class WifiHealthMonitorTest extends WifiBaseTest {
             public void answer(OnNetworkUpdateListener listener) throws Exception {
                 mOnNetworkUpdateListener = listener;
             }
-        }).when(wifiConfigManager).addOnNetworkUpdateListener(anyObject());
+        }).when(wifiConfigManager).addOnNetworkUpdateListener(any());
 
         doAnswer(new AnswerWithArguments() {
             public boolean answer(int networkId, int uid, String packageName) throws Exception {
@@ -331,7 +331,7 @@ public class WifiHealthMonitorTest extends WifiBaseTest {
                 }
                 listener.onResults(scanDatas);
             }
-        }).when(scanner).startScan(anyObject(), anyObject());
+        }).when(scanner).startScan(any(), any());
         WifiLocalServices.removeServiceForTest(WifiScannerInternal.class);
         WifiLocalServices.addService(WifiScannerInternal.class, scanner);
         return scanner;

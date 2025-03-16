@@ -1736,34 +1736,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     }
 
     /**
-     * Verify handling of connection timeout.
-     * The timeouts should trigger connection retries until we hit the max.
-     */
-    @Test
-    public void testNetworkSpecifierHandleConnectionTimeout() throws Exception {
-        sendNetworkRequestAndSetupForConnectionStatus();
-
-        // Simulate connection timeout beyond the retry limit to trigger the failure handling.
-        for (int i = 0; i <= WifiNetworkFactory.USER_SELECTED_NETWORK_CONNECT_RETRY_MAX; i++) {
-            mConnectionTimeoutAlarmListenerArgumentCaptor.getValue().onAlarm();
-            mLooper.dispatchAll();
-        }
-
-        mInOrder = inOrder(mAlarmManager, mClientModeManager, mConnectHelper);
-        validateConnectionRetryAttempts(true);
-
-        // Fail the request after all the retries are exhausted.
-        verify(mNetworkRequestMatchCallback).onAbort();
-        // Verify that we sent the connection failure callback.
-        verify(mNetworkRequestMatchCallback).onUserSelectionConnectFailure(
-                argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // Verify we reset the network request handling.
-        verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
-        verify(mActiveModeWarden).removeClientModeManager(any());
-        verify(mConnectivityManager).declareNetworkRequestUnfulfillable(eq(mNetworkRequest));
-    }
-
-    /**
      * Verify handling of connection trigger failure.
      * The trigger failures should trigger connection retries until we hit the max.
      */
@@ -1773,23 +1745,19 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         // Send failure message beyond the retry limit to trigger the failure handling.
         for (int i = 0; i <= WifiNetworkFactory.USER_SELECTED_NETWORK_CONNECT_RETRY_MAX; i++) {
-            assertNotNull(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
             mConnectListenerArgumentCaptor.getValue()
                     .sendFailure(WifiManager.ActionListener.FAILURE_INTERNAL_ERROR);
         }
         mLooper.dispatchAll();
 
         mInOrder = inOrder(mAlarmManager, mClientModeManager, mConnectHelper);
-        validateConnectionRetryAttempts(false);
+        validateConnectionRetryAttempts();
 
         // Fail the request after all the retries are exhausted.
         verify(mNetworkRequestMatchCallback).onAbort();
         // Verify that we sent the connection failure callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectFailure(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        mInOrder.verify(mAlarmManager).cancel(
-                mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we reset the network request handling.
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mActiveModeWarden).removeClientModeManager(any());
@@ -1818,15 +1786,12 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         }
 
         mInOrder = inOrder(mAlarmManager, mClientModeManager, mConnectHelper);
-        validateConnectionRetryAttempts(false);
+        validateConnectionRetryAttempts();
 
         verify(mNetworkRequestMatchCallback).onAbort();
         // Verify that we sent the connection failure callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectFailure(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        mInOrder.verify(mAlarmManager).cancel(
-                mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we reset the network request handling.
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mActiveModeWarden).removeClientModeManager(any());
@@ -1859,9 +1824,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection failure callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectFailure(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        mInOrder.verify(mAlarmManager).cancel(
-                mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we reset the network request handling.
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mActiveModeWarden).removeClientModeManager(any());
@@ -1887,9 +1849,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         // Verify that we did not send the connection failure callback.
         verify(mNetworkRequestMatchCallback, never()).onUserSelectionConnectFailure(any());
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager, never())
-                .cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we don't reset the network request handling.
         verify(mWifiConnectivityManager, never())
                 .setSpecificNetworkRequestInProgress(false);
@@ -1903,14 +1862,11 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         }
 
         mInOrder = inOrder(mAlarmManager, mClientModeManager, mConnectHelper);
-        validateConnectionRetryAttempts(false);
+        validateConnectionRetryAttempts();
 
         // Verify that we sent the connection failure callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectFailure(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        mInOrder.verify(mAlarmManager).cancel(
-                mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we reset the network request handling.
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mActiveModeWarden).removeClientModeManager(any());
@@ -1931,9 +1887,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         // Verify that we did not send the connection failure callback.
         verify(mNetworkRequestMatchCallback, never()).onUserSelectionConnectFailure(any());
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager, never())
-                .cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we don't reset the network request handling.
         verify(mWifiConnectivityManager, never())
                 .setSpecificNetworkRequestInProgress(false);
@@ -1947,14 +1900,11 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         }
 
         mInOrder = inOrder(mAlarmManager, mClientModeManager, mConnectHelper);
-        validateConnectionRetryAttempts(false);
+        validateConnectionRetryAttempts();
 
         // Verify that we sent the connection failure callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectFailure(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        mInOrder.verify(mAlarmManager).cancel(
-                mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we reset the network request handling.
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mActiveModeWarden).removeClientModeManager(any());
@@ -1976,8 +1926,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection success callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we disabled fw roaming.
         verify(mClientModeManager).enableRoaming(false);
 
@@ -2010,8 +1958,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection success callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we disabled fw roaming.
         verify(mClientModeManager, never()).enableRoaming(false);
 
@@ -2042,8 +1988,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection success callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we disabled fw roaming.
         verify(mClientModeManager).enableRoaming(false);
 
@@ -2073,8 +2017,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection success callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify we disabled fw roaming.
         verify(mClientModeManager).enableRoaming(false);
         verify(mWifiMetrics).incrementNetworkRequestApiNumConnectSuccessOnSecondaryIface();
@@ -2111,8 +2053,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection success callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
 
         verify(mWifiMetrics).incrementNetworkRequestApiNumConnectSuccessOnPrimaryIface();
         verify(mNetworkRequestMatchCallback, atLeastOnce()).asBinder();
@@ -2140,8 +2080,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         // verify that we did not send out the success callback and did not stop the alarm timeout.
         verify(mNetworkRequestMatchCallback, never()).onUserSelectionConnectSuccess(any());
-        verify(mAlarmManager, never())
-                .cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
 
         // Send network connection success to the correct network indication.
         mWifiNetworkFactory.handleConnectionAttemptEnded(
@@ -2150,8 +2088,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection success callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
     }
 
     /**
@@ -2168,8 +2104,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         // verify that we did not send out the success callback and did not stop the alarm timeout.
         verify(mNetworkRequestMatchCallback, never()).onUserSelectionConnectSuccess(any());
-        verify(mAlarmManager, never())
-                .cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
 
         // Send network connection success to the correct network indication.
         mWifiNetworkFactory.handleConnectionAttemptEnded(
@@ -2178,8 +2112,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection success callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
     }
 
     /**
@@ -2202,8 +2134,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         when(mWifiConfigManager.getConfiguredNetwork(wcmNetwork.getProfileKey()))
                 .thenReturn(wcmNetwork);
         mWifiNetworkFactory.releaseNetworkFor(mNetworkRequest);
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         // Verify that we triggered a disconnect.
         verify(mClientModeManager, times(2)).disconnect();
         verify(mWifiConfigManager).removeNetwork(
@@ -2229,8 +2159,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection success callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         verify(mWifiMetrics).incrementNetworkRequestApiNumConnectSuccessOnPrimaryIface();
 
         long connectionDurationMillis = 5665L;
@@ -2276,8 +2204,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection success callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         verify(mWifiMetrics).incrementNetworkRequestApiNumConnectSuccessOnSecondaryIface();
 
         // Now release the network request.
@@ -2323,8 +2249,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         // Verify that we sent the connection success callback.
         verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
                 argThat(new WifiConfigMatcher(mSelectedNetwork)));
-        // verify we canceled the timeout alarm.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         verify(mWifiMetrics).incrementNetworkRequestApiNumConnectSuccessOnSecondaryIface();
 
         // Indicate secondary connection via CMI listener.
@@ -2607,7 +2531,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         verify(mWifiConnectivityManager, times(1)).setSpecificNetworkRequestInProgress(true);
         verify(mWifiScanner, times(2)).getSingleScanResults();
         verify(mWifiScanner, times(2)).startScan(any(), any(), any(), any());
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         verify(mClientModeManager, times(3)).getRole();
 
         // Remove the stale request1 & ensure nothing happens.
@@ -2637,8 +2560,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         assertNotNull(mSelectedNetwork);
         mWifiNetworkFactory.handleConnectionAttemptEnded(
                 WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1, WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
-        // Cancel the connection timeout.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         verify(mClientModeManager).enableRoaming(false);
 
         NetworkRequest oldRequest = new NetworkRequest(mNetworkRequest);
@@ -2687,8 +2608,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         assertNotNull(mSelectedNetwork);
         mWifiNetworkFactory.handleConnectionAttemptEnded(
                 WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1, WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
-        // Cancel the connection timeout.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
 
         clearInvocations(mWifiConnectivityManager, mWifiScanner, mClientModeManager, mAlarmManager);
 
@@ -2713,8 +2632,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         assertNotNull(mSelectedNetwork);
         mWifiNetworkFactory.handleConnectionAttemptEnded(
                 WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1, WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
-        // Cancel the connection timeout.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         verify(mClientModeManager).enableRoaming(false);
 
         // Send second request & we simulate the user selecting the request & connecting to it.
@@ -2726,8 +2643,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         mWifiNetworkFactory.handleConnectionAttemptEnded(
                 WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_2, WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
         verify(mClientModeManager, times(2)).enableRoaming(false);
-        // Cancel the connection timeout.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
 
         // We shouldn't explicitly disconnect, the new connection attempt will implicitly disconnect
         // from the connected network.
@@ -2769,8 +2684,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         assertNotNull(mSelectedNetwork);
         mWifiNetworkFactory.handleConnectionAttemptEnded(
                 WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1, WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
-        // Cancel the connection timeout.
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
 
         // Send second request & we simulate the user rejecting the request.
         reset(mNetworkRequestMatchCallback, mWifiScanner, mAlarmManager);
@@ -2923,7 +2836,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         mModeChangeCallbackCaptor.getValue().onActiveModeManagerRemoved(mClientModeManager);
         mLooper.dispatchAll();
 
-        verify(mAlarmManager).cancel(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         verify(mNetworkRequestMatchCallback).onAbort();
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
         verify(mConnectivityManager).declareNetworkRequestUnfulfillable(eq(mNetworkRequest));
@@ -3758,11 +3670,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
                 mConnectListenerArgumentCaptor.capture(), anyInt(), any(), any());
         verify(mWifiMetrics, atLeastOnce()).incrementNetworkRequestApiNumConnectOnPrimaryIface();
 
-        // Start the connection timeout alarm.
-        mInOrder.verify(mAlarmManager).set(eq(AlarmManager.ELAPSED_REALTIME_WAKEUP),
-                eq((long) WifiNetworkFactory.NETWORK_CONNECTION_TIMEOUT_MS), any(),
-                mConnectionTimeoutAlarmListenerArgumentCaptor.capture(), any());
-        assertNotNull(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
         assertTrue(mWifiNetworkFactory.shouldHaveInternetCapabilities());
     }
 
@@ -3827,12 +3734,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
             verify(mWifiMetrics, atLeastOnce())
                     .incrementNetworkRequestApiNumConnectOnSecondaryIface();
         }
-
-        // Start the connection timeout alarm.
-        mInOrder.verify(mAlarmManager).set(eq(AlarmManager.ELAPSED_REALTIME_WAKEUP),
-                eq((long) WifiNetworkFactory.NETWORK_CONNECTION_TIMEOUT_MS), any(),
-                mConnectionTimeoutAlarmListenerArgumentCaptor.capture(), any());
-        assertNotNull(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
     }
 
     private void sendNetworkRequestAndSetupForUserSelection() throws RemoteException {
@@ -4055,27 +3956,15 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         }
     }
 
-    private void validateConnectionRetryAttempts(boolean onTimeout) {
-        for (int i = 0; i < WifiNetworkFactory.USER_SELECTED_NETWORK_CONNECT_RETRY_MAX; i++) {
-            if (!onTimeout) {
-                // Cancel the existing connection timeout.
-                mInOrder.verify(mAlarmManager).cancel(
-                        mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
-            }
-
-            // Trigger new connection.
-            mInOrder.verify(mConnectHelper).connectToNetwork(
-                    eq(mClientModeManager),
-                    eq(new NetworkUpdateResult(TEST_NETWORK_ID_1)),
-                    mConnectListenerArgumentCaptor.capture(),
-                    anyInt(), any(), any());
-
-            // Start the new connection timeout alarm.
-            mInOrder.verify(mAlarmManager).set(eq(AlarmManager.ELAPSED_REALTIME_WAKEUP),
-                    eq((long) WifiNetworkFactory.NETWORK_CONNECTION_TIMEOUT_MS), any(),
-                    mConnectionTimeoutAlarmListenerArgumentCaptor.capture(), any());
-            assertNotNull(mConnectionTimeoutAlarmListenerArgumentCaptor.getValue());
-        }
+    private void validateConnectionRetryAttempts() {
+        // Trigger new connection.
+        mInOrder.verify(mConnectHelper,
+                        times(WifiNetworkFactory.USER_SELECTED_NETWORK_CONNECT_RETRY_MAX + 1))
+                .connectToNetwork(
+                        eq(mClientModeManager),
+                        eq(new NetworkUpdateResult(TEST_NETWORK_ID_1)),
+                        mConnectListenerArgumentCaptor.capture(),
+                        anyInt(), any(), any());
     }
 
     private void validateScanSettings(@Nullable String hiddenSsid, int[] channels) {

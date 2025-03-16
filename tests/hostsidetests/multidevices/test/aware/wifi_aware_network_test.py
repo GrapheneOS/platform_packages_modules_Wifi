@@ -81,27 +81,30 @@ class WifiAwareNetworkTest(base_test.BaseTestClass):
         self.publisher = self.ads[0]
         self.subscriber = self.ads[1]
 
-        def setup_device(device: android_device.AndroidDevice):
-            device.load_snippet('wifi', _SNIPPET_PACKAGE_NAME)
-            device.wifi.wifiEnable()
-            wifi_test_utils.set_screen_on_and_unlock(device)
-            wifi_test_utils.enable_wifi_verbose_logging(device)
-            # Device capability check
+        # Device setup
+        utils.concurrent_exec(
+            self._setup_device,
+            ((self.publisher,), (self.subscriber,)),
+            max_workers=2,
+            raise_on_exception=True,
+        )
+
+        # Device capability check
+        for device in [self.publisher, self.subscriber]:
             asserts.abort_class_if(
                 not device.wifi.wifiAwareIsSupported(),
                 f'{device} does not support Wi-Fi Aware.',
             )
             asserts.abort_class_if(
                 not device.wifi.wifiAwareIsAvailable(),
-                f'{device} Wi-Fi Aware is not available.',
+                f'Wi-Fi Aware is not available on {device}.',
             )
 
-        utils.concurrent_exec(
-            setup_device,
-            ((self.publisher,), (self.subscriber,)),
-            max_workers=2,
-            raise_on_exception=True,
-        )
+    def _setup_device(self, device: android_device.AndroidDevice):
+        device.load_snippet('wifi', _SNIPPET_PACKAGE_NAME)
+        device.wifi.wifiEnable()
+        wifi_test_utils.set_screen_on_and_unlock(device)
+        wifi_test_utils.enable_wifi_verbose_logging(device)
 
     @ApiTest(
         apis=[

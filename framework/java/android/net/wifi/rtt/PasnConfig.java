@@ -176,7 +176,7 @@ public final class PasnConfig implements Parcelable {
         sStringToCipher.put("None", CIPHER_NONE);
         sStringToCipher.put("-CCMP]", CIPHER_CCMP_128);
         sStringToCipher.put("-CCMP-256]", CIPHER_CCMP_256);
-        sStringToCipher.put("-GCMP-128]", CIPHER_GCMP_128);
+        sStringToCipher.put("-GCMP]", CIPHER_GCMP_128);
         sStringToCipher.put("-GCMP-256]", CIPHER_GCMP_256);
     }
 
@@ -426,8 +426,9 @@ public final class PasnConfig implements Parcelable {
 
     @Override
     public String toString() {
+        String password = (mPassword != null ? "*" : "null");
         return "PasnConfig{" + "mBaseAkms=" + mBaseAkms + ", mCiphers=" + mCiphers + ", mPassword='"
-                + mPassword + '\'' + ", mWifiSsid=" + mWifiSsid + ", mPasnComebackCookie="
+                + password + '\'' + ", mWifiSsid=" + mWifiSsid + ", mPasnComebackCookie="
                 + Arrays.toString(mPasnComebackCookie) + '}';
     }
 }

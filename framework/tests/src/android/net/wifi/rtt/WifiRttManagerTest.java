@@ -864,7 +864,7 @@ public class WifiRttManagerTest {
         scanResult.setFlag(
                 ScanResult.FLAG_80211az_NTB_RESPONDER | ScanResult.FLAG_SECURE_HE_LTF_SUPPORTED);
         scanResult.informationElements = ie;
-        scanResult.capabilities = "[RSN-PASN-SAE+SAE_EXT_KEY-GCMP-128]";
+        scanResult.capabilities = "[RSN-PASN-SAE+SAE_EXT_KEY-GCMP]";
         scanResult.setWifiSsid(WifiSsid.fromString("\"TEST_SSID\""));
 
         RangingRequest.Builder builder = new RangingRequest.Builder();

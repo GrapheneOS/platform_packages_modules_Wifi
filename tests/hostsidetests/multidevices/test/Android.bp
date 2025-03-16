@@ -118,14 +118,14 @@ python_test_host {
 }
 
 python_test_host {
-    name: "CtsWifiDirectTests",
-    main: "direct/cts_wifi_direct_test_suite.py",
+    name: "WifiDirectTests",
+    main: "direct/wifi_direct_test_suite.py",
     srcs: [
         "direct/group_owner_negotiation_test.py",
         "direct/group_owner_test.py",
         "direct/group_owner_with_config_test.py",
         "direct/service_discovery_test.py",
-        "direct/cts_wifi_direct_test_suite.py",
+        "direct/wifi_direct_test_suite.py",
     ],
     test_config: "direct/AndroidTest.xml",
     libs: [
@@ -142,7 +142,6 @@ python_test_host {
     },
     test_suites: [
         "general-tests",
-        "cts-v-host",
     ],
 }
 
