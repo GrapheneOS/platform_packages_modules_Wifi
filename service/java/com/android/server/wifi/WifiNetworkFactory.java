@@ -1347,6 +1347,14 @@ public class WifiNetworkFactory extends NetworkFactory {
         // If there is no active request or if the user has already selected a network,
         // ignore screen state changes.
         if (mActiveSpecificNetworkRequest == null || !mIsPeriodicScanEnabled) return;
+        if (mSkipUserDialogue) {
+            // Allow App which bypass the user approval to fulfill the request during screen off.
+            return;
+        }
+        if (screenOn != mIsPeriodicScanPaused) {
+            // already at the expected state
+            return;
+        }
 
         // Pause periodic scans when the screen is off & resume when the screen is on.
         if (screenOn) {

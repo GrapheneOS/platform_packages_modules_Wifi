@@ -15,14 +15,14 @@
 
 package android.net.wifi;
 
-import android.net.wifi.WifiScanner;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiScanner;
+import com.android.modules.utils.ParceledListSlice;
 
 /**
  * @hide
  */
-oneway interface IWifiScannerListener
-{
+oneway interface IWifiScannerListener {
     void onSuccess();
 
     void onFailure(int reason, String description);
@@ -46,5 +46,5 @@ oneway interface IWifiScannerListener
     /**
      * reports full scan result for all access points found in scan
      */
-    void onFullResults(in List<ScanResult> scanResult);
+    void onFullResults(in ParceledListSlice<ScanResult> scanResult);
 }

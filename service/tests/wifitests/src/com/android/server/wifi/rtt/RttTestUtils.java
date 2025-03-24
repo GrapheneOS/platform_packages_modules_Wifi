@@ -114,6 +114,7 @@ public class RttTestUtils {
         // SAE with no password configured
         pasnConfig = new PasnConfig
                 .Builder(PasnConfig.AKM_SAE, PasnConfig.CIPHER_GCMP_256)
+                .setWifiSsid(WifiSsid.fromString("\"TEST_SSID\""))
                 .build();
         secureRangingConfig = new SecureRangingConfig
                 .Builder(pasnConfig)
@@ -121,7 +122,7 @@ public class RttTestUtils {
                 .setSecureHeLtfEnabled(true)
                 .build();
         config = new ResponderConfig.Builder()
-                .setMacAddress(MacAddress.fromString("00:11:22:33:44:55"))
+                .setMacAddress(MacAddress.fromString("00:11:22:33:44:56"))
                 .setResponderType(ResponderConfig.RESPONDER_AP)
                 .setChannelWidth(ScanResult.CHANNEL_WIDTH_80MHZ)
                 .setPreamble(ScanResult.PREAMBLE_HE)
@@ -139,7 +140,7 @@ public class RttTestUtils {
                 .build();
         config = new ResponderConfig
                 .Builder()
-                .setMacAddress(MacAddress.fromString("00:11:22:33:44:56"))
+                .setMacAddress(MacAddress.fromString("00:11:22:33:44:57"))
                 .setResponderType(ResponderConfig.RESPONDER_AP)
                 .setChannelWidth(ScanResult.CHANNEL_WIDTH_80MHZ)
                 .setPreamble(ScanResult.PREAMBLE_HE)
@@ -151,7 +152,7 @@ public class RttTestUtils {
         // Open mode
         config = new ResponderConfig
                 .Builder()
-                .setMacAddress(MacAddress.fromString("00:11:22:33:44:57"))
+                .setMacAddress(MacAddress.fromString("00:11:22:33:44:58"))
                 .setResponderType(ResponderConfig.RESPONDER_AP)
                 .setChannelWidth(ScanResult.CHANNEL_WIDTH_80MHZ)
                 .setPreamble(ScanResult.PREAMBLE_HE)
@@ -269,19 +270,6 @@ public class RttTestUtils {
 
         if (request != null) {
             for (ResponderConfig peer : request.mRttPeers) {
-                halResults.add(new RangingResult.Builder()
-                        .setStatus(RangingResult.STATUS_SUCCESS)
-                        .setMacAddress(peer.getMacAddress())
-                        .setDistanceMm(rangeCmBase)
-                        .setDistanceStdDevMm(rangeStdDevCmBase)
-                        .setRssi(rssiBase)
-                        .setNumAttemptedMeasurements(8)
-                        .setNumSuccessfulMeasurements(5)
-                        .setRangingTimestampMillis(rangeTimestampBase)
-                        .set80211mcMeasurement(true)
-                        .setMeasurementChannelFrequencyMHz(5180)
-                        .setMeasurementBandwidth(ScanResult.CHANNEL_WIDTH_40MHZ)
-                        .build());
                 RangingResult.Builder builder = new RangingResult.Builder()
                         .setStatus(RangingResult.STATUS_SUCCESS)
                         .setDistanceMm(rangeCmBase++)
@@ -293,13 +281,24 @@ public class RttTestUtils {
                         .set80211mcMeasurement(true)
                         .setMeasurementChannelFrequencyMHz(5180)
                         .setMeasurementBandwidth(ScanResult.CHANNEL_WIDTH_40MHZ);
+                if (peer.getSecureRangingConfig() != null) {
+                    builder.setRangingAuthenticated(true);
+                    builder.setRangingFrameProtected(true);
+                    builder.setSecureHeLtfEnabled(true);
+                    builder.setSecureHeLtfProtocolVersion(1);
+                }
+                halResults.add(builder.setMacAddress(peer.getMacAddress()).build());
                 if (peer.peerHandle == null) {
                     builder.setMacAddress(peer.getMacAddress());
                 } else {
+                    // Make sure MAC address null when peer handle is set.
+                    builder.setMacAddress(null);
                     builder.setPeerHandle(peer.peerHandle);
                 }
-                RangingResult rangingResult = builder.build();
-                results.add(rangingResult);
+                results.add(builder.build());
+                rangeCmBase++;
+                rangeStdDevCmBase++;
+                rssiBase++;
             }
         } else {
             results.add(new RangingResult.Builder()

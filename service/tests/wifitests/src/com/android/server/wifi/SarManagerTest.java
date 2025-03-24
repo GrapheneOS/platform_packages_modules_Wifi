@@ -133,7 +133,6 @@ public class SarManagerTest extends WifiBaseTest {
                         mWifiDeviceStateChangeManager);
 
         mSarMgr.handleBootCompleted();
-
         if (isSarEnabled) {
             /* Capture the PhoneStateListener */
             ArgumentCaptor<PhoneStateListener> phoneStateListenerCaptor =
@@ -572,5 +571,45 @@ public class SarManagerTest extends WifiBaseTest {
         assertFalse(mSarInfo.isWifiSapEnabled);
         assertTrue(mSarInfo.isWifiScanOnlyEnabled);
         assertFalse(mSarInfo.isWifiClientEnabled);
+    }
+
+    /**
+     * Test that for devices that support setting/resetting Tx Power limits, device sets wifi enable
+     * first then finish the boot up. Verify device will change the power scenario.
+     */
+    @Test
+    public void testSarMgr_enabledTxPowerScenario_wifiOn_before_boot_completed_offHook() {
+        mResources.setBoolean(
+                R.bool.config_wifi_framework_enable_sar_tx_power_limit, true);
+        mResources.setBoolean(
+                R.bool.config_wifi_framework_enable_soft_ap_sar_tx_power_limit,
+                false);
+
+        mSarMgr = new SarManager(mContext, mTelephonyManager, mLooper.getLooper(), mWifiNative,
+                mWifiDeviceStateChangeManager);
+        /* Enable logs from SarManager */
+        enableDebugLogs();
+
+        InOrder inOrder = inOrder(mWifiNative);
+        // Enable wifi first, should be no change to the WifiNative
+        mSarMgr.setClientWifiState(WifiManager.WIFI_STATE_ENABLED);
+        inOrder.verify(mWifiNative, never()).selectTxPowerScenario(any());
+
+        mSarMgr.handleBootCompleted();
+        ArgumentCaptor<PhoneStateListener> phoneStateListenerCaptor =
+                ArgumentCaptor.forClass(PhoneStateListener.class);
+        verify(mTelephonyManager).listen(phoneStateListenerCaptor.capture(),
+                eq(PhoneStateListener.LISTEN_CALL_STATE));
+        mPhoneStateListener = phoneStateListenerCaptor.getValue();
+        assertNotNull(mPhoneStateListener);
+        captureSarInfo(mWifiNative);
+        assertFalse(mSarInfo.isVoiceCall);
+        inOrder.verify(mWifiNative).selectTxPowerScenario(eq(mSarInfo));
+
+        /* Set phone state to OFFHOOK */
+        mPhoneStateListener.onCallStateChanged(CALL_STATE_OFFHOOK, "");
+
+        inOrder.verify(mWifiNative).selectTxPowerScenario(eq(mSarInfo));
+        assertTrue(mSarInfo.isVoiceCall);
     }
 }

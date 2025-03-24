@@ -219,7 +219,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private static final int IPCLIENT_SHUTDOWN_TIMEOUT_MS = 60_000; // 60 seconds
     private static final int NETWORK_AGENT_TEARDOWN_DELAY_MS = 5_000; // Max teardown delay.
     private static final int DISASSOC_AP_BUSY_DISABLE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-    @VisibleForTesting public static final long CONNECTING_WATCHDOG_TIMEOUT_MS = 30_000; // 30 secs.
+    @VisibleForTesting public static final long CONNECTING_WATCHDOG_TIMEOUT_MS = 8_000; // 8 secs.
     public static final int PROVISIONING_TIMEOUT_FILS_CONNECTION_MS = 36_000; // 36 secs.
     @VisibleForTesting
     public static final String ARP_TABLE_PATH = "/proc/net/arp";
@@ -3659,7 +3659,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         // Update link layer stats
         getWifiLinkLayerStats();
 
-        if (mWifiP2pConnection.isConnected() && !mWifiP2pConnection.isP2pInWaitingState()) {
+        if (mWifiP2pConnection.isConnected() && !mWifiP2pConnection.isP2pInDisabledState()) {
             // P2P discovery breaks DHCP, so shut it down in order to get through this.
             // Once P2P service receives this message and processes it accordingly, it is supposed
             // to send arg2 (i.e. CMD_PRE_DHCP_ACTION_COMPLETE) in a new Message.what back to

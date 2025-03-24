@@ -23,10 +23,12 @@ import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_ON
 
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 import static com.android.server.wifi.rtt.RttTestUtils.compareListContentsNoOrdering;
+import static com.android.server.wifi.rtt.RttTestUtils.getDummyRangingResults;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -55,7 +57,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.MacAddress;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiSsid;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.PeerHandle;
@@ -84,7 +88,9 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.MockResources;
+import com.android.server.wifi.SsidTranslator;
 import com.android.server.wifi.WifiBaseTest;
+import com.android.server.wifi.WifiConfigManager;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
@@ -178,6 +184,11 @@ public class RttServiceImplTest extends WifiBaseTest {
 
     @Mock
     WifiSettingsConfigStore mWifiSettingsConfigStore;
+    @Mock
+    WifiConfigManager mWifiConfigManager;
+    WifiConfiguration mWifiConfiguration = new WifiConfiguration();
+    @Mock
+    SsidTranslator mSsidTranslator;
 
     /**
      * Using instead of spy to avoid native crash failures - possibly due to
@@ -248,7 +259,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         doAnswer(mBinderUnlinkToDeathCounter).when(mockIbinder).unlinkToDeath(any(), anyInt());
 
         mDut.start(mMockLooper.getLooper(), mockClock, mockAwareManager, mockMetrics,
-                mockPermissionUtil, mWifiSettingsConfigStore, mockHalDeviceManager);
+                mockPermissionUtil, mWifiSettingsConfigStore, mockHalDeviceManager,
+                mWifiConfigManager, mSsidTranslator);
         mMockLooper.dispatchAll();
         ArgumentCaptor<BroadcastReceiver> bcastRxCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
@@ -367,6 +379,59 @@ public class RttServiceImplTest extends WifiBaseTest {
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
         verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
+                mAlarmManager.getAlarmManager());
+    }
+
+    /**
+     * Validate a successful secure ranging flow.
+     */
+    @Test
+    public void testSecureRanging() throws RemoteException {
+        RangingRequest request = RttTestUtils.getDummySecureRangingRequest(
+                RangingRequest.SECURITY_MODE_OPPORTUNISTIC);
+        mWifiConfiguration.preSharedKey = "TEST_PASSWORD";
+        WifiSsid ssid = request.mRttPeers.get(
+                1).getSecureRangingConfig().getPasnConfig().getWifiSsid();
+        when(mWifiConfigManager.getConfiguredNetworkWithPassword(eq(ssid),
+                eq(WifiConfiguration.SECURITY_TYPE_SAE))).thenReturn(mWifiConfiguration);
+        when(mSsidTranslator.getTranslatedSsid(eq(ssid))).thenReturn(ssid);
+
+        // Make sure the second peer is configured with no password for SAE.
+        assertNull(request.mRttPeers.get(1).getSecureRangingConfig().getPasnConfig().getPassword());
+
+        ClockAnswer clock = new ClockAnswer();
+        doAnswer(clock).when(mockClock).getWallClockMillis();
+        clock.time = 100;
+        mDut.startRanging(mockIbinder, mPackageName, mFeatureId, null, request, mockCallback,
+                mExtras);
+        mMockLooper.dispatchAll();
+        verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), mRequestCaptor.capture());
+        verifyWakeupSet(false, 0);
+        RangingRequest halRequest = mRequestCaptor.getValue();
+        assertNotEquals("Request to WifiRttController is not null", null, halRequest);
+        assertEquals("Size of request", request.mRttPeers.size(), halRequest.mRttPeers.size());
+
+        for (int i = 0; i < request.mRttPeers.size(); ++i) {
+            assertEquals("SecureRangingConfig is not same",
+                    request.mRttPeers.get(i).getSecureRangingConfig(),
+                    halRequest.mRttPeers.get(i).getSecureRangingConfig());
+        }
+
+        // Make sure password is set for second peer from WifiConfiguration for the SAE.
+        assertEquals("Password is not set", "TEST_PASSWORD", halRequest.mRttPeers.get(
+                1).getSecureRangingConfig().getPasnConfig().getPassword());
+
+        // Verify ranging results are processed correctly
+        Pair<List<RangingResult>, List<RangingResult>> resultsPair = getDummyRangingResults(
+                halRequest);
+        mRangingResultsCbCaptor.getValue().onRangingResults(mIntCaptor.getValue(),
+                resultsPair.first);
+        mMockLooper.dispatchAll();
+        verify(mockCallback).onRangingResults(mListCaptor.capture());
+        assertTrue(compareListContentsNoOrdering(resultsPair.second, mListCaptor.getValue()));
+
+        verifyWakeupCancelled();
+        verifyNoMoreInteractions(mockRttControllerHal, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
 

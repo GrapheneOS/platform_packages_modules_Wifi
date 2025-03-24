@@ -52,6 +52,8 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
     private static final String WL_1_TAG = "Wakelock-1";
     private static final String WL_2_TAG = "Wakelock-2";
     private static final int TEST_UID = 123;
+    private static final String TEST_ATTRIBUTION_TAG = "attribution-tag";
+    private static final String TEST_PACKAGE_NAME = "package-name";
 
     private TestLooper mLooper;
     @Mock ConcreteClientModeManager mClientModeManager;
@@ -110,7 +112,7 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
     @Test
     public void oneLock() throws RemoteException {
         IBinder binder = mock(IBinder.class);
-        mManager.acquireLock(TEST_UID, binder, WL_1_TAG);
+        mManager.acquireLock(TEST_UID, binder, WL_1_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
         assertTrue(mManager.isMulticastEnabled());
         verify(mFilterController).stopFilteringMulticastPackets();
         mManager.startFilteringMulticastPackets();
@@ -160,7 +162,7 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
         assertTrue(mFilterController2.isFilteringStarted());
 
         IBinder binder = mock(IBinder.class);
-        mManager.acquireLock(TEST_UID, binder, WL_1_TAG);
+        mManager.acquireLock(TEST_UID, binder, WL_1_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
         assertTrue(mManager.isMulticastEnabled());
         // CMM1 filtering stopped
         assertFalse(mFilterController.isFilteringStarted());
@@ -195,7 +197,7 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
     @Test
     public void oneLock_wrongName() throws RemoteException {
         IBinder binder = mock(IBinder.class);
-        mManager.acquireLock(TEST_UID, binder, WL_1_TAG);
+        mManager.acquireLock(TEST_UID, binder, WL_1_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
         assertTrue(mManager.isMulticastEnabled());
         verify(mFilterController).stopFilteringMulticastPackets();
         mManager.startFilteringMulticastPackets();
@@ -218,12 +220,12 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
         InOrder inOrderHandler = inOrder(mFilterController);
         InOrder inOrderBatteryStats = inOrder(mBatteryStats);
 
-        mManager.acquireLock(TEST_UID, binder, WL_1_TAG);
+        mManager.acquireLock(TEST_UID, binder, WL_1_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
         inOrderHandler.verify(mFilterController).stopFilteringMulticastPackets();
         inOrderBatteryStats.verify(mBatteryStats).reportWifiMulticastEnabled(any());
         assertTrue(mManager.isMulticastEnabled());
 
-        mManager.acquireLock(TEST_UID, binder, WL_2_TAG);
+        mManager.acquireLock(TEST_UID, binder, WL_2_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
         inOrderHandler.verify(mFilterController).stopFilteringMulticastPackets();
         inOrderBatteryStats.verify(mBatteryStats).reportWifiMulticastEnabled(any());
         assertTrue(mManager.isMulticastEnabled());
@@ -252,12 +254,12 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
         InOrder inOrderHandler = inOrder(mFilterController);
         InOrder inOrderBatteryStats = inOrder(mBatteryStats);
 
-        mManager.acquireLock(TEST_UID, binder, WL_1_TAG);
+        mManager.acquireLock(TEST_UID, binder, WL_1_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
         inOrderHandler.verify(mFilterController).stopFilteringMulticastPackets();
         inOrderBatteryStats.verify(mBatteryStats).reportWifiMulticastEnabled(any());
         assertTrue(mManager.isMulticastEnabled());
 
-        mManager.acquireLock(TEST_UID, binder, WL_2_TAG);
+        mManager.acquireLock(TEST_UID, binder, WL_2_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
         inOrderHandler.verify(mFilterController).stopFilteringMulticastPackets();
         inOrderBatteryStats.verify(mBatteryStats).reportWifiMulticastEnabled(any());
         assertTrue(mManager.isMulticastEnabled());
@@ -288,8 +290,8 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
         IBinder binder2 = mock(IBinder.class);
 
         // Both acquired locks have the same tag
-        mManager.acquireLock(TEST_UID, binder1, WL_1_TAG);
-        mManager.acquireLock(TEST_UID, binder2, WL_1_TAG);
+        mManager.acquireLock(TEST_UID, binder1, WL_1_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
+        mManager.acquireLock(TEST_UID, binder2, WL_1_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
         assertTrue(mManager.isMulticastEnabled());
 
         mManager.releaseLock(TEST_UID, binder1, WL_1_TAG);
@@ -308,7 +310,7 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
     @Test
     public void testSingleLockActiveStateChange() {
         IBinder binder = mock(IBinder.class);
-        mManager.acquireLock(TEST_UID, binder, WL_1_TAG);
+        mManager.acquireLock(TEST_UID, binder, WL_1_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
         assertTrue(mManager.isMulticastEnabled());
         verify(mFilterController).stopFilteringMulticastPackets();
 
@@ -339,11 +341,15 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
     public void testMultipleOwnersActiveStateChange() {
         int uid1 = TEST_UID;
         int uid2 = TEST_UID + 1;
+        String attributionTag1 = "attribution-tag-1";
+        String attributionTag2 = "attribution-tag-2";
+        String packageName1 = "package-name-1";
+        String packageName2 = "package-name-2";
         IBinder binder1 = mock(IBinder.class);
         IBinder binder2 = mock(IBinder.class);
 
-        mManager.acquireLock(uid1, binder1, WL_1_TAG);
-        mManager.acquireLock(uid2, binder2, WL_2_TAG);
+        mManager.acquireLock(uid1, binder1, WL_1_TAG, attributionTag1, packageName1);
+        mManager.acquireLock(uid2, binder2, WL_2_TAG, attributionTag2, packageName2);
         assertTrue(mManager.isMulticastEnabled());
         verify(mFilterController, times(2)).stopFilteringMulticastPackets();
 

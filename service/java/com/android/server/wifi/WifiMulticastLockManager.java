@@ -89,11 +89,16 @@ public class WifiMulticastLockManager {
         String mTag;
         int mUid;
         IBinder mBinder;
+        String mAttributionTag;
+        String mPackageName;
 
-        Multicaster(int uid, IBinder binder, String tag) {
+        Multicaster(int uid, IBinder binder, String tag, String attributionTag,
+                String packageName) {
             mTag = tag;
             mUid = uid;
             mBinder = binder;
+            mAttributionTag = attributionTag;
+            mPackageName = packageName;
             try {
                 mBinder.linkToDeath(this, 0);
             } catch (RemoteException e) {
@@ -128,6 +133,14 @@ public class WifiMulticastLockManager {
 
         public IBinder getBinder() {
             return mBinder;
+        }
+
+        public String getAttributionTag() {
+            return mAttributionTag;
+        }
+
+        public String getPackageName() {
+            return mPackageName;
         }
 
         public String toString() {
@@ -221,10 +234,14 @@ public class WifiMulticastLockManager {
 
     /**
      * Acquire a multicast lock.
+     * @param uid uid of the calling application
      * @param binder a binder used to ensure caller is still alive
-     * @param tag string name of the caller.
+     * @param lockTag caller-provided tag to identify this lock
+     * @param attributionTag attribution tag of the calling application
+     * @param packageName package name of the calling application
      */
-    public void acquireLock(int uid, IBinder binder, String tag) {
+    public void acquireLock(int uid, IBinder binder, String lockTag, String attributionTag,
+            String packageName) {
         synchronized (mLock) {
             mMulticastEnabled++;
 
@@ -234,7 +251,7 @@ public class WifiMulticastLockManager {
             }
             int numLocksHeldByUid = mNumLocksPerActiveOwner.getOrDefault(uid, 0);
             mNumLocksPerActiveOwner.put(uid, numLocksHeldByUid + 1);
-            mMulticasters.add(new Multicaster(uid, binder, tag));
+            mMulticasters.add(new Multicaster(uid, binder, lockTag, attributionTag, packageName));
 
             // Note that we could call stopFilteringMulticastPackets only when
             // our new size == 1 (first call), but this function won't
@@ -249,20 +266,20 @@ public class WifiMulticastLockManager {
         mBatteryStats.reportWifiMulticastEnabled(new WorkSource(uid));
         WifiStatsLog.write_non_chained(
                 WifiStatsLog.WIFI_MULTICAST_LOCK_STATE_CHANGED, uid, null,
-                WifiStatsLog.WIFI_MULTICAST_LOCK_STATE_CHANGED__STATE__ON, tag);
+                WifiStatsLog.WIFI_MULTICAST_LOCK_STATE_CHANGED__STATE__ON, lockTag);
         Binder.restoreCallingIdentity(ident);
     }
 
     /** Releases a multicast lock */
-    public void releaseLock(int uid, IBinder binder, String tag) {
+    public void releaseLock(int uid, IBinder binder, String lockTag) {
         synchronized (mLock) {
             mMulticastDisabled++;
             int size = mMulticasters.size();
             for (int i = size - 1; i >= 0; i--) {
                 Multicaster m = mMulticasters.get(i);
-                if ((m != null) && (m.getUid() == uid) && (m.getTag().equals(tag))
+                if ((m != null) && (m.getUid() == uid) && (m.getTag().equals(lockTag))
                         && (m.getBinder() == binder)) {
-                    removeMulticasterLocked(i, uid, tag);
+                    removeMulticasterLocked(i, uid, lockTag);
                     break;
                 }
             }

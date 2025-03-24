@@ -228,9 +228,10 @@ interface IWifiManager {
 
     boolean isMulticastEnabled();
 
-    void acquireMulticastLock(IBinder binder, String tag);
+    void acquireMulticastLock(
+            IBinder binder, String lockTag, String attributionTag, String packageName);
 
-    void releaseMulticastLock(IBinder binder, String tag);
+    void releaseMulticastLock(IBinder binder, String lockTag);
 
     void updateInterfaceIpState(String ifaceName, int mode);
 

@@ -184,11 +184,13 @@ public class PasnConfigTest {
         assertEquals(PasnConfig.AKM_NONE, PasnConfig.getBaseAkmsFromCapabilities(null));
         assertEquals(PasnConfig.AKM_NONE, PasnConfig.getBaseAkmsFromCapabilities(""));
         assertEquals(PasnConfig.AKM_SAE,
-                PasnConfig.getBaseAkmsFromCapabilities("[RSN-SAE+SAE_EXT_KEY-CCMP]"));
+                PasnConfig.getBaseAkmsFromCapabilities("[RSN-SAE+SAE_EXT_KEY-CCMP-128]"));
         assertEquals(PasnConfig.AKM_SAE,
-                PasnConfig.getBaseAkmsFromCapabilities("[RSN-PSK+SAE-CCMP]"));
+                PasnConfig.getBaseAkmsFromCapabilities("[RSN-PSK+SAE-CCMP-128]"));
         assertEquals(PasnConfig.AKM_FT_PSK_SHA256,
-                PasnConfig.getBaseAkmsFromCapabilities("[RSN-FT/PSK-CCMP]"));
+                PasnConfig.getBaseAkmsFromCapabilities("[RSN-FT/PSK-CCMP-128]"));
+        assertEquals(PasnConfig.AKM_SAE | PasnConfig.AKM_PASN,
+                PasnConfig.getBaseAkmsFromCapabilities("[RSN-PSK+SAE+PASN-CCMP-128]"));
     }
 
     /**
@@ -199,13 +201,15 @@ public class PasnConfigTest {
         assertEquals(PasnConfig.CIPHER_NONE, PasnConfig.getCiphersFromCapabilities(null));
         assertEquals(PasnConfig.CIPHER_NONE, PasnConfig.getCiphersFromCapabilities(""));
         assertEquals(PasnConfig.CIPHER_CCMP_128,
-                PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-CCMP]"));
+                PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-CCMP-128]"));
         assertEquals(PasnConfig.CIPHER_CCMP_256,
                 PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-CCMP-256]"));
         assertEquals(PasnConfig.CIPHER_GCMP_128,
-                PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-GCMP]"));
+                PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-GCMP-128]"));
         assertEquals(PasnConfig.CIPHER_GCMP_256,
                 PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-GCMP-256]"));
+        assertEquals(PasnConfig.CIPHER_GCMP_256 | PasnConfig.CIPHER_CCMP_128,
+                PasnConfig.getCiphersFromCapabilities("[RSN-SAE+SAE_EXT_KEY-GCMP-256+CCMP-128]"));
     }
 
     /**

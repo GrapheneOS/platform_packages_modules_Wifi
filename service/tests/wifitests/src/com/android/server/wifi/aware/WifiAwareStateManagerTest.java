@@ -2971,7 +2971,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 null, messageId, 0);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).sendMessage(transactionId.capture(), eq(subscribeId),
-                eq(requestorId), eq(peerMac), isNull(byte[].class), eq(messageId));
+                eq(requestorId), eq(peerMac), isNull(), eq(messageId));
         short tid = transactionId.getValue();
         mDut.onMessageSendQueuedSuccessResponse(tid);
         mMockLooper.dispatchAll();
@@ -3873,6 +3873,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         validateCorrectAwareStatusChangeBroadcast(inOrder);
         inOrder.verify(mMockNative).disable(transactionId.capture());
         mDut.onDisableResponse(transactionId.getValue(), NanStatusCode.SUCCESS);
+        mDut.onAwareDownNotification(NanStatusCode.SUCCESS);
         mMockLooper.dispatchAll();
         assertFalse(mDut.isDeviceAttached());
         collector.checkThat("usage disabled", mDut.isUsageEnabled(), equalTo(false));

@@ -120,17 +120,14 @@ public final class PasnConfig implements Parcelable {
 
     static {
         sStringToAkm.put("None", AKM_NONE);
-        sStringToAkm.put("PASN-", AKM_PASN);
-        // Transition mode. e.g. "[RSN-SAE+SAE_EXT_KEY-CCMP]"
-        sStringToAkm.put("SAE+", AKM_SAE);
-        // SAE mode only. e.g. "[RSN-PSK+SAE-CCMP]"
-        sStringToAkm.put("SAE-", AKM_SAE);
-        sStringToAkm.put("EAP-FILS-SHA256-", AKM_FILS_EAP_SHA256);
-        sStringToAkm.put("EAP-FILS-SHA384-", AKM_FILS_EAP_SHA384);
-        sStringToAkm.put("FT/EAP-", AKM_FT_EAP_SHA256);
-        sStringToAkm.put("FT/PSK-", AKM_FT_PSK_SHA256);
-        sStringToAkm.put("EAP-FT-SHA384-", AKM_FT_EAP_SHA384);
-        sStringToAkm.put("FT/PSK-SHA384-", AKM_FT_PSK_SHA384);
+        sStringToAkm.put("PASN", AKM_PASN);
+        sStringToAkm.put("SAE", AKM_SAE);
+        sStringToAkm.put("EAP-FILS-SHA256", AKM_FILS_EAP_SHA256);
+        sStringToAkm.put("EAP-FILS-SHA384", AKM_FILS_EAP_SHA384);
+        sStringToAkm.put("FT/EAP", AKM_FT_EAP_SHA256);
+        sStringToAkm.put("FT/PSK", AKM_FT_PSK_SHA256);
+        sStringToAkm.put("EAP-FT-SHA384", AKM_FT_EAP_SHA384);
+        sStringToAkm.put("FT/PSK-SHA384", AKM_FT_PSK_SHA384);
     }
 
     /**
@@ -174,17 +171,17 @@ public final class PasnConfig implements Parcelable {
 
     static {
         sStringToCipher.put("None", CIPHER_NONE);
-        sStringToCipher.put("-CCMP]", CIPHER_CCMP_128);
-        sStringToCipher.put("-CCMP-256]", CIPHER_CCMP_256);
-        sStringToCipher.put("-GCMP]", CIPHER_GCMP_128);
-        sStringToCipher.put("-GCMP-256]", CIPHER_GCMP_256);
+        sStringToCipher.put("CCMP-128", CIPHER_CCMP_128);
+        sStringToCipher.put("CCMP-256", CIPHER_CCMP_256);
+        sStringToCipher.put("GCMP-128", CIPHER_GCMP_128);
+        sStringToCipher.put("GCMP-256", CIPHER_GCMP_256);
     }
 
     @AkmType
     private final int mBaseAkms;
     @Cipher
     private final int mCiphers;
-    private final String mPassword;
+    private String mPassword;
     private final WifiSsid mWifiSsid;
     private final byte[] mPasnComebackCookie;
 
@@ -210,6 +207,13 @@ public final class PasnConfig implements Parcelable {
     @Nullable
     public String getPassword() {
         return mPassword;
+    }
+
+    /**
+     * @hide
+     */
+    public void setPassword(String password) {
+        mPassword = password;
     }
 
     /**

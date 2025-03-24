@@ -45,8 +45,8 @@ public class WifiP2pConnection {
     private AsyncChannel mWifiP2pChannel;
     private boolean mTemporarilyDisconnectWifi = false;
 
-    /** Used to check if P2P state machine is in waitingState */
-    private boolean mWaitingState = false;
+    /** Used to check if P2P state machine is in DisabledState */
+    private boolean mDisabledState = false;
 
     public WifiP2pConnection(Context context, Looper looper, ActiveModeWarden activeModeWarden) {
         mContext = context;
@@ -191,12 +191,12 @@ public class WifiP2pConnection {
         return mTemporarilyDisconnectWifi;
     }
 
-    public void setP2pInWaitingState(boolean inWaitingState) {
-        mWaitingState = inWaitingState;
+    public void setP2pInDisabledState(boolean inDisabledState) {
+        mDisabledState = inDisabledState;
     }
 
-    /** whether the P2P state machine is in waitingState for user response to create interface */
-    public boolean isP2pInWaitingState() {
-        return mWaitingState;
+    /** whether the P2P state machine is in disabled state */
+    public boolean isP2pInDisabledState() {
+        return mDisabledState;
     }
 }

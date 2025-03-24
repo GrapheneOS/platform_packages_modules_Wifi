@@ -6171,19 +6171,20 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     }
 
     @Override
-    public void acquireMulticastLock(IBinder binder, String tag) {
+    public void acquireMulticastLock(IBinder binder, String lockTag, String attributionTag,
+            String packageName) {
         enforceMulticastChangePermission();
         int uid = Binder.getCallingUid();
-        mLog.info("acquireMulticastLock uid=% tag=%").c(uid).c(tag).flush();
-        mWifiMulticastLockManager.acquireLock(uid, binder, tag);
+        mLog.info("acquireMulticastLock uid=% lockTag=%").c(uid).c(lockTag).flush();
+        mWifiMulticastLockManager.acquireLock(uid, binder, lockTag, attributionTag, packageName);
     }
 
     @Override
-    public void releaseMulticastLock(IBinder binder, String tag) {
+    public void releaseMulticastLock(IBinder binder, String lockTag) {
         enforceMulticastChangePermission();
         int uid = Binder.getCallingUid();
-        mLog.info("releaseMulticastLock uid=% tag=%").c(uid).c(tag).flush();
-        mWifiMulticastLockManager.releaseLock(uid, binder, tag);
+        mLog.info("releaseMulticastLock uid=% lockTag=%").c(uid).c(lockTag).flush();
+        mWifiMulticastLockManager.releaseLock(uid, binder, lockTag);
     }
 
     @Override

@@ -72,7 +72,7 @@ public class SarManager {
     private static final String TAG = "WifiSarManager";
     private boolean mVerboseLoggingEnabled = true;
 
-    private SarInfo mSarInfo;
+    private final SarInfo mSarInfo;
 
     /* Configuration for SAR support */
     private boolean mSupportSarTxPowerLimit;
@@ -106,6 +106,7 @@ public class SarManager {
         mAudioManager = mContext.getSystemService(AudioManager.class);
         mHandler = new Handler(looper);
         mPhoneStateListener = new WifiPhoneStateListener(looper);
+        mSarInfo = new SarInfo();
         wifiDeviceStateChangeManager.registerStateChangeCallback(
                 new WifiDeviceStateChangeManager.StateChangeCallback() {
                     @Override
@@ -121,9 +122,9 @@ public class SarManager {
     public void handleBootCompleted() {
         readSarConfigs();
         if (mSupportSarTxPowerLimit) {
-            mSarInfo = new SarInfo();
             setSarConfigsInInfo();
             registerListeners();
+            updateSarScenario();
         }
     }
 
@@ -302,11 +303,6 @@ public class SarManager {
      */
     public void setClientWifiState(int state) {
         boolean newIsEnabled;
-        /* No action is taken if SAR is not supported */
-        if (!mSupportSarTxPowerLimit) {
-            return;
-        }
-
         if (state == WifiManager.WIFI_STATE_DISABLED) {
             newIsEnabled = false;
         } else if (state == WifiManager.WIFI_STATE_ENABLED) {
@@ -328,10 +324,6 @@ public class SarManager {
      */
     public void setSapWifiState(int state) {
         boolean newIsEnabled;
-        /* No action is taken if SAR is not supported */
-        if (!mSupportSarTxPowerLimit) {
-            return;
-        }
 
         if (state == WifiManager.WIFI_AP_STATE_DISABLED) {
             newIsEnabled = false;
@@ -354,10 +346,6 @@ public class SarManager {
      */
     public void setScanOnlyWifiState(int state) {
         boolean newIsEnabled;
-        /* No action is taken if SAR is not supported */
-        if (!mSupportSarTxPowerLimit) {
-            return;
-        }
 
         if (state == WifiManager.WIFI_STATE_DISABLED) {
             newIsEnabled = false;
@@ -459,6 +447,10 @@ public class SarManager {
      * Update HAL with the new SAR scenario if needed.
      */
     private void updateSarScenario() {
+        /* No action is taken if SAR is not supported */
+        if (!mSupportSarTxPowerLimit) {
+            return;
+        }
         if (!mSarInfo.shouldReport()) {
             return;
         }

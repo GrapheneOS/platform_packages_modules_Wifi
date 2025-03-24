@@ -298,7 +298,8 @@ public class WifiRttControllerAidlImpl implements IWifiRttController {
                     .set80211mcMeasurement(rttResult.type == RttType.TWO_SIDED_11MC)
                     .setMeasurementChannelFrequencyMHz(rttResult.channelFreqMHz)
                     .setMeasurementBandwidth(halToFrameworkChannelBandwidth(rttResult.packetBw))
-                    .set80211azNtbMeasurement(rttResult.type == RttType.TWO_SIDED_11AZ_NTB)
+                    .set80211azNtbMeasurement(rttResult.type == RttType.TWO_SIDED_11AZ_NTB
+                            || rttResult.type == RttType.TWO_SIDED_11AZ_NTB_SECURE)
                     .setMinTimeBetweenNtbMeasurementsMicros(rttResult.ntbMinMeasurementTime
                             * CONVERSION_MICROS_TO_100_MICROS)
                     .setMaxTimeBetweenNtbMeasurementsMicros(rttResult.ntbMaxMeasurementTime

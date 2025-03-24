@@ -11126,8 +11126,8 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
-     * Verify that during DHCP process, 1. If P2P is in waiting state, clientModeImpl doesn't send a
-     * message to block P2P discovery. 2. If P2P is not in waiting state, clientModeImpl sends a
+     * Verify that during DHCP process, 1. If P2P is in disabled state, clientModeImpl doesn't send
+     * a message to block P2P discovery. 2. If P2P is not in disabled state, clientModeImpl sends a
      * message to block P2P discovery. 3. On DHCP completion, clientModeImpl sends a message to
      * unblock P2P discovery.
      */
@@ -11162,7 +11162,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals("L3ProvisioningState", getCurrentState().getName());
 
         when(mWifiP2pConnection.isConnected()).thenReturn(true);
-        when(mWifiP2pConnection.isP2pInWaitingState()).thenReturn(true);
+        when(mWifiP2pConnection.isP2pInDisabledState()).thenReturn(true);
 
         mIpClientCallback.onPreDhcpAction();
         mLooper.dispatchAll();
@@ -11170,7 +11170,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mIpClient).completedPreDhcpAction();
 
         when(mWifiP2pConnection.isConnected()).thenReturn(true);
-        when(mWifiP2pConnection.isP2pInWaitingState()).thenReturn(false);
+        when(mWifiP2pConnection.isP2pInDisabledState()).thenReturn(false);
 
         mIpClientCallback.onPreDhcpAction();
         mLooper.dispatchAll();

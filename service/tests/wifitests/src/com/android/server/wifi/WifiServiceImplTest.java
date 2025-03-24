@@ -1842,7 +1842,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testSetWifiApConfigurationNullConfigNotSaved() throws Exception {
         when(mWifiPermissionsUtil.checkConfigOverridePermission(anyInt())).thenReturn(true);
         assertFalse(mWifiServiceImpl.setWifiApConfiguration(null, TEST_PACKAGE_NAME));
-        verify(mWifiApConfigStore, never()).setApConfiguration(isNull(SoftApConfiguration.class));
+        verify(mWifiApConfigStore, never()).setApConfiguration(isNull());
     }
 
     /**
@@ -1903,7 +1903,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     public void testSetSoftApConfigurationNullConfigNotSaved() throws Exception {
         when(mWifiPermissionsUtil.checkConfigOverridePermission(anyInt())).thenReturn(true);
         assertFalse(mWifiServiceImpl.setSoftApConfiguration(null, TEST_PACKAGE_NAME));
-        verify(mWifiApConfigStore, never()).setApConfiguration(isNull(SoftApConfiguration.class));
+        verify(mWifiApConfigStore, never()).setApConfiguration(isNull());
         verify(mActiveModeWarden, never()).updateSoftApConfiguration(any());
         verify(mWifiPermissionsUtil).checkConfigOverridePermission(anyInt());
     }

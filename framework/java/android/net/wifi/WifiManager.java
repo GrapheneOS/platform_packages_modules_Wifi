@@ -8465,7 +8465,8 @@ public class WifiManager {
             synchronized (mBinder) {
                 if (mRefCounted ? (++mRefCount == 1) : (!mHeld)) {
                     try {
-                        mService.acquireMulticastLock(mBinder, mTag);
+                        mService.acquireMulticastLock(mBinder, mTag,
+                                mContext.getAttributionTag(), mContext.getOpPackageName());
                         synchronized (WifiManager.this) {
                             if (mActiveLockCount >= MAX_ACTIVE_LOCKS) {
                                 mService.releaseMulticastLock(mBinder, mTag);

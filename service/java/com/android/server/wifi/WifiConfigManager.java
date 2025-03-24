@@ -817,6 +817,31 @@ public class WifiConfigManager {
     }
 
     /**
+     * Retrieves the  configured network corresponding to the provided SSID and security type. The
+     * WifiConfiguration object will have the password in plain text.
+     *
+     * WARNING: Don't use this to pass network configurations to external apps. Should only be
+     * sent to system apps/wifi stack, when there is a need for passwords in plaintext.
+     *
+     * @param ssid SSID of the requested network.
+     * @param securityType  security type of the requested network.
+     * @return WifiConfiguration object if found, null otherwise.
+     */
+    public @Nullable WifiConfiguration getConfiguredNetworkWithPassword(@NonNull WifiSsid ssid,
+            @WifiConfiguration.SecurityType int securityType) {
+        List<WifiConfiguration> wifiConfigurations = getConfiguredNetworks(false, false,
+                Process.WIFI_UID);
+        for (WifiConfiguration wifiConfiguration : wifiConfigurations) {
+            // Match ssid and security type
+            if (ssid.equals(WifiSsid.fromString(wifiConfiguration.SSID))
+                    && wifiConfiguration.isSecurityType(securityType)) {
+                return new WifiConfiguration(wifiConfiguration);
+            }
+        }
+        return null;
+    }
+
+    /**
      * Retrieves the list of all configured networks with the passwords masked.
      *
      * @return List of WifiConfiguration objects representing the networks.

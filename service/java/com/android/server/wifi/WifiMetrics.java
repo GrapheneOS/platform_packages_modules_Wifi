@@ -8914,8 +8914,11 @@ public class WifiMetrics {
         }
     }
 
-    /** Add a WifiLock acquisition session */
-    public void addWifiLockAcqSession(int lockType, int[] attrUids, String[] attrTags,
+    /**
+     * Add a WifiLockManager acquisition session. This represents the session during which
+     * a single lock was held.
+     */
+    public void addWifiLockManagerAcqSession(int lockType, int[] attrUids, String[] attrTags,
             int callerType, long duration, boolean isPowersaveDisableAllowed,
             boolean isAppExemptedFromScreenOn, boolean isAppExemptedFromForeground) {
         int lockMode;
@@ -8933,6 +8936,27 @@ public class WifiMetrics {
                 Log.e(TAG, "addWifiLockAcqSession: Invalid lock type: " + lockType);
                 return;
         }
+        writeWifiLockAcqSession(lockMode, attrUids, attrTags, callerType, duration,
+                isPowersaveDisableAllowed, isAppExemptedFromScreenOn, isAppExemptedFromForeground);
+    }
+
+    /**
+     * Add a MulticastLockManager acquisition session. This represents the session during which
+     * a single lock was held.
+     */
+    public void addMulticastLockManagerAcqSession(
+            int uid, String attributionTag, int callerType, long duration) {
+        // Use a default value for the boolean parameters, since these fields
+        // don't apply to multicast locks.
+        writeWifiLockAcqSession(
+                WifiStatsLog.WIFI_LOCK_RELEASED__MODE__WIFI_MODE_MULTICAST_FILTERING_DISABLED,
+                new int[]{uid}, new String[]{attributionTag}, callerType, duration,
+                false, false, false);
+    }
+
+    private void writeWifiLockAcqSession(int lockMode, int[] attrUids, String[] attrTags,
+            int callerType, long duration, boolean isPowersaveDisableAllowed,
+            boolean isAppExemptedFromScreenOn, boolean isAppExemptedFromForeground) {
         WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_RELEASED,
                 attrUids,
                 attrTags,

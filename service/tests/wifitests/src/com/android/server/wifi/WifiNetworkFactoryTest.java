@@ -3342,6 +3342,7 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
                 WifiConfigurationTestUtil.createPskNetwork(), TEST_UID_1, TEST_PACKAGE_NAME_1,
                 new int[0]);
         mWifiNetworkFactory.needNetworkFor(mNetworkRequest);
+        setScreenState(false);
 
         // Verify we did not trigger the UI for the second request.
         verify(mContext, never()).startActivityAsUser(any(), any());

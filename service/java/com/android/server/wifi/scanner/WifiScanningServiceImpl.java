@@ -61,6 +61,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.Protocol;
 import com.android.internal.util.State;
 import com.android.internal.util.StateMachine;
+import com.android.modules.utils.ParceledListSlice;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.ClientModeImpl;
 import com.android.server.wifi.Clock;
@@ -1740,9 +1741,10 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                 }
                 entry.clientInfo.reportEvent((listener) -> {
                     try {
-                        listener.onFullResults(new ArrayList<>(matchedScanResults));
+                        listener.onFullResults(
+                                new ParceledListSlice<>(new ArrayList<>(matchedScanResults)));
                     } catch (RemoteException e) {
-                        loge("Failed to call onFullResult: " + entry.clientInfo);
+                        loge("Failed to call onFullResults: " + entry.clientInfo);
                     }
                 });
                 matchedScanResults.clear();
@@ -1751,9 +1753,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
             for (RequestInfo<Void> entry : mSingleScanListeners) {
                 entry.clientInfo.reportEvent((listener) -> {
                     try {
-                        listener.onFullResults(results);
+                        listener.onFullResults(new ParceledListSlice<>(results));
                     } catch (RemoteException e) {
-                        loge("Failed to call onFullResult: " + entry.clientInfo);
+                        loge("Failed to call onFullResults: " + entry.clientInfo);
                     }
                 });
             }
@@ -1779,7 +1781,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                         // make sure the handler is removed
                         listener.onSingleScanCompleted();
                     } catch (RemoteException e) {
-                        loge("Failed to call onResult: " + entry.clientInfo);
+                        loge("Failed to call onResults: " + entry.clientInfo);
                     }
                 });
             }
@@ -1791,7 +1793,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     try {
                         listener.onResults(allResults);
                     } catch (RemoteException e) {
-                        loge("Failed to call onResult: " + entry.clientInfo);
+                        loge("Failed to call onResults: " + entry.clientInfo);
                     }
                 });
             }
@@ -2314,9 +2316,10 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     }
                     entry.clientInfo.reportEvent((listener) -> {
                         try {
-                            listener.onFullResults(new ArrayList<>(matchedResults));
+                            listener.onFullResults(
+                                    new ParceledListSlice<>(new ArrayList<>(matchedResults)));
                         } catch (RemoteException e) {
-                            loge("Failed to call onFullResult: " + ci);
+                            loge("Failed to call onFullResults: " + ci);
                         }
                     });
                 }
@@ -2350,7 +2353,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                         try {
                             listener.onResults(resultsToDeliver);
                         } catch (RemoteException e) {
-                            loge("Failed to call onFullResult: " + ci);
+                            loge("Failed to call onResults: " + ci);
                         }
                     });
                 }
@@ -2364,7 +2367,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     try {
                         listener.onFailure(reason, description);
                     } catch (RemoteException e) {
-                        loge("Failed to call onFullResult: " + ci);
+                        loge("Failed to call onFailure: " + ci);
                     }
                 });
             }
@@ -3229,7 +3232,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     try {
                         listener.onPnoNetworkFound(results);
                     } catch (RemoteException e) {
-                        loge("Failed to call onFullResult: " + ci);
+                        loge("Failed to call onPnoNetworkFound: " + ci);
                     }
                 });
             }
@@ -3242,7 +3245,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     try {
                         listener.onFailure(reason, description);
                     } catch (RemoteException e) {
-                        loge("Failed to call onFullResult: " + ci);
+                        loge("Failed to call onFailure: " + ci);
                     }
                 });
             }

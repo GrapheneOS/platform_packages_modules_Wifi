@@ -197,6 +197,14 @@ public final class RangingResult implements Parcelable {
             mR2iTxLtfRepetitions = other.mR2iTxLtfRepetitions;
             mNumTxSpatialStreams = other.mNumTxSpatialStreams;
             mNumRxSpatialStreams = other.mNumRxSpatialStreams;
+            mIsRangingAuthenticated = other.mIsRangingAuthenticated;
+            mIsRangingFrameProtected = other.mIsRangingFrameProtected;
+            mIsSecureHeLtfEnabled = other.mIsSecureHeLtfEnabled;
+            mSecureHeLtfProtocolVersion = other.mSecureHeLtfProtocolVersion;
+            if (other.mPasnComebackCookie != null) {
+                mPasnComebackCookie = other.mPasnComebackCookie.clone();
+                mPasnComebackAfterMillis = other.mPasnComebackAfterMillis;
+            }
             mVendorData = new ArrayList<>(other.mVendorData);
         }
 

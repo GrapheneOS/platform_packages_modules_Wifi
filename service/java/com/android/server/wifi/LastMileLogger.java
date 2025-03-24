@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 
+import android.os.Handler;
 import android.util.ArrayMap;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -34,7 +35,9 @@ import java.util.Map;
  * Provides a facility for capturing kernel trace events related to Wifi control and data paths.
  */
 public class LastMileLogger {
-    public LastMileLogger(WifiInjector injector) {
+    private final Handler mBackgroundHandler;
+    public LastMileLogger(WifiInjector injector, Handler handler) {
+        mBackgroundHandler = handler;
         File tracefsEnablePath = new File(WIFI_EVENT_ENABLE_PATH);
         if (tracefsEnablePath.exists()) {
             initLastMileLogger(injector, WIFI_EVENT_BUFFER_PATH, WIFI_EVENT_ENABLE_PATH,
@@ -47,7 +50,8 @@ public class LastMileLogger {
 
     @VisibleForTesting
     public LastMileLogger(WifiInjector injector, String bufferPath, String enablePath,
-                          String releasePath) {
+                          String releasePath, Handler handler) {
+        mBackgroundHandler = handler;
         initLastMileLogger(injector, bufferPath, enablePath, releasePath);
     }
 
@@ -62,16 +66,17 @@ public class LastMileLogger {
 
         boolean shouldTracingBeEnabled = anyConnectionInProgress();
 
-        if (!wasTracingEnabled && shouldTracingBeEnabled) {
-            enableTracing();
-        } else if (wasTracingEnabled && !shouldTracingBeEnabled) {
-            disableTracing();
-        }
-
-        if (event == WifiDiagnostics.CONNECTION_EVENT_FAILED
-                || event == WifiDiagnostics.CONNECTION_EVENT_TIMEOUT) {
-            mLastMileLogForLastFailure = readTrace();
-        }
+        mBackgroundHandler.post(() -> {
+            if (!wasTracingEnabled && shouldTracingBeEnabled) {
+                enableTracing();
+            } else if (wasTracingEnabled && !shouldTracingBeEnabled) {
+                disableTracing();
+            }
+            if (event == WifiDiagnostics.CONNECTION_EVENT_FAILED
+                    || event == WifiDiagnostics.CONNECTION_EVENT_TIMEOUT) {
+                mLastMileLogForLastFailure = readTrace();
+            }
+        });
     }
 
     private boolean anyConnectionInProgress() {

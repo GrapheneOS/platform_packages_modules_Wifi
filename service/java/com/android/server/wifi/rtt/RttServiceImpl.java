@@ -38,17 +38,21 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.MacAddress;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiSsid;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.rtt.IRttCallback;
 import android.net.wifi.rtt.IWifiRttManager;
+import android.net.wifi.rtt.PasnConfig;
 import android.net.wifi.rtt.RangingRequest;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.rtt.RangingResultCallback;
 import android.net.wifi.rtt.ResponderConfig;
 import android.net.wifi.rtt.ResponderLocation;
+import android.net.wifi.rtt.SecureRangingConfig;
 import android.net.wifi.rtt.WifiRttManager;
 import android.os.Binder;
 import android.os.Bundle;
@@ -73,7 +77,9 @@ import com.android.server.wifi.BuildProperties;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.HalDeviceManager;
+import com.android.server.wifi.SsidTranslator;
 import com.android.server.wifi.SystemBuildProperties;
+import com.android.server.wifi.WifiConfigManager;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
@@ -116,8 +122,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private final BuildProperties mBuildProperties;
     private FrameworkFacade mFrameworkFacade;
     private WifiRttController.Capabilities mCapabilities;
-
     private RttServiceSynchronized mRttServiceSynchronized;
+    private SsidTranslator mWifiSsidTranslator;
 
     /* package */ static final String HAL_RANGING_TIMEOUT_TAG = TAG + " HAL Ranging Timeout";
 
@@ -128,6 +134,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
 
     // arbitrary, larger than anything reasonable
     /* package */ static final int MAX_QUEUED_PER_UID = 20;
+    private WifiConfigManager mWifiConfigManager;
 
     private final WifiRttController.RttControllerRangingResultsCallback mRangingResultsCallback =
             new WifiRttController.RttControllerRangingResultsCallback() {
@@ -311,10 +318,14 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
      * @param wifiPermissionsUtil Utility for permission checks.
      * @param settingsConfigStore Used for retrieving verbose logging level.
      * @param halDeviceManager The HAL device manager object.
+     * @param wifiConfigManager The Wi-Fi configuration manager used to retrieve credentials for
+     *                          secure ranging
+     * @param ssidTranslator SSID translator
      */
     public void start(Looper looper, Clock clock, WifiAwareManager awareManager,
             RttMetrics rttMetrics, WifiPermissionsUtil wifiPermissionsUtil,
-            WifiSettingsConfigStore settingsConfigStore, HalDeviceManager halDeviceManager) {
+            WifiSettingsConfigStore settingsConfigStore, HalDeviceManager halDeviceManager,
+            WifiConfigManager wifiConfigManager, SsidTranslator ssidTranslator) {
         mClock = clock;
         mAwareManager = awareManager;
         mHalDeviceManager = halDeviceManager;
@@ -323,6 +334,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         mRttServiceSynchronized = new RttServiceSynchronized(looper);
         mActivityManager = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
         mPowerManager = mContext.getSystemService(PowerManager.class);
+        mWifiConfigManager = wifiConfigManager;
+        mWifiSsidTranslator = ssidTranslator;
 
         mRttServiceSynchronized.mHandler.post(() -> {
             IntentFilter intentFilter = new IntentFilter();
@@ -516,6 +529,63 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         }
     }
 
+    private @WifiConfiguration.SecurityType int getSecurityTypeFromPasnAkms(
+            @PasnConfig.AkmType int akms) {
+        @WifiConfiguration.SecurityType int securityType;
+        // IEEE 802.11az supports PASN authentication with FT, PASN authentication with SAE and
+        // PASN authentication with FILS shared key. On FT PSK and SAE needs pre-shared key or
+        // password.
+        if (akms == PasnConfig.AKM_PASN) {
+            securityType = WifiConfiguration.SECURITY_TYPE_OPEN;
+        } else if ((akms & PasnConfig.AKM_SAE) != 0) {
+            securityType = WifiConfiguration.SECURITY_TYPE_SAE;
+        } else if ((akms & PasnConfig.AKM_FT_PSK_SHA256) != 0
+                || (akms & PasnConfig.AKM_FT_PSK_SHA384) != 0) {
+            // Note: WifiConfiguration is created as PSK. The fast transition (FT) flag is added
+            // before saving to wpa_supplicant. So check for SECURITY_TYPE_PSK.
+            securityType = WifiConfiguration.SECURITY_TYPE_PSK;
+        } else {
+            securityType = WifiConfiguration.SECURITY_TYPE_EAP;
+        }
+        return securityType;
+    }
+
+    /**
+     * Update the PASN password from WifiConfiguration.
+     */
+    private void updatePasswordIfRequired(@NonNull PasnConfig pasnConfig) {
+        if (pasnConfig.getPassword() != null || pasnConfig.getWifiSsid() == null) {
+            return;
+        }
+        int securityType = getSecurityTypeFromPasnAkms(pasnConfig.getBaseAkms());
+        if (securityType == WifiConfiguration.SECURITY_TYPE_SAE
+                || securityType == WifiConfiguration.SECURITY_TYPE_PSK) {
+            // The SSID within PasnConfig is supplied by an 11az secure ranging application,
+            // which doesn't guarantee UTF-8 encoding. Therefore, a UTF-8 conversion step is
+            // necessary before the SSID can be reliably used by service code.
+            WifiSsid translatedSsid = mWifiSsidTranslator.getTranslatedSsid(
+                    pasnConfig.getWifiSsid());
+            WifiConfiguration wifiConfiguration =
+                    mWifiConfigManager.getConfiguredNetworkWithPassword(translatedSsid,
+                            securityType);
+            if (wifiConfiguration != null) {
+                pasnConfig.setPassword(wifiConfiguration.preSharedKey);
+            }
+        }
+    }
+
+    /**
+     * Update the secure ranging parameters if required.
+     */
+    private void updateSecureRangingParams(RangingRequest request) {
+        for (ResponderConfig rttPeer : request.mRttPeers) {
+            SecureRangingConfig secureRangingConfig = rttPeer.getSecureRangingConfig();
+            if (secureRangingConfig != null) {
+                updatePasswordIfRequired(secureRangingConfig.getPasnConfig());
+            }
+        }
+    }
+
     /**
      * Binder interface API to start a ranging operation. Called on binder thread, operations needs
      * to be posted to handler thread.
@@ -620,6 +690,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         }
 
         override11azOverlays(request);
+        updateSecureRangingParams(request);
 
         mRttServiceSynchronized.mHandler.post(() -> {
             WorkSource sourceToUse = ws;
@@ -1380,6 +1451,17 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                     if (SdkLevel.isAtLeastV() && resultForRequest.getVendorData() != null
                             && !resultForRequest.getVendorData().isEmpty()) {
                         builder.setVendorData(resultForRequest.getVendorData());
+                    }
+                    // set secure ranging fields
+                    builder.setRangingFrameProtected(resultForRequest.isRangingFrameProtected())
+                            .setRangingAuthenticated(resultForRequest.isRangingAuthenticated())
+                            .setSecureHeLtfEnabled(resultForRequest.isSecureHeLtfEnabled())
+                            .setSecureHeLtfProtocolVersion(
+                                    resultForRequest.getSecureHeLtfProtocolVersion());
+                    if (resultForRequest.getPasnComebackCookie() != null) {
+                        builder.setPasnComebackCookie(resultForRequest.getPasnComebackCookie());
+                        builder.setPasnComebackAfterMillis(
+                                resultForRequest.getPasnComebackAfterMillis());
                     }
                     finalResults.add(builder.build());
                 }

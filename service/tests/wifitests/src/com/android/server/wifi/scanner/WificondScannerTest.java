@@ -141,12 +141,9 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
     public void externalScanResultsDoNotCauseSpuriousTimerCancellationOrCrash() {
         mWifiMonitor.sendMessage(IFACE_NAME, WifiMonitor.SCAN_RESULTS_EVENT);
         mLooper.dispatchAll();
-        verify(mAlarmManager.getAlarmManager(), never()).cancel(any(PendingIntent.class));
+        verify(mAlarmManager.getAlarmManager(), never()).cancel(nullable(PendingIntent.class));
         verify(mAlarmManager.getAlarmManager(), never())
-                .cancel(any(AlarmManager.OnAlarmListener.class));
-        verify(mAlarmManager.getAlarmManager(), never()).cancel(isNull(PendingIntent.class));
-        verify(mAlarmManager.getAlarmManager(), never())
-                .cancel(isNull(AlarmManager.OnAlarmListener.class));
+                .cancel(nullable(AlarmManager.OnAlarmListener.class));
     }
 
     @Test
@@ -166,12 +163,11 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
 
         mWifiMonitor.sendMessage(IFACE_NAME, WifiMonitor.SCAN_RESULTS_EVENT);
         mLooper.dispatchAll();
-        verify(mAlarmManager.getAlarmManager(), never()).cancel(any(PendingIntent.class));
+        verify(mAlarmManager.getAlarmManager(), never()).cancel(nullable(PendingIntent.class));
         verify(mAlarmManager.getAlarmManager(), times(1))
                 .cancel(any(AlarmManager.OnAlarmListener.class));
-        verify(mAlarmManager.getAlarmManager(), never()).cancel(isNull(PendingIntent.class));
         verify(mAlarmManager.getAlarmManager(), never())
-                .cancel(isNull(AlarmManager.OnAlarmListener.class));
+                .cancel((AlarmManager.OnAlarmListener)isNull());
     }
 
     @Test
@@ -198,12 +194,9 @@ public class WificondScannerTest extends BaseWifiScannerImplTest {
         mWifiMonitor.sendMessage(IFACE_NAME, WifiMonitor.SCAN_RESULTS_EVENT);
         mLooper.dispatchAll();
 
-        verify(mAlarmManager.getAlarmManager(), never()).cancel(any(PendingIntent.class));
+        verify(mAlarmManager.getAlarmManager(), never()).cancel(nullable(PendingIntent.class));
         verify(mAlarmManager.getAlarmManager(), never())
-                .cancel(any(AlarmManager.OnAlarmListener.class));
-        verify(mAlarmManager.getAlarmManager(), never()).cancel(isNull(PendingIntent.class));
-        verify(mAlarmManager.getAlarmManager(), never())
-                .cancel(isNull(AlarmManager.OnAlarmListener.class));
+                .cancel(nullable(AlarmManager.OnAlarmListener.class));
     }
 
     /**

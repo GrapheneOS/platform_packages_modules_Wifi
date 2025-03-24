@@ -418,7 +418,8 @@ public class WifiInjector {
                         : maxLinesHighRam);
         mWifiDiagnostics = new WifiDiagnostics(
                 mContext, this, mWifiNative, mBuildProperties,
-                new LastMileLogger(this), mClock, mWifiDiagnosticsHandlerThread.getLooper());
+                new LastMileLogger(this, BackgroundThread.getHandler()), mClock,
+                mWifiDiagnosticsHandlerThread.getLooper());
         mWifiLastResortWatchdog = new WifiLastResortWatchdog(this, mContext, mClock,
                 mWifiMetrics, mWifiDiagnostics, wifiLooper,
                 mDeviceConfigFacade, mWifiThreadRunner, mWifiMonitor);

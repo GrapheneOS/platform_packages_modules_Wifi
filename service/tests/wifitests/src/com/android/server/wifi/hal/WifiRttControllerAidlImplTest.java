@@ -554,6 +554,84 @@ public class WifiRttControllerAidlImplTest extends WifiBaseTest {
                 equalTo(ScanResult.CHANNEL_WIDTH_80MHZ));
         verifyNoMoreInteractions(mIWifiRttControllerMock);
     }
+
+    /**
+     * Validate correct 11az NTB secure result conversion from HAL to framework.
+     */
+    @Test
+    public void test11azNtbSecureRangeResults() throws Exception {
+        int cmdId = 55;
+        RttResult[] results = new RttResult[1];
+        RttResult res = createRttResult();
+        res.type = RttType.TWO_SIDED_11AZ_NTB_SECURE;
+        res.addr = MacAddress.byteAddrFromStringAddr("05:06:07:08:09:0A");
+        res.ntbMaxMeasurementTime = 10; // 10 * 10000 us = 100000 us
+        res.ntbMinMeasurementTime = 100; // 100 * 100 us = 10000 us
+        res.numRxSpatialStreams = 2;
+        res.numTxSpatialStreams = 3;
+        res.i2rTxLtfRepetitionCount = 3;
+        res.r2iTxLtfRepetitionCount = 2;
+        res.status = RttStatus.SUCCESS;
+        res.distanceInMm = 1500;
+        res.timeStampInUs = 6000;
+        res.packetBw = RttBw.BW_80MHZ;
+        // Fill in secure ranging results
+        res.pasnComebackAfterMillis = 1000;
+        res.baseAkm  = Akm.PASN | Akm.SAE;
+        res.isRangingFrameProtectionEnabled = true;
+        res.isSecureLtfEnabled = true;
+        res.secureHeLtfProtocolVersion = 1;
+        res.pasnComebackCookie = new byte[] {1, 2, 3};
+        results[0] = res;
+
+        // (1) have the HAL call us with results
+        mEventCallbackCaptor.getValue().onResults(cmdId, results);
+
+        // (2) verify call to framework
+        verify(mRangingResultsCallbackMock).onRangingResults(eq(cmdId), mRttResultCaptor.capture());
+
+        // verify contents of the framework results
+        List<RangingResult> rttR = mRttResultCaptor.getValue();
+
+        collector.checkThat("number of entries", rttR.size(), equalTo(1));
+
+        RangingResult rttResult = rttR.get(0);
+        collector.checkThat("Type", rttResult.is80211azNtbMeasurement(), equalTo(true));
+        collector.checkThat("status", rttResult.getStatus(),
+                equalTo(WifiRttController.FRAMEWORK_RTT_STATUS_SUCCESS));
+        collector.checkThat("mac", rttResult.getMacAddress().toByteArray(),
+                equalTo(MacAddress.fromString("05:06:07:08:09:0A").toByteArray()));
+        collector.checkThat("ntbMaxMeasurementTime",
+                rttResult.getMaxTimeBetweenNtbMeasurementsMicros(), equalTo(100000L));
+        collector.checkThat("ntbMinMeasurementTime",
+                rttResult.getMinTimeBetweenNtbMeasurementsMicros(), equalTo(10000L));
+        collector.checkThat("numRxSpatialStreams", rttResult.get80211azNumberOfRxSpatialStreams(),
+                equalTo(2));
+        collector.checkThat("numTxSpatialStreams", rttResult.get80211azNumberOfTxSpatialStreams(),
+                equalTo(3));
+        collector.checkThat("i2rTxLtfRepetitionCount",
+                rttResult.get80211azInitiatorTxLtfRepetitionsCount(), equalTo(3));
+        collector.checkThat("r2iTxLtfRepetitionCount",
+                rttResult.get80211azResponderTxLtfRepetitionsCount(), equalTo(2));
+        collector.checkThat("distanceCm", rttResult.getDistanceMm(), equalTo(1500));
+        collector.checkThat("timestamp", rttResult.getRangingTimestampMillis(), equalTo(6L));
+        collector.checkThat("channelBw", rttResult.getMeasurementBandwidth(),
+                equalTo(ScanResult.CHANNEL_WIDTH_80MHZ));
+        // check secure ranging parameters
+        collector.checkThat("pasnComebackAfterMillis", rttResult.getPasnComebackAfterMillis(),
+                equalTo(1000L));
+        collector.checkThat("baseAkm", rttResult.isRangingAuthenticated(), equalTo(true));
+        collector.checkThat("isRangingFrameProtectionEnabled", rttResult.isRangingFrameProtected(),
+                equalTo(true));
+        collector.checkThat("isSecureLtfEnabled", rttResult.isSecureHeLtfEnabled(), equalTo(true));
+        collector.checkThat("secureHeLtfProtocolVersion", rttResult.getSecureHeLtfProtocolVersion(),
+                equalTo(1));
+        collector.checkThat("pasnComebackCookie", rttResult.getPasnComebackCookie(),
+                equalTo(new byte[]{1, 2, 3}));
+        verifyNoMoreInteractions(mIWifiRttControllerMock);
+    }
+
+
     /**
      * Validate correct cleanup when a null array of results is provided by HAL.
      */

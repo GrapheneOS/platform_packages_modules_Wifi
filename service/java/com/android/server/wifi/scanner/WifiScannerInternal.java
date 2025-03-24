@@ -26,6 +26,7 @@ import android.os.WorkSource;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.modules.utils.ParceledListSlice;
 import com.android.server.wifi.WifiThreadRunner;
 
 import java.util.Collections;
@@ -93,9 +94,9 @@ public abstract class WifiScannerInternal {
         }
 
         @Override
-        public void onFullResults(List<ScanResult> fullScanResult) {
-            mWifiThreadRunner.post(() -> fullScanResult.forEach(mScanListener::onFullResult),
-                    TAG + "#onFullResults");
+        public void onFullResults(ParceledListSlice<ScanResult> fullScanResult) {
+            mWifiThreadRunner.post(() -> fullScanResult.getList()
+                            .forEach(mScanListener::onFullResult), TAG + "#onFullResults");
         }
 
         @Override

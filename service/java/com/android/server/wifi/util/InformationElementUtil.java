@@ -2492,11 +2492,11 @@ public class InformationElementUtil {
                 case ScanResult.CIPHER_NONE:
                     return "None";
                 case ScanResult.CIPHER_CCMP:
-                    return "CCMP";
+                    return "CCMP-128";
                 case ScanResult.CIPHER_CCMP_256:
                     return "CCMP-256";
                 case ScanResult.CIPHER_GCMP_128:
-                    return "GCMP";
+                    return "GCMP-128";
                 case ScanResult.CIPHER_GCMP_256:
                     return "GCMP-256";
                 case ScanResult.CIPHER_TKIP:
