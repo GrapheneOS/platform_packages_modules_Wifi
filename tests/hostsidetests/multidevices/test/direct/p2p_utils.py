@@ -28,6 +28,7 @@ from direct import constants
 
 _DEFAULT_TIMEOUT = datetime.timedelta(seconds=45)
 _GROUP_OWNER_DISCOVERY_TIMEOUT = datetime.timedelta(seconds=60)
+_DEFAULT_UI_RESPONSE_TIME = datetime.timedelta(seconds=2)
 
 
 @dataclasses.dataclass

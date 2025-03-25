@@ -8968,8 +8968,11 @@ public class WifiMetrics {
                 isAppExemptedFromForeground);
     }
 
-    /** Add a WifiLock active session */
-    public void addWifiLockActiveSession(int lockType, int[] attrUids, String[] attrTags,
+    /**
+     * Add a WifiLockManager active session. This represents the session during which
+     * low-latency mode was enabled.
+     */
+    public void addWifiLockManagerActiveSession(int lockType, int[] attrUids, String[] attrTags,
             long duration, boolean isPowersaveDisableAllowed,
             boolean isAppExemptedFromScreenOn, boolean isAppExemptedFromForeground) {
         int lockMode;
@@ -8992,6 +8995,25 @@ public class WifiMetrics {
                 Log.e(TAG, "addWifiLockActiveSession: Invalid lock type: " + lockType);
                 return;
         }
+        writeWifiLockActiveSession(lockMode, attrUids, attrTags, duration,
+                isPowersaveDisableAllowed, isAppExemptedFromScreenOn, isAppExemptedFromForeground);
+    }
+
+    /**
+     * Add a MulticastLockManager active session. This represents the session during which
+     * multicast packet filtering was disabled.
+     */
+    public void addMulticastLockManagerActiveSession(long duration) {
+        // Use a default value for the array and boolean parameters,
+        // since these fields don't apply to multicast locks
+        writeWifiLockActiveSession(
+                WifiStatsLog.WIFI_LOCK_DEACTIVATED__MODE__WIFI_MODE_MULTICAST_FILTERING_DISABLED,
+                new int[0], new String[0], duration, false, false, false);
+    }
+
+    private void writeWifiLockActiveSession(int lockMode, int[] attrUids, String[] attrTags,
+            long duration, boolean isPowersaveDisableAllowed,
+            boolean isAppExemptedFromScreenOn, boolean isAppExemptedFromForeground) {
         WifiStatsLog.write(WifiStatsLog.WIFI_LOCK_DEACTIVATED,
                 attrUids,
                 attrTags,

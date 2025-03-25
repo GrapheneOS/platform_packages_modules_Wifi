@@ -34,6 +34,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.server.wifi.ActiveModeWarden.PrimaryClientModeManagerChangedCallback;
 import com.android.server.wifi.WifiMulticastLockManager.FilterController;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -54,6 +55,7 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
     private static final int TEST_UID = 123;
     private static final String TEST_ATTRIBUTION_TAG = "attribution-tag";
     private static final String TEST_PACKAGE_NAME = "package-name";
+    private static final long START_TIME = 0;
 
     private TestLooper mLooper;
     @Mock ConcreteClientModeManager mClientModeManager;
@@ -64,6 +66,9 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
     @Mock ActiveModeWarden mActiveModeWarden;
     @Mock Context mContext;
     @Mock ActivityManager mActivityManager;
+    @Mock Clock mClock;
+    @Mock WifiMetrics mWifiMetrics;
+    @Mock WifiPermissionsUtil mWifiPermissionsUtil;
     @Captor ArgumentCaptor<PrimaryClientModeManagerChangedCallback> mPrimaryChangedCallbackCaptor;
     @Captor ArgumentCaptor<ActivityManager.OnUidImportanceListener> mUidImportanceListenerCaptor =
             ArgumentCaptor.forClass(ActivityManager.OnUidImportanceListener.class);
@@ -88,7 +93,7 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
         when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mClientModeManager);
         when(mContext.getSystemService(ActivityManager.class)).thenReturn(mActivityManager);
         mManager = new WifiMulticastLockManager(mActiveModeWarden, mBatteryStats,
-                mLooper.getLooper(), mContext);
+                mLooper.getLooper(), mContext, mClock, mWifiMetrics, mWifiPermissionsUtil);
 
         verify(mActiveModeWarden).registerPrimaryClientModeManagerChangedCallback(
                 mPrimaryChangedCallbackCaptor.capture());
@@ -384,5 +389,87 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
         mManager.releaseLock(uid2, binder2, WL_2_TAG);
         assertFalse(mManager.isMulticastEnabled());
         verify(mFilterController, times(2)).startFilteringMulticastPackets();
+    }
+
+    /**
+     * Verify that an acquire session is logged in the metrics when a lock is released.
+     */
+    @Test
+    public void testAcquireSessionMetrics() {
+        IBinder binder = mock(IBinder.class);
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(START_TIME);
+        mManager.acquireLock(TEST_UID, binder, WL_1_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
+
+        // Advance clock by 10 ms and release the lock
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(START_TIME + 10);
+        mManager.releaseLock(TEST_UID, binder, WL_1_TAG);
+        verify(mWifiMetrics).addMulticastLockManagerAcqSession(
+                eq(TEST_UID), eq(TEST_ATTRIBUTION_TAG), anyInt(), eq(10L) /* duration */);
+    }
+
+    /**
+     * Verify that an active session is logged when multicast filtering is re-enabled,
+     * and that an acquire session is logged when a multicast lock is released.
+     */
+    @Test
+    public void testSingleLockActiveSessionMetrics() {
+        IBinder binder = mock(IBinder.class);
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(START_TIME);
+        mManager.acquireLock(TEST_UID, binder, WL_1_TAG, TEST_ATTRIBUTION_TAG, TEST_PACKAGE_NAME);
+
+        // Transition the UID to low importance at t=10
+        // Since this is the only lock, this should re-enable packet filtering
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(START_TIME + 10);
+        mUidImportanceListenerCaptor.getValue().onUidImportance(
+                TEST_UID, ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED);
+        mLooper.dispatchAll();
+
+        // Release the lock at t=20
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(START_TIME + 20);
+        mManager.releaseLock(TEST_UID, binder, WL_1_TAG);
+
+        // Verify that the active session was logged during the priority switch (t=10)
+        // and that the lock acquire session was logged during the lock release (t=20)
+        verify(mWifiMetrics).addMulticastLockManagerActiveSession(eq(10L));
+        verify(mWifiMetrics).addMulticastLockManagerAcqSession(
+                eq(TEST_UID), eq(TEST_ATTRIBUTION_TAG), anyInt(), eq(20L));
+    }
+
+    /**
+     * See comment for {@link #testSingleLockActiveSessionMetrics()}.
+     * This case considers a multi-lock scenario.
+     */
+    @Test
+    public void testMultiLockActiveSessionMetrics() {
+        int uid1 = TEST_UID;
+        int uid2 = TEST_UID + 1;
+        String attributionTag1 = "attribution-tag-1";
+        String attributionTag2 = "attribution-tag-2";
+        String packageName1 = "package-name-1";
+        String packageName2 = "package-name-2";
+        IBinder binder1 = mock(IBinder.class);
+        IBinder binder2 = mock(IBinder.class);
+
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(START_TIME);
+        mManager.acquireLock(uid1, binder1, WL_1_TAG, attributionTag1, packageName1);
+        mManager.acquireLock(uid2, binder2, WL_2_TAG, attributionTag2, packageName2);
+
+        // Release lock 1 at t=10. Multicast filtering is still disabled.
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(START_TIME + 10);
+        mManager.releaseLock(uid1, binder1, WL_1_TAG);
+
+        // Release lock 2 at t=20. Multicast filtering should be re-enabled.
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(START_TIME + 20);
+        mManager.releaseLock(uid2, binder2, WL_2_TAG);
+
+        // An acquire session should have been logged when each lock was released
+        verify(mWifiMetrics).addMulticastLockManagerAcqSession(
+                eq(uid1), eq(attributionTag1), anyInt(), eq(10L));
+        verify(mWifiMetrics).addMulticastLockManagerAcqSession(
+                eq(uid2), eq(attributionTag2), anyInt(), eq(20L));
+
+        // A single active session should have been logged when the final lock was released (t=20)
+        verify(mWifiMetrics, times(1)).addMulticastLockManagerActiveSession(anyLong());
+        verify(mWifiMetrics).addMulticastLockManagerActiveSession(eq(20L));
     }
 }

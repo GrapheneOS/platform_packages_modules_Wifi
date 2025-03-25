@@ -732,7 +732,7 @@ public class WifiLockManager {
                     return false;
                 }
                 uidsAndTags = WorkSourceUtil.getUidsAndTagsForWs(mHighPerfBlamedWorkSource);
-                mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                mWifiMetrics.addWifiLockManagerActiveSession(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
                         uidsAndTags.first,
                         uidsAndTags.second,
                         mClock.getElapsedSinceBootMillis() - mCurrentSessionStartTimeMs,
@@ -748,7 +748,7 @@ public class WifiLockManager {
                     return false;
                 }
                 uidsAndTags = WorkSourceUtil.getUidsAndTagsForWs(mLowLatencyBlamedWorkSource);
-                mWifiMetrics.addWifiLockActiveSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                mWifiMetrics.addWifiLockManagerActiveSession(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
                         uidsAndTags.first,
                         uidsAndTags.second,
                         mClock.getElapsedSinceBootMillis() - mCurrentSessionStartTimeMs,

@@ -608,7 +608,7 @@ public class WifiInjector {
         mSelfRecovery = new SelfRecovery(mContext, mActiveModeWarden, mClock, mWifiNative,
                 mWifiGlobals);
         mWifiMulticastLockManager = new WifiMulticastLockManager(mActiveModeWarden, mBatteryStats,
-                wifiLooper, mContext);
+                wifiLooper, mContext, mClock, mWifiMetrics, mWifiPermissionsUtil);
         mApplicationQosPolicyRequestHandler = new ApplicationQosPolicyRequestHandler(
                 mActiveModeWarden, mWifiNative, mWifiHandlerThread, mDeviceConfigFacade, mContext);
 
