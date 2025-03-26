@@ -51,12 +51,12 @@ class GroupOwnerNegotiationTest(base_test.BaseTestClass):
 
     def _setup_device(self, ad: android_device.AndroidDevice) -> None:
         ad.load_snippet('wifi', constants.WIFI_SNIPPET_PACKAGE_NAME)
-        wifi_test_utils.set_screen_on_and_unlock(ad)
         wifi_test_utils.enable_wifi_verbose_logging(ad)
-        # Clear all saved Wi-Fi networks.
+        # Disable autojoin global
+        ad.wifi.wifiAllowAutojoinGlobal(False)
         ad.wifi.wifiDisable()
-        ad.wifi.wifiClearConfiguredNetworks()
         ad.wifi.wifiEnable()
+        wifi_test_utils.set_screen_on_and_unlock(ad)
 
     @ApiTest([
         'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pConfig, android.net.wifi.p2p.WifiP2pManager.ActionListener)',
@@ -156,6 +156,16 @@ class GroupOwnerNegotiationTest(base_test.BaseTestClass):
     def teardown_test(self) -> None:
         utils.concurrent_exec(
             self._teardown_device,
+            param_list=[[ad] for ad in self.ads],
+            raise_on_exception=True,
+        )
+
+    def enable_autojoin(self, ad: android_device.AndroidDevice):
+        ad.wifi.wifiAllowAutojoinGlobal(True)
+
+    def teardown_class(self):
+        utils.concurrent_exec(
+            self.enable_autojoin,
             param_list=[[ad] for ad in self.ads],
             raise_on_exception=True,
         )

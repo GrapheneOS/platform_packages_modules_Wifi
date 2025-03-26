@@ -135,6 +135,7 @@ public class WifiP2pManagerSnippet implements Snippet {
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+        mIntentFilter.setPriority(999);
 
         mServiceRequests = new HashMap<Integer, WifiP2pServiceRequest>();
     }

@@ -28,8 +28,6 @@ from direct import constants
 
 _DEFAULT_TIMEOUT = datetime.timedelta(seconds=45)
 _GROUP_OWNER_DISCOVERY_TIMEOUT = datetime.timedelta(seconds=60)
-_DEFAULT_UI_RESPONSE_TIME = datetime.timedelta(seconds=2)
-
 
 @dataclasses.dataclass
 class DeviceState:
@@ -334,27 +332,22 @@ def p2p_connect(
     requester.ad.log.info('Sent P2P connect invitation to responder.')
     # Connect with WPS config requires user inetraction through UI.
     if config.wps_setup == constants.WpsInfo.PBC:
-        time.sleep(_DEFAULT_UI_RESPONSE_TIME.total_seconds())
         responder.ad.wifi.wifiP2pAcceptInvitation(
             requester.p2p_device.device_name
         )
         responder.ad.log.info('Accepted connect invitation.')
     elif config.wps_setup == constants.WpsInfo.DISPLAY:
-        time.sleep(_DEFAULT_UI_RESPONSE_TIME.total_seconds())
         pin = requester.ad.wifi.wifiP2pGetPinCode(
             responder.p2p_device.device_name
         )
         requester.ad.log.info('p2p connection PIN code: %s', pin)
-        time.sleep(_DEFAULT_UI_RESPONSE_TIME.total_seconds())
         responder.ad.wifi.wifiP2pEnterPin(pin, requester.p2p_device.device_name)
         responder.ad.log.info('Enetered PIN code.')
     elif config.wps_setup == constants.WpsInfo.KEYPAD:
-        time.sleep(_DEFAULT_UI_RESPONSE_TIME.total_seconds())
         pin = responder.ad.wifi.wifiP2pGetKeypadPinCode(
             requester.p2p_device.device_name
         )
         responder.ad.log.info('p2p connection Keypad PIN code: %s', pin)
-        time.sleep(_DEFAULT_UI_RESPONSE_TIME.total_seconds())
         requester.ad.wifi.wifiP2pEnterPin(pin, responder.p2p_device.device_name)
         requester.ad.log.info('Enetered Keypad PIN code.')
     elif config.wps_setup is not None:

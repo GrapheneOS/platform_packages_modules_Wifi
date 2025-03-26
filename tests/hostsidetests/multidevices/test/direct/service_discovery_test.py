@@ -69,12 +69,12 @@ class ServiceDiscoveryTest(base_test.BaseTestClass):
 
     def _setup_device(self, ad: android_device.AndroidDevice) -> None:
         ad.load_snippet('wifi', constants.WIFI_SNIPPET_PACKAGE_NAME)
-        wifi_test_utils.set_screen_on_and_unlock(ad)
         wifi_test_utils.enable_wifi_verbose_logging(ad)
-        # Clear all saved Wi-Fi networks.
+        # Disable autojoin global
+        ad.wifi.wifiAllowAutojoinGlobal(False)
         ad.wifi.wifiDisable()
-        ad.wifi.wifiClearConfiguredNetworks()
         ad.wifi.wifiEnable()
+        wifi_test_utils.set_screen_on_and_unlock(ad)
 
     def test_search_all_services_01(self) -> None:
         """Searches all p2p services with API
@@ -619,6 +619,16 @@ class ServiceDiscoveryTest(base_test.BaseTestClass):
             self._teardown_wifi_p2p,
             param_list=[[ad] for ad in self.ads],
             raise_on_exception=False,
+        )
+
+    def enable_autojoin(self, ad: android_device.AndroidDevice):
+        ad.wifi.wifiAllowAutojoinGlobal(True)
+
+    def teardown_class(self):
+        utils.concurrent_exec(
+            self.enable_autojoin,
+            param_list=[[ad] for ad in self.ads],
+            raise_on_exception=True,
         )
 
     def on_fail(self, record: records.TestResult) -> None:

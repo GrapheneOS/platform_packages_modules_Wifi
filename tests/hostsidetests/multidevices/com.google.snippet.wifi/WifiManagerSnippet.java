@@ -32,6 +32,7 @@ import androidx.annotation.NonNull;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.compatibility.common.util.PollingCheck;
+import com.android.compatibility.common.util.ShellIdentityUtils;
 import com.android.wifi.flags.Flags;
 
 import com.google.android.mobly.snippet.Snippet;
@@ -284,5 +285,14 @@ public class WifiManagerSnippet implements Snippet {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Enable/Disable the Auto join global.
+     */
+    @Rpc(description = "Call to enable/disable auto join global")
+    public void wifiAllowAutojoinGlobal(boolean enable) {
+        ShellIdentityUtils.invokeWithShellPermissions(
+                () -> mWifiManager.allowAutojoinGlobal(enable));
     }
 }

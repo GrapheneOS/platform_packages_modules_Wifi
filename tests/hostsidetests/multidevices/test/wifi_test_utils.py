@@ -11,6 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+import time
 
 from mobly.controllers import android_device
 
@@ -21,10 +22,10 @@ def set_screen_on_and_unlock(ad: android_device.AndroidDevice):
     Args:
         ad: AndroidDevice instance.
     """
-    ad.adb.shell("svc power stayon true")
     ad.adb.shell("input keyevent KEYCODE_WAKEUP")
     ad.adb.shell("wm dismiss-keyguard")
-
+    ad.adb.shell("svc power stayon true")
+    time.sleep(2)
 
 def enable_wifi_verbose_logging(ad: android_device.AndroidDevice):
     """Sets the Wi-Fi verbose logging developer option to Enable."""
