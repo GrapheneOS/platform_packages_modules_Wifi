@@ -336,6 +336,15 @@ public class CandidateScorerTest extends WifiBaseTest {
                                        .setCurrentNetwork(true)
                                        .setLastSelectionWeight(0.25)),
                 greaterThan(evaluate(mCandidate2.setScanRssi(-60))));
+
+        if (mExpectedExpId == ThroughputScorer.THROUGHPUT_SCORER_DEFAULT_EXPID) {
+            // Do not apply last selection bonus on carrier network that is disconnected
+            assertThat(evaluate(mCandidate1.setScanRssi(-80)
+                            .setCurrentNetwork(false)
+                            .setCarrierOrPrivileged(true)
+                            .setLastSelectionWeight(0.25)),
+                    lessThan(evaluate(mCandidate2.setScanRssi(-60))));
+        }
     }
 
     /**

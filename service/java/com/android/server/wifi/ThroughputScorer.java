@@ -182,9 +182,13 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
             score = 0;
         }
 
-        if (candidate.getLastSelectionWeight() > 0.0 && (mWifiContext.getResources().getBoolean(
-                R.bool.config_wifiThroughputScorerBoostForRecentlyUserSelectedNetwork)
-                        || !candidate.isUserSelected())) {
+        boolean candidateIsDisconnectedCarrierNetwork =
+                !candidate.isCurrentNetwork() && candidate.isCarrierOrPrivileged();
+        if (!candidateIsDisconnectedCarrierNetwork
+                && candidate.getLastSelectionWeight() > 0.0
+                && (mWifiContext.getResources().getBoolean(
+                        R.bool.config_wifiThroughputScorerBoostForRecentlyUserSelectedNetwork)
+                || !candidate.isUserSelected())) {
             // Put a recently-selected network in a tier above everything else,
             // but include rssi and throughput contributions for BSSID selection.
             score = TOP_TIER_BASE_SCORE + rssiBaseScore + throughputBonusScore;
