@@ -918,7 +918,8 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.baseConfigs.disableFollowupReceivedIndication = false;
 
         req.baseConfigs.rangingRequired =
-                subscribeConfig.mMinDistanceMmSet || subscribeConfig.mMaxDistanceMmSet;
+                subscribeConfig.mMinDistanceMmSet || subscribeConfig.mMaxDistanceMmSet
+                        || subscribeConfig.mPeriodicRangingEnabled;
         req.baseConfigs.configRangingIndications = 0;
         if (subscribeConfig.mMinDistanceMmSet) {
             req.baseConfigs.distanceEgressCm = (char) Math.min(

@@ -4572,7 +4572,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             SubscribeConfig subscribeConfig = completedCommand.getData().getParcelable(
                     MESSAGE_BUNDLE_KEY_CONFIG);
             isRangingEnabled =
-                    subscribeConfig.mMinDistanceMmSet || subscribeConfig.mMaxDistanceMmSet;
+                    subscribeConfig.mMinDistanceMmSet || subscribeConfig.mMaxDistanceMmSet
+                            || subscribeConfig.mPeriodicRangingEnabled;
             isSuspendable = SdkLevel.isAtLeastU() && subscribeConfig.isSuspendable();
             if (subscribeConfig.mMinDistanceMmSet) {
                 minRange = subscribeConfig.mMinDistanceMm;

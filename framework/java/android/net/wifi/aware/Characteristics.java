@@ -183,9 +183,22 @@ public final class Characteristics implements Parcelable {
         return mCharacteristics.getBoolean(KEY_IS_INSTANT_COMMUNICATION_MODE_SUPPORTED);
     }
 
+
     /**
-     * Check if the Aware Pairing is supported. The Aware Pairing is defined as per Wi-Fi Alliance
-     * (WFA) Wi-Fi Aware specifications version 4.0 Section 7.6.
+     * Check if the Aware Pairing and all associated security features as defined in Wi-Fi Alliance
+     * (WFA) Wi-Fi Aware Specification version 4.0 are supported.
+     * This includes:
+     * <ol>
+     * <li>NAN Pairing (as in Wi-Fi Aware Specification Version 4.0 section 7.6) with NIK caching
+     * <li>NDP unicast data frame encryption (as in Wi-Fi Aware Specification Version 4.0 section
+     * 7.3.1)
+     * <li>Group addressed data frame encryption (as in Wi-Fi Aware Specification Version 4.0
+     * section 7.3.3)
+     * <li>Management frame protection (as in Wi-Fi Aware Specification Version 4.0 section 7.3.2
+     * for both unicast and multicast frames)
+     * <li>Beacon integrity protection (as in Wi-Fi Aware Specification Version 4.0 section 7.3.4)
+     * </ol>
+     *
      * @return True if supported, false otherwise.
      */
     public boolean isAwarePairingSupported() {

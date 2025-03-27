@@ -57,6 +57,7 @@ import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
 import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
+import android.net.wifi.util.Environment;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Pair;
@@ -133,6 +134,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         byte pid = 34;
         int minDistanceMm = 100;
         int maxDistanceMm = 555;
+        int periodicRangingInterval = SubscribeConfig.PERIODIC_RANGING_INTERVAL_512TU;
         short minDistanceCm = (short) (minDistanceMm / 10);
         short maxDistanceCm = (short) (maxDistanceMm / 10);
         List<OuiKeyedData> frameworkVendorData = generateFrameworkOuiKeyedDataList(5);
@@ -167,6 +169,14 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
                     .setVendorData(frameworkVendorData)
                     .build();
         }
+        SubscribeConfig subWithPeriodicRanging = null;
+        if (Environment.isSdkAtLeastB()) {
+            subWithPeriodicRanging = new SubscribeConfig.Builder()
+                   .setServiceName("XXX")
+                   .setPeriodicRangingEnabled(true)
+                   .setPeriodicRangingInterval(periodicRangingInterval)
+                   .build();
+        }
 
         int numPublishExpected = 2;
         int numSubscribeExpected = 4;
@@ -182,6 +192,12 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
             assertTrue(mDut.publish(tid, pid, pubWithVendorData, null));
             assertTrue(mDut.subscribe(tid, pid, subWithVendorData, null));
             numPublishExpected += 1;
+            numSubscribeExpected += 1;
+
+        }
+
+        if (Environment.isSdkAtLeastB()) {
+            assertTrue(mDut.subscribe(tid, pid, subWithPeriodicRanging, null));
             numSubscribeExpected += 1;
         }
 
@@ -256,6 +272,15 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
             halSubReq = subCaptor.getAllValues().get(4);
             assertTrue(compareHalOuiKeyedDataList(halVendorData, halPubReq.vendorData));
             assertTrue(compareHalOuiKeyedDataList(halVendorData, halSubReq.vendorData));
+        }
+
+        // subPeriodicRanging
+        if (Environment.isSdkAtLeastB()) {
+            halSubReq = subCaptor.getAllValues().get(5);
+            collector.checkThat("subDefault.baseConfigs.sessionId", pid,
+                    equalTo(halSubReq.baseConfigs.sessionId));
+            collector.checkThat("subDefault.baseConfigs.rangingIntervalMs", periodicRangingInterval,
+                    equalTo(halSubReq.baseConfigs.rangingIntervalMs));
         }
     }
 

@@ -850,6 +850,8 @@ public class WifiAwareManagerTest {
         collector.checkThat("mMinDistanceMm", subscribeConfig.mMinDistanceMm, equalTo(0));
         collector.checkThat("mMaxDistanceMmSet", subscribeConfig.mMaxDistanceMmSet, equalTo(false));
         collector.checkThat("mMaxDistanceMm", subscribeConfig.mMaxDistanceMm, equalTo(0));
+        collector.checkThat("mPeriodicRangingEnabled", subscribeConfig.mPeriodicRangingEnabled,
+                equalTo(false));
         if (SdkLevel.isAtLeastV()) {
             collector.checkThat("mVendorData", subscribeConfig.getVendorData(),
                     equalTo(Collections.emptyList()));
@@ -866,6 +868,7 @@ public class WifiAwareManagerTest {
         final boolean enableTerminateNotification = false;
         final int minDistance = 10;
         final int maxDistance = 50;
+        final int periodicRangingInterval = SubscribeConfig.PERIODIC_RANGING_INTERVAL_512TU;
         final List<OuiKeyedData> vendorData = OuiKeyedDataUtil.createTestOuiKeyedDataList(5);
 
         SubscribeConfig.Builder subscribeConfigBuilder =
@@ -876,7 +879,9 @@ public class WifiAwareManagerTest {
                         .setTtlSec(subscribeTtl)
                         .setTerminateNotificationEnabled(enableTerminateNotification)
                         .setMinDistanceMm(minDistance)
-                        .setMaxDistanceMm(maxDistance);
+                        .setMaxDistanceMm(maxDistance)
+                        .setPeriodicRangingEnabled(true)
+                        .setPeriodicRangingInterval(periodicRangingInterval);
         if (SdkLevel.isAtLeastV()) {
             subscribeConfigBuilder.setVendorData(vendorData);
         }
@@ -896,6 +901,10 @@ public class WifiAwareManagerTest {
         collector.checkThat("mMinDistanceMm", minDistance, equalTo(subscribeConfig.mMinDistanceMm));
         collector.checkThat("mMaxDistanceMmSet", true, equalTo(subscribeConfig.mMaxDistanceMmSet));
         collector.checkThat("mMaxDistanceMm", maxDistance, equalTo(subscribeConfig.mMaxDistanceMm));
+        collector.checkThat("mPeriodicRangingEnabled", true,
+                equalTo(subscribeConfig.mPeriodicRangingEnabled));
+        collector.checkThat("mPeriodicRangingInterval", periodicRangingInterval,
+                             equalTo(subscribeConfig.mPeriodicRangingInterval));
         if (SdkLevel.isAtLeastV()) {
             collector.checkThat("mVendorData", vendorData,
                     equalTo(subscribeConfig.getVendorData()));
