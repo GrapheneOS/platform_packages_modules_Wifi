@@ -1455,6 +1455,50 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
     }
 
     /**
+     * Verify connect choice does not trigger when below MINIMUM_CONNECT_CHOICE_RSSI
+     */
+    @Test
+    public void testUserConnectChoiceDoesNotOverrideWhenRssiLowerThanThreshold() {
+        String[] ssids = {"\"test1\"", "\"test2\""};
+        String[] bssids = {"6c:f3:7f:ae:8c:f3", "6c:f3:7f:ae:8c:f4"};
+        int[] freqs = {2437, 5180};
+        String[] caps = {"[WPA2-PSK][ESS]", "[WPA2-PSK][ESS]"};
+        int observedUserChoiceRssi = WifiNetworkSelector.MINIMUM_CONNECT_CHOICE_RSSI - 10;
+        int[] levels = {mThresholdMinimumRssi2G + RSSI_BUMP, observedUserChoiceRssi};
+        int[] securities = {SECURITY_PSK, SECURITY_PSK};
+        ScanDetailsAndWifiConfigs scanDetailsAndConfigs =
+                WifiNetworkSelectorTestUtil.setupScanDetailsAndConfigStore(ssids, bssids,
+                        freqs, caps, levels, securities, mWifiConfigManager, mClock);
+        List<ScanDetail> scanDetails = scanDetailsAndConfigs.getScanDetails();
+        WifiConfiguration[] wifiConfigs = scanDetailsAndConfigs.getWifiConfigs();
+        HashSet<String> blocklist = new HashSet<>();
+
+        // PlaceholderNominator should select the first network in the list.
+        WifiConfiguration networkSelectorChoice = wifiConfigs[0];
+        networkSelectorChoice.getNetworkSelectionStatus()
+                .setSeenInLastQualifiedNetworkSelection(true);
+
+        // verify user choice is not selected because it does not meet the minimum threshold
+        WifiConfiguration userChoice = wifiConfigs[1];
+        userChoice.getNetworkSelectionStatus().setCandidate(scanDetails.get(1).getScanResult());
+        userChoice.getNetworkSelectionStatus().setConnectChoice(null);
+        networkSelectorChoice.getNetworkSelectionStatus()
+                .setConnectChoice(userChoice.getProfileKey());
+        networkSelectorChoice.getNetworkSelectionStatus()
+                .setConnectChoiceRssi(observedUserChoiceRssi
+                        + mScoringParams.getEstimateRssiErrorMargin());
+        assertEquals(observedUserChoiceRssi,
+                userChoice.getNetworkSelectionStatus().getCandidate().level);
+        List<WifiCandidates.Candidate> candidates = mWifiNetworkSelector.getCandidatesFromScan(
+                scanDetails, blocklist,
+                Arrays.asList(new ClientModeManagerState(TEST_IFACE_NAME, false, true, mWifiInfo,
+                        false, ROLE_CLIENT_PRIMARY)),
+                false, true, true, Collections.emptySet(), false, 0);
+        WifiConfiguration candidate = mWifiNetworkSelector.selectNetwork(candidates);
+        WifiConfigurationTestUtil.assertConfigurationEqual(networkSelectorChoice, candidate);
+    }
+
+    /**
      * Verify NetworkSelectionStatus#setConnectChoiceRssi(int rssi) causes the user connect choice
      * logic to ignore connect choice networks with RSSI lower than the threshold set.
      */
@@ -1464,7 +1508,7 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
         String[] bssids = {"6c:f3:7f:ae:8c:f3", "6c:f3:7f:ae:8c:f4"};
         int[] freqs = {2437, 5180};
         String[] caps = {"[WPA2-PSK][ESS]", "[WPA2-PSK][ESS]"};
-        int observedUserChoiceRssi = mThresholdMinimumRssi5G + RSSI_BUMP;
+        int observedUserChoiceRssi = WifiNetworkSelector.MINIMUM_CONNECT_CHOICE_RSSI;
         int[] levels = {mThresholdMinimumRssi2G + RSSI_BUMP, observedUserChoiceRssi};
         int[] securities = {SECURITY_PSK, SECURITY_PSK};
         ScanDetailsAndWifiConfigs scanDetailsAndConfigs =

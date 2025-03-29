@@ -4370,14 +4370,29 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         assertEquals(ROLE_CLIENT_PRIMARY, requestedClientModeManager.getValue().getRole());
 
         // mock requesting local only secondary, but with preference for secondary STA.
+        // Verify that if it's not possible to create a secondary STA, then the primary STA is
+        // given to the app with EnterCarModePrioritized permission
+        when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(false);
+        mActiveModeWarden.requestLocalOnlyClientModeManager(
+                externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2, false, true);
+        mLooper.dispatchAll();
+        // Verify primary is given to the externalRequestListener
+        verify(externalRequestListener, times(2)).onAnswer(requestedClientModeManager.capture());
+        verify(mWifiInjector, never()).makeClientModeManager(
+                any(), any(), eq(ROLE_CLIENT_LOCAL_ONLY), anyBoolean());
+        assertEquals(ROLE_CLIENT_PRIMARY, requestedClientModeManager.getValue().getRole());
+
+        // mock requesting local only secondary, but with preference for secondary STA.
+        // Create secondary STA is now possible.
         // This should bypass the enterCarMode permission check and still give secondary STA.
+        when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
         mActiveModeWarden.requestLocalOnlyClientModeManager(
                 externalRequestListener, TEST_WORKSOURCE, TEST_SSID_2, TEST_BSSID_2, false, true);
         mLooper.dispatchAll();
         additionalClientListener.value.onStarted(additionalClientModeManager);
         mLooper.dispatchAll();
         // Verify secondary is given to the externalRequestListener
-        verify(externalRequestListener, times(2)).onAnswer(requestedClientModeManager.capture());
+        verify(externalRequestListener, times(3)).onAnswer(requestedClientModeManager.capture());
         verify(mWifiInjector).makeClientModeManager(
                 any(), any(), eq(ROLE_CLIENT_LOCAL_ONLY), anyBoolean());
         assertEquals(ROLE_CLIENT_LOCAL_ONLY, requestedClientModeManager.getValue().getRole());

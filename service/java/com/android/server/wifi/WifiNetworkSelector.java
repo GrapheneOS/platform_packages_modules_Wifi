@@ -104,6 +104,7 @@ public class WifiNetworkSelector {
      * Experiment ID for the legacy scorer.
      */
     public static final int LEGACY_CANDIDATE_SCORER_EXP_ID = 0;
+    public static final int MINIMUM_CONNECT_CHOICE_RSSI = -70;
 
     private final Context mContext;
     private final WifiConfigManager mWifiConfigManager;
@@ -828,7 +829,8 @@ public class WifiNetworkSelector {
 
         while (tempConfig.getNetworkSelectionStatus().getConnectChoice() != null) {
             String key = tempConfig.getNetworkSelectionStatus().getConnectChoice();
-            int userSelectedRssi = tempConfig.getNetworkSelectionStatus().getConnectChoiceRssi();
+            int userSelectedRssi = Math.max(MINIMUM_CONNECT_CHOICE_RSSI,
+                    tempConfig.getNetworkSelectionStatus().getConnectChoiceRssi());
             tempConfig = mWifiConfigManager.getConfiguredNetwork(key);
 
             if (tempConfig != null) {

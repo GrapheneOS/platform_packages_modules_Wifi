@@ -2508,6 +2508,28 @@ public class ActiveModeWarden {
                 return null;
             }
 
+            private boolean isCallerCarApp(@NonNull AdditionalClientModeManagerRequestInfo
+                    requestInfo) {
+                WorkSource workSource = requestInfo.requestorWs;
+                if (workSource == null) {
+                    return false;
+                }
+                for (int i = 0; i < workSource.size(); i++) {
+                    int curUid = workSource.getUid(i);
+                    if (mAllowRootToGetLocalOnlyCmm && curUid == 0) { // 0 is root UID.
+                        continue;
+                    }
+                    if (curUid != Process.SYSTEM_UID
+                            && mWifiPermissionsUtil.checkEnterCarModePrioritized(curUid)) {
+                        if (mVerboseLoggingEnabled) {
+                            Log.w(TAG, "Uid " + curUid + " has car mode permission");
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+
             private void handleAdditionalClientModeManagerRequest(
                     @NonNull AdditionalClientModeManagerRequestInfo requestInfo) {
                 if (mWifiState.get() == WIFI_STATE_DISABLING
@@ -2525,21 +2547,12 @@ public class ActiveModeWarden {
                 if (!requestInfo.preferSecondarySta
                         && requestInfo.clientRole == ROLE_CLIENT_LOCAL_ONLY
                         && requestInfo.requestorWs != null) {
-                    WorkSource workSource = requestInfo.requestorWs;
-                    for (int i = 0; i < workSource.size(); i++) {
-                        int curUid = workSource.getUid(i);
-                        if (mAllowRootToGetLocalOnlyCmm && curUid == 0) { // 0 is root UID.
-                            continue;
+                    if (isCallerCarApp(requestInfo)) {
+                        requestInfo.listener.onAnswer(primaryManager);
+                        if (mVerboseLoggingEnabled) {
+                            Log.w(TAG, "Use primary STA for app with car mode permission");
                         }
-                        if (curUid != Process.SYSTEM_UID
-                                && mWifiPermissionsUtil.checkEnterCarModePrioritized(curUid)) {
-                            requestInfo.listener.onAnswer(primaryManager);
-                            if (mVerboseLoggingEnabled) {
-                                Log.w(TAG, "Uid " + curUid
-                                        + " has car mode permission - disabling STA+STA");
-                            }
-                            return;
-                        }
+                        return;
                     }
                 }
                 if (requestInfo.clientRole == ROLE_CLIENT_SECONDARY_TRANSIENT
@@ -2623,7 +2636,8 @@ public class ActiveModeWarden {
                         && isStaStaConcurrencySupportedForLocalOnlyConnections()
                         && !mWifiPermissionsUtil.isTargetSdkLessThan(
                         requestInfo.requestorWs.getPackageName(0), Build.VERSION_CODES.S,
-                        requestInfo.requestorWs.getUid(0))) {
+                        requestInfo.requestorWs.getUid(0))
+                        && !isCallerCarApp(requestInfo)) {
                     Log.d(TAG, "Will not fall back to single STA for a local-only connection when "
                             + "STA+STA is supported (unless for a pre-S legacy app). "
                             + " Priority inversion.");
