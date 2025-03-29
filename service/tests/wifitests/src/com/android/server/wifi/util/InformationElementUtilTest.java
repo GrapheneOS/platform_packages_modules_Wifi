@@ -2952,5 +2952,12 @@ public class InformationElementUtilTest extends WifiBaseTest {
         assertTrue(rsnxe.isSecureHeLtfSupported());
     }
 
+    /**
+     * Test no exception with null IE when calling getHS2VendorSpecificIE.
+     */
+    @Test
+    public void testGetHS2VendorSpecificIEWithNullIE() {
+        InformationElementUtil.getHS2VendorSpecificIE(new InformationElement[] {null});
+    }
 }
 

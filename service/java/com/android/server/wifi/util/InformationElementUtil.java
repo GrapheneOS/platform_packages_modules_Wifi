@@ -249,6 +249,9 @@ public class InformationElementUtil {
         Vsa vsa = new Vsa();
         if (ies != null) {
             for (InformationElement ie : ies) {
+                if (ie == null) {
+                    continue;
+                }
                 if (ie.id == InformationElement.EID_VSA) {
                     try {
                         vsa.from(ie);
