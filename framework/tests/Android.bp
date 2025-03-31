@@ -68,4 +68,8 @@ android_test {
     // static libs used by both framework-wifi & FrameworksWifiApiTests. Need to rename test usage
     // to a different package name to prevent conflict with the copy in production code.
     jarjar_rules: "test-jarjar-rules.txt",
+
+    visibility: [
+        "//platform_testing:__subpackages__",
+    ],
 }
