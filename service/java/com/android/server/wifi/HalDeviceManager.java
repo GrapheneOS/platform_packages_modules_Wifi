@@ -163,18 +163,26 @@ public class HalDeviceManager {
         // Monitor P2P connection to treat disconnected P2P as low priority.
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-        mContext.registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (!intent.getAction().equals(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)) {
-                    return;
-                }
-                NetworkInfo networkInfo =
-                        intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
-                mIsP2pConnected = networkInfo != null
-                        && networkInfo.getDetailedState() == NetworkInfo.DetailedState.CONNECTED;
-            }
-        }, intentFilter, null, mEventHandler);
+        BroadcastReceiver p2pConnectionChangedReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (!intent.getAction().equals(
+                                WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)) {
+                        return;
+                    }
+                    NetworkInfo networkInfo =
+                            intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
+                    mIsP2pConnected = networkInfo != null
+                            && networkInfo.getDetailedState()
+                                    == NetworkInfo.DetailedState.CONNECTED;
+                }};
+        if (mFeatureFlags.monitorIntentForAllUsers()) {
+            mContext.registerReceiverForAllUsers(
+                    p2pConnectionChangedReceiver, intentFilter, null, mEventHandler);
+        } else {
+            mContext.registerReceiver(p2pConnectionChangedReceiver, intentFilter,
+                    null, mEventHandler);
+        }
     }
 
     @VisibleForTesting

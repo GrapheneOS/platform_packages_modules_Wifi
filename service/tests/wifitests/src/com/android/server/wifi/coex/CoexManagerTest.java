@@ -37,8 +37,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -63,11 +65,14 @@ import android.telephony.TelephonyManager;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiNative;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -75,6 +80,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -104,6 +110,7 @@ public class CoexManagerTest extends WifiBaseTest {
     private static final String FILEPATH_LTE_7_INTERMOD = "assets/coex_lte_7_intermod.xml";
 
     private TestLooper mTestLooper;
+    private MockitoSession mSession;
 
     @Mock private Context mMockContext;
     @Mock private Resources mMockResources;
@@ -179,6 +186,9 @@ public class CoexManagerTest extends WifiBaseTest {
     public void setUp() throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());
         MockitoAnnotations.initMocks(this);
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(Flags.class, withSettings().lenient())
+                .startMocking();
         when(mMockContext.getResources()).thenReturn(mMockResources);
         when(mMockResources.getBoolean(R.bool.config_wifiDefaultCoexAlgorithmEnabled))
                 .thenReturn(true);
@@ -194,6 +204,17 @@ public class CoexManagerTest extends WifiBaseTest {
                 .KEY_AVOID_5GHZ_SOFTAP_FOR_LAA_BOOL, true);
         mRestrictedBundle.putBoolean(CarrierConfigManager.Wifi
                 .KEY_AVOID_5GHZ_WIFI_DIRECT_FOR_LAA_BOOL, true);
+    }
+
+    /**
+     * Called after each test
+     */
+    @After
+    public void cleanup() {
+        validateMockitoUsage();
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
     }
 
     /**
@@ -740,10 +761,28 @@ public class CoexManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Verifies that carrier configs changing will update the unsafe channels
+     * Verifies that carrier configs changing will update the unsafe channels when flag is disabled.
      */
     @Test
-    public void testGetCoexUnsafeChannels_carrierConfigsChanged_updatesUnsafeChannels() {
+    public void testGetCoexUnsafeChannels_carrierConfigsChanged_updatesUnsafeChannels_whenNoFlag() {
+        when(Flags.monitorIntentForAllUsers()).thenReturn(false);
+        testGetCoexUnsafeChannels_carrierConfigsChanged_updatesUnsafeChannels(false);
+    }
+
+    /**
+     * Verifies that carrier configs changing will update the unsafe channels when flag is enabled.
+     */
+    @Test
+    public void testGetCoexUnsafeChannels_carrierConfigsChanged_updatesUnsafeChannelsWhenFlagged() {
+        when(Flags.monitorIntentForAllUsers()).thenReturn(true);
+        testGetCoexUnsafeChannels_carrierConfigsChanged_updatesUnsafeChannels(true);
+    }
+
+    /**
+     * Verifies that carrier configs changing will update the unsafe channels
+     */
+    private void testGetCoexUnsafeChannels_carrierConfigsChanged_updatesUnsafeChannels(
+            boolean isFlagMonitorIntentForAllUsersEnabled) {
         // Start with no restrictions in the carrier config
         when(mMockCarrierConfigManager.getConfigForSubId(0)).thenReturn(mUnrestrictedBundle);
         final TelephonyManager telephonyManager = setUpSubIdMocks(0);
@@ -755,8 +794,13 @@ public class CoexManagerTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(CoexManager.CoexTelephonyCallback.class);
         verify(telephonyManager).registerTelephonyCallback(
                 any(Executor.class), telephonyCallbackCaptor.capture());
-        verify(mMockContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
-                any(IntentFilter.class), eq(null), any(Handler.class));
+        if (isFlagMonitorIntentForAllUsersEnabled) {
+            verify(mMockContext).registerReceiverForAllUsers(mBroadcastReceiverCaptor.capture(),
+                    any(IntentFilter.class), eq(null), any(Handler.class));
+        } else {
+            verify(mMockContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
+                    any(IntentFilter.class), eq(null), any(Handler.class));
+        }
         telephonyCallbackCaptor.getValue().onPhysicalChannelConfigChanged(Arrays.asList(
                 createMockPhysicalChannelConfig(
                         NETWORK_TYPE_LTE, AccessNetworkConstants.EutranBand.BAND_46,

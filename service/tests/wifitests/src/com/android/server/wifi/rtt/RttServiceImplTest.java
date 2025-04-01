@@ -42,9 +42,11 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import android.app.ActivityManager;
 import android.app.AlarmManager;
@@ -84,6 +86,7 @@ import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.HalDeviceManager;
@@ -95,6 +98,7 @@ import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.util.WifiPermissionsUtil;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
@@ -104,6 +108,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -127,6 +132,7 @@ public class RttServiceImplTest extends WifiBaseTest {
     private BroadcastReceiver mPowerBcastReceiver;
     private BroadcastReceiver mLocationModeReceiver;
     private MockResources mMockResources = new MockResources();
+    private MockitoSession mSession;
 
     private final String mPackageName = "some.package.name.for.rtt.app";
     private final String mFeatureId = "some.feature.name.for.rtt.app";
@@ -214,7 +220,6 @@ public class RttServiceImplTest extends WifiBaseTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-
         mDut = new RttServiceImplSpy(mockContext);
         mDut.fakeUid = mDefaultUid;
         mMockLooper = new TestLooper();
@@ -284,11 +289,29 @@ public class RttServiceImplTest extends WifiBaseTest {
 
     @After
     public void tearDown() throws Exception {
+        validateMockitoUsage();
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
         assertEquals("Binder links != unlinks to death (size)",
                 mBinderLinkToDeathCounter.mUniqueExecs.size(),
                 mBinderUnlinkToDeathCounter.mUniqueExecs.size());
         assertEquals("Binder links != unlinks to death", mBinderLinkToDeathCounter.mUniqueExecs,
                 mBinderUnlinkToDeathCounter.mUniqueExecs);
+    }
+
+    @Test
+    public void testRegisterReceiverForAllUsersWhenFlagOn() throws Exception {
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(Flags.class, withSettings().lenient())
+                .startMocking();
+        when(Flags.monitorIntentForAllUsers()).thenReturn(true);
+        mDut.start(mMockLooper.getLooper(), mockClock, mockAwareManager, mockMetrics,
+                mockPermissionUtil, mWifiSettingsConfigStore, mockHalDeviceManager,
+                mWifiConfigManager, mSsidTranslator);
+        mMockLooper.dispatchAll();
+        verify(mockContext).registerReceiver(any(BroadcastReceiver.class),
+                argThat(filter -> filter.hasAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)));
     }
 
     /**

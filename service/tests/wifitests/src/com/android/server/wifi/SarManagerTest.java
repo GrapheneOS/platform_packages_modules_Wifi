@@ -23,7 +23,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.validateMockitoUsage;
+import static org.mockito.Mockito.withSettings;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.net.wifi.WifiManager;
@@ -35,6 +38,8 @@ import android.telephony.TelephonyManager;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
@@ -44,6 +49,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
 
 /**
  * unit tests for {@link com.android.server.wifi.SarManager}.
@@ -67,6 +73,7 @@ public class SarManagerTest extends WifiBaseTest {
     private MockResources mResources;
     private PhoneStateListener mPhoneStateListener;
     private SarInfo mSarInfo;
+    private MockitoSession mSession;
 
     @Mock private Context mContext;
     @Mock TelephonyManager mTelephonyManager;
@@ -81,6 +88,9 @@ public class SarManagerTest extends WifiBaseTest {
         mLooper = new TestLooper();
 
         MockitoAnnotations.initMocks(this);
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(Flags.class, withSettings().lenient())
+                .startMocking();
 
         /* Default behavior is to return with success */
         when(mWifiNative.selectTxPowerScenario(any(SarInfo.class))).thenReturn(true);
@@ -100,6 +110,10 @@ public class SarManagerTest extends WifiBaseTest {
         mLooper = null;
         mContext = null;
         mResources = null;
+        validateMockitoUsage();
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
     }
 
     /**
@@ -146,6 +160,17 @@ public class SarManagerTest extends WifiBaseTest {
         /* Enable logs from SarManager */
         enableDebugLogs();
     }
+
+    @Test
+    public void testRegisterReceiverForAllUsersWhenFlagOn() throws Exception {
+        when(Flags.monitorIntentForAllUsers()).thenReturn(true);
+        createSarManager(true, false);
+        mLooper.dispatchAll();
+        verify(mContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
+                argThat(filter -> filter.hasAction(SarManager.STREAM_DEVICES_CHANGED_ACTION)),
+                eq(null), any());
+    }
+
 
     /**
      * Test that we do register the telephony call state listener on devices which do support

@@ -72,6 +72,7 @@ import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.HandlerExecutor;
 import com.android.server.wifi.WifiNative;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import java.io.BufferedInputStream;
@@ -294,7 +295,13 @@ public class CoexManager {
         readTableFromXml();
         IntentFilter filter = new IntentFilter();
         filter.addAction(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED);
-        mContext.registerReceiver(mCarrierConfigChangedReceiver, filter, null, mCallbackHandler);
+        if (Flags.monitorIntentForAllUsers()) {
+            mContext.registerReceiverForAllUsers(
+                    mCarrierConfigChangedReceiver, filter, null, mCallbackHandler);
+        } else {
+            mContext.registerReceiver(mCarrierConfigChangedReceiver, filter,
+                    null, mCallbackHandler);
+        }
         mSubscriptionManager.addOnSubscriptionsChangedListener(
                 new HandlerExecutor(mCallbackHandler), new CoexOnSubscriptionsChangedListener());
     }

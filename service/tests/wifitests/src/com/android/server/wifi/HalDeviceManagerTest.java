@@ -194,6 +194,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         when(mWorkSourceHelper2.getWorkSource()).thenReturn(TEST_WORKSOURCE_2);
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
         when(mConcreteClientModeManager.getRole()).thenReturn(
                 ClientModeManager.ROLE_CLIENT_PRIMARY);
 
@@ -910,6 +911,26 @@ public class HalDeviceManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Executes executeDisconnectedP2pTreatedAsOpportunisticAfterTimeout with flag is disabled.
+     */
+    @Test
+    public void testDisconnectedP2pTreatedAsOpportunisticAfterTimeoutWhenFlagDisabled()
+            throws Exception {
+        when(mFeatureFlags.monitorIntentForAllUsers()).thenReturn(false);
+        executeDisconnectedP2pTreatedAsOpportunisticAfterTimeout(false);
+    }
+
+    /**
+     * Executes executeDisconnectedP2pTreatedAsOpportunisticAfterTimeout with flag is enabled.
+     */
+    @Test
+    public void testDisconnectedP2pTreatedAsOpportunisticAfterTimeoutWhenFlagEnabled()
+            throws Exception {
+        when(mFeatureFlags.monitorIntentForAllUsers()).thenReturn(true);
+        executeDisconnectedP2pTreatedAsOpportunisticAfterTimeout(true);
+    }
+
+    /**
      * Validate that disconnected P2P is treated as opportunistic and can be deleted by other
      * foreground apps after config_disconnectedP2pIfaceLowPriorityTimeoutMs.
      *
@@ -919,8 +940,8 @@ public class HalDeviceManagerTest extends WifiBaseTest {
      * - advance clock to config_disconnectedP2pIfaceLowPriorityTimeoutMs
      * - create NAN (foreground app): should succeed
      */
-    @Test
-    public void testDisconnectedP2pTreatedAsOpportunisticAfterTimeout() throws Exception {
+    private void executeDisconnectedP2pTreatedAsOpportunisticAfterTimeout(
+            boolean isFlagMonitorIntentForAllUsersEnabled) throws Exception {
         assumeTrue(SdkLevel.isAtLeastT());
         when(mResources.getInteger(R.integer.config_disconnectedP2pIfaceLowPriorityTimeoutMs))
                 .thenReturn(1);
@@ -933,7 +954,13 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         executeAndValidateStartupSequence();
         ArgumentCaptor<BroadcastReceiver> brCaptor =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
-        verify(mContext, atLeastOnce()).registerReceiver(brCaptor.capture(), any(), any(), any());
+        if (isFlagMonitorIntentForAllUsersEnabled) {
+            verify(mContext, atLeastOnce()).registerReceiverForAllUsers(
+                    brCaptor.capture(), any(), any(), any());
+        } else {
+            verify(mContext, atLeastOnce()).registerReceiver(
+                    brCaptor.capture(), any(), any(), any());
+        }
 
         // Create STA and P2P interface from privileged app: should succeed.
         WifiInterface staIface = validateInterfaceSequence(chipMock,

@@ -35,7 +35,9 @@ import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.HandlerExecutor;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -59,7 +61,8 @@ public class SarManager {
      * @hide constants copied over from {@link AudioManager}
      * TODO(b/144250387): Migrate to public API
      */
-    private static final String STREAM_DEVICES_CHANGED_ACTION =
+    @VisibleForTesting
+    public static final String STREAM_DEVICES_CHANGED_ACTION =
             "android.media.STREAM_DEVICES_CHANGED_ACTION";
     private static final String EXTRA_VOLUME_STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE";
     private static final String EXTRA_VOLUME_STREAM_DEVICES =
@@ -248,45 +251,49 @@ public class SarManager {
         IntentFilter filter = new IntentFilter();
         filter.addAction(STREAM_DEVICES_CHANGED_ACTION);
 
-        mContext.registerReceiver(
-                new BroadcastReceiver() {
-                    @Override
-                    public void onReceive(Context context, Intent intent) {
-                        boolean voiceStreamActive = isVoiceCallStreamActive();
-                        if (!voiceStreamActive) {
-                            // No need to proceed, there is no voice call ongoing
-                            return;
+        BroadcastReceiver streamDeviceChangedReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    boolean voiceStreamActive = isVoiceCallStreamActive();
+                    if (!voiceStreamActive) {
+                        // No need to proceed, there is no voice call ongoing
+                        return;
+                    }
+
+                    String action = intent.getAction();
+                    int streamType =
+                            intent.getIntExtra(EXTRA_VOLUME_STREAM_TYPE, -1);
+                    int device = intent.getIntExtra(EXTRA_VOLUME_STREAM_DEVICES, -1);
+                    int oldDevice = intent.getIntExtra(EXTRA_PREV_VOLUME_STREAM_DEVICES, -1);
+
+                    if (streamType == AudioManager.STREAM_VOICE_CALL) {
+                        boolean earPieceActive = mSarInfo.isEarPieceActive;
+                        if (device == DEVICE_OUT_EARPIECE) {
+                            if (mVerboseLoggingEnabled) {
+                                Log.d(TAG, "Switching to earpiece : HEAD ON");
+                                Log.d(TAG, "Old device = " + oldDevice);
+                            }
+                            earPieceActive = true;
+                        } else if (oldDevice == DEVICE_OUT_EARPIECE) {
+                            if (mVerboseLoggingEnabled) {
+                                Log.d(TAG, "Switching from earpiece : HEAD OFF");
+                                Log.d(TAG, "New device = " + device);
+                            }
+                            earPieceActive = false;
                         }
 
-                        String action = intent.getAction();
-                        int streamType =
-                                intent.getIntExtra(EXTRA_VOLUME_STREAM_TYPE, -1);
-                        int device = intent.getIntExtra(EXTRA_VOLUME_STREAM_DEVICES, -1);
-                        int oldDevice = intent.getIntExtra(EXTRA_PREV_VOLUME_STREAM_DEVICES, -1);
-
-                        if (streamType == AudioManager.STREAM_VOICE_CALL) {
-                            boolean earPieceActive = mSarInfo.isEarPieceActive;
-                            if (device == DEVICE_OUT_EARPIECE) {
-                                if (mVerboseLoggingEnabled) {
-                                    Log.d(TAG, "Switching to earpiece : HEAD ON");
-                                    Log.d(TAG, "Old device = " + oldDevice);
-                                }
-                                earPieceActive = true;
-                            } else if (oldDevice == DEVICE_OUT_EARPIECE) {
-                                if (mVerboseLoggingEnabled) {
-                                    Log.d(TAG, "Switching from earpiece : HEAD OFF");
-                                    Log.d(TAG, "New device = " + device);
-                                }
-                                earPieceActive = false;
-                            }
-
-                            if (earPieceActive != mSarInfo.isEarPieceActive) {
-                                mSarInfo.isEarPieceActive = earPieceActive;
-                                updateSarScenario();
-                            }
+                        if (earPieceActive != mSarInfo.isEarPieceActive) {
+                            mSarInfo.isEarPieceActive = earPieceActive;
+                            updateSarScenario();
                         }
                     }
-                }, filter, null, mHandler);
+                }};
+        if (Flags.monitorIntentForAllUsers()) {
+            mContext.registerReceiverForAllUsers(streamDeviceChangedReceiver, filter,
+                    null, mHandler);
+        } else {
+            mContext.registerReceiver(streamDeviceChangedReceiver, filter, null, mHandler);
+        }
     }
 
     /**

@@ -84,6 +84,7 @@ import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.util.WifiPermissionsUtil;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import org.json.JSONException;
@@ -340,7 +341,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         mRttServiceSynchronized.mHandler.post(() -> {
             IntentFilter intentFilter = new IntentFilter();
             intentFilter.addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED);
-            mContext.registerReceiver(new BroadcastReceiver() {
+            BroadcastReceiver idleModeChangeReceiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     String action = intent.getAction();
@@ -354,8 +355,13 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                             enableIfPossible();
                         }
                     }
-                }
-            }, intentFilter);
+                }};
+            if (Flags.monitorIntentForAllUsers()) {
+                mContext.registerReceiverForAllUsers(idleModeChangeReceiver,
+                        intentFilter, null, mRttServiceSynchronized.mHandler);
+            } else {
+                mContext.registerReceiver(idleModeChangeReceiver, intentFilter);
+            }
 
             settingsConfigStore.registerChangeListener(
                     WIFI_VERBOSE_LOGGING_ENABLED,
