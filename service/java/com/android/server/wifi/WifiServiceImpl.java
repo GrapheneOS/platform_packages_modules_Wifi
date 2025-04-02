@@ -4580,18 +4580,26 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             mLog.info("enableNetwork not allowed for uid=%").c(callingUid).flush();
             return false;
         }
-        WifiConfiguration configuration = mWifiConfigManager.getConfiguredNetwork(netId);
-        if (mWifiPermissionsUtil.isAdminRestrictedNetwork(configuration)) {
-            mLog.info("enableNetwork not allowed for admin restricted network Id=%")
-                    .c(netId).flush();
+        Boolean canEnableNetwork = mWifiThreadRunner.call(
+                () -> {
+                    WifiConfiguration configuration =
+                            mWifiConfigManager.getConfiguredNetwork(netId);
+                    if (mWifiPermissionsUtil.isAdminRestrictedNetwork(configuration)) {
+                        mLog.info("enableNetwork not allowed for admin restricted"
+                                        + " network Id=%").c(netId).flush();
+                        return false;
+                    }
+                    if (mWifiGlobals.isDeprecatedSecurityTypeNetwork(configuration)) {
+                        mLog.info("enableNetwork not allowed for deprecated security type"
+                                        + " network Id=%")
+                                .c(netId).flush();
+                        return false;
+                    }
+                    return true;
+                }, false, TAG + "#enableNetwork");
+        if (canEnableNetwork == null || !canEnableNetwork) {
             return false;
         }
-        if (mWifiGlobals.isDeprecatedSecurityTypeNetwork(configuration)) {
-            mLog.info("enableNetwork not allowed for deprecated security type network Id=%")
-                    .c(netId).flush();
-            return false;
-        }
-
         mLastCallerInfoManager.put(WifiManager.API_ENABLE_NETWORK, Process.myTid(),
                 callingUid, Binder.getCallingPid(), packageName, disableOthers);
         // TODO b/33807876 Log netId

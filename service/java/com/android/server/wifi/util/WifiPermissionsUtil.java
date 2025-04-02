@@ -22,6 +22,7 @@ import static android.Manifest.permission.ENTER_CAR_MODE_PRIORITIZED;
 import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
 import static android.Manifest.permission.RENOUNCE_PERMISSIONS;
 import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION;
+import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_NEARBY_DEVICE_STREAMING;
 import static android.content.pm.PackageManager.GET_PERMISSIONS;
 import static android.content.pm.PackageManager.MATCH_UNINSTALLED_PACKAGES;
 
@@ -795,6 +796,15 @@ public class WifiPermissionsUtil {
     public boolean checkRequestCompanionProfileAutomotiveProjectionPermission(int uid) {
         return mWifiPermissionsWrapper.getUidPermission(
                 REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION, uid)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Returns true if the |uid| holds REQUEST_COMPANION_PROFILE_NEARBY_DEVICE_STREAMING permission.
+     */
+    public boolean checkRequestCompanionProfileNearbyDeviceStreamingPermission(int uid) {
+        return mWifiPermissionsWrapper.getUidPermission(
+                REQUEST_COMPANION_PROFILE_NEARBY_DEVICE_STREAMING, uid)
                 == PackageManager.PERMISSION_GRANTED;
     }
 

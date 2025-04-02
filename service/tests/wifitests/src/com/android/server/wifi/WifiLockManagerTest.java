@@ -968,14 +968,35 @@ public class WifiLockManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Test if an exempted foreground app acquires a low-latency lock, and screen is off,
-     * then that lock becomes effective.
+     * Test that if an Android Auto exempted foreground app acquires a low-latency lock,
+     * and the screen is off, then that lock becomes effective.
      */
     @Test
-    public void testForegroundAppAcquireLowLatencyScreenOffExemption() throws Exception {
+    public void testForegroundAppAcquireLowLatencyScreenOffAutoExemption() throws Exception {
         // Set screen off, and app is foreground
         setScreenState(false);
         when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
+        // Acquire the lock.
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "",
+                mBinder, mWorkSource);
+        // Check for low latency.
+        assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                mWifiLockManager.getStrongestLockMode());
+    }
+
+    /**
+     * Test that if a nearby-streaming exempted foreground app acquires a low-latency lock,
+     * and the screen is off, then that lock becomes effective.
+     */
+    @Test
+    public void testForegroundAppAcquireLowLatencyScreenOffNearbyStreamExemption()
+            throws Exception {
+        // Set screen off and app is in the foreground
+        setScreenState(false);
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileNearbyDeviceStreamingPermission(
                 anyInt())).thenReturn(true);
         when(mActivityManager.getUidImportance(anyInt())).thenReturn(
                 ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND);
@@ -1006,17 +1027,37 @@ public class WifiLockManagerTest extends WifiBaseTest {
     }
 
     /**
-     * Test if an exempted app not in foreground acquires a low-latency lock, and screen is on,
-     * then that lock becomes effective.
+     * Test that if an Android Auto exempted app not in foreground acquires a low-latency lock,
+     * and the screen is on, then that lock becomes effective.
      */
     @Test
-    public void testBackgroundAppAcquireLowLatencyScreenOnExemption() throws Exception {
+    public void testBackgroundAppAcquireLowLatencyScreenOnAutoExemption() throws Exception {
         // Set screen on, and app is foreground service.
         setScreenState(true);
         when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
                 anyInt())).thenReturn(true);
         when(mActivityManager.getUidImportance(anyInt())).thenReturn(
                 ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE);
+        // Acquire the lock.
+        acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "",
+                mBinder, mWorkSource);
+        // Check for low latency.
+        assertEquals(WifiManager.WIFI_MODE_FULL_LOW_LATENCY,
+                mWifiLockManager.getStrongestLockMode());
+    }
+
+    /**
+     * Test that if a nearby-streaming exempted app with a low priority acquires a low-latency lock,
+     * and screen is on, then that lock becomes effective.
+     */
+    @Test
+    public void testBackgroundAppAcquireLowLatencyScreenOnNearbyStreamExemption() throws Exception {
+        // Set screen on and app is background service.
+        setScreenState(true);
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileNearbyDeviceStreamingPermission(
+                anyInt())).thenReturn(true);
+        when(mActivityManager.getUidImportance(anyInt())).thenReturn(
+                ActivityManager.RunningAppProcessInfo.IMPORTANCE_SERVICE);
         // Acquire the lock.
         acquireWifiLockSuccessful(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "",
                 mBinder, mWorkSource);
