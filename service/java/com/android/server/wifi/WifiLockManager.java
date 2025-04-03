@@ -85,6 +85,7 @@ public class WifiLockManager {
     /** whether Wifi is connected on the primary ClientModeManager */
     private boolean mWifiConnected = false;
     private boolean mP2pConnected = false;
+    private boolean mAwareConnected = false;
 
     // For shell command support
     private boolean mForceHiPerfMode = false;
@@ -466,6 +467,19 @@ public class WifiLockManager {
             Log.i(TAG, "Updating P2P connected state to " + isConnected);
         }
         mP2pConnected = isConnected;
+    }
+
+    /**
+     * Handler for Aware connection state changes.
+     */
+    public void updateAwareConnected(boolean isConnected) {
+        if (mAwareConnected == isConnected) {
+            return;
+        }
+        if (mVerboseLoggingEnabled) {
+            Log.i(TAG, "Updating Aware connected state to " + isConnected);
+        }
+        mAwareConnected = isConnected;
     }
 
     private synchronized void setBlameHiPerfLocks(boolean shouldBlame) {

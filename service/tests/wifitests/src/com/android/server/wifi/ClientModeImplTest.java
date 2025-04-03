@@ -4025,6 +4025,25 @@ public class ClientModeImplTest extends WifiBaseTest {
                 any());
     }
 
+    @Test
+    public void testRssiIsUpdatedAfterSupplicantAssociates() throws Exception {
+        // Mock RSSI poll results to be updated when supplicant associates.
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, -42, 65, 54, sFreq);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
+        triggerConnect();
+
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.ASSOCIATED));
+        mLooper.dispatchAll();
+
+        validateConnectionInfo();
+        // RSSI should be updated after supplicant associates.
+        assertEquals(signalPollResults.getRssi(), mWifiInfo.getRssi());
+        assertRssiChangeBroadcastSent(1);
+    }
+
     /**
      * Verify that RSSI and link layer stats polling works in connected mode
      */

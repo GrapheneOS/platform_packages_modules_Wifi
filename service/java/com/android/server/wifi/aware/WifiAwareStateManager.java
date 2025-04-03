@@ -121,6 +121,7 @@ import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.RunnerState;
 import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiInjector;
+import com.android.server.wifi.WifiLockManager;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.aware.PairingConfigManager.PairingSecurityAssociationInfo;
 import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
@@ -237,6 +238,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final int COMMAND_TYPE_SUSPEND_SESSION = 129;
     private static final int COMMAND_TYPE_RESUME_SESSION = 130;
     private static final int COMMAND_TYPE_END_PAIRING = 131;
+    private static final int COMMAND_TYPE_CREATE_ALL_DATA_PATH_INTERFACES = 132;
 
     private static final int RESPONSE_TYPE_ON_CONFIG_SUCCESS = 200;
     private static final int RESPONSE_TYPE_ON_CONFIG_FAIL = 201;
@@ -680,7 +682,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      */
     public void start(Context context, Looper looper, WifiAwareMetrics awareMetrics,
             WifiPermissionsUtil wifiPermissionsUtil, WifiPermissionsWrapper permissionsWrapper,
-            Clock clock, NetdWrapper netdWrapper, InterfaceConflictManager interfaceConflictMgr) {
+            Clock clock, NetdWrapper netdWrapper, InterfaceConflictManager interfaceConflictMgr,
+            WifiLockManager wifiLockManager) {
         Log.i(TAG, "start()");
 
         mContext = context;
@@ -694,7 +697,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         mDataPathMgr = new WifiAwareDataPathStateManager(this, clock);
         mDataPathMgr.start(mContext, mSm.getHandler().getLooper(), awareMetrics,
-                wifiPermissionsUtil, permissionsWrapper, netdWrapper);
+                wifiPermissionsUtil, permissionsWrapper, netdWrapper, wifiLockManager);
 
         mPowerManager = mContext.getSystemService(PowerManager.class);
         mWifiManager = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
@@ -1492,6 +1495,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     public void queryCapabilities() {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_GET_CAPABILITIES;
+        mSm.sendMessage(msg);
+    }
+
+    private void createAllDataInterfaces() {
+        Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
+        msg.arg1 = COMMAND_TYPE_CREATE_ALL_DATA_PATH_INTERFACES;
         mSm.sendMessage(msg);
     }
 
@@ -2296,6 +2305,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 case COMMAND_TYPE_SUSPEND_SESSION -> "COMMAND_TYPE_SUSPEND_SESSION";
                 case COMMAND_TYPE_RESUME_SESSION -> "COMMAND_TYPE_RESUME_SESSION";
                 case COMMAND_TYPE_END_PAIRING -> "COMMAND_TYPE_END_PAIRING";
+                case COMMAND_TYPE_CREATE_ALL_DATA_PATH_INTERFACES
+                        -> "COMMAND_TYPE_CREATE_ALL_DATA_PATH_INTERFACES";
 
                 case RESPONSE_TYPE_ON_CONFIG_SUCCESS -> "RESPONSE_TYPE_ON_CONFIG_SUCCESS";
                 case RESPONSE_TYPE_ON_CONFIG_FAIL -> "RESPONSE_TYPE_ON_CONFIG_FAIL";
@@ -3233,6 +3244,11 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
                     waitForResponse = resumeSessionLocal(mCurrentTransactionId, clientId,
                         sessionId);
+                    break;
+                }
+                case COMMAND_TYPE_CREATE_ALL_DATA_PATH_INTERFACES: {
+                    createAllDataPathInterfaces();
+                    waitForResponse = false;
                     break;
                 }
                 default:
@@ -4412,8 +4428,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         if (completedCommand.arg1 == COMMAND_TYPE_CONNECT) {
             if (mCurrentAwareConfiguration == null) { // enabled (as opposed to re-configured)
-                queryCapabilities();
-                mDataPathMgr.createAllInterfaces();
+                if (mCapabilities == null) {
+                    queryCapabilities();
+                    createAllDataInterfaces();
+                } else {
+                    mDataPathMgr.createAllInterfaces();
+                }
                 recordHalApiCall(COMMAND_TYPE_CONNECT, NanStatusCode.SUCCESS, mStartTime);
             } else {
                 recordHalApiCall(COMMAND_TYPE_RECONFIGURE, NanStatusCode.SUCCESS, mStartTime);

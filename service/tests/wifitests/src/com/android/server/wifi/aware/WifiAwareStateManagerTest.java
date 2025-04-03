@@ -116,6 +116,7 @@ import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiInjector;
+import com.android.server.wifi.WifiLockManager;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.WifiThreadRunner;
@@ -172,6 +173,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
     @Mock private WifiPermissionsWrapper mPermissionsWrapperMock;
     @Mock private InterfaceConflictManager mInterfaceConflictManager;
+    @Mock private WifiLockManager mWifiLockManager;
     TestAlarmManager mAlarmManager;
     @Mock private PowerManager mMockPowerManager;
     @Mock private WifiManager mMockWifiManager;
@@ -276,7 +278,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.setNative(mMockNativeManager, mMockNative);
         mDut.start(mMockContext, mMockLooper.getLooper(), mAwareMetricsMock,
                 mWifiPermissionsUtil, mPermissionsWrapperMock, new Clock(),
-                mock(NetdWrapper.class), mInterfaceConflictManager);
+                mock(NetdWrapper.class), mInterfaceConflictManager, mWifiLockManager);
         verify(mMockContext, never()).registerReceiver(any(), any(IntentFilter.class));
         mDut.startLate();
         mDut.enableVerboseLogging(true, true, true);

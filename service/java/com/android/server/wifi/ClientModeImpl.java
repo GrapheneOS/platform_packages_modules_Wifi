@@ -3273,6 +3273,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 setMultiLinkInfoFromScanCache(stateChangeResult.bssid);
             }
             if (state == SupplicantState.ASSOCIATED) {
+                long txBytes = mFacade.getTotalTxBytes() - mFacade.getMobileTxBytes();
+                long rxBytes = mFacade.getTotalRxBytes() - mFacade.getMobileRxBytes();
+                updateLinkLayerStatsRssiSpeedFrequencyCapabilities(txBytes, rxBytes);
                 updateWifiInfoLinkParamsAfterAssociation();
             }
             mWifiInfo.setInformationElements(findMatchingInfoElements(stateChangeResult.bssid));

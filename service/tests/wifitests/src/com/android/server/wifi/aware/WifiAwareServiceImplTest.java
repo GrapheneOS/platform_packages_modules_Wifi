@@ -75,6 +75,7 @@ import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiInjector;
+import com.android.server.wifi.WifiLockManager;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -130,6 +131,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
     @Mock private WifiPermissionsWrapper mPermissionsWrapperMock;
     @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
     @Mock private InterfaceConflictManager mInterfaceConflictManager;
+    @Mock private WifiLockManager mWifiLockManager;
     @Mock private DeviceConfigFacade mDeviceConfigFacade;
     @Mock private WifiInjector mWifiInjector;
     @Mock private LocalLog mLocalLog;
@@ -202,11 +204,11 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
                 mWifiSettingsConfigStore,
                 mock(WifiAwareNativeManager.class), mock(WifiAwareNativeApi.class),
                 mock(WifiAwareNativeCallback.class), mock(NetdWrapper.class),
-                mInterfaceConflictManager);
+                mInterfaceConflictManager, mWifiLockManager);
         mMockLooper.dispatchAll();
         verify(mAwareStateManagerMock).start(eq(mContextMock), any(), eq(mAwareMetricsMock),
                 eq(mWifiPermissionsUtil), eq(mPermissionsWrapperMock), any(), any(),
-                eq(mInterfaceConflictManager));
+                eq(mInterfaceConflictManager), eq(mWifiLockManager));
     }
 
     @After

@@ -53,6 +53,7 @@ import android.util.SparseArray;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.WifiLockManager;
 import com.android.server.wifi.hal.WifiNanIface.NanDataPathChannelCfg;
 import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
 import com.android.server.wifi.util.NetdWrapper;
@@ -117,6 +118,7 @@ public class WifiAwareDataPathStateManager {
     private WifiAwareMetrics mAwareMetrics;
     private WifiPermissionsUtil mWifiPermissionsUtil;
     private WifiPermissionsWrapper mPermissionsWrapper;
+    private WifiLockManager mWifiLockManager;
     private Looper mLooper;
     private Handler mHandler;
     private WifiAwareNetworkFactory mNetworkFactory;
@@ -157,17 +159,17 @@ public class WifiAwareDataPathStateManager {
      */
     public void start(Context context, Looper looper, WifiAwareMetrics awareMetrics,
             WifiPermissionsUtil wifiPermissionsUtil, WifiPermissionsWrapper permissionsWrapper,
-            NetdWrapper netdWrapper) {
+            NetdWrapper netdWrapper, WifiLockManager wifiLockManager) {
         if (sVdbg) Log.v(TAG, "start");
 
         mContext = context;
         mAwareMetrics = awareMetrics;
         mWifiPermissionsUtil = wifiPermissionsUtil;
         mPermissionsWrapper = permissionsWrapper;
+        mWifiLockManager = wifiLockManager;
         mNetdWrapper = netdWrapper;
         mLooper = looper;
         mHandler = new Handler(mLooper);
-
 
         mNetworkFactory = new WifiAwareNetworkFactory(looper, context, sNetworkCapabilitiesFilter);
         mNetworkFactory.setScoreFilter(NETWORK_FACTORY_SCORE_AVAIL);
@@ -760,6 +762,7 @@ public class WifiAwareDataPathStateManager {
                 nnri.networkSpecifier.role, ndpInfo.startTimestamp, nnri.networkSpecifier.sessionId,
                 channelFreqMHz);
         mAwareMetrics.recordNdpCreation(nnri.uid, nnri.packageName, mNetworkRequestsCache);
+        mWifiLockManager.updateAwareConnected(true);
     }
 
     private boolean isAddressValidationExpired(AwareNetworkRequestInformation nnri, int ndpId) {
@@ -818,6 +821,8 @@ public class WifiAwareDataPathStateManager {
             mNetworkRequestsCache.remove(nnriE.getKey());
             mNetworkFactory.tickleConnectivityIfWaiting();
         }
+        boolean isAnyDataPathEstablished = getNumOfNdps() > 0;
+        mWifiLockManager.updateAwareConnected(isAnyDataPathEstablished);
     }
 
     /**

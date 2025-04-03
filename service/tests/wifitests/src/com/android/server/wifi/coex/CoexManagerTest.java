@@ -1086,4 +1086,100 @@ public class CoexManagerTest extends WifiBaseTest {
                 new CoexUnsafeChannel(WIFI_BAND_24_GHZ, 9),
                 new CoexUnsafeChannel(WIFI_BAND_24_GHZ, 10));
     }
+
+    /**
+     * Verifies that unsafe channels are cleared if the radio turns off.
+     */
+    @Test
+    public void testOnRadioPowerStateChanged_radioTurnsOff_unsafeChannelsAreCleared()
+            throws Exception {
+        // Mock LTE Band 40 neighboring interference.
+        when(mMockResources.getString(R.string.config_wifiCoexTableFilepath))
+                .thenReturn(createFileFromResource(FILEPATH_LTE_40_NEIGHBORING).getCanonicalPath());
+        final TelephonyManager telephonyManager = setUpSubIdMocks(0);
+        CoexManager coexManager = createCoexManager();
+        verify(mMockSubscriptionManager).addOnSubscriptionsChangedListener(
+                any(), mCoexSubscriptionsListenerCaptor.capture());
+        mCoexSubscriptionsListenerCaptor.getValue().onSubscriptionsChanged();
+        final ArgumentCaptor<CoexManager.CoexTelephonyCallback> telephonyCallbackCaptor =
+                ArgumentCaptor.forClass(CoexManager.CoexTelephonyCallback.class);
+        verify(telephonyManager).registerTelephonyCallback(any(Executor.class),
+                telephonyCallbackCaptor.capture());
+        telephonyCallbackCaptor.getValue().onPhysicalChannelConfigChanged(Arrays.asList(
+                createMockPhysicalChannelConfig(NETWORK_TYPE_LTE, 40, 2399_900, 10_000, 0, 0)
+        ));
+        assertThat(coexManager.getCoexUnsafeChannels()).isNotEmpty();
+
+        // Mock radio turning off
+        telephonyCallbackCaptor.getValue().onRadioPowerStateChanged(
+                TelephonyManager.RADIO_POWER_OFF);
+
+        assertThat(coexManager.getCoexUnsafeChannels()).isEmpty();
+    }
+
+    /**
+     * Verifies that onPhysicalChannelConfigChanged is ignored if the radio is off.
+     */
+    @Test
+    public void testOnRadioPowerStateChanged_radioTurnsOff_pccChangeIgnored() throws Exception {
+        // Mock LTE Band 40 neighboring interference.
+        when(mMockResources.getString(R.string.config_wifiCoexTableFilepath))
+                .thenReturn(createFileFromResource(FILEPATH_LTE_40_NEIGHBORING).getCanonicalPath());
+        final TelephonyManager telephonyManager = setUpSubIdMocks(0);
+        CoexManager coexManager = createCoexManager();
+        verify(mMockSubscriptionManager).addOnSubscriptionsChangedListener(
+                any(), mCoexSubscriptionsListenerCaptor.capture());
+        mCoexSubscriptionsListenerCaptor.getValue().onSubscriptionsChanged();
+        final ArgumentCaptor<CoexManager.CoexTelephonyCallback> telephonyCallbackCaptor =
+                ArgumentCaptor.forClass(CoexManager.CoexTelephonyCallback.class);
+        verify(telephonyManager).registerTelephonyCallback(any(Executor.class),
+                telephonyCallbackCaptor.capture());
+        // Mock radio turning off
+        telephonyCallbackCaptor.getValue().onRadioPowerStateChanged(
+                TelephonyManager.RADIO_POWER_OFF);
+        assertThat(coexManager.getCoexUnsafeChannels()).isEmpty();
+
+        // Mock non-empty physical channel config.
+        telephonyCallbackCaptor.getValue().onPhysicalChannelConfigChanged(Arrays.asList(
+                createMockPhysicalChannelConfig(NETWORK_TYPE_LTE, 40, 2399_900, 10_000, 0, 0)
+        ));
+
+        // Unsafe channels should be empty since we ignored the physical channel config change.
+        assertThat(coexManager.getCoexUnsafeChannels()).isEmpty();
+    }
+
+
+    /**
+     * Verifies that onPhysicalChannelConfigChanged is ignored if the radio is off.
+     */
+    @Test
+    public void testOnRadioPowerStateChanged_radioTurnsBackOn_pccChangeProcessed()
+            throws Exception {
+        // Mock LTE Band 40 neighboring interference.
+        when(mMockResources.getString(R.string.config_wifiCoexTableFilepath))
+                .thenReturn(createFileFromResource(FILEPATH_LTE_40_NEIGHBORING).getCanonicalPath());
+        final TelephonyManager telephonyManager = setUpSubIdMocks(0);
+        CoexManager coexManager = createCoexManager();
+        verify(mMockSubscriptionManager).addOnSubscriptionsChangedListener(
+                any(), mCoexSubscriptionsListenerCaptor.capture());
+        mCoexSubscriptionsListenerCaptor.getValue().onSubscriptionsChanged();
+        final ArgumentCaptor<CoexManager.CoexTelephonyCallback> telephonyCallbackCaptor =
+                ArgumentCaptor.forClass(CoexManager.CoexTelephonyCallback.class);
+        verify(telephonyManager).registerTelephonyCallback(any(Executor.class),
+                telephonyCallbackCaptor.capture());
+        // Mock radio turning off and back on
+        telephonyCallbackCaptor.getValue().onRadioPowerStateChanged(
+                TelephonyManager.RADIO_POWER_OFF);
+        telephonyCallbackCaptor.getValue().onRadioPowerStateChanged(
+                TelephonyManager.RADIO_POWER_ON);
+        assertThat(coexManager.getCoexUnsafeChannels()).isEmpty();
+
+        // Mock non-empty physical channel config.
+        telephonyCallbackCaptor.getValue().onPhysicalChannelConfigChanged(Arrays.asList(
+                createMockPhysicalChannelConfig(NETWORK_TYPE_LTE, 40, 2399_900, 10_000, 0, 0)
+        ));
+
+        // Unsafe channels should not be empty since the PCC change was processed.
+        assertThat(coexManager.getCoexUnsafeChannels()).isNotEmpty();
+    }
 }
