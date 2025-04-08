@@ -41,6 +41,7 @@ import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.util.ScanResultUtil;
 import android.os.Handler;
+import android.os.Process;
 import android.os.test.TestLooper;
 import android.provider.Settings;
 
@@ -800,7 +801,7 @@ public class WakeupControllerTest extends WifiBaseTest {
         verify(mWakeupEvaluator).findViableNetwork(any(), any());
         verify(mWifiSettingsStore).handleWifiToggled(true /* wifiEnabled */);
         verify(mWifiWakeMetrics).recordWakeupEvent(1 /* numScans */);
-        verify(mWifiMetrics).reportWifiStateChanged(true, true, true);
+        verify(mWifiMetrics).reportWifiStateChanged(true, true, true, Process.WIFI_UID);
         verify(mLastCallerInfoManager).put(eq(WifiManager.API_WIFI_ENABLED), anyInt(), anyInt(),
                 anyInt(), eq("android_wifi_wake"), eq(true));
     }

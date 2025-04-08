@@ -21,6 +21,7 @@ import android.os.Handler;
 import android.util.ArrayMap;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.modules.utils.BackgroundThread;
 import com.android.server.wifi.util.FileUtils;
 
 import java.io.File;
@@ -36,8 +37,8 @@ import java.util.Map;
  */
 public class LastMileLogger {
     private final Handler mBackgroundHandler;
-    public LastMileLogger(WifiInjector injector, Handler handler) {
-        mBackgroundHandler = handler;
+    public LastMileLogger(WifiInjector injector) {
+        mBackgroundHandler = BackgroundThread.getHandler();
         File tracefsEnablePath = new File(WIFI_EVENT_ENABLE_PATH);
         if (tracefsEnablePath.exists()) {
             initLastMileLogger(injector, WIFI_EVENT_BUFFER_PATH, WIFI_EVENT_ENABLE_PATH,

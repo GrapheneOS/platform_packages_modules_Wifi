@@ -2054,7 +2054,8 @@ public class ActiveModeWarden {
             mWifiMetrics.noteWifiEnabledDuringBoot(mSettingsStore.isWifiToggleEnabled());
             if (mSettingsStore.isWifiToggleEnabled()) {
                 boolean isWifiWakeOn = mWifiInjector.getWakeupController().isUsable();
-                mWifiMetrics.reportWifiStateChanged(true, isWifiWakeOn, false);
+                mWifiMetrics.reportWifiStateChanged(true, isWifiWakeOn, false,
+                        Process.WIFI_UID);
                 if (mVerboseLoggingEnabled) {
                     Log.d(TAG, "logging wifi is on after boot. wifi wake state=" + isWifiWakeOn);
                 }

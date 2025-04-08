@@ -922,11 +922,13 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConnectivityManager).setAutoJoinEnabledExternal(true, false);
         inorder.verify(mWifiMetrics).logUserActionEvent(UserActionEvent.EVENT_TOGGLE_WIFI_ON);
         inorder.verify(mWifiMetrics).incrementNumWifiToggles(eq(true), eq(true));
-        inorder.verify(mWifiMetrics).reportWifiStateChanged(true, false, false);
+        inorder.verify(mWifiMetrics).reportWifiStateChanged(true, false, false,
+                Binder.getCallingUid());
         inorder.verify(mWifiMetrics).logUserActionEvent(eq(UserActionEvent.EVENT_TOGGLE_WIFI_OFF),
                 anyInt());
         inorder.verify(mWifiMetrics).incrementNumWifiToggles(eq(true), eq(false));
-        inorder.verify(mWifiMetrics).reportWifiStateChanged(false, false, false);
+        inorder.verify(mWifiMetrics).reportWifiStateChanged(false, false, false,
+                Binder.getCallingUid());
         verify(mLastCallerInfoManager).put(eq(WifiManager.API_WIFI_ENABLED), anyInt(),
                 anyInt(), anyInt(), anyString(), eq(false));
     }
@@ -948,9 +950,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, false));
         inorder.verify(mWifiMetrics).incrementNumWifiToggles(eq(false), eq(true));
-        inorder.verify(mWifiMetrics).reportWifiStateChanged(true, true, false);
+        inorder.verify(mWifiMetrics).reportWifiStateChanged(true, true, false,
+                Binder.getCallingUid());
         inorder.verify(mWifiMetrics).incrementNumWifiToggles(eq(false), eq(false));
-        inorder.verify(mWifiMetrics).reportWifiStateChanged(false, true, false);
+        inorder.verify(mWifiMetrics).reportWifiStateChanged(false, true, false,
+                Binder.getCallingUid());
     }
 
     /**
@@ -969,7 +973,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertFalse(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, false));
         verify(mWifiMetrics, never()).incrementNumWifiToggles(anyBoolean(), anyBoolean());
         verify(mWifiMetrics, never()).reportWifiStateChanged(anyBoolean(), anyBoolean(),
-                anyBoolean());
+                anyBoolean(), anyInt());
     }
 
     /**
@@ -9712,6 +9716,8 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Test
     public void testSetCarrierNetworkOffloadEnabledWithoutPermissionThrowsException()
             throws Exception {
+        when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_CARRIER_PROVISIONING),
+            anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_DENIED);
         try {
             mWifiServiceImpl.setCarrierNetworkOffloadEnabled(10, true, true);
             fail();
@@ -9719,9 +9725,31 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void testSetCarrierNetworkOffloadEnabled() throws Exception {
+    public void testSetCarrierNetworkOffloadEnabledWithSettingsPerm() throws Exception {
         when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
+            anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
+        mWifiServiceImpl.setCarrierNetworkOffloadEnabled(10, true, true);
+        verify(mWifiCarrierInfoManager).setCarrierNetworkOffloadEnabled(10, true, true);
+
+        mWifiServiceImpl.setCarrierNetworkOffloadEnabled(5, false, false);
+        verify(mWifiCarrierInfoManager).setCarrierNetworkOffloadEnabled(5, false, false);
+    }
+
+    @Test
+    public void testSetCarrierNetworkOffloadEnabledWithSetupWizardPerm() throws Exception {
+        when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETUP_WIZARD),
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
+        mWifiServiceImpl.setCarrierNetworkOffloadEnabled(10, true, true);
+        verify(mWifiCarrierInfoManager).setCarrierNetworkOffloadEnabled(10, true, true);
+
+        mWifiServiceImpl.setCarrierNetworkOffloadEnabled(5, false, false);
+        verify(mWifiCarrierInfoManager).setCarrierNetworkOffloadEnabled(5, false, false);
+    }
+
+    @Test
+    public void testSetCarrierNetworkOffloadEnabledWithCarrierProvisioningPerm() throws Exception {
+        when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_CARRIER_PROVISIONING),
+            anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         mWifiServiceImpl.setCarrierNetworkOffloadEnabled(10, true, true);
         verify(mWifiCarrierInfoManager).setCarrierNetworkOffloadEnabled(10, true, true);
 
@@ -11768,7 +11796,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         assertFalse(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         verify(mWifiMetrics, never()).incrementNumWifiToggles(anyBoolean(), anyBoolean());
         verify(mWifiMetrics, never()).reportWifiStateChanged(anyBoolean(), anyBoolean(),
-                anyBoolean());
+                anyBoolean(), anyInt());
 
         assertFalse(mWifiServiceImpl.disconnect(TEST_PACKAGE_NAME));
         assertFalse(mWifiServiceImpl.reconnect(TEST_PACKAGE_NAME));

@@ -2874,9 +2874,9 @@ public class WifiMetrics {
      * @param enabledByWifiWake Whether Wi-Fi was enabled by Wi-Fi Wake
      */
     public void reportWifiStateChanged(boolean wifiState, boolean wifiWakeState,
-            boolean enabledByWifiWake) {
+            boolean enabledByWifiWake, int uid) {
         WifiStatsLog.write(WifiStatsLog.WIFI_STATE_CHANGED, wifiState, wifiWakeState,
-                enabledByWifiWake);
+                enabledByWifiWake, uid);
     }
 
     private int getConnectionResultFailureCode(int level2FailureCode, int level2FailureReason) {

@@ -146,7 +146,7 @@
     <string name="wifi_interface_priority_interface_name_sta" msgid="5107477901500010776">"STA"</string>
     <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"Wi‑Fi žarišna točka"</string>
     <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"Wi‑Fi žarišna točka"</string>
-    <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"Izravni Wi-Fi"</string>
+    <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"Wi-Fi Direct"</string>
     <string name="wifi_interface_priority_interface_name_nan" msgid="8812888073122966870">"Wi‑Fi Aware"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"Je li ova mreža pouzdana?"</string>
     <string name="wifi_ca_cert_dialog_continue_text" msgid="1674156611893471003">"Da, poveži"</string>

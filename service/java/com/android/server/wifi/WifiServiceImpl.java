@@ -1308,6 +1308,11 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 == PackageManager.PERMISSION_GRANTED;
     }
 
+    private boolean checkNetworkCarrierProvisioningPermission(int pid, int uid) {
+        return mContext.checkPermission(android.Manifest.permission.NETWORK_CARRIER_PROVISIONING,
+                pid, uid) == PackageManager.PERMISSION_GRANTED;
+    }
+
     private boolean checkMainlineNetworkStackPermission(int pid, int uid) {
         return mContext.checkPermission(NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK, pid, uid)
                 == PackageManager.PERMISSION_GRANTED;
@@ -1348,6 +1353,16 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     private boolean isSettingsOrSuw(int pid, int uid) {
         return checkNetworkSettingsPermission(pid, uid)
                 || checkNetworkSetupWizardPermission(pid, uid);
+    }
+
+    /**
+     * Helper method to check if the entity initiating the binder call has setup wizard, settings or
+     * carrier provisioning permissions.
+     */
+    private boolean isSettingsOrSuwOrCarrierProvisioner(int pid, int uid) {
+        return checkNetworkSettingsPermission(pid, uid)
+                || checkNetworkSetupWizardPermission(pid, uid)
+                || checkNetworkCarrierProvisioningPermission(pid, uid);
     }
 
     /** Helper method to check if the entity initiating the binder call is a DO/PO app. */
@@ -1680,7 +1695,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         }
         mWifiMetrics.incrementNumWifiToggles(isPrivileged, enable);
         mWifiMetrics.reportWifiStateChanged(enable, mWifiInjector.getWakeupController().isUsable(),
-                false);
+                false, callingUid);
         mActiveModeWarden.wifiToggled(new WorkSource(callingUid, packageName));
         mLastCallerInfoManager.put(WifiManager.API_WIFI_ENABLED, Process.myTid(),
                 callingUid, callingPid, packageName, enable);
@@ -7875,7 +7890,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     @Override
     public void setCarrierNetworkOffloadEnabled(int subscriptionId, boolean merged,
             boolean enabled) {
-        if (!isSettingsOrSuw(Binder.getCallingPid(), Binder.getCallingUid())) {
+        if (!isSettingsOrSuwOrCarrierProvisioner(Binder.getCallingPid(), Binder.getCallingUid())) {
             throw new SecurityException(TAG + ": Permission denied");
         }
         if (mVerboseLoggingEnabled) {

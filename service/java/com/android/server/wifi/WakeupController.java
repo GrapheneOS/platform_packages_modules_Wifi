@@ -478,7 +478,8 @@ public class WakeupController {
                         // Assumes user toggled it on from settings before.
                         mFrameworkFacade.getSettingsWorkSource(mContext));
                 mWifiWakeMetrics.recordWakeupEvent(mNumScansHandled);
-                mWifiMetrics.reportWifiStateChanged(true, isUsable(), true);
+                mWifiMetrics.reportWifiStateChanged(true, isUsable(), true,
+                        Process.WIFI_UID);
                 mLastCallerInfoManager.put(WifiManager.API_WIFI_ENABLED, Process.myTid(),
                         Process.WIFI_UID, -1, "android_wifi_wake", true);
             }

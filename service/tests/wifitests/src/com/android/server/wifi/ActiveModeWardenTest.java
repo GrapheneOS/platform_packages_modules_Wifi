@@ -306,7 +306,8 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiMetrics).noteWifiEnabledDuringBoot(false);
-        verify(mWifiMetrics, never()).reportWifiStateChanged(eq(true), anyBoolean(), eq(false));
+        verify(mWifiMetrics, never()).reportWifiStateChanged(eq(true), anyBoolean(), eq(false),
+                eq(Process.WIFI_UID));
         verify(mWifiGlobals).setD2dStaConcurrencySupported(false);
         verify(mWifiNative).registerStatusListener(mStatusListenerCaptor.capture());
         verify(mWifiNative).initialize();
@@ -1530,7 +1531,8 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiMetrics).noteWifiEnabledDuringBoot(true);
-        verify(mWifiMetrics).reportWifiStateChanged(eq(true), anyBoolean(), eq(false));
+        verify(mWifiMetrics).reportWifiStateChanged(eq(true), anyBoolean(), eq(false),
+                eq(Process.WIFI_UID));
 
         assertInEnabledState();
 

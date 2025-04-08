@@ -7061,9 +7061,9 @@ public class WifiMetricsTest extends WifiBaseTest {
 
     @Test
     public void testWifiStateChanged() throws Exception {
-        mWifiMetrics.reportWifiStateChanged(true, true, false);
+        mWifiMetrics.reportWifiStateChanged(true, true, false, 1010);
         ExtendedMockito.verify(() -> WifiStatsLog.write(
-                WifiStatsLog.WIFI_STATE_CHANGED, true, true, false));
+                WifiStatsLog.WIFI_STATE_CHANGED, true, true, false, 1010));
     }
 
     @Test
