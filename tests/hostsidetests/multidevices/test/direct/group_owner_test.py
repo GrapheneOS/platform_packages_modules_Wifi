@@ -57,11 +57,8 @@ class GroupOwnerTest(base_test.BaseTestClass):
     def _setup_device(self, ad: android_device.AndroidDevice) -> None:
         ad.load_snippet('wifi', constants.WIFI_SNIPPET_PACKAGE_NAME)
         wifi_test_utils.enable_wifi_verbose_logging(ad)
-        # Disable autojoin global
-        ad.wifi.wifiAllowAutojoinGlobal(False)
-        ad.wifi.wifiDisable()
-        ad.wifi.wifiEnable()
         wifi_test_utils.set_screen_on_and_unlock(ad)
+        wifi_test_utils.restart_wifi_and_disable_connection_scan(ad)
 
     @ApiTest([
         'android.net.wifi.p2p.WifiP2pManager#createGroup(android.net.wifi.p2p.WifiP2pManager.Channel, android.net.wifi.p2p.WifiP2pConfig, android.net.wifi.p2p.WifiP2pManager.ActionListener)',
@@ -246,19 +243,15 @@ class GroupOwnerTest(base_test.BaseTestClass):
             raise_on_exception=True,
         )
 
-    def enable_autojoin(self, ad: android_device.AndroidDevice):
-        ad.wifi.wifiAllowAutojoinGlobal(True)
-
     def teardown_class(self):
         utils.concurrent_exec(
-            self.enable_autojoin,
+            wifi_test_utils.restore_wifi_auto_join,
             param_list=[[ad] for ad in self.ads],
             raise_on_exception=True,
         )
 
     def on_fail(self, record: records.TestResult) -> None:
-        logging.info('Collecting bugreports...')
-        android_device.take_bug_reports(
+        wifi_test_utils.take_bug_reports(
             self.ads, destination=self.current_test_info.output_path
         )
 
