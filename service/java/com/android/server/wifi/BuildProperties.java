@@ -16,17 +16,24 @@
 
 package com.android.server.wifi;
 
-import com.android.internal.annotations.VisibleForTesting;
+import android.os.Build;
 
-/** Abstraction of android.os.Build, to enable mocking statics for testing. */
-@VisibleForTesting
-public interface BuildProperties {
+/**
+ * A proxy of android.os.Build for easy testing.
+ */
+public class BuildProperties {
     /** Returns true iff this is an eng build. */
-    boolean isEngBuild();
+    public boolean isEngBuild() {
+        return Build.TYPE.equals("eng");
+    }
 
     /** Returns true iff this is a userdebug build. */
-    boolean isUserdebugBuild();
+    public boolean isUserdebugBuild() {
+        return Build.TYPE.equals("userdebug");
+    }
 
     /** Returns true iff this a normal user build (not userdebug). */
-    boolean isUserBuild();
+    public boolean isUserBuild() {
+        return Build.TYPE.equals("user");
+    }
 }

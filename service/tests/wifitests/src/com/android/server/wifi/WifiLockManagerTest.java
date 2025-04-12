@@ -40,6 +40,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import android.app.ActivityManager;
 import android.content.Context;
@@ -56,10 +57,13 @@ import android.os.test.TestLooper;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.util.WifiPermissionsUtil;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -67,6 +71,7 @@ import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -90,6 +95,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
     private ActivityManager.OnUidImportanceListener mUidImportanceListener;
 
     WifiLockManager mWifiLockManager;
+    MockitoSession mSession;
     @Mock Clock mClock;
     @Mock BatteryStatsManager mBatteryStats;
     @Mock IBinder mBinder;
@@ -129,6 +135,10 @@ public class WifiLockManagerTest extends WifiBaseTest {
                 .addNode(DEFAULT_TEST_UID_2, "tag2");
 
         MockitoAnnotations.initMocks(this);
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(Flags.class, withSettings().lenient())
+                .startMocking();
+
         mLooper = new TestLooper();
         mHandler = new Handler(mLooper.getLooper());
         when(mContext.getSystemService(Context.ACTIVITY_SERVICE)).thenReturn(mActivityManager);
@@ -146,6 +156,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
         when(mContext.getResources()).thenReturn(mResources);
         when(mResources.getBoolean(
                 R.bool.config_wifiLowLatencyLockDisableChipPowerSave)).thenReturn(true);
+        when(Flags.wifiLockActivatedByP2pOrAware()).thenReturn(true);
 
         mWifiLockManager =
                 new WifiLockManager(
@@ -161,6 +172,13 @@ public class WifiLockManagerTest extends WifiBaseTest {
                         mWifiDeviceStateChangeManager);
         verify(mWifiDeviceStateChangeManager)
                 .registerStateChangeCallback(mStateChangeCallbackArgumentCaptor.capture());
+    }
+
+    @After
+    public void cleanUp() {
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
     }
 
     private void acquireWifiLockSuccessful(int lockMode, String tag, IBinder binder, WorkSource ws)

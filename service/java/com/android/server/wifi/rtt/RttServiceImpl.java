@@ -78,7 +78,6 @@ import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.SsidTranslator;
-import com.android.server.wifi.SystemBuildProperties;
 import com.android.server.wifi.WifiConfigManager;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.hal.WifiRttController;
@@ -173,7 +172,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
 
     public RttServiceImpl(Context context) {
         mContext = context;
-        mBuildProperties = new SystemBuildProperties();
+        mBuildProperties = new BuildProperties();
         mFrameworkFacade = new FrameworkFacade();
         mShellCommand = new RttShellCommand();
         mShellCommand.reset();

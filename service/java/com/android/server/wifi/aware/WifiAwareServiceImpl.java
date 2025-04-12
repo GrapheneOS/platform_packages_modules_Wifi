@@ -58,7 +58,6 @@ import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.RunnerHandler;
-import com.android.server.wifi.SystemBuildProperties;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiLockManager;
 import com.android.server.wifi.WifiSettingsConfigStore;
@@ -102,7 +101,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
 
     public WifiAwareServiceImpl(Context context) {
         mContext = context;
-        mBuildProperties = new SystemBuildProperties();
+        mBuildProperties = new BuildProperties();
         mFrameworkFacade = new FrameworkFacade();
     }
 

@@ -282,3 +282,10 @@ flag {
     bug: "390257834"
     is_fixed_read_only: true
 }
+
+flag {
+    name: "wifi_lock_activated_by_p2p_or_aware"
+    namespace: "wifi"
+    description: "Allow some apps to activate a WifiLock if a P2P or Aware connection is active"
+    bug: "404950833"
+}

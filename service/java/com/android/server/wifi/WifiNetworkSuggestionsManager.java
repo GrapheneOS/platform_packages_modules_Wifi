@@ -175,6 +175,7 @@ public class WifiNetworkSuggestionsManager {
     private final Clock mClock;
     // Keep order of network connection.
     private final LruConnectionTracker mLruConnectionTracker;
+    private final BuildProperties mBuildProperties;
 
     private class OnNetworkUpdateListener implements
             WifiConfigManager.OnNetworkUpdateListener {
@@ -681,7 +682,7 @@ public class WifiNetworkSuggestionsManager {
         mWifiKeyStore = keyStore;
         mNotificationManager = mWifiInjector.getWifiNotificationManager();
         mClock = clock;
-
+        mBuildProperties = mWifiInjector.getBuildProperties();
         // register the data store for serializing/deserializing data.
         wifiConfigStore.registerStoreData(
                 wifiInjector.makeNetworkSuggestionStoreData(new NetworkSuggestionDataSource()));
@@ -1212,7 +1213,8 @@ public class WifiNetworkSuggestionsManager {
             // Not carrier merged.
             return true;
         }
-        if (!wns.wifiConfiguration.isEnterprise() && wns.passpointConfiguration == null) {
+        if (!wns.wifiConfiguration.isEnterprise() && wns.passpointConfiguration == null
+                && mBuildProperties.isUserBuild()) {
             // Carrier merged network must be a enterprise network.
             return false;
         }

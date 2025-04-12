@@ -195,6 +195,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
     private @Mock WifiGlobals mWifiGlobals;
     private @Mock SsidTranslator mSsidTranslator;
     private @Mock Clock mClock;
+    private @Mock BuildProperties mBuildProperties;
     private MockitoSession mStaticMockSession = null;
     private TestLooper mLooper;
     private final ArgumentCaptor<AppOpsManager.OnOpChangedListener> mAppOpChangedListenerCaptor =
@@ -236,6 +237,8 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
         when(mWifiInjector.getWifiNotificationManager()).thenReturn(mWifiNotificationManager);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
         when(mWifiInjector.getSsidTranslator()).thenReturn(mSsidTranslator);
+        when(mWifiInjector.getBuildProperties()).thenReturn(mBuildProperties);
+        when(mBuildProperties.isUserBuild()).thenReturn(true);
         when(mNotificationBuilder.setSmallIcon(any())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setTicker(any())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setContentTitle(any())).thenReturn(mNotificationBuilder);

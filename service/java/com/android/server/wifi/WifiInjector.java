@@ -187,7 +187,7 @@ public class WifiInjector {
     private final WifiP2pMetrics mWifiP2pMetrics;
     private final WifiLastResortWatchdog mWifiLastResortWatchdog;
     private final PropertyService mPropertyService = new SystemPropertyService();
-    private final BuildProperties mBuildProperties = new SystemBuildProperties();
+    private final BuildProperties mBuildProperties = new BuildProperties();
     private final WifiBackupRestore mWifiBackupRestore;
     private final BackupRestoreController mBackupRestoreController;
     // This will only be null if SdkLevel is not at least S
