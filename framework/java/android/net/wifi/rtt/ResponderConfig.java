@@ -463,7 +463,11 @@ public final class ResponderConfig implements Parcelable {
 
             if (ehtCapabilitiesPresent && isHeOrEhtAllowed) {
                 preamble = ScanResult.PREAMBLE_EHT;
-            } else if (heCapabilitiesPresent && isHeOrEhtAllowed) {
+            } else if (supports80211azNtbRanging || (heCapabilitiesPresent && isHeOrEhtAllowed)) {
+                // In IEEE 802.11az, ranging uses the HE preamble. An AP advertising 11az support
+                // must therefore implement HE preamble handling for ranging, even if it is not
+                // advertising HE capabilities for normal network association. Also EHT support
+                // implies HE support.
                 preamble = ScanResult.PREAMBLE_HE;
             } else if (vhtCapabilitiesPresent) {
                 preamble = ScanResult.PREAMBLE_VHT;
@@ -993,6 +997,10 @@ public final class ResponderConfig implements Parcelable {
                         "Invalid ResponderConfig - must specify a MAC address or peer handle but "
                                 + "not both");
             }
+            if (mSupports80211azNtb && !isHeSupported(mPreamble)) {
+                throw new IllegalArgumentException(
+                        "IEEE 802.11az responder must support HE preamble");
+            }
             // For Aware, use supported default values
             if (mResponderType == RESPONDER_AWARE) {
                 mSupports80211Mc = true;
@@ -1004,6 +1012,10 @@ public final class ResponderConfig implements Parcelable {
         }
     }
 
+    private static boolean isHeSupported(int preamble) {
+        // EHT support implies HE support.
+        return preamble != PREAMBLE_LEGACY && preamble != PREAMBLE_HT && preamble != PREAMBLE_VHT;
+    }
     @Override
     public int describeContents() {
         return 0;

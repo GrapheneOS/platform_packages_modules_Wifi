@@ -21,6 +21,7 @@ import static junit.framework.Assert.fail;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -648,7 +649,7 @@ public class WifiRttManagerTest {
                 .setFrequencyMhz(2134)
                 .setCenterFreq0Mhz(2345)
                 .setCenterFreq1Mhz(2555)
-                .setPreamble(ScanResult.PREAMBLE_LEGACY)
+                .setPreamble(ScanResult.PREAMBLE_HE)
                 .set80211azNtbSupported(true)
                 .setNtbMaxTimeBetweenMeasurementsMicros(10000)
                 .setNtbMinTimeBetweenMeasurementsMicros(100)
@@ -820,6 +821,21 @@ public class WifiRttManagerTest {
         scan.informationElements = ie;
         config = ResponderConfig.fromScanResult(scan);
         assertEquals(ResponderConfig.PREAMBLE_EHT, config.preamble);
+
+        // Validate preamble type if HE even if HE/EHT capability is not present.
+        scan = builder.setFrequency(5935).setIs80211azNtbRTTResponder(true)
+                .setIs80211McRTTResponder(true).build();
+        ie[1] = null;
+        ie[2] = null;
+        scan.informationElements = ie;
+        assertEquals(ResponderConfig.PREAMBLE_EHT, config.preamble);
+
+        // Assert the ResponderConfig.Builder().build() method throws an exception if preamble type
+        // is HT and responder supports IEEE 802.11az.
+        assertThrows(IllegalArgumentException.class, () -> {
+            new ResponderConfig.Builder().set80211azNtbSupported(true).setPreamble(
+                    ResponderConfig.PREAMBLE_HT).build();
+        });
     }
 
     @Test
