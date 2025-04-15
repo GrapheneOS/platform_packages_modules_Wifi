@@ -3041,6 +3041,7 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         WifiConfiguration config = new WifiConfiguration();
         config.SSID = TEST_SSID;
+        config.networkId = FRAMEWORK_NETWORK_ID;
         config.getNetworkSelectionStatus().setHasEverConnected(true);
         config.allowedKeyManagement.set(KeyMgmt.IEEE8021X);
         config.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.SIM);
@@ -3057,6 +3058,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mEapFailureNotifier).onEapFailure(
                 WifiNative.EAP_SIM_VENDOR_SPECIFIC_CERT_EXPIRED, config, true);
         verify(mWifiCarrierInfoManager).resetCarrierKeysForImsiEncryption(any());
+        verify(mWifiNative).removeNetworkCachedData(FRAMEWORK_NETWORK_ID);
+        verify(mWifiNative, times(2)).removeAllNetworks(WIFI_IFACE_NAME);
         verify(mDeviceConfigFacade).isAbnormalConnectionFailureBugreportEnabled();
         verify(mWifiScoreCard).detectAbnormalConnectionFailure(anyString());
         verify(mWifiDiagnostics, times(2)).takeBugReport(anyString(), anyString());
