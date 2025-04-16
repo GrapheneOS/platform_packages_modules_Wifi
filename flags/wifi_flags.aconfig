@@ -289,3 +289,10 @@ flag {
     description: "Allow some apps to activate a WifiLock if a P2P or Aware connection is active"
     bug: "404950833"
 }
+
+flag {
+    name: "updated_tofu_dialog"
+    namespace: "wifi"
+    description: "Update the TOFU dialog with more information"
+    bug: "276778134"
+}
