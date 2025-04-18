@@ -301,9 +301,6 @@ public class WifiMetrics {
     private WifiLinkLayerStats mLastLinkLayerStats;
     private WifiHealthMonitor mWifiHealthMonitor;
     private WifiScoreCard mWifiScoreCard;
-    private SessionData mPreviousSession;
-    @VisibleForTesting
-    public SessionData mCurrentSession;
     private Map<String, String> mLastBssidPerIfaceMap = new ArrayMap<>();
     private Map<String, Integer> mLastFrequencyPerIfaceMap = new ArrayMap<>();
     private int mSeqNumInsideFramework = 0;
@@ -369,6 +366,8 @@ public class WifiMetrics {
      * The latest started (but un-ended) connection attempt per interface.
      */
     private final Map<String, ConnectionEvent> mCurrentConnectionEventPerIface = new ArrayMap<>();
+    private final Map<String, SessionData> mPreviousConnectionSessionPerIface = new ArrayMap<>();
+    private final Map<String, SessionData> mCurrentConnectionSessionPerIface = new ArrayMap<>();
     /**
      * Count of number of times each scan return code, indexed by WifiLog.ScanReturnCode
      */
@@ -745,9 +744,10 @@ public class WifiMetrics {
     /**
      * Sets the timestamp after roaming is complete.
      */
-    public void onRoamComplete() {
-        if (mCurrentSession != null) {
-            mCurrentSession.mLastRoamCompleteMillis = mClock.getElapsedSinceBootMillis();
+    public void onRoamComplete(String ifaceName) {
+        SessionData currentSession = mCurrentConnectionSessionPerIface.get(ifaceName);
+        if (currentSession != null) {
+            currentSession.mLastRoamCompleteMillis = mClock.getElapsedSinceBootMillis();
         }
     }
 
@@ -2147,11 +2147,12 @@ public class WifiMetrics {
                 int nominator = currentConnectionEvent.mConnectionEvent.connectionNominator;
                 int trigger = WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__UNKNOWN;
 
+                SessionData previousSession = mPreviousConnectionSessionPerIface.get(ifaceName);
                 if (nominator == WifiMetricsProto.ConnectionEvent.NOMINATOR_MANUAL) {
                     trigger = WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__MANUAL;
-                } else if (mPreviousSession == null) {
+                } else if (previousSession == null) {
                     trigger = WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__AUTOCONNECT_BOOT;
-                } else if (ssid != null && ssid.equals(mPreviousSession.mSsid)) {
+                } else if (ssid != null && ssid.equals(previousSession.mSsid)) {
                     trigger = WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__RECONNECT_SAME_NETWORK;
                 } else if (nominator != WifiMetricsProto.ConnectionEvent.NOMINATOR_UNKNOWN) {
                     trigger = WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__AUTOCONNECT_CONFIGURED_NETWORK;
@@ -2314,10 +2315,11 @@ public class WifiMetrics {
                                 - currentConnectionEvent.mConnectionEvent.startTimeSinceBootMillis);
 
                 if (connectionSucceeded) {
-                    mCurrentSession = new SessionData(currentConnectionEvent,
+                    SessionData currentSession = new SessionData(currentConnectionEvent,
                             currentConnectionEvent.mConfigSsid,
                             mClock.getElapsedSinceBootMillis(),
                             band, currentConnectionEvent.mAuthType);
+                    mCurrentConnectionSessionPerIface.put(ifaceName, currentSession);
                     if (currentConnectionEvent.mRole == WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_PRIMARY) {
                         WifiStatsLog.write(WifiStatsLog.WIFI_CONNECTION_STATE_CHANGED,
                                 true, band, currentConnectionEvent.mAuthType);
@@ -2336,9 +2338,10 @@ public class WifiMetrics {
                 // Write metrics to statsd
                 int wwFailureCode = getConnectionResultFailureCode(level2FailureCode,
                         level2FailureReason);
-                int timeSinceConnectedSeconds = (int) ((mPreviousSession != null
+                SessionData previousSession = mPreviousConnectionSessionPerIface.get(ifaceName);
+                int timeSinceConnectedSeconds = (int) ((previousSession != null
                         ? (mClock.getElapsedSinceBootMillis()
-                                - mPreviousSession.mSessionEndTimeMillis) :
+                                - previousSession.mSessionEndTimeMillis) :
                         mClock.getElapsedSinceBootMillis()) / 1000);
                 WifiStatsLog.write(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED,
                         connectionSucceeded,
@@ -2802,42 +2805,41 @@ public class WifiMetrics {
     public void reportNetworkDisconnect(String ifaceName, int disconnectReason, int rssi,
             int linkSpeed, long lastRssiUpdateMillis) {
         synchronized (mLock) {
-            if (!isPrimary(ifaceName)) {
-                return;
-            }
-            if (mCurrentSession != null) {
-                if (mCurrentSession.mConnectionEvent.mRole == WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_PRIMARY) {
+            SessionData currentSession = mCurrentConnectionSessionPerIface.get(ifaceName);
+            if (currentSession != null) {
+                if (currentSession.mConnectionEvent.mRole == WifiStatsLog
+                        .WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_PRIMARY) {
                     WifiStatsLog.write(WifiStatsLog.WIFI_CONNECTION_STATE_CHANGED,
                             false,
-                            mCurrentSession.mBand,
-                            mCurrentSession.mAuthType);
+                            currentSession.mBand,
+                            currentSession.mAuthType);
                 }
-                mCurrentSession.mSessionEndTimeMillis = mClock.getElapsedSinceBootMillis();
-                int durationSeconds = (int) (mCurrentSession.mSessionEndTimeMillis
-                        - mCurrentSession.mSessionStartTimeMillis) / 1000;
-                int connectedSinceLastRoamSeconds = (int) (mCurrentSession.mSessionEndTimeMillis
-                        - mCurrentSession.mLastRoamCompleteMillis) / 1000;
+                currentSession.mSessionEndTimeMillis = mClock.getElapsedSinceBootMillis();
+                int durationSeconds = (int) (currentSession.mSessionEndTimeMillis
+                        - currentSession.mSessionStartTimeMillis) / 1000;
+                int connectedSinceLastRoamSeconds = (int) (currentSession.mSessionEndTimeMillis
+                        - currentSession.mLastRoamCompleteMillis) / 1000;
                 int timeSinceLastRssiUpdateSeconds = (int) (mClock.getElapsedSinceBootMillis()
                         - lastRssiUpdateMillis) / 1000;
 
                 WifiStatsLog.write(WifiStatsLog.WIFI_DISCONNECT_REPORTED,
                         durationSeconds,
                         disconnectReason,
-                        mCurrentSession.mBand,
-                        mCurrentSession.mAuthType,
+                        currentSession.mBand,
+                        currentSession.mAuthType,
                         rssi,
                         linkSpeed,
                         timeSinceLastRssiUpdateSeconds,
                         connectedSinceLastRoamSeconds,
-                        mCurrentSession.mConnectionEvent.mRole,
-                        toMetricEapType(mCurrentSession.mConnectionEvent.mEapType),
-                        toMetricPhase2Method(mCurrentSession.mConnectionEvent.mPhase2Method),
-                        mCurrentSession.mConnectionEvent.mPasspointRoamingType,
-                        mCurrentSession.mConnectionEvent.mCarrierId,
-                        mCurrentSession.mConnectionEvent.mUid);
+                        currentSession.mConnectionEvent.mRole,
+                        toMetricEapType(currentSession.mConnectionEvent.mEapType),
+                        toMetricPhase2Method(currentSession.mConnectionEvent.mPhase2Method),
+                        currentSession.mConnectionEvent.mPasspointRoamingType,
+                        currentSession.mConnectionEvent.mCarrierId,
+                        currentSession.mConnectionEvent.mUid);
 
-                mPreviousSession = mCurrentSession;
-                mCurrentSession = null;
+                mPreviousConnectionSessionPerIface.put(ifaceName, currentSession);
+                mCurrentConnectionSessionPerIface.remove(ifaceName);
             }
         }
     }

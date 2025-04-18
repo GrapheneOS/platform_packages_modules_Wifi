@@ -6444,6 +6444,70 @@ public class WifiMetricsTest extends WifiBaseTest {
     }
 
     @Test
+    public void testWifiDisconnectAtomEmittedOnDisconnectFromMultipleStations() {
+        // start connect on 2 different interfaces
+        mWifiMetrics.startConnectionEvent(TEST_IFACE_NAME, createComplexWifiConfig(),
+                "BSSID1", WifiMetricsProto.ConnectionEvent.ROAM_ENTERPRISE, false,
+                WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_PRIMARY, TEST_UID);
+        mWifiMetrics.startConnectionEvent(TEST_IFACE_NAME2, createComplexWifiConfig(),
+                "BSSID2", WifiMetricsProto.ConnectionEvent.ROAM_ENTERPRISE, false,
+                WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_LOCAL_ONLY,
+                TEST_UID);
+
+        // connection establish for both interfaces at same time (1000)
+        long connectionEndTimeMs = 1000;
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(connectionEndTimeMs);
+        mWifiMetrics.endConnectionEvent(TEST_IFACE_NAME,
+                WifiMetrics.ConnectionEvent.FAILURE_NONE,
+                WifiMetricsProto.ConnectionEvent.HLF_NONE,
+                WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_NONE, TEST_CANDIDATE_FREQ,
+                TEST_CONNECTION_FAILURE_STATUS_CODE);
+        mWifiMetrics.endConnectionEvent(TEST_IFACE_NAME2,
+                WifiMetrics.ConnectionEvent.FAILURE_NONE,
+                WifiMetricsProto.ConnectionEvent.HLF_NONE,
+                WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_NONE, TEST_CANDIDATE_FREQ,
+                TEST_CONNECTION_FAILURE_STATUS_CODE);
+
+        // disconnect for TEST_IFACE_NAME at 2000
+        long wifiDisconnectTimeMs1 = 2000;
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(wifiDisconnectTimeMs1);
+        int linkSpeed = 100;
+        int reason = 42;
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, reason, TEST_CANDIDATE_LEVEL,
+                linkSpeed, 0);
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                eq(WifiStatsLog.WIFI_DISCONNECT_REPORTED),
+                eq((int) (wifiDisconnectTimeMs1 - connectionEndTimeMs) / 1000),
+                eq(reason),
+                eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__BAND__BAND_2G),
+                eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__AUTH_TYPE__AUTH_TYPE_WPA2_PSK),
+                eq(TEST_CANDIDATE_LEVEL),
+                eq(linkSpeed),
+                eq((int) wifiDisconnectTimeMs1 / 1000),
+                eq((int) (wifiDisconnectTimeMs1 - connectionEndTimeMs) / 1000),
+                eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_PRIMARY),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyInt()));
+
+        // disconnect for TEST_IFACE_NAME2 at 5000
+        long wifiDisconnectTimeMs2 = 5000;
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(wifiDisconnectTimeMs2);
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME2, reason, TEST_CANDIDATE_LEVEL,
+                linkSpeed, 0);
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                eq(WifiStatsLog.WIFI_DISCONNECT_REPORTED),
+                eq((int) (wifiDisconnectTimeMs2 - connectionEndTimeMs) / 1000),
+                eq(reason),
+                eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__BAND__BAND_2G),
+                eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__AUTH_TYPE__AUTH_TYPE_WPA2_PSK),
+                eq(TEST_CANDIDATE_LEVEL),
+                eq(linkSpeed),
+                eq((int) wifiDisconnectTimeMs2 / 1000),
+                eq((int) (wifiDisconnectTimeMs2 - connectionEndTimeMs) / 1000),
+                eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_LOCAL_ONLY),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyInt()));
+    }
+
+    @Test
     public void testWifiDisconnectAtomEmittedOnDisconnectFromSuccessfulSession() {
         mWifiMetrics.startConnectionEvent(TEST_IFACE_NAME, createComplexWifiConfig(),
                 "RED", WifiMetricsProto.ConnectionEvent.ROAM_ENTERPRISE, false,
@@ -6461,9 +6525,20 @@ public class WifiMetricsTest extends WifiBaseTest {
         when(mClock.getElapsedSinceBootMillis()).thenReturn(wifiDisconnectTimeMs);
         int linkSpeed = 100;
         int reason = 42;
+
+        // Disconnect reported on another interface will not log session from the connected
+        // interface
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME2, reason, TEST_CANDIDATE_LEVEL,
+                linkSpeed, 0);
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                eq(WifiStatsLog.WIFI_DISCONNECT_REPORTED),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt()),
+                times(0));
+
+        // Disconnect on the connected interface triggers logging
         mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, reason, TEST_CANDIDATE_LEVEL,
                 linkSpeed, 0);
-
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 eq(WifiStatsLog.WIFI_DISCONNECT_REPORTED),
                 eq((int) (wifiDisconnectTimeMs - connectionEndTimeMs) / 1000),
@@ -7428,10 +7503,6 @@ public class WifiMetricsTest extends WifiBaseTest {
         when(mWifiDataStall.isThroughputSufficient()).thenReturn(false);
         when(mClock.getElapsedSinceBootMillis()).thenReturn((long) 10000);
 
-        WifiMetrics.ConnectionEvent connectionEvent = mWifiMetrics.new ConnectionEvent();
-        WifiMetrics.SessionData currentSession =
-                new WifiMetrics.SessionData(connectionEvent, "", (long) 1000, 0, 0);
-        mWifiMetrics.mCurrentSession = currentSession;
         mWifiMetrics.mLastScreenOffTimeMillis = 1000;
         mWifiMetrics.mLastIgnoredPollTimeMillis = 3000;
 
@@ -7461,11 +7532,6 @@ public class WifiMetricsTest extends WifiBaseTest {
         mWifiMetrics.setIsExternalWifiScorerOn(true, TEST_UID);
         when(mWifiDataStall.isThroughputSufficient()).thenReturn(false);
         when(mClock.getElapsedSinceBootMillis()).thenReturn((long) 10000);
-
-        WifiMetrics.ConnectionEvent connectionEvent = mWifiMetrics.new ConnectionEvent();
-        WifiMetrics.SessionData currentSession =
-                new WifiMetrics.SessionData(connectionEvent, "", (long) 1000, 0, 0);
-        mWifiMetrics.mCurrentSession = currentSession;
         mWifiMetrics.mLastScreenOffTimeMillis = 1000;
         mWifiMetrics.mLastIgnoredPollTimeMillis = 3000;
 
@@ -7508,11 +7574,6 @@ public class WifiMetricsTest extends WifiBaseTest {
     public void logScorerPredictionResult_notDefaultPollingInterval() {
         when(mWifiDataStall.isThroughputSufficient()).thenReturn(false);
         when(mClock.getElapsedSinceBootMillis()).thenReturn((long) 10000);
-
-        WifiMetrics.ConnectionEvent connectionEvent = mWifiMetrics.new ConnectionEvent();
-        WifiMetrics.SessionData currentSession =
-                new WifiMetrics.SessionData(connectionEvent, "", (long) 1000, 0, 0);
-        mWifiMetrics.mCurrentSession = currentSession;
         mWifiMetrics.mLastScreenOffTimeMillis = 1000;
         mWifiMetrics.mLastIgnoredPollTimeMillis = 3000;
 
@@ -7541,11 +7602,6 @@ public class WifiMetricsTest extends WifiBaseTest {
     public void logScorerPredictionResult_withUnusableEvent() {
         when(mWifiDataStall.isThroughputSufficient()).thenReturn(false);
         when(mClock.getElapsedSinceBootMillis()).thenReturn((long) 10000);
-
-        WifiMetrics.ConnectionEvent connectionEvent = mWifiMetrics.new ConnectionEvent();
-        WifiMetrics.SessionData currentSession =
-                new WifiMetrics.SessionData(connectionEvent, "", (long) 1000, 0, 0);
-        mWifiMetrics.mCurrentSession = currentSession;
         mWifiMetrics.mLastScreenOffTimeMillis = 1000;
         mWifiMetrics.mLastIgnoredPollTimeMillis = 3000;
 
@@ -7576,11 +7632,6 @@ public class WifiMetricsTest extends WifiBaseTest {
     public void logScorerPredictionResult_wifiSufficient() {
         when(mWifiDataStall.isThroughputSufficient()).thenReturn(true);
         when(mClock.getElapsedSinceBootMillis()).thenReturn((long) 10000);
-
-        WifiMetrics.ConnectionEvent connectionEvent = mWifiMetrics.new ConnectionEvent();
-        WifiMetrics.SessionData currentSession =
-                new WifiMetrics.SessionData(connectionEvent, "", (long) 1000, 0, 0);
-        mWifiMetrics.mCurrentSession = currentSession;
         mWifiMetrics.mLastScreenOffTimeMillis = 1000;
         mWifiMetrics.mLastIgnoredPollTimeMillis = 3000;
 

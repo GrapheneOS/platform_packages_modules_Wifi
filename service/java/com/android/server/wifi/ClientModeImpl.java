@@ -6701,7 +6701,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     NetworkConnectionEventInfo connectionInfo =
                             (NetworkConnectionEventInfo) message.obj;
                     mLastNetworkId = connectionInfo.networkId;
-                    mWifiMetrics.onRoamComplete();
+                    mWifiMetrics.onRoamComplete(mInterfaceName);
                     handleNetworkConnectionEventInfo(
                             getConnectedWifiConfigurationInternal(), connectionInfo);
                     mWifiInfo.setMacAddress(mWifiNative.getMacAddress(mInterfaceName));
