@@ -2826,6 +2826,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
                         NativeUtil.macAddressFromByteArray(macAddress)))
                 .setPairingBootstrappingConfig(pairingBootstrappingConfig)
                 .setAuthorizeConnectionFromPeerEnabled(authorize)
+                .enablePersistentMode(true)
                 .build();
         config.groupOwnerIntent = WifiP2pServiceImpl.DEFAULT_GROUP_OWNER_INTENT;
         return config;
@@ -3237,6 +3238,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
         assertEquals(0, aidlConnectInfo.frequencyMHz);
         assertFalse(aidlConnectInfo.authorizeConnectionFromPeer);
         assertNull(aidlConnectInfo.groupInterfaceName);
+        assertTrue(aidlConnectInfo.persistent);
     }
 
     /**
@@ -3268,6 +3270,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
         assertEquals(0, aidlConnectInfo.frequencyMHz);
         assertFalse(aidlConnectInfo.authorizeConnectionFromPeer);
         assertNull(aidlConnectInfo.groupInterfaceName);
+        assertTrue(aidlConnectInfo.persistent);
     }
 
     /**
@@ -3296,6 +3299,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
         assertEquals(P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_DISPLAY_PASSPHRASE,
                 aidlConnectInfo.pairingBootstrappingMethod);
         assertEquals("abed", aidlConnectInfo.password);
+        assertTrue(aidlConnectInfo.persistent);
     }
 
     /**
@@ -3325,6 +3329,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
         assertEquals(P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_KEYPAD_PINCODE,
                 aidlConnectInfo.pairingBootstrappingMethod);
         assertEquals("1234", aidlConnectInfo.password);
+        assertTrue(aidlConnectInfo.persistent);
     }
 
     /**
@@ -3354,6 +3359,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
         assertEquals(P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_KEYPAD_PASSPHRASE,
                 aidlConnectInfo.pairingBootstrappingMethod);
         assertEquals("abed", aidlConnectInfo.password);
+        assertTrue(aidlConnectInfo.persistent);
     }
 
     /**
@@ -3383,6 +3389,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
         assertEquals(P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_OUT_OF_BAND,
                 aidlConnectInfo.pairingBootstrappingMethod);
         assertEquals("abed", aidlConnectInfo.password);
+        assertTrue(aidlConnectInfo.persistent);
     }
 
     /**
@@ -3413,6 +3420,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
                 aidlConnectInfo.pairingBootstrappingMethod);
         assertEquals(TEST_GROUP_INTERFACE_NAME, aidlConnectInfo.groupInterfaceName);
         assertTrue(aidlConnectInfo.authorizeConnectionFromPeer);
+        assertTrue(aidlConnectInfo.persistent);
     }
 
     /**

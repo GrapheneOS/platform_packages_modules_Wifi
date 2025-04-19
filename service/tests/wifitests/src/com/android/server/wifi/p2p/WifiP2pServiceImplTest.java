@@ -8656,6 +8656,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertEquals(config.deviceAddress, mTestWifiP2pV2Device.deviceAddress);
         assertEquals(GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL,
                 config.getGroupClientIpProvisioningMode());
+        assertEquals(WifiP2pGroup.NETWORK_ID_PERSISTENT, config.netId);
     }
 
     /**
@@ -8697,6 +8698,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertEquals(config.deviceAddress, mTestWifiP2pV2Device.deviceAddress);
         assertEquals(GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL,
                 config.getGroupClientIpProvisioningMode());
+        assertEquals(WifiP2pGroup.NETWORK_ID_PERSISTENT, config.netId);
     }
 
     /**
@@ -8739,6 +8741,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertEquals(config.deviceAddress, mTestWifiP2pV2Device.deviceAddress);
         assertEquals(GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL,
                 config.getGroupClientIpProvisioningMode());
+        assertEquals(WifiP2pGroup.NETWORK_ID_PERSISTENT, config.netId);
     }
 
 
@@ -8786,6 +8789,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertTrue(config.isAuthorizeConnectionFromPeerEnabled());
         assertEquals(GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL,
                 config.getGroupClientIpProvisioningMode());
+        assertEquals(WifiP2pGroup.NETWORK_ID_PERSISTENT, config.netId);
     }
 
     /**
@@ -8831,6 +8835,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertTrue(config.isAuthorizeConnectionFromPeerEnabled());
         assertEquals(GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL,
                 config.getGroupClientIpProvisioningMode());
+        assertEquals(WifiP2pGroup.NETWORK_ID_PERSISTENT, config.netId);
     }
 
     /**
@@ -8869,6 +8874,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                         .PAIRING_BOOTSTRAPPING_METHOD_OPPORTUNISTIC,
                 config.getPairingBootstrappingConfig().getPairingBootstrappingMethod());
         assertTrue(config.isAuthorizeConnectionFromPeerEnabled());
+        assertEquals(WifiP2pGroup.NETWORK_ID_PERSISTENT, config.netId);
     }
 
     /**
@@ -8909,6 +8915,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                         .PAIRING_BOOTSTRAPPING_METHOD_KEYPAD_PINCODE,
                 config.getPairingBootstrappingConfig().getPairingBootstrappingMethod());
         assertTrue(config.isAuthorizeConnectionFromPeerEnabled());
+        assertEquals(WifiP2pGroup.NETWORK_ID_PERSISTENT, config.netId);
     }
 
     /**
@@ -8948,6 +8955,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                         .PAIRING_BOOTSTRAPPING_METHOD_KEYPAD_PASSPHRASE,
                 config.getPairingBootstrappingConfig().getPairingBootstrappingMethod());
         assertTrue(config.isAuthorizeConnectionFromPeerEnabled());
+        assertEquals(WifiP2pGroup.NETWORK_ID_PERSISTENT, config.netId);
     }
 
     /**
@@ -8992,6 +9000,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertEquals(pincode,
                 config.getPairingBootstrappingConfig().getPairingBootstrappingPassword());
         assertTrue(config.isAuthorizeConnectionFromPeerEnabled());
+        assertEquals(WifiP2pGroup.NETWORK_ID_PERSISTENT, config.netId);
     }
 
     /**
@@ -9036,6 +9045,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertEquals(passphrase,
                 config.getPairingBootstrappingConfig().getPairingBootstrappingPassword());
         assertTrue(config.isAuthorizeConnectionFromPeerEnabled());
+        assertEquals(WifiP2pGroup.NETWORK_ID_PERSISTENT, config.netId);
     }
 
     /**
