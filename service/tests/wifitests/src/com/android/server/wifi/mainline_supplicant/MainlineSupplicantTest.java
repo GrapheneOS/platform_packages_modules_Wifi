@@ -29,6 +29,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.content.Context;
 import android.net.wifi.usd.PublishConfig;
 import android.net.wifi.usd.SubscribeConfig;
 import android.net.wifi.util.Environment;
@@ -58,6 +59,7 @@ public class MainlineSupplicantTest {
     private @Mock IBinder mIBinderMock;
     private @Mock WifiNative.SupplicantDeathEventHandler mFrameworkDeathHandler;
     private @Mock IStaInterface mIStaInterface;
+    private @Mock Context mContext;
     private MainlineSupplicantSpy mDut;
     private TestLooper mLooper = new TestLooper();
 
@@ -67,7 +69,7 @@ public class MainlineSupplicantTest {
     // Spy version of this class allows us to override methods for testing.
     private class MainlineSupplicantSpy extends MainlineSupplicant {
         MainlineSupplicantSpy() {
-            super(new WifiThreadRunner(new Handler(mLooper.getLooper())));
+            super(new WifiThreadRunner(new Handler(mLooper.getLooper())), mContext);
         }
 
         @Override

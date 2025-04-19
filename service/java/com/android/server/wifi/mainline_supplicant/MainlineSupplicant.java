@@ -18,6 +18,8 @@ package com.android.server.wifi.mainline_supplicant;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.net.MacAddress;
 import android.net.wifi.usd.Config;
 import android.net.wifi.usd.PublishConfig;
@@ -61,6 +63,7 @@ public class MainlineSupplicant {
     private IMainlineSupplicant mIMainlineSupplicant;
     private final Object mLock = new Object();
     private final WifiThreadRunner mWifiThreadRunner;
+    private final Context mContext;
     private SupplicantDeathRecipient mServiceDeathRecipient;
     private WifiNative.SupplicantDeathEventHandler mFrameworkDeathHandler;
     private CountDownLatch mWaitForDeathLatch;
@@ -69,8 +72,10 @@ public class MainlineSupplicant {
     private Map<String, IStaInterfaceCallback> mStaIfaceCallbacks = new HashMap<>();
     private UsdNativeManager.UsdEventsCallback mUsdEventsCallback = null;
 
-    public MainlineSupplicant(@NonNull WifiThreadRunner wifiThreadRunner) {
+    public MainlineSupplicant(@NonNull WifiThreadRunner wifiThreadRunner,
+            @NonNull Context context) {
         mWifiThreadRunner = wifiThreadRunner;
+        mContext = context;
         mServiceDeathRecipient = new SupplicantDeathRecipient();
         mIsServiceAvailable = canServiceBeAccessed();
     }
@@ -118,13 +123,23 @@ public class MainlineSupplicant {
         }
     }
 
+    private boolean isUnsupportedDevice() {
+        // Avoid starting the process on resource-constrained devices.
+        PackageManager packageManager = mContext.getPackageManager();
+        return packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH)
+                        || packageManager.hasSystemFeature(PackageManager.FEATURE_EMBEDDED)
+                        || packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+                        || packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE);
+    }
+
     /**
      * Check whether the mainline supplicant service can be accessed.
      */
     private boolean canServiceBeAccessed() {
-        // Requires an Android B+ Selinux policy and a copy of the binary.
+        // Requires an Android B+ Selinux policy, a copy of the binary, and device support.
         return Environment.isSdkAtLeastB() && Flags.mainlineSupplicant()
-                && Environment.isMainlineSupplicantBinaryInWifiApex();
+                && Environment.isMainlineSupplicantBinaryInWifiApex()
+                && !isUnsupportedDevice();
     }
 
     /**
