@@ -66,6 +66,7 @@ public class ConnectionFailureNotifierTest extends WifiBaseTest {
     @Mock private WifiDialogManager mWifiDialogManager;
     @Mock private ConnectionFailureNotificationBuilder mConnectionFailureNotificationBuilder;
     @Mock private Notification mNotification;
+    @Mock private WifiDialogManager.SimpleDialogBuilder mDialogBuilder;
     @Mock private WifiDialogManager.DialogHandle mDialogHandle;
 
     private final ArgumentCaptor<BroadcastReceiver> mBroadCastReceiverCaptor =
@@ -82,8 +83,15 @@ public class ConnectionFailureNotifierTest extends WifiBaseTest {
         when(mContext.getResources()).thenReturn(mResources);
         when(mConnectionFailureNotificationBuilder
                 .buildNoMacRandomizationSupportNotification(any())).thenReturn(mNotification);
-        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(mDialogHandle);
+        when(mWifiDialogManager.createSimpleDialogBuilder()).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setTitle(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setMessage(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setPositiveButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setNegativeButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setNeutralButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setMessageUrl(any(), anyInt(), anyInt())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setCallback(any(), any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.build()).thenReturn(mDialogHandle);
         mConnectionFailureNotifier = new ConnectionFailureNotifier(
                 mContext, mFrameworkFacade, mWifiConfigManager, mWifiConnectivityManager,
                 new Handler(mLooper.getLooper()), mWifiNotificationManager,
@@ -146,9 +154,8 @@ public class ConnectionFailureNotifierTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
         ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
         verify(mDialogHandle).launchDialog();
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), messageCaptor.capture(), any(), any(), any(),
-                dialogCallbackCaptor.capture(), any());
+        verify(mDialogBuilder).setMessage(messageCaptor.capture());
+        verify(mDialogBuilder).setCallback(dialogCallbackCaptor.capture(), any());
         String message = messageCaptor.getValue();
         assertNotNull(message);
         assertTrue(message.contains(config.SSID));
@@ -186,8 +193,7 @@ public class ConnectionFailureNotifierTest extends WifiBaseTest {
         mBroadCastReceiverCaptor.getValue().onReceive(mContext, intent);
 
         // verify that the AlertDialog is not launched in this case
-        verify(mWifiDialogManager, never())
-                .createSimpleDialog(any(), any(), any(), any(), any(), any(), any());
+        verify(mWifiDialogManager, never()).createSimpleDialogBuilder();
         verify(mDialogHandle, never()).launchDialog();
 
         verify(mFrameworkFacade, never()).makeAlertDialogBuilder(any());

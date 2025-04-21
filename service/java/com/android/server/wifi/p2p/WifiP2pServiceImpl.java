@@ -5204,39 +5204,38 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
 
             private void showFrequencyConflictDialog() {
                 Resources r = mContext.getResources();
-                WifiDialogManager.DialogHandle dialog = mWifiInjector.getWifiDialogManager()
-                        .createSimpleDialog(
-                                null /* title */,
-                                r.getString(R.string.wifi_p2p_frequency_conflict_message,
-                                        getDeviceName(mSavedPeerConfig.deviceAddress)),
-                                r.getString(R.string.dlg_ok),
-                                r.getString(R.string.decline),
-                                null /* neutralButtonText */,
-                                new WifiDialogManager.SimpleDialogCallback() {
-                                    @Override
-                                    public void onPositiveButtonClicked() {
-                                        sendMessage(DROP_WIFI_USER_ACCEPT);
-                                    }
+                WifiDialogManager.SimpleDialogCallback callback =
+                        new WifiDialogManager.SimpleDialogCallback() {
+                            @Override
+                            public void onPositiveButtonClicked() {
+                                sendMessage(DROP_WIFI_USER_ACCEPT);
+                            }
 
-                                    @Override
-                                    public void onNegativeButtonClicked() {
-                                        sendMessage(DROP_WIFI_USER_REJECT);
-                                    }
+                            @Override
+                            public void onNegativeButtonClicked() {
+                                sendMessage(DROP_WIFI_USER_REJECT);
+                            }
 
-                                    @Override
-                                    public void onNeutralButtonClicked() {
-                                        // Not used
-                                        sendMessage(DROP_WIFI_USER_REJECT);
-                                    }
+                            @Override
+                            public void onNeutralButtonClicked() {
+                                // Not used
+                                sendMessage(DROP_WIFI_USER_REJECT);
+                            }
 
-                                    @Override
-                                    public void onCancelled() {
-                                        sendMessage(DROP_WIFI_USER_REJECT);
-                                    }
-                                },
-                                new WifiThreadRunner(getHandler()));
-                mFrequencyConflictDialog = dialog;
-                dialog.launchDialog();
+                            @Override
+                            public void onCancelled() {
+                                sendMessage(DROP_WIFI_USER_REJECT);
+                            }
+                        };
+                mFrequencyConflictDialog = mWifiInjector.getWifiDialogManager()
+                        .createSimpleDialogBuilder()
+                        .setMessage(r.getString(R.string.wifi_p2p_frequency_conflict_message,
+                                        getDeviceName(mSavedPeerConfig.deviceAddress)))
+                        .setPositiveButtonText(r.getString(R.string.dlg_ok))
+                        .setNegativeButtonText(r.getString(R.string.decline))
+                        .setCallback(callback, new WifiThreadRunner(getHandler()))
+                        .build();
+                mFrequencyConflictDialog.launchDialog();
             }
 
             private void notifyFrequencyConflict() {

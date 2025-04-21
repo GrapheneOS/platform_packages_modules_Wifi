@@ -112,6 +112,10 @@ public class WifiShellCommandTest extends WifiBaseTest {
     @Mock ScanRequestProxy mScanRequestProxy;
     @Mock WifiDiagnostics mWifiDiagnostics;
     @Mock DeviceConfigFacade mDeviceConfig;
+    @Mock WifiDialogManager mWifiDialogManager;
+    @Mock WifiDialogManager.SimpleDialogBuilder mDialogBuilder;
+    @Mock WifiDialogManager.DialogHandle mDialogHandle;
+    @Mock WifiDialogManager.DialogHandle mLegacyDialogHandle;
     @Mock WifiScanner mWifiScanner;
     WifiShellCommand mWifiShellCommand;
     TestLooper mLooper;
@@ -140,6 +144,18 @@ public class WifiShellCommandTest extends WifiBaseTest {
         when(mContext.getSystemService(ConnectivityManager.class)).thenReturn(mConnectivityManager);
         when(mWifiInjector.getWifiDiagnostics()).thenReturn(mWifiDiagnostics);
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfig);
+        when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
+        when(mWifiDialogManager.createSimpleDialogBuilder()).thenReturn(mDialogBuilder);
+        when(mWifiDialogManager.createLegacySimpleDialogWithUrl(any(), any(), any(), anyInt(),
+                anyInt(), any(), any(), any(), any(), any())).thenReturn(mLegacyDialogHandle);
+        when(mDialogBuilder.build()).thenReturn(mDialogHandle);
+        when(mDialogBuilder.setTitle(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setMessage(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setMessageUrl(any(), anyInt(), anyInt())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setPositiveButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setNegativeButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setNeutralButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setCallback(any(), any())).thenReturn(mDialogBuilder);
         when(mContext.getSystemService(WifiScanner.class)).thenReturn(mWifiScanner);
         when(mScanRequestProxy.getScanResults()).thenReturn(new ArrayList<>());
 
@@ -1119,5 +1135,78 @@ public class WifiShellCommandTest extends WifiBaseTest {
         verify(mWifiService, times(2)).setPerSsidRoamingMode(
                 wifiSsidCaptor.capture(), eq(ROAMING_MODE_AGGRESSIVE), eq(SHELL_PACKAGE_NAME));
         assertEquals("\"hello world\"", wifiSsidCaptor.getValue().toString());
+    }
+
+    @Test
+    public void testLaunchDialogSimpleArgs() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final String title = "title";
+        final String message = "message";
+        final String url = "www.google.com";
+        final int urlStart = 0;
+        final int urlEnd = message.length();
+        final String positive = "positive";
+        final String negative = "negative";
+        final String neutral = "neutral";
+
+        mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[] {
+                        "launch-dialog-simple",
+                        "-t", title,
+                        "-m", message,
+                        "-l", url, String.valueOf(urlStart), String.valueOf(urlEnd),
+                        "-y", positive,
+                        "-n", negative,
+                        "-x", neutral,
+                        "-c", "0"
+                });
+        verify(mWifiDialogManager).createSimpleDialogBuilder();
+        verify(mDialogBuilder).setTitle(title);
+        verify(mDialogBuilder).setMessage(message);
+        verify(mDialogBuilder).setMessageUrl(url, urlStart, urlEnd);
+        verify(mDialogBuilder).setPositiveButtonText(positive);
+        verify(mDialogBuilder).setNegativeButtonText(negative);
+        verify(mDialogBuilder).setNeutralButtonText(neutral);
+        verify(mDialogBuilder).build();
+        verify(mDialogHandle).launchDialog();
+    }
+
+    @Test
+    public void testLaunchDialogSimpleLegacyArgs() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final String title = "title";
+        final String message = "message";
+        final String url = "www.google.com";
+        final int urlStart = 0;
+        final int urlEnd = message.length();
+        final String positive = "positive";
+        final String negative = "negative";
+        final String neutral = "neutral";
+
+        mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[] {
+                        "launch-dialog-simple-legacy",
+                        "-t", title,
+                        "-m", message,
+                        "-l", url, String.valueOf(urlStart), String.valueOf(urlEnd),
+                        "-y", positive,
+                        "-n", negative,
+                        "-x", neutral,
+                        "-c", "0"
+                });
+        verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
+                eq(title),
+                eq(message),
+                eq(url),
+                eq(urlStart),
+                eq(urlEnd),
+                eq(positive),
+                eq(negative),
+                eq(neutral),
+                any(),
+                any());
+        verify(mLegacyDialogHandle).launchDialog();
     }
 }

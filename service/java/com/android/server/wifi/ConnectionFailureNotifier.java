@@ -122,12 +122,7 @@ public class ConnectionFailureNotifier {
             return;
         }
 
-        mWifiDialogManager.createSimpleDialog(
-                res.getString(R.string.wifi_disable_mac_randomization_dialog_title),
-                res.getString(R.string.wifi_disable_mac_randomization_dialog_message, config.SSID),
-                res.getString(R.string.wifi_disable_mac_randomization_dialog_confirm_text),
-                res.getString(android.R.string.cancel),
-                null /* neutralButtonText */,
+        WifiDialogManager.SimpleDialogCallback callback =
                 new WifiDialogManager.SimpleDialogCallback() {
                     @Override
                     public void onPositiveButtonClicked() {
@@ -168,7 +163,16 @@ public class ConnectionFailureNotifier {
                     public void onCancelled() {
                         // Do nothing.
                     }
-                },
-                new WifiThreadRunner(mHandler)).launchDialog();
+                };
+        mWifiDialogManager.createSimpleDialogBuilder()
+                .setTitle(res.getString(R.string.wifi_disable_mac_randomization_dialog_title))
+                .setMessage(res.getString(R.string.wifi_disable_mac_randomization_dialog_message,
+                        config.SSID))
+                .setPositiveButtonText(
+                        res.getString(R.string.wifi_disable_mac_randomization_dialog_confirm_text))
+                .setNegativeButtonText(res.getString(android.R.string.cancel))
+                .setCallback(callback, new WifiThreadRunner(mHandler))
+                .build()
+                .launchDialog();
     }
 }

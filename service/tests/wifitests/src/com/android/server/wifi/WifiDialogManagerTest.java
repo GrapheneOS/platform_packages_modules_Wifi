@@ -235,6 +235,21 @@ public class WifiDialogManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Creates a simple dialog with a callback and callback runner.
+     */
+    public DialogHandle createTestSimpleDialog(
+            SimpleDialogCallback callback, WifiThreadRunner callbackThreadRunner) {
+        return mDialogManager.createSimpleDialogBuilder()
+                .setTitle(TEST_TITLE)
+                .setMessage(TEST_MESSAGE)
+                .setPositiveButtonText(TEST_POSITIVE_BUTTON_TEXT)
+                .setNegativeButtonText(TEST_NEGATIVE_BUTTON_TEXT)
+                .setNeutralButtonText(TEST_NEUTRAL_BUTTON_TEXT)
+                .setCallback(callback, callbackThreadRunner)
+                .build();
+    }
+
+    /**
      * Verifies that launching a simple dialog will result in the correct callback methods invoked
      * when a response is received.
      */
@@ -245,9 +260,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         WifiThreadRunner callbackThreadRunner = mock(WifiThreadRunner.class);
 
         // Positive
-        DialogHandle dialogHandle = mDialogManager.createSimpleDialog(TEST_TITLE, TEST_MESSAGE,
-                TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT, TEST_NEUTRAL_BUTTON_TEXT,
-                callback, callbackThreadRunner);
+        DialogHandle dialogHandle = createTestSimpleDialog(callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, mWifiThreadRunner);
         Intent intent = verifyStartActivityAsUser(1, mWifiContext);
         int dialogId = verifySimpleDialogLaunchIntent(intent, TEST_TITLE, TEST_MESSAGE,
@@ -268,9 +281,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         verify(callback, times(0)).onCancelled();
 
         // Negative
-        dialogHandle = mDialogManager.createSimpleDialog(TEST_TITLE, TEST_MESSAGE,
-                TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT, TEST_NEUTRAL_BUTTON_TEXT,
-                callback, callbackThreadRunner);
+        dialogHandle = createTestSimpleDialog(callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(2, mWifiContext);
         dialogId = verifySimpleDialogLaunchIntent(intent, TEST_TITLE, TEST_MESSAGE,
@@ -283,9 +294,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         verify(callback, times(0)).onCancelled();
 
         // Neutral
-        dialogHandle = mDialogManager.createSimpleDialog(
-                TEST_TITLE, TEST_MESSAGE, TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT,
-                TEST_NEUTRAL_BUTTON_TEXT, callback, callbackThreadRunner);
+        dialogHandle = createTestSimpleDialog(callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(3, mWifiContext);
         dialogId = verifySimpleDialogLaunchIntent(intent, TEST_TITLE, TEST_MESSAGE,
@@ -298,9 +307,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         verify(callback, times(0)).onCancelled();
 
         // Cancelled
-        dialogHandle = mDialogManager.createSimpleDialog(TEST_TITLE, TEST_MESSAGE,
-                TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT, TEST_NEUTRAL_BUTTON_TEXT,
-                callback, callbackThreadRunner);
+        dialogHandle = createTestSimpleDialog(callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(4, mWifiContext);
         dialogId = verifySimpleDialogLaunchIntent(intent, TEST_TITLE, TEST_MESSAGE,
@@ -325,9 +332,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
 
 
         // Launch and dismiss dialog.
-        DialogHandle dialogHandle = mDialogManager.createSimpleDialog(TEST_TITLE, TEST_MESSAGE,
-                TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT, TEST_NEUTRAL_BUTTON_TEXT,
-                callback, callbackThreadRunner);
+        DialogHandle dialogHandle = createTestSimpleDialog(callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, mWifiThreadRunner);
         Intent intent = verifyStartActivityAsUser(1, mWifiContext);
         int dialogId = verifySimpleDialogLaunchIntent(intent, TEST_TITLE, TEST_MESSAGE,
@@ -347,9 +352,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         verifyStartActivityAsUser(2, mWifiContext);
 
         // Launch dialog again
-        dialogHandle = mDialogManager.createSimpleDialog(TEST_TITLE, TEST_MESSAGE,
-                TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT, TEST_NEUTRAL_BUTTON_TEXT,
-                callback, callbackThreadRunner);
+        dialogHandle = createTestSimpleDialog(callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(3, mWifiContext);
         dialogId = verifySimpleDialogLaunchIntent(intent, TEST_TITLE, TEST_MESSAGE,
@@ -372,9 +375,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
 
         // Launch Dialog1
         SimpleDialogCallback callback1 = mock(SimpleDialogCallback.class);
-        DialogHandle dialogHandle1 = mDialogManager.createSimpleDialog(TEST_TITLE, TEST_MESSAGE,
-                TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT, TEST_NEUTRAL_BUTTON_TEXT,
-                callback1, callbackThreadRunner);
+        DialogHandle dialogHandle1 = createTestSimpleDialog(callback1, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle1, mWifiThreadRunner);
         Intent intent = verifyStartActivityAsUser(1, mWifiContext);
         int dialogId1 = verifySimpleDialogLaunchIntent(intent, TEST_TITLE, TEST_MESSAGE,
@@ -382,9 +383,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
 
         // Launch Dialog2
         SimpleDialogCallback callback2 = mock(SimpleDialogCallback.class);
-        DialogHandle dialogHandle2 = mDialogManager.createSimpleDialog(TEST_TITLE, TEST_MESSAGE,
-                TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT, TEST_NEUTRAL_BUTTON_TEXT,
-                callback2, callbackThreadRunner);
+        DialogHandle dialogHandle2 = createTestSimpleDialog(callback2, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle2, mWifiThreadRunner);
         intent = verifyStartActivityAsUser(2, mWifiContext);
         int dialogId2 = verifySimpleDialogLaunchIntent(intent, TEST_TITLE, TEST_MESSAGE,
@@ -429,9 +428,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         when(window.getAttributes()).thenReturn(layoutParams);
         when(dialog.getWindow()).thenReturn(window);
         when(mFrameworkFacade.makeAlertDialogBuilder(any())).thenReturn(builder);
-        DialogHandle dialogHandle = mDialogManager.createSimpleDialog(TEST_TITLE, TEST_MESSAGE,
-                TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT, TEST_NEUTRAL_BUTTON_TEXT,
-                callback, callbackThreadRunner);
+        DialogHandle dialogHandle = createTestSimpleDialog(callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, mWifiThreadRunner);
 
         ArgumentCaptor<DialogInterface.OnClickListener> positiveButtonListenerCaptor =
@@ -484,9 +481,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         WifiThreadRunner callbackThreadRunner = mock(WifiThreadRunner.class);
 
 
-        DialogHandle dialogHandle = mDialogManager.createSimpleDialog(TEST_TITLE, TEST_MESSAGE,
-                TEST_POSITIVE_BUTTON_TEXT, TEST_NEGATIVE_BUTTON_TEXT, TEST_NEUTRAL_BUTTON_TEXT,
-                callback, callbackThreadRunner);
+        DialogHandle dialogHandle = createTestSimpleDialog(callback, callbackThreadRunner);
         launchDialogSynchronous(dialogHandle, mWifiThreadRunner);
 
         verify(mWifiContext, never()).startActivityAsUser(any(), eq(UserHandle.CURRENT));

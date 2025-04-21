@@ -1686,12 +1686,7 @@ public class WifiNetworkSuggestionsManager {
 
     private void sendUserApprovalDialog(@NonNull String packageName, int uid) {
         CharSequence appName = mFrameworkFacade.getAppName(mContext, packageName, uid);
-        mWifiInjector.getWifiDialogManager().createSimpleDialog(
-                mResources.getString(R.string.wifi_suggestion_title),
-                mResources.getString(R.string.wifi_suggestion_content, appName),
-                mResources.getString(R.string.wifi_suggestion_action_allow_app),
-                mResources.getString(R.string.wifi_suggestion_action_disallow_app),
-                null /* neutralButtonText */,
+        WifiDialogManager.SimpleDialogCallback callback =
                 new WifiDialogManager.SimpleDialogCallback() {
                     @Override
                     public void onPositiveButtonClicked() {
@@ -1713,8 +1708,17 @@ public class WifiNetworkSuggestionsManager {
                     public void onCancelled() {
                         handleUserDismissAction();
                     }
-                },
-                new WifiThreadRunner(mHandler)).launchDialog();
+                };
+        mWifiInjector.getWifiDialogManager().createSimpleDialogBuilder()
+                .setTitle(mResources.getString(R.string.wifi_suggestion_title))
+                .setMessage(mResources.getString(R.string.wifi_suggestion_content, appName))
+                .setPositiveButtonText(
+                        mResources.getString(R.string.wifi_suggestion_action_allow_app))
+                .setNegativeButtonText(
+                        mResources.getString(R.string.wifi_suggestion_action_disallow_app))
+                .setCallback(callback, new WifiThreadRunner(mHandler))
+                .build()
+                .launchDialog();
         mNotificationUpdateTime = mClock.getElapsedSinceBootMillis()
                 + NOTIFICATION_UPDATE_DELAY_MILLS;
         mIsLastUserApprovalUiDialog = true;

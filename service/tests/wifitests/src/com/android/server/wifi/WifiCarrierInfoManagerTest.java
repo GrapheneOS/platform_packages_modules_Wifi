@@ -169,6 +169,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     @Mock Notification.Builder mNotificationBuilder;
     @Mock Notification mNotification;
     @Mock WifiDialogManager mWifiDialogManager;
+    @Mock WifiDialogManager.SimpleDialogBuilder mDialogBuilder;
     @Mock WifiDialogManager.DialogHandle mDialogHandle;
     @Mock
     WifiCarrierInfoManager.OnImsiProtectedOrUserApprovedListener mListener;
@@ -220,8 +221,15 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         when(mNotificationBuilder.addAction(any())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.setTimeoutAfter(anyLong())).thenReturn(mNotificationBuilder);
         when(mNotificationBuilder.build()).thenReturn(mNotification);
-        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(mDialogHandle);
+        when(mWifiDialogManager.createSimpleDialogBuilder()).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setTitle(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setMessage(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setPositiveButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setNegativeButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setNeutralButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setMessageUrl(any(), anyInt(), anyInt())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setCallback(any(), any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.build()).thenReturn(mDialogHandle);
         when(mWifiInjector.makeWifiCarrierInfoStoreManagerData(any()))
                 .thenReturn(mWifiCarrierInfoStoreManagerData);
         when(mWifiInjector.getWifiConfigManager()).thenReturn(mWifiConfigManager);
@@ -1994,8 +2002,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         // Simulate user clicking on disallow in the dialog.
         ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
                 ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), any(), any(), any(), any(), dialogCallbackCaptor.capture(), any());
+        verify(mDialogBuilder).setCallback(dialogCallbackCaptor.capture(), any());
         dialogCallbackCaptor.getValue().onNegativeButtonClicked();
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
         verify(mContext).sendBroadcast(intentCaptor.capture(), any(), any());
@@ -2034,8 +2041,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         // Simulate user dismissing the dialog via home/back button.
         ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
                 ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), any(), any(), any(), any(), dialogCallbackCaptor.capture(), any());
+        verify(mDialogBuilder).setCallback(dialogCallbackCaptor.capture(), any());
         dialogCallbackCaptor.getValue().onCancelled();
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
         verify(mContext).sendBroadcast(intentCaptor.capture(), any(), any());
@@ -2083,8 +2089,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         // Simulate user clicking on allow in the dialog.
         ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
                 ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), any(), any(), any(), any(), dialogCallbackCaptor.capture(), any());
+        verify(mDialogBuilder).setCallback(dialogCallbackCaptor.capture(), any());
         dialogCallbackCaptor.getValue().onPositiveButtonClicked();
         ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
         verify(mContext).sendBroadcast(intentCaptor.capture(), any(), any());
@@ -2232,8 +2237,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     private void validateUserApprovalDialog(String... anyOfExpectedAppNames) {
         verify(mDialogHandle, atLeastOnce()).launchDialog();
         ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-        verify(mWifiDialogManager, atLeastOnce()).createSimpleDialog(
-                any(), messageCaptor.capture(), any(), any(), any(), any(), any());
+        verify(mDialogBuilder).setMessage(messageCaptor.capture());
         String message = messageCaptor.getValue();
         assertNotNull(message);
 

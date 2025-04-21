@@ -1808,31 +1808,33 @@ public class WifiConnectivityManager {
         Log.i(TAG, "Need user approval for connecting to candidate "
                 + candidate.getProfileKey());
         resetNetworkSwitchDialog();
-        mNetworkSwitchDialog = mWifiDialogManager.createSimpleDialog(
-                mContext.getString(connectedConfig.hasNoInternetAccess()
+        Runnable onSwitchApproved = () -> {
+            resetNetworkSwitchDialog();
+            continueConnectionRunnable.run();
+            primaryManager.onNetworkSwitchAccepted(candidate.networkId,
+                    candidate.getNetworkSelectionStatus().getNetworkSelectionBSSID());
+        };
+        Runnable onSwitchRejected = () -> {
+            Log.i(TAG, "User rejected network switch to "
+                    + candidate.getProfileKey());
+            mNetworkSwitchDialogRejected = true;
+            primaryManager.onNetworkSwitchRejected(candidate.networkId,
+                    candidate.getNetworkSelectionStatus().getNetworkSelectionBSSID());
+        };
+        NetworkSwitchDialogCallback callback = new NetworkSwitchDialogCallback(
+                onSwitchApproved, onSwitchRejected);
+        mNetworkSwitchDialog = mWifiDialogManager.createSimpleDialogBuilder()
+                .setTitle(mContext.getString(connectedConfig.hasNoInternetAccess()
                                 ? R.string.wifi_network_switch_dialog_title_no_internet
                                 : R.string.wifi_network_switch_dialog_title_bad_internet,
                         WifiInfo.removeDoubleQuotes(connectedConfig.SSID),
-                        WifiInfo.removeDoubleQuotes(candidate.SSID)),
-                /* message */ null,
-                mContext.getString(R.string.wifi_network_switch_dialog_positive_button),
-                mContext.getString(R.string.wifi_network_switch_dialog_negative_button),
-                /* neutralButtonText */ null,
-                new NetworkSwitchDialogCallback(
-                /* onSwitchApprovedRunnable */ () -> {
-                    resetNetworkSwitchDialog();
-                    continueConnectionRunnable.run();
-                    primaryManager.onNetworkSwitchAccepted(candidate.networkId,
-                            candidate.getNetworkSelectionStatus().getNetworkSelectionBSSID());
-                },
-                /* onSwitchRejectedRunnable */ () -> {
-                    Log.i(TAG, "User rejected network switch to "
-                            + candidate.getProfileKey());
-                    mNetworkSwitchDialogRejected = true;
-                    primaryManager.onNetworkSwitchRejected(candidate.networkId,
-                            candidate.getNetworkSelectionStatus().getNetworkSelectionBSSID());
-                }),
-                mWifiThreadRunner);
+                        WifiInfo.removeDoubleQuotes(candidate.SSID)))
+                .setPositiveButtonText(
+                        mContext.getString(R.string.wifi_network_switch_dialog_positive_button))
+                .setNegativeButtonText(
+                        mContext.getString(R.string.wifi_network_switch_dialog_negative_button))
+                .setCallback(callback, mWifiThreadRunner)
+                .build();
         mNetworkSwitchDialog.launchDialog();
         mDialogCandidateNetId = candidate.networkId;
     }

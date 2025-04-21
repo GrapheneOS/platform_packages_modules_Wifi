@@ -578,7 +578,7 @@ package android.net.wifi {
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void unregisterScanResultsCallback(@NonNull android.net.wifi.WifiManager.ScanResultsCallback);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void unregisterSubsystemRestartTrackingCallback(@NonNull android.net.wifi.WifiManager.SubsystemRestartTrackingCallback);
     method @Deprecated public int updateNetwork(android.net.wifi.WifiConfiguration);
-    method public boolean validateSoftApConfiguration(@NonNull android.net.wifi.SoftApConfiguration);
+    method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_STACK, android.net.NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK}, conditional=true) public boolean validateSoftApConfiguration(@NonNull android.net.wifi.SoftApConfiguration);
     field public static final String ACTION_PICK_WIFI_NETWORK = "android.net.wifi.PICK_WIFI_NETWORK";
     field public static final int ACTION_REMOVE_SUGGESTION_DISCONNECT = 2; // 0x2
     field public static final int ACTION_REMOVE_SUGGESTION_LINGER = 1; // 0x1

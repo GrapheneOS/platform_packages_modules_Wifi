@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import android.content.BroadcastReceiver;
@@ -83,6 +84,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
     @Mock State mTargetState;
     @Mock WaitingState mWaitingState;
     @Mock WifiDialogManager mWifiDialogManager;
+    @Mock WifiDialogManager.SimpleDialogBuilder mDialogBuilder;
     @Mock WifiDialogManager.DialogHandle mDialogHandle;
     @Mock LocalLog mLocalLog;
     @Mock WorkSourceHelper mWsHelper;
@@ -118,8 +120,15 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                 .thenReturn(TEST_APP_NAME);
         when(mFrameworkFacade.getAppName(any(), eq(EXISTING_PACKAGE_NAME), anyInt()))
                 .thenReturn(EXISTING_APP_NAME);
-        when(mWifiDialogManager.createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any())).thenReturn(mDialogHandle);
+        when(mWifiDialogManager.createSimpleDialogBuilder()).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setTitle(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setMessage(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setPositiveButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setNegativeButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setNeutralButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setMessageUrl(any(), anyInt(), anyInt())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setCallback(any(), any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.build()).thenReturn(mDialogHandle);
 
         when(mWifiInjector.makeWsHelper(eq(TEST_WS))).thenReturn(mWsHelper);
         when(mWifiInjector.makeWsHelper(eq(EXISTING_WS))).thenReturn(mExistingWsHelper);
@@ -156,8 +165,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         HalDeviceManager.HDM_CREATE_IFACE_NAN, TEST_WS, false));
 
         verify(mStateMachine, never()).transitionTo(mWaitingState);
-        verify(mWifiDialogManager, never()).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
+        verify(mWifiDialogManager, never()).createSimpleDialogBuilder();
         verify(mDialogHandle, never()).launchDialog();
     }
 
@@ -179,8 +187,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         HalDeviceManager.HDM_CREATE_IFACE_NAN, TEST_WS, false));
 
         verify(mStateMachine, never()).transitionTo(mWaitingState);
-        verify(mWifiDialogManager, never()).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
+        verify(mWifiDialogManager, never()).createSimpleDialogBuilder();
         verify(mDialogHandle, never()).launchDialog();
     }
 
@@ -197,8 +204,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         HalDeviceManager.HDM_CREATE_IFACE_NAN, TEST_WS, true));
 
         verify(mStateMachine, never()).transitionTo(mWaitingState);
-        verify(mWifiDialogManager, never()).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
+        verify(mWifiDialogManager, never()).createSimpleDialogBuilder();
         verify(mDialogHandle, never()).launchDialog();
     }
 
@@ -222,8 +228,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         interfaceType, TEST_WS, false));
         verify(mStateMachine, never()).transitionTo(mWaitingState);
         verify(mStateMachine, never()).deferMessage(msg);
-        verify(mWifiDialogManager, never()).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
+        verify(mWifiDialogManager, never()).createSimpleDialogBuilder();
         verify(mDialogHandle, never()).launchDialog();
 
         // can create interface w/o side effects
@@ -235,8 +240,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         interfaceType, TEST_WS, false));
         verify(mStateMachine, never()).transitionTo(mWaitingState);
         verify(mStateMachine, never()).deferMessage(msg);
-        verify(mWifiDialogManager, never()).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
+        verify(mWifiDialogManager, never()).createSimpleDialogBuilder();
         verify(mDialogHandle, never()).launchDialog();
     }
 
@@ -261,8 +265,8 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         interfaceType, TEST_WS, false));
         verify(mStateMachine).transitionTo(mWaitingState);
         verify(mStateMachine).deferMessage(msg);
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), any(), any(), any(), any(), mCallbackCaptor.capture(), any());
+        verify(mWifiDialogManager).createSimpleDialogBuilder();
+        verify(mDialogBuilder).setCallback(mCallbackCaptor.capture(), any());
         verify(mDialogHandle).launchDialog();
 
         // user approve
@@ -275,8 +279,6 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         mWaitingState, mTargetState, interfaceType, TEST_WS, false));
         verify(mStateMachine, times(1)).transitionTo(mWaitingState);
         verify(mStateMachine, times(1)).deferMessage(msg);
-        verify(mWifiDialogManager, times(1)).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
         verify(mDialogHandle, times(1)).launchDialog();
     }
 
@@ -301,8 +303,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         interfaceType, TEST_WS, false));
         verify(mStateMachine).transitionTo(mWaitingState);
         verify(mStateMachine).deferMessage(msg);
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), any(), any(), any(), any(), mCallbackCaptor.capture(), any());
+        verify(mDialogBuilder).setCallback(mCallbackCaptor.capture(), any());
         verify(mDialogHandle).launchDialog();
 
         // user rejects
@@ -315,8 +316,6 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         mWaitingState, mTargetState, interfaceType, TEST_WS, false));
         verify(mStateMachine, times(1)).transitionTo(mWaitingState);
         verify(mStateMachine, times(1)).deferMessage(msg);
-        verify(mWifiDialogManager, times(1)).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
         verify(mDialogHandle, times(1)).launchDialog();
     }
 
@@ -340,9 +339,8 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         mWaitingState, mTargetState, interfaceType, TEST_WS, false));
         verify(mStateMachine, times(1)).transitionTo(mWaitingState);
         verify(mStateMachine, times(1)).deferMessage(msg);
-        verify(mWifiDialogManager, times(1)).createSimpleDialog(
-                any(), any(), any(), any(), any(), mCallbackCaptor.capture(), any());
-        verify(mDialogHandle, times(1)).launchDialog();
+        verify(mDialogBuilder).setCallback(mCallbackCaptor.capture(), any());
+        verify(mDialogHandle).launchDialog();
 
         // user approve
         mCallbackCaptor.getValue().onPositiveButtonClicked();
@@ -354,9 +352,6 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         mWaitingState, mTargetState, interfaceType, TEST_WS, false));
         verify(mStateMachine, times(1)).transitionTo(mWaitingState);
         verify(mStateMachine, times(1)).deferMessage(msg);
-        verify(mWifiDialogManager, times(1)).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
-        verify(mDialogHandle, times(1)).launchDialog();
 
         // Proceed with all deferred messages, since the created iface satisfies the request now.
         when(mHdm.reportImpactToCreateIface(eq(interfaceType), eq(false), eq(TEST_WS))).thenReturn(
@@ -376,8 +371,6 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                             false));
             verify(mStateMachine, times(1)).transitionTo(mWaitingState);
             verify(mStateMachine, never()).deferMessage(waitingMsg);
-            verify(mWifiDialogManager, times(1)).createSimpleDialog(
-                    any(), any(), any(), any(), any(), any(), any());
             verify(mDialogHandle, times(1)).launchDialog();
 
             // Unexpected impact to create, launch the dialog again
@@ -390,8 +383,8 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                             false));
             verify(mStateMachine, times(2)).transitionTo(mWaitingState);
             verify(mStateMachine, times(1)).deferMessage(waitingMsg);
-            verify(mWifiDialogManager, times(2)).createSimpleDialog(
-                    any(), any(), any(), any(), any(), any(), any());
+            verify(mWifiDialogManager, times(2))
+                    .createSimpleDialogBuilder();
             verify(mDialogHandle, times(2)).launchDialog();
         } finally {
             session.finishMocking();
@@ -418,9 +411,8 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         mWaitingState, mTargetState, interfaceType, TEST_WS, false));
         verify(mStateMachine, times(1)).transitionTo(mWaitingState);
         verify(mStateMachine, times(1)).deferMessage(msg);
-        verify(mWifiDialogManager, times(1)).createSimpleDialog(
-                any(), any(), any(), any(), any(), mCallbackCaptor.capture(), any());
-        verify(mDialogHandle, times(1)).launchDialog();
+        verify(mDialogBuilder).setCallback(mCallbackCaptor.capture(), any());
+        verify(mDialogHandle).launchDialog();
 
         // user rejects
         mCallbackCaptor.getValue().onNegativeButtonClicked();
@@ -432,8 +424,6 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         mWaitingState, mTargetState, interfaceType, TEST_WS, false));
         verify(mStateMachine, times(1)).transitionTo(mWaitingState);
         verify(mStateMachine, times(1)).deferMessage(msg);
-        verify(mWifiDialogManager, times(1)).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
         verify(mDialogHandle, times(1)).launchDialog();
 
         // Reject all deferred messages
@@ -457,8 +447,6 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                             false));
             verify(mStateMachine, times(1)).transitionTo(mWaitingState);
             verify(mStateMachine, never()).deferMessage(waitingMsg);
-            verify(mWifiDialogManager, times(1)).createSimpleDialog(
-                    any(), any(), any(), any(), any(), any(), any());
             verify(mDialogHandle, times(1)).launchDialog();
         } finally {
             session.finishMocking();
@@ -498,10 +486,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         mStateMachine, mWaitingState, mTargetState,
                         interfaceType, TEST_WS, false));
         verify(mStateMachine, never()).transitionTo(mWaitingState);
-        verify(mStateMachine, never()).deferMessage(msg);
-        verify(mWifiDialogManager, never()).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
-        verify(mDialogHandle, never()).launchDialog();
+        verifyNoMoreInteractions(mWifiDialogManager, mDialogBuilder, mDialogHandle);
     }
 
     @Test
@@ -538,8 +523,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         interfaceType, TEST_WS, false));
         verify(mStateMachine).transitionTo(mWaitingState);
         verify(mStateMachine).deferMessage(msg);
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
+        verify(mWifiDialogManager).createSimpleDialogBuilder();
         verify(mDialogHandle).launchDialog();
     }
 
@@ -565,8 +549,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         interfaceType, TEST_WS, false));
         verify(mStateMachine).transitionTo(mWaitingState);
         verify(mStateMachine).deferMessage(msg);
-        verify(mWifiDialogManager).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
+        verify(mWifiDialogManager).createSimpleDialogBuilder();
         verify(mDialogHandle).launchDialog();
 
         // reset
@@ -584,8 +567,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
                         interfaceType, TEST_WS, false));
         verify(mStateMachine, times(2)).transitionTo(mWaitingState);
         verify(mStateMachine, times(1)).deferMessage(newMsg);
-        verify(mWifiDialogManager, times(2)).createSimpleDialog(
-                any(), any(), any(), any(), any(), any(), any());
+        verify(mWifiDialogManager, times(2)).createSimpleDialogBuilder();
         verify(mDialogHandle, times(2)).launchDialog();
     }
 

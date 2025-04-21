@@ -425,18 +425,7 @@ public class InterfaceConflictManager {
         String impactedInterfaces = TextUtils.join(", ", impactedInterfacesSet);
 
         Resources res = mContext.getResources();
-        return mWifiDialogManager.createSimpleDialog(
-                res.getString(R.string.wifi_interface_priority_title,
-                        requestorAppName, requestedInterface, impactedPackages, impactedInterfaces),
-                impactedPackagesSet.size() == 1 ? res.getString(
-                        R.string.wifi_interface_priority_message, requestorAppName,
-                        requestedInterface, impactedPackages, impactedInterfaces)
-                        : res.getString(R.string.wifi_interface_priority_message_plural,
-                                requestorAppName, requestedInterface, impactedPackages,
-                                impactedInterfaces),
-                res.getString(R.string.wifi_interface_priority_approve),
-                res.getString(R.string.wifi_interface_priority_reject),
-                null,
+        WifiDialogManager.SimpleDialogCallback callback =
                 new WifiDialogManager.SimpleDialogCallback() {
                     @Override
                     public void onPositiveButtonClicked() {
@@ -461,7 +450,20 @@ public class InterfaceConflictManager {
                     public void onCancelled() {
                         onNegativeButtonClicked();
                     }
-                }, mThreadRunner);
+                };
+        return mWifiDialogManager.createSimpleDialogBuilder()
+                .setTitle(res.getString(R.string.wifi_interface_priority_title,
+                        requestorAppName, requestedInterface, impactedPackages, impactedInterfaces))
+                .setMessage(impactedPackagesSet.size() == 1 ? res.getString(
+                        R.string.wifi_interface_priority_message, requestorAppName,
+                        requestedInterface, impactedPackages, impactedInterfaces)
+                        : res.getString(R.string.wifi_interface_priority_message_plural,
+                                requestorAppName, requestedInterface, impactedPackages,
+                                impactedInterfaces))
+                .setPositiveButtonText(res.getString(R.string.wifi_interface_priority_approve))
+                .setNegativeButtonText(res.getString(R.string.wifi_interface_priority_reject))
+                .setCallback(callback, mThreadRunner)
+                .build();
     }
 
     private String getInterfaceName(@HalDeviceManager.HdmIfaceTypeForCreation int createIfaceType) {

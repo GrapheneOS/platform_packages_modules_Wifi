@@ -1246,22 +1246,29 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
         // Launch dialog
         WifiDialogManager.DialogHandle dialogHandle = mock(WifiDialogManager.DialogHandle.class);
-        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(dialogHandle);
+        WifiDialogManager.SimpleDialogBuilder dialogBuilder =
+                mock(WifiDialogManager.SimpleDialogBuilder.class);
+        when(mWifiDialogManager.createSimpleDialogBuilder()).thenReturn(dialogBuilder);
+        when(dialogBuilder.setTitle(any())).thenReturn(dialogBuilder);
+        when(dialogBuilder.setMessage(any())).thenReturn(dialogBuilder);
+        when(dialogBuilder.setPositiveButtonText(any())).thenReturn(dialogBuilder);
+        when(dialogBuilder.setNegativeButtonText(any())).thenReturn(dialogBuilder);
+        when(dialogBuilder.setNeutralButtonText(any())).thenReturn(dialogBuilder);
+        when(dialogBuilder.setMessageUrl(any(), anyInt(), anyInt())).thenReturn(dialogBuilder);
+        when(dialogBuilder.setCallback(any(), any())).thenReturn(dialogBuilder);
+        when(dialogBuilder.build()).thenReturn(dialogHandle);
         ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> callbackCaptor =
                 ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         verify(mActiveModeWarden, times(0)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
         mLooper.dispatchAll();
-        verify(mWifiDialogManager, times(1)).createSimpleDialog(
-                eq(title),
-                eq(message),
-                eq(positiveButtonText),
-                eq(negativeButtonText),
-                eq(null),
-                callbackCaptor.capture(),
-                any());
+        verify(dialogBuilder).setTitle(eq(title));
+        verify(dialogBuilder).setMessage(eq(message));
+        verify(dialogBuilder).setPositiveButtonText(eq(positiveButtonText));
+        verify(dialogBuilder).setNegativeButtonText(eq(negativeButtonText));
+        verify(dialogBuilder).setCallback(callbackCaptor.capture(), any());
+        verify(dialogBuilder).build();
         verify(dialogHandle).launchDialog();
 
         // Verify extra call to setWifiEnabled won't launch a new dialog
@@ -1269,14 +1276,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mActiveModeWarden, times(0)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
         mLooper.dispatchAll();
-        verify(mWifiDialogManager, times(1)).createSimpleDialog(
-                eq(title),
-                eq(message),
-                eq(positiveButtonText),
-                eq(negativeButtonText),
-                eq(null),
-                callbackCaptor.capture(),
-                any());
 
         // Verify the negative reply does not enable wifi
         callbackCaptor.getValue().onNegativeButtonClicked();
@@ -1284,81 +1283,43 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
 
         // Verify the cancel reply does not enable wifi.
-        dialogHandle = mock(WifiDialogManager.DialogHandle.class);
-        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(dialogHandle);
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         mLooper.dispatchAll();
         verify(mActiveModeWarden, times(0)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
-        callbackCaptor =
-                ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-        verify(mWifiDialogManager, times(2)).createSimpleDialog(
-                eq(title),
-                eq(message),
-                eq(positiveButtonText),
-                eq(negativeButtonText),
-                eq(null),
-                callbackCaptor.capture(),
-                any());
-        verify(dialogHandle).launchDialog();
+        callbackCaptor = ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
+        verify(dialogBuilder, times(2)).setCallback(callbackCaptor.capture(), any());
+        verify(dialogHandle, times(2)).launchDialog();
         callbackCaptor.getValue().onCancelled();
         verify(mActiveModeWarden, times(0)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
 
         // Verify the positive reply will enable wifi.
-        dialogHandle = mock(WifiDialogManager.DialogHandle.class);
-        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(dialogHandle);
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         mLooper.dispatchAll();
         verify(mActiveModeWarden, times(0)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
-        callbackCaptor =
-                ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-        verify(mWifiDialogManager, times(3)).createSimpleDialog(
-                eq(title),
-                eq(message),
-                eq(positiveButtonText),
-                eq(negativeButtonText),
-                eq(null),
-                callbackCaptor.capture(),
-                any());
-        verify(dialogHandle).launchDialog();
+        callbackCaptor = ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
+        verify(dialogBuilder, times(3)).setCallback(callbackCaptor.capture(), any());
+        verify(dialogHandle, times(3)).launchDialog();
         callbackCaptor.getValue().onPositiveButtonClicked();
         verify(mActiveModeWarden, times(1)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
 
         // Verify disabling wifi works without dialog.
         when(mSettingsStore.handleWifiToggled(eq(false))).thenReturn(true);
-        dialogHandle = mock(WifiDialogManager.DialogHandle.class);
-        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(dialogHandle);
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, false));
         mLooper.dispatchAll();
         verify(mActiveModeWarden, times(2)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
-        verify(dialogHandle, never()).launchDialog();
+        verifyNoMoreInteractions(dialogHandle);
 
         // Verify wifi becoming enabled will dismiss any outstanding dialogs.
-        dialogHandle = mock(WifiDialogManager.DialogHandle.class);
-        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(dialogHandle);
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         mLooper.dispatchAll();
         verify(mActiveModeWarden, times(2)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
-        callbackCaptor =
-                ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-        verify(mWifiDialogManager, times(4)).createSimpleDialog(
-                eq(title),
-                eq(message),
-                eq(positiveButtonText),
-                eq(negativeButtonText),
-                eq(null),
-                callbackCaptor.capture(),
-                any());
-        verify(dialogHandle).launchDialog();
+        verify(dialogHandle, times(4)).launchDialog();
         when(mWifiPermissionsUtil.isSystem(anyString(), anyInt())).thenReturn(true);
         // Enabled by privileged app
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
@@ -1366,18 +1327,16 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mActiveModeWarden, times(3)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
         verify(dialogHandle).dismissDialog();
+        verifyNoMoreInteractions(dialogHandle);
 
         // Verify wifi already enabled will not trigger dialog.
         when(mWifiPermissionsUtil.isSystem(anyString(), anyInt())).thenReturn(false);
-        dialogHandle = mock(WifiDialogManager.DialogHandle.class);
-        when(mWifiDialogManager.createSimpleDialog(any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(dialogHandle);
         when(mActiveModeWarden.getWifiState()).thenReturn(WifiManager.WIFI_STATE_ENABLED);
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         mLooper.dispatchAll();
         verify(mActiveModeWarden, times(3)).wifiToggled(
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
-        verify(dialogHandle, never()).launchDialog();
+        verifyNoMoreInteractions(dialogHandle);
     }
 
     /**
@@ -2242,6 +2201,141 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.stopAutoDispatchAndIgnoreExceptions();
         assertFalse(result);
         verify(mActiveModeWarden, never()).startSoftAp(any(),
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+    }
+
+    /**
+     * Verify hotspot cannot be started with BSSID set if the caller does not have permission.
+     */
+    @Test
+    public void testStartTetheredHotspotRequestWithBssidAndNoPermission() {
+        assumeTrue(SdkLevel.isAtLeastB());
+        when(mContext.checkPermission(any(), anyInt(), anyInt()))
+                .thenReturn(PackageManager.PERMISSION_DENIED);
+        mLooper.startAutoDispatch();
+        SoftApConfiguration softApConfig = new SoftApConfiguration.Builder()
+                .setSsid("TestAp")
+                .setBssid(MacAddress.fromString("aa:22:33:aa:bb:cc"))
+                .setPassphrase("Password", SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
+                .setBand(SoftApConfiguration.BAND_2GHZ)
+                .build();
+        TetheringManager.TetheringRequest request = new TetheringManager.TetheringRequest.Builder(
+                TetheringManager.TETHERING_WIFI).setSoftApConfiguration(softApConfig).build();
+
+        mWifiServiceImpl.startTetheredHotspotRequest(request, mClientSoftApCallback,
+                TEST_PACKAGE_NAME);
+
+        verify(mActiveModeWarden, never()).startSoftAp(any(),
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+    }
+
+    /**
+     * Verify caller with NETWORK_SETTINGS can start hotspot with BSSID set.
+     */
+    @Test
+    public void testStartTetheredHotspotRequestWithBssidAndNetworkSettingsPermission() {
+        assumeTrue(SdkLevel.isAtLeastB());
+        when(mContext.checkPermission(any(), anyInt(), anyInt()))
+                .thenReturn(PackageManager.PERMISSION_DENIED);
+        when(mContext.checkPermission(eq(Manifest.permission.NETWORK_SETTINGS), anyInt(), anyInt()))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
+        mLooper.startAutoDispatch();
+        SoftApConfiguration softApConfig = new SoftApConfiguration.Builder()
+                .setSsid("TestAp")
+                .setBssid(MacAddress.fromString("aa:22:33:aa:bb:cc"))
+                .setPassphrase("Password", SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
+                .setBand(SoftApConfiguration.BAND_2GHZ)
+                .build();
+        TetheringManager.TetheringRequest request = new TetheringManager.TetheringRequest.Builder(
+                TetheringManager.TETHERING_WIFI).setSoftApConfiguration(softApConfig).build();
+
+        mWifiServiceImpl.startTetheredHotspotRequest(request, mClientSoftApCallback,
+                TEST_PACKAGE_NAME);
+
+        verify(mActiveModeWarden).startSoftAp(any(),
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+    }
+
+    /**
+     * Verify caller with NETWORK_SETUP_WIZARD can start hotspot with BSSID set.
+     */
+    @Test
+    public void testStartTetheredHotspotRequestWithBssidAndSetupWizardPermission() {
+        assumeTrue(SdkLevel.isAtLeastB());
+        when(mContext.checkPermission(any(), anyInt(), anyInt()))
+                .thenReturn(PackageManager.PERMISSION_DENIED);
+        when(mContext.checkPermission(eq(Manifest.permission.NETWORK_SETUP_WIZARD), anyInt(),
+                anyInt()))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
+        mLooper.startAutoDispatch();
+        SoftApConfiguration softApConfig = new SoftApConfiguration.Builder()
+                .setSsid("TestAp")
+                .setBssid(MacAddress.fromString("aa:22:33:aa:bb:cc"))
+                .setPassphrase("Password", SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
+                .setBand(SoftApConfiguration.BAND_2GHZ)
+                .build();
+        TetheringManager.TetheringRequest request = new TetheringManager.TetheringRequest.Builder(
+                TetheringManager.TETHERING_WIFI).setSoftApConfiguration(softApConfig).build();
+
+        mWifiServiceImpl.startTetheredHotspotRequest(request, mClientSoftApCallback,
+                TEST_PACKAGE_NAME);
+
+        verify(mActiveModeWarden).startSoftAp(any(),
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+    }
+
+    /**
+     * Verify caller with NETWORK_STACK can start hotspot with BSSID set.
+     */
+    @Test
+    public void testStartTetheredHotspotRequestWithBssidAndNetworkStackPermission() {
+        assumeTrue(SdkLevel.isAtLeastB());
+        when(mContext.checkPermission(any(), anyInt(), anyInt()))
+                .thenReturn(PackageManager.PERMISSION_DENIED);
+        when(mContext.checkPermission(eq(Manifest.permission.NETWORK_STACK), anyInt(), anyInt()))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
+        mLooper.startAutoDispatch();
+        SoftApConfiguration softApConfig = new SoftApConfiguration.Builder()
+                .setSsid("TestAp")
+                .setBssid(MacAddress.fromString("aa:22:33:aa:bb:cc"))
+                .setPassphrase("Password", SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
+                .setBand(SoftApConfiguration.BAND_2GHZ)
+                .build();
+        TetheringManager.TetheringRequest request = new TetheringManager.TetheringRequest.Builder(
+                TetheringManager.TETHERING_WIFI).setSoftApConfiguration(softApConfig).build();
+
+        mWifiServiceImpl.startTetheredHotspotRequest(request, mClientSoftApCallback,
+                TEST_PACKAGE_NAME);
+
+        verify(mActiveModeWarden).startSoftAp(any(),
+                eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
+    }
+
+    /**
+     * Verify caller with MAINLINE_NETWORK_STACK can start hotspot with BSSID set.
+     */
+    @Test
+    public void testStartTetheredHotspotRequestWithBssidAndMainlineNetworkStackPermission() {
+        assumeTrue(SdkLevel.isAtLeastB());
+        when(mContext.checkPermission(any(), anyInt(), anyInt()))
+                .thenReturn(PackageManager.PERMISSION_DENIED);
+        when(mContext.checkPermission(eq(NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK), anyInt(),
+                anyInt()))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
+        mLooper.startAutoDispatch();
+        SoftApConfiguration softApConfig = new SoftApConfiguration.Builder()
+                .setSsid("TestAp")
+                .setBssid(MacAddress.fromString("aa:22:33:aa:bb:cc"))
+                .setPassphrase("Password", SoftApConfiguration.SECURITY_TYPE_WPA2_PSK)
+                .setBand(SoftApConfiguration.BAND_2GHZ)
+                .build();
+        TetheringManager.TetheringRequest request = new TetheringManager.TetheringRequest.Builder(
+                TetheringManager.TETHERING_WIFI).setSoftApConfiguration(softApConfig).build();
+
+        mWifiServiceImpl.startTetheredHotspotRequest(request, mClientSoftApCallback,
+                TEST_PACKAGE_NAME);
+
+        verify(mActiveModeWarden).startSoftAp(any(),
                 eq(new WorkSource(Binder.getCallingUid(), TEST_PACKAGE_NAME)));
     }
 

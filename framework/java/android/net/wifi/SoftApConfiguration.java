@@ -21,11 +21,13 @@ import android.annotation.IntDef;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.RequiresPermission;
 import android.annotation.SystemApi;
 import android.app.compat.CompatChanges;
 import android.compat.annotation.ChangeId;
 import android.compat.annotation.EnabledAfter;
 import android.net.MacAddress;
+import android.net.NetworkStack;
 import android.net.wifi.util.Environment;
 import android.net.wifi.util.HexEncoding;
 import android.os.Build;
@@ -1643,6 +1645,10 @@ public final class SoftApConfiguration implements Parcelable {
          * with {@link SoftApCapability.SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION} to determine
          * whether or not this feature is supported.
          *
+         * <p>
+         * Callers without the listed permissions will not be able to start SoftAP with a non-null
+         * BSSID.
+         *
          * @param bssid BSSID, or null to have the BSSID chosen by the framework. The caller is
          *              responsible for avoiding collisions.
          * @return Builder for chaining.
@@ -1653,6 +1659,11 @@ public final class SoftApConfiguration implements Parcelable {
          */
         @NonNull
         @SystemApi
+        @RequiresPermission(anyOf = {
+                android.Manifest.permission.NETWORK_SETTINGS,
+                android.Manifest.permission.NETWORK_STACK,
+                NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK,
+        })
         public Builder setBssid(@Nullable MacAddress bssid) {
             if (bssid != null) {
                 Preconditions.checkArgument(!bssid.equals(WifiManager.ALL_ZEROS_MAC_ADDRESS));

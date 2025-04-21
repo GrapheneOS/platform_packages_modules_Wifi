@@ -301,8 +301,8 @@ public class FrameworkFacade {
      * Create a new instance of {@link AlertDialog.Builder}.
      * @param context reference to a Context
      * @return an instance of AlertDialog.Builder
-     * @deprecated Use {@link WifiDialogManager#createSimpleDialog} instead, or create another
-     *             dialog type in WifiDialogManager.
+     * @deprecated Use {@link WifiDialogManager#createSimpleDialogBuilder} instead, or create
+     *             another dialog type in WifiDialogManager.
      */
     public AlertDialog.Builder makeAlertDialogBuilder(Context context) {
         boolean isDarkTheme = (context.getResources().getConfiguration().uiMode

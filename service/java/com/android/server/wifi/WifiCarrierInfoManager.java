@@ -2021,17 +2021,7 @@ public class WifiCarrierInfoManager {
     private void sendImsiPrivacyConfirmationDialog(@NonNull String carrierName, int carrierId) {
         mWifiMetrics.addUserApprovalCarrierUiReaction(ACTION_USER_ALLOWED_CARRIER,
                 mIsLastUserApprovalUiDialog);
-        mWifiInjector.getWifiDialogManager().createSimpleDialog(
-                mContext.getResources().getString(
-                        R.string.wifi_suggestion_imsi_privacy_exemption_confirmation_title),
-                mContext.getResources().getString(
-                        R.string.wifi_suggestion_imsi_privacy_exemption_confirmation_content,
-                        carrierName),
-                mContext.getResources().getString(
-                        R.string.wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation),
-                mContext.getResources().getString(R.string
-                        .wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation),
-                null /* neutralButtonText */,
+        WifiDialogManager.SimpleDialogCallback callback =
                 new WifiDialogManager.SimpleDialogCallback() {
                     @Override
                     public void onPositiveButtonClicked() {
@@ -2053,8 +2043,20 @@ public class WifiCarrierInfoManager {
                     public void onCancelled() {
                         handleUserDismissAction();
                     }
-                },
-                new WifiThreadRunner(mHandler)).launchDialog();
+                };
+        mWifiInjector.getWifiDialogManager().createSimpleDialogBuilder()
+                .setTitle(mContext.getResources().getString(
+                        R.string.wifi_suggestion_imsi_privacy_exemption_confirmation_title))
+                .setMessage(mContext.getResources().getString(
+                        R.string.wifi_suggestion_imsi_privacy_exemption_confirmation_content,
+                        carrierName))
+                .setPositiveButtonText(mContext.getResources().getString(
+                        R.string.wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation))
+                .setNegativeButtonText(mContext.getResources().getString(R.string
+                        .wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation))
+                .setCallback(callback, new WifiThreadRunner(mHandler))
+                .build()
+                .launchDialog();
         mIsLastUserApprovalUiDialog = true;
     }
 

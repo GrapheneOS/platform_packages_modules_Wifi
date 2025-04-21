@@ -1745,14 +1745,15 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                     .c(uid).flush();
             return;
         }
-        WifiDialogManager.DialogHandle dialogHandle = mWifiDialogManager.createSimpleDialog(
-                res.getString(R.string.wifi_enable_request_dialog_title, appName),
-                res.getString(R.string.wifi_enable_request_dialog_message),
-                res.getString(R.string.wifi_enable_request_dialog_positive_button),
-                res.getString(R.string.wifi_enable_request_dialog_negative_button),
-                null /* neutralButtonText */,
-                dialogCallback,
-                mWifiThreadRunner);
+        WifiDialogManager.DialogHandle dialogHandle = mWifiDialogManager.createSimpleDialogBuilder()
+                .setTitle(res.getString(R.string.wifi_enable_request_dialog_title, appName))
+                .setMessage(res.getString(R.string.wifi_enable_request_dialog_message))
+                .setPositiveButtonText(
+                        res.getString(R.string.wifi_enable_request_dialog_positive_button))
+                .setNegativeButtonText(
+                        res.getString(R.string.wifi_enable_request_dialog_negative_button))
+                .setCallback(dialogCallback, mWifiThreadRunner)
+                .build();
         mWifiEnableRequestDialogHandles.put(uid, dialogHandle);
         dialogHandle.launchDialog();
         mLog.info("setWifiEnabled dialog launched for package=% uid=%").c(packageName)
@@ -2020,8 +2021,11 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public boolean validateSoftApConfiguration(SoftApConfiguration config) {
+        int pid = Binder.getCallingPid();
         int uid = Binder.getCallingUid();
-        boolean privileged = isSettingsOrSuw(Binder.getCallingPid(), uid);
+        boolean privileged = isSettingsOrSuw(pid, uid)
+                || checkNetworkStackPermission(pid, uid)
+                || checkMainlineNetworkStackPermission(pid, uid);
         return WifiApConfigStore.validateApWifiConfiguration(
                 config, privileged, mContext, mWifiNative);
     }
@@ -2217,16 +2221,13 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     private boolean startSoftApInternal(SoftApModeConfiguration apConfig, WorkSource requestorWs,
             @Nullable ISoftApCallback callback) {
         int uid = Binder.getCallingUid();
-        boolean privileged = isSettingsOrSuw(Binder.getCallingPid(), uid);
         mLog.trace("startSoftApInternal uid=% mode=%")
                 .c(uid).c(apConfig.getTargetMode()).flush();
 
         // null wifiConfig is a meaningful input for CMD_SET_AP; it means to use the persistent
         // AP config.
         SoftApConfiguration softApConfig = apConfig.getSoftApConfiguration();
-        if (softApConfig != null
-                && (!WifiApConfigStore.validateApWifiConfiguration(
-                    softApConfig, privileged, mContext, mWifiNative))) {
+        if (softApConfig != null && !validateSoftApConfiguration(softApConfig)) {
             Log.e(TAG, "Invalid SoftApConfiguration");
             if (callback != null) {
                 try {

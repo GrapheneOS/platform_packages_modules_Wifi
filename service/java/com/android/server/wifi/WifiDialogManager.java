@@ -379,34 +379,157 @@ public class WifiDialogManager {
         }
     }
 
+    /**
+     * Builder for a simple dialog.
+     */
+    public class SimpleDialogBuilder {
+        @Nullable
+        private String mTitle;
+        @Nullable
+        private String mMessage;
+        @Nullable
+        private String mMessageUrl;
+        private int mMessageUrlStart;
+        private int mMessageUrlEnd;
+        @Nullable
+        private String mPositiveButtonText;
+        @Nullable
+        private String mNegativeButtonText;
+        @Nullable
+        private String mNeutralButtonText;
+        @Nullable
+        private SimpleDialogCallback mSimpleDialogCallback;
+        @Nullable
+        private WifiThreadRunner mCallbackThreadRunner;
+
+        /**
+         * Sets the title of the dialog.
+         */
+        public SimpleDialogBuilder setTitle(String title) {
+            mTitle = title;
+            return this;
+        }
+
+        /**
+         * Sets the message of the dialog.
+         */
+        public SimpleDialogBuilder setMessage(String message) {
+            mMessage = message;
+            return this;
+        }
+
+        /**
+         * Sets a clickable URL in the dialog message.
+         * @param messageUrl URL to point to
+         * @param messageUrlStart Starting index of the dialog message to apply the URL to.
+         * @param messageUrlEnd Ending index of the dialog message to apply the URL to.
+         */
+        public SimpleDialogBuilder setMessageUrl(
+                String messageUrl, int messageUrlStart, int messageUrlEnd) {
+            mMessageUrl = messageUrl;
+            mMessageUrlStart = messageUrlStart;
+            mMessageUrlEnd = messageUrlEnd;
+            return this;
+        }
+
+        /**
+         * Sets the positive button text. If left unset, the positive button will not appear.
+         */
+        public SimpleDialogBuilder setPositiveButtonText(String positiveButtonText) {
+            mPositiveButtonText = positiveButtonText;
+            return this;
+        }
+
+        /**
+         * Sets the negative button text. If left unset, the negative button will not appear.
+         */
+        public SimpleDialogBuilder setNegativeButtonText(String negativeButtonText) {
+            mNegativeButtonText = negativeButtonText;
+            return this;
+        }
+
+        /**
+         * Sets the neutral button text. If left unset, the neutral button will not appear.
+         */
+        public SimpleDialogBuilder setNeutralButtonText(String neutralButtonText) {
+            mNeutralButtonText = neutralButtonText;
+            return this;
+        }
+
+        /**
+         * Sets a callback to listen to the dialog response. The callback must be accompanied with a
+         * WifiThreadRunner to run the response callbacks on.
+         */
+        public SimpleDialogBuilder setCallback(@NonNull SimpleDialogCallback simpleDialogCallback,
+                @NonNull WifiThreadRunner wifiThreadRunner) {
+            mSimpleDialogCallback = simpleDialogCallback;
+            mCallbackThreadRunner = wifiThreadRunner;
+            return this;
+        }
+
+        /**
+         * Builds a DialogHandle that will launch a simple dialog.
+         */
+        public DialogHandle build() {
+            if (!SdkLevel.isAtLeastT()) {
+                // WifiDialogs do not display correctly on Pre-T platform (b/238353074), so use the
+                // legacy dialog in this case.
+                return createLegacySimpleDialogWithUrl(mTitle, mMessage, mMessageUrl,
+                        mMessageUrlStart, mMessageUrlEnd, mPositiveButtonText, mNegativeButtonText,
+                        mNeutralButtonText, mSimpleDialogCallback, mCallbackThreadRunner);
+            }
+
+            Intent intent = getBaseLaunchIntent(WifiManager.DIALOG_TYPE_SIMPLE);
+            if (intent != null) {
+                if (mTitle != null) intent.putExtra(WifiManager.EXTRA_DIALOG_TITLE, mTitle);
+                if (mMessage != null) intent.putExtra(WifiManager.EXTRA_DIALOG_MESSAGE, mMessage);
+                if (mMessageUrl != null) {
+                    intent.putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL, mMessageUrl);
+                    intent.putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_START, mMessageUrlStart);
+                    intent.putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_END, mMessageUrlEnd);
+                }
+                if (mPositiveButtonText != null) {
+                    intent.putExtra(
+                            WifiManager.EXTRA_DIALOG_POSITIVE_BUTTON_TEXT, mPositiveButtonText);
+                }
+                if (mNegativeButtonText != null) {
+                    intent.putExtra(
+                            WifiManager.EXTRA_DIALOG_NEGATIVE_BUTTON_TEXT, mNegativeButtonText);
+                }
+                if (mNeutralButtonText != null) {
+                    intent.putExtra(
+                            WifiManager.EXTRA_DIALOG_NEUTRAL_BUTTON_TEXT, mNeutralButtonText);
+                }
+            }
+            return new DialogHandle(
+                    new SimpleDialogHandle(
+                            intent,
+                            mSimpleDialogCallback,
+                            mCallbackThreadRunner));
+        }
+    }
+
+    /**
+     * Creates a SimpleDialogBuilder.
+     */
+    public SimpleDialogBuilder createSimpleDialogBuilder() {
+        return new SimpleDialogBuilder();
+    }
+
     private class SimpleDialogHandle extends DialogHandleInternal {
         @Nullable private final SimpleDialogCallback mCallback;
         @Nullable private final WifiThreadRunner mCallbackThreadRunner;
         private final String mTitle;
 
         SimpleDialogHandle(
-                final String title,
-                final String message,
-                final String messageUrl,
-                final int messageUrlStart,
-                final int messageUrlEnd,
-                final String positiveButtonText,
-                final String negativeButtonText,
-                final String neutralButtonText,
+                @Nullable final Intent intent,
                 @Nullable final SimpleDialogCallback callback,
                 @Nullable final WifiThreadRunner callbackThreadRunner) {
-            mTitle = title;
-            Intent intent = getBaseLaunchIntent(WifiManager.DIALOG_TYPE_SIMPLE);
             if (intent != null) {
-                intent.putExtra(WifiManager.EXTRA_DIALOG_TITLE, title)
-                        .putExtra(WifiManager.EXTRA_DIALOG_MESSAGE, message)
-                        .putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL, messageUrl)
-                        .putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_START, messageUrlStart)
-                        .putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_END, messageUrlEnd)
-                        .putExtra(WifiManager.EXTRA_DIALOG_POSITIVE_BUTTON_TEXT, positiveButtonText)
-                        .putExtra(WifiManager.EXTRA_DIALOG_NEGATIVE_BUTTON_TEXT, negativeButtonText)
-                        .putExtra(WifiManager.EXTRA_DIALOG_NEUTRAL_BUTTON_TEXT, neutralButtonText);
+                mTitle = intent.getStringExtra(WifiManager.EXTRA_DIALOG_TITLE);
                 setIntent(intent);
+            } else {
+                mTitle = "<null_intent>";
             }
             setDisplayId(Display.DEFAULT_DISPLAY);
             mCallback = callback;
@@ -626,107 +749,6 @@ public class WifiDialogManager {
          * The dialog was cancelled (back button or home button).
          */
         void onCancelled();
-    }
-
-    /**
-     * Creates a simple dialog with optional title, message, and positive/negative/neutral buttons.
-     *
-     * @param title                Title of the dialog.
-     * @param message              Message of the dialog.
-     * @param positiveButtonText   Text of the positive button or {@code null} for no button.
-     * @param negativeButtonText   Text of the negative button or {@code null} for no button.
-     * @param neutralButtonText    Text of the neutral button or {@code null} for no button.
-     * @param callback             Callback to receive the dialog response.
-     * @param callbackThreadRunner WifiThreadRunner to run the callback on.
-     * @return DialogHandle        Handle for the dialog, or {@code null} if no dialog could
-     *                             be created.
-     */
-    @AnyThread
-    @NonNull
-    public DialogHandle createSimpleDialog(
-            @Nullable String title,
-            @Nullable String message,
-            @Nullable String positiveButtonText,
-            @Nullable String negativeButtonText,
-            @Nullable String neutralButtonText,
-            @NonNull SimpleDialogCallback callback,
-            @NonNull WifiThreadRunner callbackThreadRunner) {
-        return createSimpleDialogWithUrl(
-                title,
-                message,
-                null /* messageUrl */,
-                0 /* messageUrlStart */,
-                0 /* messageUrlEnd */,
-                positiveButtonText,
-                negativeButtonText,
-                neutralButtonText,
-                callback,
-                callbackThreadRunner);
-    }
-
-    /**
-     * Creates a simple dialog with a URL embedded in the message.
-     *
-     * @param title                Title of the dialog.
-     * @param message              Message of the dialog.
-     * @param messageUrl           URL to embed in the message. If non-null, then message must also
-     *                             be non-null.
-     * @param messageUrlStart      Start index (inclusive) of the URL in the message. Must be
-     *                             non-negative.
-     * @param messageUrlEnd        End index (exclusive) of the URL in the message. Must be less
-     *                             than the length of message.
-     * @param positiveButtonText   Text of the positive button or {@code null} for no button.
-     * @param negativeButtonText   Text of the negative button or {@code null} for no button.
-     * @param neutralButtonText    Text of the neutral button or {@code null} for no button.
-     * @param callback             Callback to receive the dialog response.
-     * @param callbackThreadRunner WifiThreadRunner to run the callback on.
-     * @return DialogHandle        Handle for the dialog, or {@code null} if no dialog could
-     *                             be created.
-     */
-    @AnyThread
-    @NonNull
-    public DialogHandle createSimpleDialogWithUrl(
-            @Nullable String title,
-            @Nullable String message,
-            @Nullable String messageUrl,
-            int messageUrlStart,
-            int messageUrlEnd,
-            @Nullable String positiveButtonText,
-            @Nullable String negativeButtonText,
-            @Nullable String neutralButtonText,
-            @NonNull SimpleDialogCallback callback,
-            @NonNull WifiThreadRunner callbackThreadRunner) {
-        if (SdkLevel.isAtLeastT()) {
-            return new DialogHandle(
-                    new SimpleDialogHandle(
-                            title,
-                            message,
-                            messageUrl,
-                            messageUrlStart,
-                            messageUrlEnd,
-                            positiveButtonText,
-                            negativeButtonText,
-                            neutralButtonText,
-                            callback,
-                            callbackThreadRunner)
-            );
-        } else {
-            // TODO(b/238353074): Remove this fallback to the legacy implementation once the
-            //                    AlertDialog style on pre-T platform is fixed.
-            return new DialogHandle(
-                    new LegacySimpleDialogHandle(
-                            title,
-                            message,
-                            messageUrl,
-                            messageUrlStart,
-                            messageUrlEnd,
-                            positiveButtonText,
-                            negativeButtonText,
-                            neutralButtonText,
-                            callback,
-                            callbackThreadRunner)
-            );
-        }
     }
 
     /**
