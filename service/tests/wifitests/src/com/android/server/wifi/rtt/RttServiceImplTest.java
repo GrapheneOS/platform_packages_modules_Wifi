@@ -270,7 +270,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         ArgumentCaptor<BroadcastReceiver> bcastRxCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
         verify(mockContext).registerReceiver(bcastRxCaptor.capture(),
-                argThat(filter -> filter.hasAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)));
+                argThat(filter -> filter.hasAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)),
+                eq(null), any(Handler.class));
         verify(mockContext).registerReceiverForAllUsers(bcastRxCaptor.capture(),
                 argThat(filter -> filter.hasAction(LocationManager.MODE_CHANGED_ACTION)),
                 eq(null), any(Handler.class));
@@ -311,7 +312,8 @@ public class RttServiceImplTest extends WifiBaseTest {
                 mWifiConfigManager, mSsidTranslator);
         mMockLooper.dispatchAll();
         verify(mockContext).registerReceiver(any(BroadcastReceiver.class),
-                argThat(filter -> filter.hasAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)));
+                argThat(filter -> filter.hasAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)),
+                eq(null), any(Handler.class));
     }
 
     /**

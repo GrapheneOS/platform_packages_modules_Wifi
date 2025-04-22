@@ -359,7 +359,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 mContext.registerReceiverForAllUsers(idleModeChangeReceiver,
                         intentFilter, null, mRttServiceSynchronized.mHandler);
             } else {
-                mContext.registerReceiver(idleModeChangeReceiver, intentFilter);
+                mContext.registerReceiver(idleModeChangeReceiver, intentFilter, null,
+                        mRttServiceSynchronized.mHandler);
             }
 
             settingsConfigStore.registerChangeListener(
