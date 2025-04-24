@@ -51,6 +51,8 @@ import static org.mockito.Mockito.when;
 import android.net.ConnectivityManager;
 import android.net.MacAddress;
 import android.net.NetworkRequest;
+import android.net.TetheringManager;
+import android.net.TetheringManager.TetheringRequest;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiAvailableChannel;
@@ -106,6 +108,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
     @Mock WifiServiceImpl mWifiService;
     @Mock WifiContext mContext;
     @Mock ConnectivityManager mConnectivityManager;
+    @Mock TetheringManager mTetheringManager;
     @Mock WifiCarrierInfoManager mWifiCarrierInfoManager;
     @Mock WifiNetworkFactory mWifiNetworkFactory;
     @Mock WifiGlobals mWifiGlobals;
@@ -142,6 +145,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
         when(mWifiInjector.getWifiNetworkFactory()).thenReturn(mWifiNetworkFactory);
         when(mWifiInjector.getScanRequestProxy()).thenReturn(mScanRequestProxy);
         when(mContext.getSystemService(ConnectivityManager.class)).thenReturn(mConnectivityManager);
+        when(mContext.getSystemService(TetheringManager.class)).thenReturn(mTetheringManager);
         when(mWifiInjector.getWifiDiagnostics()).thenReturn(mWifiDiagnostics);
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfig);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mWifiDialogManager);
@@ -584,16 +588,26 @@ public class WifiShellCommandTest extends WifiBaseTest {
         mWifiShellCommand.exec(
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"start-softap", "ap1", "wpa2", "xyzabc321", "-b", "5"});
-        ArgumentCaptor<SoftApConfiguration> softApConfigurationCaptor = ArgumentCaptor.forClass(
-                SoftApConfiguration.class);
-        verify(mWifiService).startTetheredHotspot(
-                softApConfigurationCaptor.capture(), eq(SHELL_PACKAGE_NAME));
+        final SoftApConfiguration softApConfig;
+        if (SdkLevel.isAtLeastB()) {
+            ArgumentCaptor<TetheringRequest> requestCaptor =
+                    ArgumentCaptor.forClass(TetheringRequest.class);
+            verify(mTetheringManager).startTethering(requestCaptor.capture(), any(), any());
+            softApConfig = requestCaptor.getValue().getSoftApConfiguration();
+        } else {
+            ArgumentCaptor<SoftApConfiguration> softApConfigurationCaptor = ArgumentCaptor.forClass(
+                    SoftApConfiguration.class);
+            verify(mWifiService).startTetheredHotspot(
+                    softApConfigurationCaptor.capture(), eq(SHELL_PACKAGE_NAME));
+            softApConfig = softApConfigurationCaptor.getValue();
+        }
+
         assertEquals(SoftApConfiguration.BAND_5GHZ,
-                softApConfigurationCaptor.getValue().getBand());
+                softApConfig.getBand());
         assertEquals(SoftApConfiguration.SECURITY_TYPE_WPA2_PSK,
-                softApConfigurationCaptor.getValue().getSecurityType());
-        assertEquals("ap1", softApConfigurationCaptor.getValue().getWifiSsid().getUtf8Text());
-        assertEquals("xyzabc321", softApConfigurationCaptor.getValue().getPassphrase());
+                softApConfig.getSecurityType());
+        assertEquals("ap1", softApConfig.getWifiSsid().getUtf8Text());
+        assertEquals("xyzabc321", softApConfig.getPassphrase());
     }
 
     @Test
