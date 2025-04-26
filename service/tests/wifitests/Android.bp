@@ -45,7 +45,7 @@ android_test {
         "platform-compat-test-rules",
     ],
 
-    jarjar_rules: ":wifi-jarjar-rules",
+    jarjar_rules: ":merged_jarjar",
 
     sdk_version: "core_current",
     libs: [
@@ -1339,4 +1339,18 @@ android_test {
             "com.android.server.wifi.util.XmlUtilHelper.**",
         ],
     },
+}
+
+genrule {
+    name: "merged_jarjar",
+    srcs: [
+        ":wifi-jarjar-rules",
+    ],
+    tool_files: [
+        "jarjar_rules.txt",
+    ],
+    out: [
+        "marged_jarjar_rules.txt",
+    ],
+    cmd: "cat $(in) $(locations jarjar_rules.txt) > $(out)",
 }

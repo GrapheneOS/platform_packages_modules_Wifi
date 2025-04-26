@@ -1,0 +1,1 @@
+rule com.android.internal.hidden_from_bootclasspath.** com.android.wifi.x.@1
