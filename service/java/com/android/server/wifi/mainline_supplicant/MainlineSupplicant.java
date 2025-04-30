@@ -226,6 +226,10 @@ public class MainlineSupplicant {
             }
 
             try {
+                // Expect a warning about FLAG_ONEWAY when we add the STA interface, since
+                // we are not allowed to call Binder#allowBlocking from the mainline module.
+                // The functionality will not be affected.
+                Log.i(TAG, "Expecting a warning when the STA interface is added");
                 IStaInterface staIface = mIMainlineSupplicant.addStaInterface(ifaceName);
                 IStaInterfaceCallback callback = new MainlineSupplicantStaIfaceCallback(
                         this, ifaceName, mWifiThreadRunner);

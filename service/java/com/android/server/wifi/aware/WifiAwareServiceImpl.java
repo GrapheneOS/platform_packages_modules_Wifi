@@ -40,6 +40,7 @@ import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.IWifiAwareManager;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
+import android.net.wifi.util.BuildProperties;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
@@ -53,7 +54,6 @@ import android.util.SparseArray;
 import android.util.SparseIntArray;
 
 import com.android.modules.utils.build.SdkLevel;
-import com.android.server.wifi.BuildProperties;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.InterfaceConflictManager;

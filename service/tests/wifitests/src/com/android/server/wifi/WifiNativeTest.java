@@ -64,6 +64,7 @@ import android.net.wifi.nl80211.NativeScanResult;
 import android.net.wifi.nl80211.RadioChainInfo;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.nl80211.WifiNl80211Manager.SendMgmtFrameCallback;
+import android.net.wifi.util.BuildProperties;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.WorkSource;
@@ -288,7 +289,8 @@ public class WifiNativeTest extends WifiBaseTest {
     @Mock private WifiInjector mWifiInjector;
     @Mock private NetdWrapper mNetdWrapper;
     @Mock private CoexManager mCoexManager;
-    @Mock BuildProperties mBuildProperties;
+    @Mock
+    BuildProperties mBuildProperties;
     @Mock private WifiNative.InterfaceCallback mInterfaceCallback;
     @Mock private WifiCountryCode.ChangeListener mWifiCountryCodeChangeListener;
     @Mock WifiSettingsConfigStore mSettingsConfigStore;

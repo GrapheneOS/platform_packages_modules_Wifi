@@ -48,6 +48,7 @@ import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.PasspointConfiguration;
+import android.net.wifi.util.BuildProperties;
 import android.os.Process;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;

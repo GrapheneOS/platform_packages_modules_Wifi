@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-package com.android.server.wifi;
+package android.net.wifi.util;
 
 import android.os.Build;
 
 /**
  * A proxy of android.os.Build for easy testing.
+ * @hide
  */
-public class BuildProperties {
+public final class BuildProperties {
     /** Returns true iff this is an eng build. */
     public boolean isEngBuild() {
         return Build.TYPE.equals("eng");
@@ -35,5 +36,12 @@ public class BuildProperties {
     /** Returns true iff this a normal user build (not userdebug). */
     public boolean isUserBuild() {
         return Build.TYPE.equals("user");
+    }
+
+    private static final BuildProperties INSTANCE = new BuildProperties();
+
+    // Get an instance of this class.
+    public static BuildProperties getInstance() {
+        return INSTANCE;
     }
 }

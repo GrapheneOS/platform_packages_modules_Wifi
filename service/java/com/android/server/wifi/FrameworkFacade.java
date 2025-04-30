@@ -37,6 +37,7 @@ import android.net.TrafficStats;
 import android.net.Uri;
 import android.net.ip.IpClientCallbacks;
 import android.net.ip.IpClientUtil;
+import android.net.wifi.util.BuildProperties;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.UserHandle;

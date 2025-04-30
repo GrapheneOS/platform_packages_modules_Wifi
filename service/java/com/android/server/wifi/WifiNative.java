@@ -64,6 +64,7 @@ import android.net.wifi.twt.TwtRequest;
 import android.net.wifi.twt.TwtSessionCallback;
 import android.net.wifi.usd.PublishConfig;
 import android.net.wifi.usd.SubscribeConfig;
+import android.net.wifi.util.BuildProperties;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;

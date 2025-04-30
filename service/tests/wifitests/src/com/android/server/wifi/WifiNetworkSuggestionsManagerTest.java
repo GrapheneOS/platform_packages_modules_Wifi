@@ -83,6 +83,7 @@ import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.pps.Credential;
 import android.net.wifi.hotspot2.pps.HomeSp;
+import android.net.wifi.util.BuildProperties;
 import android.os.IBinder;
 import android.os.ParcelUuid;
 import android.os.RemoteException;

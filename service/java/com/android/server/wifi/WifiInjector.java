@@ -35,6 +35,7 @@ import android.net.wifi.WifiContext;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiTwtSession;
 import android.net.wifi.nl80211.WifiNl80211Manager;
+import android.net.wifi.util.BuildProperties;
 import android.os.BatteryManager;
 import android.os.BatteryStatsManager;
 import android.os.Handler;
@@ -187,7 +188,6 @@ public class WifiInjector {
     private final WifiP2pMetrics mWifiP2pMetrics;
     private final WifiLastResortWatchdog mWifiLastResortWatchdog;
     private final PropertyService mPropertyService = new SystemPropertyService();
-    private final BuildProperties mBuildProperties = new BuildProperties();
     private final WifiBackupRestore mWifiBackupRestore;
     private final BackupRestoreController mBackupRestoreController;
     // This will only be null if SdkLevel is not at least S
@@ -363,7 +363,8 @@ public class WifiInjector {
         mWifiNative = new WifiNative(
                 mWifiVendorHal, mSupplicantStaIfaceHal, mHostapdHal, mWifiCondManager,
                 mWifiMonitor, mPropertyService, mWifiMetrics,
-                mWifiHandler, new Random(), mBuildProperties, this, mMainlineSupplicant);
+                mWifiHandler, new Random(), BuildProperties.getInstance(), this,
+                mMainlineSupplicant);
         mWifiP2pMonitor = new WifiP2pMonitor();
         mSupplicantP2pIfaceHal = new SupplicantP2pIfaceHal(mWifiP2pMonitor, mWifiGlobals, this);
         mWifiP2pNative = new WifiP2pNative(mWifiCondManager, mWifiNative, mWifiMetrics,
@@ -417,7 +418,7 @@ public class WifiInjector {
                 mContext.getSystemService(ActivityManager.class).isLowRamDevice() ? maxLinesLowRam
                         : maxLinesHighRam);
         mWifiDiagnostics = new WifiDiagnostics(
-                mContext, this, mWifiNative, mBuildProperties,
+                mContext, this, mWifiNative, BuildProperties.getInstance(),
                 new LastMileLogger(this), mClock,
                 mWifiDiagnosticsHandlerThread.getLooper());
         mWifiLastResortWatchdog = new WifiLastResortWatchdog(this, mContext, mClock,
@@ -1243,7 +1244,7 @@ public class WifiInjector {
     }
 
     public BuildProperties getBuildProperties() {
-        return mBuildProperties;
+        return BuildProperties.getInstance();
     }
 
     public DefaultClientModeManager getDefaultClientModeManager() {

@@ -21,6 +21,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.wifi.util.BuildProperties;
 import android.os.BugreportManager;
 import android.os.BugreportParams;
 import android.os.Handler;

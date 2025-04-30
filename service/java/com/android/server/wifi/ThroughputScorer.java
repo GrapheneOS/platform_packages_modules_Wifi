@@ -197,16 +197,17 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
         if (mVerboseLoggingEnabled) {
             Log.d(TAG, "Score for candidate: SSID: " + candidate.getKey().matchInfo.networkSsid
                     + " BSSID: " + candidate.getKey().bssid
-                    + " rssiScore: " + rssiBaseScore
-                    + " throughputScore: " + throughputBonusScore
+                    + " rssiBoost: " + rssiBoost
+                    + " throughputBoost: " + throughputBoost
                     + " currentNetworkBoost: " + currentNetworkBoost
+                    + " bandSpecificBonus: " + bandSpecificBonus
+                    + " frequencyScore: " + frequencyScore
                     + " securityAward: " + securityAward
                     + " unmeteredAward: " + unmeteredAward
                     + " savedNetworkAward: " + savedNetworkAward
                     + " trustedAward: " + trustedAward
                     + " notOemPaidAward: " + notOemPaidAward
                     + " notOemPrivateAward: " + notOemPrivateAward
-                    + " frequencyScore: " + frequencyScore
                     + " final score: " + score);
         }
 
