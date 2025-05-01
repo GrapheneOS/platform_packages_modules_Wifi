@@ -18,9 +18,6 @@ package android.net.wifi.hotspot2.omadm;
 
 import static org.junit.Assert.assertTrue;
 
-import android.net.wifi.hotspot2.omadm.XMLNode;
-import android.net.wifi.hotspot2.omadm.XMLParser;
-
 import androidx.test.filters.SmallTest;
 
 import org.junit.Before;

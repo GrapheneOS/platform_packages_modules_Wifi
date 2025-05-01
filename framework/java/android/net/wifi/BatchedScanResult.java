@@ -16,9 +16,9 @@
 
 package android.net.wifi;
 
-import android.os.Parcelable;
 import android.annotation.SystemApi;
 import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.util.ArrayList;
 import java.util.List;

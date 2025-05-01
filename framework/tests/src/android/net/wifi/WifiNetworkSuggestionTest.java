@@ -16,6 +16,8 @@
 
 package android.net.wifi;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSession;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -24,19 +26,27 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 import android.net.MacAddress;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.PasspointTestUtils;
+import android.net.wifi.util.BuildProperties;
 import android.os.Parcel;
 import android.os.ParcelUuid;
 import android.telephony.SubscriptionManager;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.StaticMockitoSession;
 import com.android.modules.utils.build.SdkLevel;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.nio.charset.Charset;
 import java.security.cert.X509Certificate;
@@ -58,6 +68,28 @@ public class WifiNetworkSuggestionTest {
     private static final int TEST_CARRIER_ID = 1998;
     private static final ParcelUuid GROUP_UUID = ParcelUuid
             .fromString("0000110B-0000-1000-8000-00805F9B34FB");
+    private StaticMockitoSession mStaticMockSession;
+    @Mock
+    private BuildProperties mBuildProperties;
+
+    @Before
+    public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
+
+        // static mocking
+        mStaticMockSession = mockitoSession()
+                .mockStatic(BuildProperties.class)
+                .startMocking();
+        lenient().when(BuildProperties.getInstance())
+                .thenReturn(mBuildProperties);
+        when(mBuildProperties.isUserdebugBuild()).thenReturn(false);
+        when(mBuildProperties.isEngBuild()).thenReturn(false);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        mStaticMockSession.finishMocking();
+    }
 
     /**
      * Validate correctness of WifiNetworkSuggestion object created by
@@ -1552,6 +1584,25 @@ public class WifiNetworkSuggestionTest {
     }
 
     /**
+     * Ensure {@link WifiNetworkSuggestion.Builder#build()} allows carrier merged behavior
+     * on a non enterprise networks when running a debug build.
+     */
+    @Test
+    public void testSetCarrierMergedNetworkWithNonEnterpriseNetworkDebugBuilds() {
+        assumeTrue(SdkLevel.isAtLeastS());
+        when(mBuildProperties.isUserdebugBuild()).thenReturn(true);
+
+        WifiNetworkSuggestion suggestion = new WifiNetworkSuggestion.Builder()
+                .setSsid(TEST_SSID)
+                .setSubscriptionId(1)
+                .setWpa2Passphrase(TEST_PRESHARED_KEY)
+                .setCarrierMerged(true)
+                .setIsMetered(true)
+                .build();
+        assertTrue(suggestion.isCarrierMerged());
+    }
+
+    /**
      * Ensure {@link WifiNetworkSuggestion.Builder#build()} throws an exception
      * when set both {@link WifiNetworkSuggestion.Builder#setCarrierMerged(boolean)} (boolean)}
      * to true on a non enterprise network.
@@ -1567,7 +1618,6 @@ public class WifiNetworkSuggestionTest {
                 .setCarrierMerged(true)
                 .setIsMetered(true)
                 .build();
-        assertTrue(suggestion.isCarrierMerged());
     }
 
     /**

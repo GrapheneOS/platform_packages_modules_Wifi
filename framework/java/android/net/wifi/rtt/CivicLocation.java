@@ -21,7 +21,6 @@ import android.location.Address;
 import android.net.wifi.rtt.CivicLocationKeys.CivicLocationKeysType;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.os.Parcelable.Creator;
 import android.util.SparseArray;
 
 import java.nio.charset.StandardCharsets;

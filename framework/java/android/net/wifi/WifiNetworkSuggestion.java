@@ -29,6 +29,7 @@ import android.net.MacAddress;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.wifi.hotspot2.PasspointConfiguration;
+import android.net.wifi.util.BuildProperties;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.ParcelUuid;
@@ -1276,10 +1277,12 @@ public final class WifiNetworkSuggestion implements Parcelable {
                 mIsSharedWithUser = false;
             }
             if (mIsCarrierMerged) {
+                BuildProperties buildProperties = BuildProperties.getInstance();
                 if ((mSubscriptionId == SubscriptionManager.INVALID_SUBSCRIPTION_ID
                         && mSubscriptionGroup == null)
                         || mMeteredOverride != WifiConfiguration.METERED_OVERRIDE_METERED
-                        || !isEnterpriseSuggestion()) {
+                        || (!isEnterpriseSuggestion()
+                        && !(buildProperties.isEngBuild() || buildProperties.isUserdebugBuild()))) {
                     throw new IllegalStateException("A carrier merged network must be a metered, "
                             + "enterprise network with valid subscription Id");
                 }
@@ -1304,8 +1307,6 @@ public final class WifiNetworkSuggestion implements Parcelable {
                     && mWapiEnterpriseConfig == null && mPasspointConfiguration == null);
         }
     }
-
-
 
     /**
      * Network configuration for the provided network.
