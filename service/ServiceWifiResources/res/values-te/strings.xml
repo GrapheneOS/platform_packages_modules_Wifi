@@ -78,7 +78,7 @@
     <string name="wifi_p2p_dialog2_received_negative_button" msgid="4762549789911681138">"రద్దు చేయండి"</string>
     <string name="wifi_p2p_dialog2_enter_pin_label" msgid="7410100924400114335">"PIN"</string>
     <string name="wifi_p2p_dialog2_display_pin_label" msgid="3929561425167093538">"PIN"</string>
-    <string name="wifi_p2p_frequency_conflict_message" msgid="8535404941723941766">"మీ పరికరం <xliff:g id="DEVICE_NAME">%1$s</xliff:g>‌కి కనెక్ట్ అయి ఉన్నప్పుడు తాత్కాలికంగా Wi-Fi నుండి డిస్‌కనెక్ట్ అవుతుంది"</string>
+    <string name="wifi_p2p_frequency_conflict_message" msgid="8535404941723941766">"మీ డివైజ్ <xliff:g id="DEVICE_NAME">%1$s</xliff:g>‌కి కనెక్ట్ అయి ఉన్నప్పుడు తాత్కాలికంగా Wi-Fi నుండి డిస్‌కనెక్ట్ అవుతుంది"</string>
     <string name="dlg_ok" msgid="254496739491689405">"సరే"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_title" msgid="2344570489693915253">"<xliff:g id="SSID">%1$s</xliff:g>కు కనెక్ట్ చేయడం సాధ్యపడదు"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"మీ గోప్యతా సెట్టింగ్‌లను మార్చడానికి నొక్కి, మళ్లీ ట్రై చేయండి"</string>
