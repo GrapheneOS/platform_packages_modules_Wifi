@@ -38,6 +38,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
@@ -50,14 +51,17 @@ import android.net.wifi.WifiConfiguration.KeyMgmt;
 import android.net.wifi.WifiConfiguration.NetworkSelectionStatus;
 import android.net.wifi.WifiConfiguration.PairwiseCipher;
 import android.net.wifi.WifiConfiguration.Protocol;
+import android.net.wifi.util.Environment;
 import android.os.Parcel;
 import android.os.ParcelUuid;
+import android.platform.test.annotations.RequiresFlagsEnabled;
 import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.net.module.util.MacAddressUtils;
+import com.android.wifi.flags.Flags;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -1433,5 +1437,39 @@ public class WifiConfigurationTest {
         List<OuiKeyedData> vendorData = Arrays.asList(mock(OuiKeyedData.class));
         config.setVendorData(vendorData);
         assertTrue(vendorData.equals(config.getVendorData()));
+    }
+
+    /**
+     * Verifies that mIsAllowedToUpdateByOtherUser can be set and retrieved successfully.
+     */
+    @RequiresFlagsEnabled(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
+    @Test
+    public void testSetAndGetAllowedToUpdateByOtherUser() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        WifiConfiguration config = new WifiConfiguration();
+        // Default should be allowed
+        assertTrue(config.isAllowedToUpdateByOtherUsers());
+
+        // Test set to false
+        config.setAllowedToUpdateByOtherUsers(false);
+        assertFalse(config.isAllowedToUpdateByOtherUsers());
+
+        // Also test parcel
+        Parcel parcelW = Parcel.obtain();
+        config.writeToParcel(parcelW, 0);
+        byte[] bytes = parcelW.marshall();
+        parcelW.recycle();
+
+        Parcel parcelR = Parcel.obtain();
+        parcelR.unmarshall(bytes, 0, bytes.length);
+        parcelR.setDataPosition(0);
+        WifiConfiguration reconfig = WifiConfiguration.CREATOR.createFromParcel(parcelR);
+        assertFalse(reconfig.isAllowedToUpdateByOtherUsers());
+
+        // Test can't set to true for a shared configuration.
+        config.shared = false;
+        // IllegalArgumentException when setting true to a private configuration.
+        assertThrows(IllegalArgumentException.class,
+                () -> config.setAllowedToUpdateByOtherUsers(true));
     }
 }

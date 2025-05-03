@@ -185,134 +185,136 @@ package android.net.wifi {
     field public static final int OP_MODE_WIFI_DIRECT_GO = 8; // 0x8
   }
 
-  @Deprecated public class WifiConfiguration implements android.os.Parcelable {
-    ctor @Deprecated public WifiConfiguration();
-    ctor @Deprecated public WifiConfiguration(@NonNull android.net.wifi.WifiConfiguration);
-    method @Deprecated public int describeContents();
-    method @Deprecated public android.net.ProxyInfo getHttpProxy();
-    method @Deprecated @NonNull public String getKey();
-    method @Deprecated public int getMacRandomizationSetting();
-    method @Deprecated @NonNull public android.net.MacAddress getRandomizedMacAddress();
-    method @Deprecated public boolean isDppConfigurator();
-    method @Deprecated public boolean isPasspoint();
-    method @Deprecated public void setHttpProxy(android.net.ProxyInfo);
-    method @Deprecated public void setIpConfiguration(@Nullable android.net.IpConfiguration);
-    method @Deprecated public void setMacRandomizationSetting(int);
-    method @Deprecated public void setSecurityParams(int);
-    method @Deprecated public void writeToParcel(android.os.Parcel, int);
-    field @Deprecated public String BSSID;
-    field @Deprecated public String FQDN;
-    field @Deprecated public static final int RANDOMIZATION_AUTO = 3; // 0x3
-    field @Deprecated public static final int RANDOMIZATION_NONE = 0; // 0x0
-    field @Deprecated public static final int RANDOMIZATION_NON_PERSISTENT = 2; // 0x2
-    field @Deprecated public static final int RANDOMIZATION_PERSISTENT = 1; // 0x1
-    field @Deprecated public static final int SECURITY_TYPE_DPP = 13; // 0xd
-    field @Deprecated public static final int SECURITY_TYPE_EAP = 3; // 0x3
+  @FlaggedApi("com.android.wifi.flags.un_deprecated_wificonfiguration") public class WifiConfiguration implements android.os.Parcelable {
+    ctor public WifiConfiguration();
+    ctor public WifiConfiguration(@NonNull android.net.wifi.WifiConfiguration);
+    method public int describeContents();
+    method public android.net.ProxyInfo getHttpProxy();
+    method @NonNull public String getKey();
+    method public int getMacRandomizationSetting();
+    method @NonNull public android.net.MacAddress getRandomizedMacAddress();
+    method @FlaggedApi("com.android.wifi.flags.multi_user_wifi_enhancement") public boolean isAllowedToUpdateByOtherUsers();
+    method public boolean isDppConfigurator();
+    method public boolean isPasspoint();
+    method @FlaggedApi("com.android.wifi.flags.multi_user_wifi_enhancement") public void setAllowedToUpdateByOtherUsers(boolean);
+    method public void setHttpProxy(android.net.ProxyInfo);
+    method public void setIpConfiguration(@Nullable android.net.IpConfiguration);
+    method public void setMacRandomizationSetting(int);
+    method public void setSecurityParams(int);
+    method public void writeToParcel(android.os.Parcel, int);
+    field public String BSSID;
+    field public String FQDN;
+    field public static final int RANDOMIZATION_AUTO = 3; // 0x3
+    field public static final int RANDOMIZATION_NONE = 0; // 0x0
+    field public static final int RANDOMIZATION_NON_PERSISTENT = 2; // 0x2
+    field public static final int RANDOMIZATION_PERSISTENT = 1; // 0x1
+    field public static final int SECURITY_TYPE_DPP = 13; // 0xd
+    field public static final int SECURITY_TYPE_EAP = 3; // 0x3
     field @Deprecated public static final int SECURITY_TYPE_EAP_SUITE_B = 5; // 0x5
-    field @Deprecated public static final int SECURITY_TYPE_EAP_WPA3_ENTERPRISE = 9; // 0x9
-    field @Deprecated public static final int SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT = 5; // 0x5
-    field @Deprecated public static final int SECURITY_TYPE_OPEN = 0; // 0x0
-    field @Deprecated public static final int SECURITY_TYPE_OWE = 6; // 0x6
-    field @Deprecated public static final int SECURITY_TYPE_PSK = 2; // 0x2
-    field @Deprecated public static final int SECURITY_TYPE_SAE = 4; // 0x4
-    field @Deprecated public static final int SECURITY_TYPE_WAPI_CERT = 8; // 0x8
-    field @Deprecated public static final int SECURITY_TYPE_WAPI_PSK = 7; // 0x7
-    field @Deprecated public static final int SECURITY_TYPE_WEP = 1; // 0x1
-    field @Deprecated public String SSID;
-    field @Deprecated @NonNull public java.util.BitSet allowedAuthAlgorithms;
-    field @Deprecated @NonNull public java.util.BitSet allowedGroupCiphers;
-    field @Deprecated @NonNull public java.util.BitSet allowedGroupManagementCiphers;
-    field @Deprecated @NonNull public java.util.BitSet allowedKeyManagement;
-    field @Deprecated @NonNull public java.util.BitSet allowedPairwiseCiphers;
-    field @Deprecated @NonNull public java.util.BitSet allowedProtocols;
-    field @Deprecated @NonNull public java.util.BitSet allowedSuiteBCiphers;
-    field @Deprecated public android.net.wifi.WifiEnterpriseConfig enterpriseConfig;
-    field @Deprecated public boolean hiddenSSID;
-    field @Deprecated public boolean isHomeProviderNetwork;
-    field @Deprecated public int networkId;
-    field @Deprecated public String preSharedKey;
+    field public static final int SECURITY_TYPE_EAP_WPA3_ENTERPRISE = 9; // 0x9
+    field public static final int SECURITY_TYPE_EAP_WPA3_ENTERPRISE_192_BIT = 5; // 0x5
+    field public static final int SECURITY_TYPE_OPEN = 0; // 0x0
+    field public static final int SECURITY_TYPE_OWE = 6; // 0x6
+    field public static final int SECURITY_TYPE_PSK = 2; // 0x2
+    field public static final int SECURITY_TYPE_SAE = 4; // 0x4
+    field public static final int SECURITY_TYPE_WAPI_CERT = 8; // 0x8
+    field public static final int SECURITY_TYPE_WAPI_PSK = 7; // 0x7
+    field public static final int SECURITY_TYPE_WEP = 1; // 0x1
+    field public String SSID;
+    field @NonNull public java.util.BitSet allowedAuthAlgorithms;
+    field @NonNull public java.util.BitSet allowedGroupCiphers;
+    field @NonNull public java.util.BitSet allowedGroupManagementCiphers;
+    field @NonNull public java.util.BitSet allowedKeyManagement;
+    field @NonNull public java.util.BitSet allowedPairwiseCiphers;
+    field @NonNull public java.util.BitSet allowedProtocols;
+    field @NonNull public java.util.BitSet allowedSuiteBCiphers;
+    field public android.net.wifi.WifiEnterpriseConfig enterpriseConfig;
+    field public boolean hiddenSSID;
+    field public boolean isHomeProviderNetwork;
+    field public int networkId;
+    field public String preSharedKey;
     field @Deprecated public int priority;
-    field @Deprecated public String providerFriendlyName;
-    field @Deprecated public long[] roamingConsortiumIds;
-    field @Deprecated public int status;
+    field public String providerFriendlyName;
+    field public long[] roamingConsortiumIds;
+    field public int status;
     field @Deprecated public String[] wepKeys;
     field @Deprecated public int wepTxKeyIndex;
   }
 
-  @Deprecated public static class WifiConfiguration.AuthAlgorithm {
-    field @Deprecated public static final int LEAP = 2; // 0x2
-    field @Deprecated public static final int OPEN = 0; // 0x0
-    field @Deprecated public static final int SAE = 3; // 0x3
+  public static class WifiConfiguration.AuthAlgorithm {
+    field public static final int LEAP = 2; // 0x2
+    field public static final int OPEN = 0; // 0x0
+    field public static final int SAE = 3; // 0x3
     field @Deprecated public static final int SHARED = 1; // 0x1
-    field @Deprecated public static final String[] strings;
-    field @Deprecated public static final String varName = "auth_alg";
+    field public static final String[] strings;
+    field public static final String varName = "auth_alg";
   }
 
-  @Deprecated public static class WifiConfiguration.GroupCipher {
-    field @Deprecated public static final int CCMP = 3; // 0x3
-    field @Deprecated public static final int GCMP_128 = 7; // 0x7
-    field @Deprecated public static final int GCMP_256 = 5; // 0x5
-    field @Deprecated public static final int SMS4 = 6; // 0x6
-    field @Deprecated public static final int TKIP = 2; // 0x2
+  public static class WifiConfiguration.GroupCipher {
+    field public static final int CCMP = 3; // 0x3
+    field public static final int GCMP_128 = 7; // 0x7
+    field public static final int GCMP_256 = 5; // 0x5
+    field public static final int SMS4 = 6; // 0x6
+    field public static final int TKIP = 2; // 0x2
     field @Deprecated public static final int WEP104 = 1; // 0x1
     field @Deprecated public static final int WEP40 = 0; // 0x0
-    field @Deprecated public static final String[] strings;
-    field @Deprecated public static final String varName = "group";
+    field public static final String[] strings;
+    field public static final String varName = "group";
   }
 
-  @Deprecated public static class WifiConfiguration.GroupMgmtCipher {
-    field @Deprecated public static final int BIP_CMAC_256 = 0; // 0x0
-    field @Deprecated public static final int BIP_GMAC_128 = 1; // 0x1
-    field @Deprecated public static final int BIP_GMAC_256 = 2; // 0x2
+  public static class WifiConfiguration.GroupMgmtCipher {
+    field public static final int BIP_CMAC_256 = 0; // 0x0
+    field public static final int BIP_GMAC_128 = 1; // 0x1
+    field public static final int BIP_GMAC_256 = 2; // 0x2
   }
 
-  @Deprecated public static class WifiConfiguration.KeyMgmt {
-    field @Deprecated public static final int DPP = 17; // 0x11
-    field @Deprecated public static final int FILS_SHA256 = 15; // 0xf
-    field @Deprecated public static final int FILS_SHA384 = 16; // 0x10
-    field @Deprecated public static final int FT_EAP = 7; // 0x7
-    field @Deprecated public static final int FT_PSK = 6; // 0x6
-    field @Deprecated public static final int IEEE8021X = 3; // 0x3
-    field @Deprecated public static final int NONE = 0; // 0x0
-    field @Deprecated public static final int OSEN = 5; // 0x5
-    field @Deprecated public static final int OWE = 9; // 0x9
-    field @Deprecated public static final int SAE = 8; // 0x8
-    field @Deprecated public static final int SUITE_B_192 = 10; // 0xa
-    field @Deprecated public static final int WAPI_CERT = 14; // 0xe
-    field @Deprecated public static final int WAPI_PSK = 13; // 0xd
-    field @Deprecated public static final int WPA2_PSK = 4; // 0x4
-    field @Deprecated public static final int WPA_EAP = 2; // 0x2
-    field @Deprecated public static final int WPA_EAP_SHA256 = 12; // 0xc
-    field @Deprecated public static final int WPA_PSK = 1; // 0x1
-    field @Deprecated public static final int WPA_PSK_SHA256 = 11; // 0xb
-    field @Deprecated public static final String[] strings;
-    field @Deprecated public static final String varName = "key_mgmt";
+  public static class WifiConfiguration.KeyMgmt {
+    field public static final int DPP = 17; // 0x11
+    field public static final int FILS_SHA256 = 15; // 0xf
+    field public static final int FILS_SHA384 = 16; // 0x10
+    field public static final int FT_EAP = 7; // 0x7
+    field public static final int FT_PSK = 6; // 0x6
+    field public static final int IEEE8021X = 3; // 0x3
+    field public static final int NONE = 0; // 0x0
+    field public static final int OSEN = 5; // 0x5
+    field public static final int OWE = 9; // 0x9
+    field public static final int SAE = 8; // 0x8
+    field public static final int SUITE_B_192 = 10; // 0xa
+    field public static final int WAPI_CERT = 14; // 0xe
+    field public static final int WAPI_PSK = 13; // 0xd
+    field public static final int WPA2_PSK = 4; // 0x4
+    field public static final int WPA_EAP = 2; // 0x2
+    field public static final int WPA_EAP_SHA256 = 12; // 0xc
+    field public static final int WPA_PSK = 1; // 0x1
+    field public static final int WPA_PSK_SHA256 = 11; // 0xb
+    field public static final String[] strings;
+    field public static final String varName = "key_mgmt";
   }
 
-  @Deprecated public static class WifiConfiguration.PairwiseCipher {
-    field @Deprecated public static final int CCMP = 2; // 0x2
-    field @Deprecated public static final int GCMP_128 = 5; // 0x5
-    field @Deprecated public static final int GCMP_256 = 3; // 0x3
-    field @Deprecated public static final int NONE = 0; // 0x0
-    field @Deprecated public static final int SMS4 = 4; // 0x4
+  public static class WifiConfiguration.PairwiseCipher {
+    field public static final int CCMP = 2; // 0x2
+    field public static final int GCMP_128 = 5; // 0x5
+    field public static final int GCMP_256 = 3; // 0x3
+    field public static final int NONE = 0; // 0x0
+    field public static final int SMS4 = 4; // 0x4
     field @Deprecated public static final int TKIP = 1; // 0x1
-    field @Deprecated public static final String[] strings;
-    field @Deprecated public static final String varName = "pairwise";
+    field public static final String[] strings;
+    field public static final String varName = "pairwise";
   }
 
-  @Deprecated public static class WifiConfiguration.Protocol {
-    field @Deprecated public static final int RSN = 1; // 0x1
-    field @Deprecated public static final int WAPI = 3; // 0x3
+  public static class WifiConfiguration.Protocol {
+    field public static final int RSN = 1; // 0x1
+    field public static final int WAPI = 3; // 0x3
     field @Deprecated public static final int WPA = 0; // 0x0
-    field @Deprecated public static final String[] strings;
-    field @Deprecated public static final String varName = "proto";
+    field public static final String[] strings;
+    field public static final String varName = "proto";
   }
 
-  @Deprecated public static class WifiConfiguration.Status {
-    field @Deprecated public static final int CURRENT = 0; // 0x0
-    field @Deprecated public static final int DISABLED = 1; // 0x1
-    field @Deprecated public static final int ENABLED = 2; // 0x2
-    field @Deprecated public static final String[] strings;
+  public static class WifiConfiguration.Status {
+    field public static final int CURRENT = 0; // 0x0
+    field public static final int DISABLED = 1; // 0x1
+    field public static final int ENABLED = 2; // 0x2
+    field public static final String[] strings;
   }
 
   public class WifiEnterpriseConfig implements android.os.Parcelable {

@@ -487,19 +487,19 @@ public class WifiP2pConfig implements Parcelable {
         sbuf.append("\n networkName: ").append(networkName);
         sbuf.append("\n passphrase: ").append(
                 TextUtils.isEmpty(passphrase) ? "<empty>" : "<non-empty>");
-        sbuf.append("\n pccModeConnectionType: ").append(mPccModeConnectionType);
         sbuf.append("\n groupOwnerBand: ").append(groupOwnerBand);
         sbuf.append("\n groupClientIpProvisioningMode: ").append(mGroupClientIpProvisioningMode);
         sbuf.append("\n joinExistingGroup: ").append(mJoinExistingGroup);
         sbuf.append("\n vendorData: ").append(mVendorData);
         sbuf.append("\n Group Owner Version: ").append(mGroupOwnerVersion);
+        sbuf.append("\n authorizeConnectionFromPeerEnabled: ")
+                .append(mIsAuthorizeConnectionFromPeerEnabled);
+        sbuf.append("\n pccModeConnectionType: ").append(mPccModeConnectionType);
         if (Environment.isSdkAtLeastB() && Flags.wifiDirectR2()) {
             sbuf.append("\n Pairing bootstrapping config : ")
                     .append((mPairingBootstrappingConfig == null)
                             ? "<null>" : mPairingBootstrappingConfig.toString());
         }
-        sbuf.append("\n authorizeConnectionFromPeerEnabled: ")
-                .append(mIsAuthorizeConnectionFromPeerEnabled);
         return sbuf.toString();
     }
 
@@ -517,14 +517,14 @@ public class WifiP2pConfig implements Parcelable {
             netId = source.netId;
             networkName = source.networkName;
             passphrase = source.passphrase;
-            mPccModeConnectionType = source.mPccModeConnectionType;
             groupOwnerBand = source.groupOwnerBand;
             mGroupClientIpProvisioningMode = source.mGroupClientIpProvisioningMode;
             mJoinExistingGroup = source.mJoinExistingGroup;
             mVendorData = new ArrayList<>(source.mVendorData);
             mGroupOwnerVersion = source.mGroupOwnerVersion;
-            mPairingBootstrappingConfig = source.mPairingBootstrappingConfig;
             mIsAuthorizeConnectionFromPeerEnabled = source.mIsAuthorizeConnectionFromPeerEnabled;
+            mPccModeConnectionType = source.mPccModeConnectionType;
+            mPairingBootstrappingConfig = source.mPairingBootstrappingConfig;
         }
     }
 
@@ -536,16 +536,16 @@ public class WifiP2pConfig implements Parcelable {
         dest.writeInt(netId);
         dest.writeString(networkName);
         dest.writeString(passphrase);
-        dest.writeInt(mPccModeConnectionType);
         dest.writeInt(groupOwnerBand);
         dest.writeInt(mGroupClientIpProvisioningMode);
         dest.writeBoolean(mJoinExistingGroup);
         dest.writeList(mVendorData);
         dest.writeInt(mGroupOwnerVersion);
+        dest.writeBoolean(mIsAuthorizeConnectionFromPeerEnabled);
+        dest.writeInt(mPccModeConnectionType);
         if (Environment.isSdkAtLeastB() && Flags.wifiDirectR2()) {
             dest.writeParcelable(mPairingBootstrappingConfig, flags);
         }
-        dest.writeBoolean(mIsAuthorizeConnectionFromPeerEnabled);
     }
 
     /** Implement the Parcelable interface */
@@ -560,17 +560,17 @@ public class WifiP2pConfig implements Parcelable {
                     config.netId = in.readInt();
                     config.networkName = in.readString();
                     config.passphrase = in.readString();
-                    config.mPccModeConnectionType = in.readInt();
                     config.groupOwnerBand = in.readInt();
                     config.mGroupClientIpProvisioningMode = in.readInt();
                     config.mJoinExistingGroup = in.readBoolean();
                     config.mVendorData = ParcelUtil.readOuiKeyedDataList(in);
                     config.mGroupOwnerVersion = in.readInt();
+                    config.mIsAuthorizeConnectionFromPeerEnabled = in.readBoolean();
+                    config.mPccModeConnectionType = in.readInt();
                     if (Environment.isSdkAtLeastB() && Flags.wifiDirectR2()) {
                         config.mPairingBootstrappingConfig = in.readParcelable(
-                                WifiP2pPairingBootstrappingConfig.class.getClassLoader());
+                            WifiP2pPairingBootstrappingConfig.class.getClassLoader());
                     }
-                    config.mIsAuthorizeConnectionFromPeerEnabled = in.readBoolean();
                     return config;
             }
 
@@ -1007,7 +1007,6 @@ public class WifiP2pConfig implements Parcelable {
             config.deviceAddress = mDeviceAddress.toString();
             config.networkName = mNetworkName;
             config.passphrase = mPassphrase;
-            config.mPccModeConnectionType = mPccModeConnectionType;
             config.groupOwnerBand = GROUP_OWNER_BAND_AUTO;
             if (mGroupOperatingFrequency > 0) {
                 config.groupOwnerBand = mGroupOperatingFrequency;
@@ -1017,13 +1016,14 @@ public class WifiP2pConfig implements Parcelable {
             config.netId = mNetId;
             config.mGroupClientIpProvisioningMode = mGroupClientIpProvisioningMode;
             config.mJoinExistingGroup = mJoinExistingGroup;
+            config.mIsAuthorizeConnectionFromPeerEnabled = mIsAuthorizeConnectionFromPeerEnabled;
+            config.mPccModeConnectionType = mPccModeConnectionType;
             if (mPairingBootstrappingConfig != null) {
                 config.mPairingBootstrappingConfig = mPairingBootstrappingConfig;
                 config.mGroupClientIpProvisioningMode =
                         GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL;
                 config.wps.setup = WpsInfo.INVALID;
             }
-            config.mIsAuthorizeConnectionFromPeerEnabled = mIsAuthorizeConnectionFromPeerEnabled;
             return config;
         }
     }

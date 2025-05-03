@@ -61,13 +61,13 @@ public class WifiDeviceStateChangeManagerTest extends WifiBaseTest {
 
     @Captor ArgumentCaptor<BroadcastReceiver> mBroadcastReceiverCaptor;
     private TestLooper mLooper;
-    private Handler mHandler;
     private WifiDeviceStateChangeManagerSpy mWifiDeviceStateChangeManager;
     private boolean mIsAapmApiFlagEnabled = false;
+    private WifiThreadRunner mWifiTheadRunner;
 
     class WifiDeviceStateChangeManagerSpy extends WifiDeviceStateChangeManager {
         WifiDeviceStateChangeManagerSpy() {
-            super(mContext, mHandler, mWifiInjector);
+            super(mContext, mWifiTheadRunner, mWifiInjector);
         }
 
         @Override
@@ -84,7 +84,8 @@ public class WifiDeviceStateChangeManagerTest extends WifiBaseTest {
         when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
         when(mPowerManager.isInteractive()).thenReturn(true);
         mLooper = new TestLooper();
-        mHandler = new Handler(mLooper.getLooper());
+        Handler handler = new Handler(mLooper.getLooper());
+        mWifiTheadRunner = new WifiThreadRunner(handler);
         mWifiDeviceStateChangeManager = new WifiDeviceStateChangeManagerSpy();
     }
 

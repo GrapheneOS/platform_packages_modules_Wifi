@@ -296,3 +296,21 @@ flag {
     description: "Update the TOFU dialog with more information"
     bug: "276778134"
 }
+
+flag {
+    name: "un_deprecated_wificonfiguration"
+    is_exported: true
+    namespace: "wifi"
+    description: "un-deprecated wifi configurations."
+    bug: "412519144"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "multi_user_wifi_enhancement"
+    is_exported: true
+    namespace: "wifi"
+    description: "Giving each user control over their own Wi-Fi settings and configurations."
+    bug: "394417020"
+    is_fixed_read_only: true
+}

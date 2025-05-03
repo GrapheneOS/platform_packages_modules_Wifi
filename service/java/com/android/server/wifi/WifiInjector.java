@@ -309,7 +309,8 @@ public class WifiInjector {
         mWifiHandler = new RunnerHandler(wifiLooper, context.getResources().getInteger(
                 R.integer.config_wifiConfigurationWifiRunnerThresholdInMs),
                 mWifiHandlerLocalLog);
-        mWifiDeviceStateChangeManager = new WifiDeviceStateChangeManager(context, mWifiHandler,
+        mWifiThreadRunner = new WifiThreadRunner(mWifiHandler);
+        mWifiDeviceStateChangeManager = new WifiDeviceStateChangeManager(context, mWifiThreadRunner,
                 this);
         mWifiGlobals = new WifiGlobals(mContext);
         mWifiMetrics = new WifiMetrics(mContext, mFrameworkFacade, mClock, wifiLooper,
@@ -334,7 +335,6 @@ public class WifiInjector {
         mWifiBackupRestore = new WifiBackupRestore(mWifiPermissionsUtil);
         mSoftApBackupRestore = new SoftApBackupRestore(mContext, mSettingsMigrationDataHolder);
         mWifiStateTracker = new WifiStateTracker(mBatteryStats);
-        mWifiThreadRunner = new WifiThreadRunner(mWifiHandler);
         mWifiDialogManager = new WifiDialogManager(mContext, mWifiThreadRunner, mFrameworkFacade,
                 this);
         mSsidTranslator = new SsidTranslator(mContext, mWifiHandler);

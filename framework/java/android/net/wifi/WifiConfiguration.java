@@ -32,6 +32,7 @@ import android.net.NetworkSpecifier;
 import android.net.ProxyInfo;
 import android.net.StaticIpConfiguration;
 import android.net.Uri;
+import android.net.wifi.util.Environment;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.ParcelUuid;
@@ -73,12 +74,13 @@ import java.util.Set;
  * A class representing a configured Wi-Fi network, including the
  * security configuration.
  *
- * @deprecated Use {@link WifiNetworkSpecifier.Builder} to create {@link NetworkSpecifier} and
- * {@link WifiNetworkSuggestion.Builder} to create {@link WifiNetworkSuggestion}. This class can
- * still be used with privileged APIs such as
+ * Non privileged caller should use {@link WifiNetworkSpecifier.Builder}
+ * to create {@link NetworkSpecifier} and {@link WifiNetworkSuggestion.Builder}
+ * to create {@link WifiNetworkSuggestion}.
+ * This class can still be used with privileged APIs only such as
  * {@link WifiManager#addNetwork(WifiConfiguration)}.
  */
-@Deprecated
+@FlaggedApi(Flags.FLAG_UN_DEPRECATED_WIFICONFIGURATION)
 public class WifiConfiguration implements Parcelable {
     private static final String TAG = "WifiConfiguration";
     /**
@@ -1373,6 +1375,12 @@ public class WifiConfiguration implements Parcelable {
      */
     @SystemApi
     public boolean shared;
+
+    /**
+     * True if this network configuration is allowed to be updated by other users
+     * on the same device, false otherwise.
+     */
+    private boolean mIsAllowedToUpdateByOtherUsers;
 
     /**
      * @hide
@@ -3389,6 +3397,7 @@ public class WifiConfiguration implements Parcelable {
         mEncryptedPreSharedKeyIv = new byte[0];
         mIpProvisioningTimedOut = false;
         mVendorData = Collections.emptyList();
+        mIsAllowedToUpdateByOtherUsers = true;
     }
 
     /**
@@ -3724,7 +3733,9 @@ public class WifiConfiguration implements Parcelable {
         sbuf.append("\n");
         sbuf.append("IsDppConfigurator: ").append(this.mIsDppConfigurator).append("\n");
         sbuf.append("HasEncryptedPreSharedKey: ").append(hasEncryptedPreSharedKey()).append("\n");
-        sbuf.append(" setWifi7Enabled=").append(mWifi7Enabled);
+        sbuf.append(" setWifi7Enabled=").append(mWifi7Enabled).append("\n");
+        sbuf.append(" mIsAllowedToUpdateByOtherUsers=")
+                .append(mIsAllowedToUpdateByOtherUsers).append("\n");
         return sbuf.toString();
     }
 
@@ -4177,6 +4188,7 @@ public class WifiConfiguration implements Parcelable {
             mIpProvisioningTimedOut = source.mIpProvisioningTimedOut;
             mVendorData = new ArrayList<>(source.mVendorData);
             mWifi7Enabled = source.mWifi7Enabled;
+            mIsAllowedToUpdateByOtherUsers = source.mIsAllowedToUpdateByOtherUsers;
         }
     }
 
@@ -4277,6 +4289,7 @@ public class WifiConfiguration implements Parcelable {
         dest.writeBoolean(mIpProvisioningTimedOut);
         dest.writeList(mVendorData);
         dest.writeBoolean(mWifi7Enabled);
+        dest.writeBoolean(mIsAllowedToUpdateByOtherUsers);
     }
 
     /** Implement the Parcelable interface {@hide} */
@@ -4403,6 +4416,7 @@ public class WifiConfiguration implements Parcelable {
                     config.mIpProvisioningTimedOut = in.readBoolean();
                     config.mVendorData = ParcelUtil.readOuiKeyedDataList(in);
                     config.mWifi7Enabled = in.readBoolean();
+                    config.mIsAllowedToUpdateByOtherUsers = in.readBoolean();
                     return config;
                 }
 
@@ -4777,5 +4791,40 @@ public class WifiConfiguration implements Parcelable {
     @FlaggedApi(Flags.FLAG_ANDROID_V_WIFI_API)
     public void setWifi7Enabled(boolean enabled) {
         mWifi7Enabled = enabled;
+    }
+
+    /**
+     * Allows this network configuration to be updated by other users.
+     *
+     * @throws IllegalArgumentException when attempting to set a private ({@code shared} = false)
+     *                                  configuration to true
+     */
+    // TODO: b/394417020 - add @RequiresApi version as 2026 Q2 version
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
+    public void setAllowedToUpdateByOtherUsers(boolean isAllowed) {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        if (!shared && isAllowed) {
+            throw new IllegalArgumentException("private network can't update by other user");
+        }
+        mIsAllowedToUpdateByOtherUsers = isAllowed;
+    }
+
+    /**
+     * Whether this wifi configuration is allowed to be updated by other users.
+     * Returns false for private ({@code shared} = false) configurations.
+     *
+     * Note: The admin user still can remove this configuration even if the network is not allowed
+     * to be updated by other users.
+     */
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
+    public boolean isAllowedToUpdateByOtherUsers() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return shared && mIsAllowedToUpdateByOtherUsers;
     }
 }

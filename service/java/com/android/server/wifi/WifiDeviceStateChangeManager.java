@@ -22,7 +22,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.util.Environment;
-import android.os.Handler;
 import android.os.PowerManager;
 import android.security.Flags;
 import android.security.advancedprotection.AdvancedProtectionManager;
@@ -37,7 +36,8 @@ import java.util.Set;
 
 /** A centralized manager to handle all the device state changes */
 public class WifiDeviceStateChangeManager {
-    private final Handler mHandler;
+    private static final String TAG = "WifiDeviceStateChangeManager";
+    private final WifiThreadRunner mWifiThreadRunner;
     private final Context mContext;
 
     private final PowerManager mPowerManager;
@@ -69,9 +69,9 @@ public class WifiDeviceStateChangeManager {
     }
 
     /** Create the instance of WifiDeviceStateChangeManager. */
-    public WifiDeviceStateChangeManager(Context context, Handler handler,
+    public WifiDeviceStateChangeManager(Context context, WifiThreadRunner threadRunner,
             WifiInjector wifiInjector) {
-        mHandler = handler;
+        mWifiThreadRunner = threadRunner;
         mContext = context;
         mWifiInjector = wifiInjector;
         mPowerManager = mContext.getSystemService(PowerManager.class);
@@ -91,9 +91,9 @@ public class WifiDeviceStateChangeManager {
                         String action = intent.getAction();
                         if (TextUtils.equals(action, Intent.ACTION_SCREEN_ON)
                                 || TextUtils.equals(action, Intent.ACTION_SCREEN_OFF)) {
-                            mHandler.post(() ->
+                            mWifiThreadRunner.post(() ->
                                     handleScreenStateChanged(TextUtils.equals(action,
-                                            Intent.ACTION_SCREEN_ON)));
+                                            Intent.ACTION_SCREEN_ON)), TAG + "SCREEN_CHANGE");
                         }
                     }
                 },
@@ -105,7 +105,7 @@ public class WifiDeviceStateChangeManager {
                     mContext.getSystemService(AdvancedProtectionManager.class);
             if (mAdvancedProtectionManager != null) {
                 mAdvancedProtectionManager.registerAdvancedProtectionCallback(
-                        new HandlerExecutor(mHandler),
+                        new HandlerExecutor(mWifiThreadRunner.getHandler()),
                         state -> {
                             handleAdvancedProtectionModeStateChanged(state);
                         });

@@ -112,4 +112,12 @@ public class Environment {
         return Build.VERSION.CODENAME.equals("Baklava")
                 || Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA;
     }
+
+    /**
+     * Check if the device has a SDK > 36
+     * @return True if the SDK > 36
+     */
+    public static boolean isSdkNewerThanB() {
+        return Build.VERSION.SDK_INT > Build.VERSION_CODES.BAKLAVA;
+    }
 }
