@@ -842,7 +842,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
 
         req.baseConfigs.securityConfig = new NanDataPathSecurityConfig();
         req.baseConfigs.securityConfig.pmk = new byte[32];
-        req.baseConfigs.securityConfig.passphrase = new byte[0];
+        req.baseConfigs.securityConfig.passphrase = new byte[32];
         req.baseConfigs.securityConfig.scid = new byte[16];
         req.baseConfigs.securityConfig.securityType = NanDataPathSecurityType.OPEN;
         WifiAwareDataPathSecurityConfig securityConfig = publishConfig.getSecurityConfig();
@@ -872,7 +872,8 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         req.txType = NanTxType.BROADCAST;
         req.pairingConfig = createAidlPairingConfig(publishConfig.getPairingConfig());
         if (publishConfig.getPairingConfig() != null) {
-            req.baseConfigs.securityConfig.cipherType |= getHalCipherSuites(
+            req.baseConfigs.securityConfig.securityType = NanDataPathSecurityType.PASSPHRASE;
+            req.baseConfigs.securityConfig.cipherType = getHalCipherSuites(
                     publishConfig.getPairingConfig().getSupportedCipherSuites());
         }
         req.identityKey = copyArray(nik, 16);

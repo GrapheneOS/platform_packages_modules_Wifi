@@ -18,6 +18,7 @@ package com.android.server.wifi.hal;
 
 import static android.hardware.wifi.V1_0.NanCipherSuiteType.SHARED_KEY_128_MASK;
 import static android.hardware.wifi.V1_0.NanCipherSuiteType.SHARED_KEY_256_MASK;
+import static android.net.wifi.aware.AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_256;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128;
@@ -30,6 +31,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,6 +55,7 @@ import android.hardware.wifi.NanRespondToPairingIndicationRequest;
 import android.hardware.wifi.NanSubscribeRequest;
 import android.net.MacAddress;
 import android.net.wifi.OuiKeyedData;
+import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
@@ -282,6 +285,34 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
             collector.checkThat("subDefault.baseConfigs.rangingIntervalMs", periodicRangingInterval,
                     equalTo(halSubReq.baseConfigs.rangingIntervalMs));
         }
+    }
+
+    @Test
+    public void testPairingSettings() throws RemoteException {
+        assumeTrue(SdkLevel.isAtLeastU());
+        short tid = 250;
+        byte pid = 34;
+        AwarePairingConfig awarePairingConfig = new AwarePairingConfig.Builder()
+                .setPairingCacheEnabled(true)
+                .setPairingSetupEnabled(true)
+                .setPairingVerificationEnabled(true)
+                .setBootstrappingMethods(PAIRING_BOOTSTRAPPING_OPPORTUNISTIC)
+                .setSupportedCipherSuites(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128)
+                .build();
+        PublishConfig config = new PublishConfig.Builder()
+                .setServiceName("XXX")
+                .setPairingConfig(awarePairingConfig)
+                .build();
+        ArgumentCaptor<NanPublishRequest> pubCaptor = ArgumentCaptor.forClass(
+                NanPublishRequest.class);
+        assertTrue(mDut.publish(tid, pid, config, null));
+        verify(mIWifiNanIfaceMock)
+                .startPublishRequest(eq((char) tid), pubCaptor.capture());
+        NanPublishRequest halPubReq = pubCaptor.getValue();
+        assertEquals(NanDataPathSecurityType.PASSPHRASE,
+                halPubReq.baseConfigs.securityConfig.securityType);
+        assertEquals(NanCipherSuiteType.PUBLIC_KEY_PASN_128_MASK,
+                halPubReq.baseConfigs.securityConfig.cipherType);
     }
 
     /**
