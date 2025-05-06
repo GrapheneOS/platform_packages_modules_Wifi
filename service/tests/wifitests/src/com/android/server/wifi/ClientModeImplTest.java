@@ -44,10 +44,10 @@ import static com.android.server.wifi.ClientModeImpl.CMD_PRE_DHCP_ACTION;
 import static com.android.server.wifi.ClientModeImpl.CMD_PRE_DHCP_ACTION_COMPLETE;
 import static com.android.server.wifi.ClientModeImpl.CMD_UNWANTED_NETWORK;
 import static com.android.server.wifi.ClientModeImpl.WIFI_WORK_SOURCE;
+import static com.android.server.wifi.TestUtil.createCapabilityBitset;
 import static com.android.server.wifi.WifiBlocklistMonitor.REASON_APP_DISALLOW;
 import static com.android.server.wifi.WifiSettingsConfigStore.SECONDARY_WIFI_STA_FACTORY_MAC_ADDRESS;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_STA_FACTORY_MAC_ADDRESS;
-import static com.android.server.wifi.TestUtil.createCapabilityBitset;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -5389,6 +5389,9 @@ public class ClientModeImplTest extends WifiBaseTest {
                 eq(WifiMetrics.ConnectionEvent.FAILURE_NONE), eq(mConnectedNetwork),
                 any(String.class));
         verify(mCmiMonitor).onInternetValidated(mClientModeManager);
+        verify(mWifiMetrics)
+                .reportWifiValidationResult(
+                        eq(WIFI_IFACE_NAME), eq(NetworkAgent.VALIDATION_STATUS_VALID));
         // BSSID different, record this connection.
         verify(mWifiMetrics).incrementNumBssidDifferentSelectionBetweenFrameworkAndFirmware();
         verifyConnectionEventTimeoutDoesNotOccur();
@@ -5669,6 +5672,10 @@ public class ClientModeImplTest extends WifiBaseTest {
                 NetworkAgent.VALIDATION_STATUS_NOT_VALID, mMockUri);
         mLooper.dispatchAll();
 
+        verify(mWifiMetrics, never())
+                .reportWifiValidationResult(
+                        eq(WIFI_IFACE_NAME),
+                        eq(NetworkAgent.VALIDATION_STATUS_NOT_VALID));
         // expect no disconnection
         verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
     }
@@ -5805,6 +5812,10 @@ public class ClientModeImplTest extends WifiBaseTest {
         // expect not disabled since no internet is expected on this network
         verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(
                 FRAMEWORK_NETWORK_ID, DISABLED_NO_INTERNET_TEMPORARY);
+        verify(mWifiMetrics, never())
+                .reportWifiValidationResult(
+                        eq(WIFI_IFACE_NAME),
+                        eq(NetworkAgent.VALIDATION_STATUS_NOT_VALID));
     }
 
     /**
@@ -5902,6 +5913,9 @@ public class ClientModeImplTest extends WifiBaseTest {
                 FRAMEWORK_NETWORK_ID, DISABLED_NONE);
         verify(mWifiScoreCard).noteValidationSuccess(any());
         verify(mWifiBlocklistMonitor).handleNetworkValidationSuccess(TEST_BSSID_STR, TEST_SSID);
+        verify(mWifiMetrics)
+                .reportWifiValidationResult(
+                        eq(WIFI_IFACE_NAME), eq(NetworkAgent.VALIDATION_STATUS_VALID));
     }
 
     /**
@@ -5943,6 +5957,9 @@ public class ClientModeImplTest extends WifiBaseTest {
                 FRAMEWORK_NETWORK_ID, DISABLED_NONE);
         verify(mWifiScoreCard).noteValidationSuccess(any());
         verify(mWifiBlocklistMonitor).handleNetworkValidationSuccess(TEST_BSSID_STR, TEST_SSID);
+        verify(mWifiMetrics)
+                .reportWifiValidationResult(
+                        eq(WIFI_IFACE_NAME), eq(NetworkAgent.VALIDATION_STATUS_VALID));
 
         // Now that the network has been validated, link properties must not have a T&C URL anymore
         // and captive is set to false
@@ -9522,6 +9539,9 @@ public class ClientModeImplTest extends WifiBaseTest {
                 eq(connectedConfig.SSID), eq(allowlistSsids));
         verify(mWifiBlocklistMonitor).updateFirmwareRoamingConfiguration(
                 eq(new ArraySet<>(allowlistSsids)));
+        verify(mWifiMetrics)
+                .reportWifiValidationResult(
+                        eq(WIFI_IFACE_NAME), eq(NetworkAgent.VALIDATION_STATUS_VALID));
     }
 
     @Test
@@ -9632,6 +9652,9 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiConfigManager)
                 .setNetworkDefaultGwMacAddress(mConnectedNetwork.networkId, gatewayMac);
         verify(mWifiConfigManager, never()).updateLinkedNetworks(connectedConfig.networkId);
+        verify(mWifiMetrics)
+                .reportWifiValidationResult(
+                        eq(WIFI_IFACE_NAME), eq(NetworkAgent.VALIDATION_STATUS_VALID));
 
         // FT/SAE scan, do not update linked networks
         ScanResult ftSaeScan = new ScanResult();
@@ -9643,7 +9666,9 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiConfigManager)
                 .setNetworkDefaultGwMacAddress(mConnectedNetwork.networkId, gatewayMac);
         verify(mWifiConfigManager, never()).updateLinkedNetworks(connectedConfig.networkId);
-
+        verify(mWifiMetrics)
+                .reportWifiValidationResult(
+                        eq(WIFI_IFACE_NAME), eq(NetworkAgent.VALIDATION_STATUS_VALID));
         // Null scan, do not update linked networks
         mWifiNetworkAgentCallbackCaptor.getValue().onValidationStatus(
                 NetworkAgent.VALIDATION_STATUS_VALID, null /* captivePortalUrl */);
@@ -9651,6 +9676,9 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiConfigManager)
                 .setNetworkDefaultGwMacAddress(mConnectedNetwork.networkId, gatewayMac);
         verify(mWifiConfigManager, never()).updateLinkedNetworks(connectedConfig.networkId);
+        verify(mWifiMetrics)
+                .reportWifiValidationResult(
+                        eq(WIFI_IFACE_NAME), eq(NetworkAgent.VALIDATION_STATUS_VALID));
     }
 
     @Test
@@ -9722,6 +9750,9 @@ public class ClientModeImplTest extends WifiBaseTest {
                 eq(connectedConfig.SSID), eq(Collections.emptyList()));
         verify(mWifiBlocklistMonitor).updateFirmwareRoamingConfiguration(
                 eq(Collections.emptySet()));
+        verify(mWifiMetrics)
+                .reportWifiValidationResult(
+                        eq(WIFI_IFACE_NAME), eq(NetworkAgent.VALIDATION_STATUS_VALID));
     }
 
     /**

@@ -5522,6 +5522,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         public void onValidationStatus(int status, @Nullable Uri redirectUri) {
             if (!isThisCallbackActive()) return;
             if (status == mLastNetworkStatus) return;
+
+            long validationTimestamp = mClock.getElapsedSinceBootMillis();
             mLastNetworkStatus = status;
             if (status == NetworkAgent.VALIDATION_STATUS_NOT_VALID) {
                 if (mVerboseLoggingEnabled) {
@@ -5546,6 +5548,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 mWifiConfigManager.noteCaptivePortalDetected(mWifiInfo.getNetworkId());
                 mCmiMonitor.onCaptivePortalDetected(mClientModeManager);
                 mCurrentConnectionDetectedCaptivePortal = true;
+            }
+
+            mWifiMetrics.setLastValidationInfo(
+                    mInterfaceName, status, mL3ConnectedStateTimestamp, validationTimestamp,
+                    captivePortalDetected);
+            if (status == NetworkAgent.VALIDATION_STATUS_VALID) {
+                // Log vaidation success for each connection session
+                mWifiMetrics.reportWifiValidationResult(mInterfaceName, status);
             }
         }
 
