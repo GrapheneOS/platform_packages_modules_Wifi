@@ -134,6 +134,7 @@ public class WifiCountryCode {
             }
             if (mAmmToReadyForChangeMap.size() == 0) {
                 handleCountryCodeChanged(null);
+                resetFrameworkCountryCode();
                 Log.i(TAG, "No active mode, call onDriverCountryCodeChanged with Null");
             }
         }
@@ -665,6 +666,12 @@ public class WifiCountryCode {
             return mFrameworkCountryCode;
         }
         return mSettingsConfigStore.get(WIFI_DEFAULT_COUNTRY_CODE);
+    }
+
+    private void resetFrameworkCountryCode() {
+        mFrameworkCountryCode = null;
+        mFrameworkCountryCodeUpdatedTimestamp = 0;
+        mDisconnectWifiToForceUpdateCount = 0;
     }
 
     private boolean setCountryCodeNative(String country, boolean isClientModeOnly) {

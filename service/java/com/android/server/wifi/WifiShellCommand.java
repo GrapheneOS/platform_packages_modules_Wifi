@@ -33,6 +33,10 @@ import static android.net.wifi.WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED;
 import static android.net.wifi.WifiManager.VERBOSE_LOGGING_LEVEL_WIFI_AWARE_ENABLED_ONLY;
 import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
+import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
+import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128;
+import static android.net.wifi.aware.PublishConfig.PUBLISH_TYPE_SOLICITED;
+import static android.net.wifi.aware.SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE;
 
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_AP;
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_AP_BRIDGE;
@@ -82,6 +86,19 @@ import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.aware.AttachCallback;
+import android.net.wifi.aware.AwarePairingConfig;
+import android.net.wifi.aware.DiscoverySession;
+import android.net.wifi.aware.DiscoverySessionCallback;
+import android.net.wifi.aware.PeerHandle;
+import android.net.wifi.aware.PublishConfig;
+import android.net.wifi.aware.PublishDiscoverySession;
+import android.net.wifi.aware.SubscribeConfig;
+import android.net.wifi.aware.SubscribeDiscoverySession;
+import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
+import android.net.wifi.aware.WifiAwareManager;
+import android.net.wifi.aware.WifiAwareNetworkSpecifier;
+import android.net.wifi.aware.WifiAwareSession;
 import android.net.wifi.util.ScanResultUtil;
 import android.net.wifi.util.WifiResourceCache;
 import android.os.Binder;
@@ -147,7 +164,7 @@ import java.util.stream.Collectors;
  *
  * To add new commands:
  * - onCommand: Add a case "<command>" execute. Return a 0
- *   if command executed successfully.
+ * if command executed successfully.
  * - onHelp: add a description string.
  *
  * Permissions: currently root permission is required for some commands. Others will
@@ -219,6 +236,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     private final SelfRecovery mSelfRecovery;
     private final WifiThreadRunner mWifiThreadRunner;
     private final WifiApConfigStore mWifiApConfigStore;
+    private final WifiAwareManager mWifiAwareManager;
     private int mSapState = WifiManager.WIFI_STATE_UNKNOWN;
     private final ScanRequestProxy mScanRequestProxy;
     private final @NonNull WifiDialogManager mWifiDialogManager;
@@ -237,6 +255,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             WifiAvailableChannel.OP_MODE_WIFI_AWARE,
             WifiAvailableChannel.OP_MODE_TDLS,
     };
+    private static WifiAwareSession sWifiAwareSession;
+    private static PeerHandle sPeerHandle;
+    private static DiscoverySession sDiscoverySession;
 
     private class SoftApCallbackProxy extends ISoftApCallback.Stub {
         private final PrintWriter mPrintWriter;
@@ -484,6 +505,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         mWifiDiagnostics = wifiInjector.getWifiDiagnostics();
         mDeviceConfig = wifiInjector.getDeviceConfigFacade();
         mAfcManager = wifiInjector.getAfcManager();
+        mWifiAwareManager = context.getSystemService(WifiAwareManager.class);
     }
 
     private String getOpModeName(@WifiAvailableChannel.OpMode int mode) {
@@ -2412,6 +2434,246 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     mWifiService.setScanThrottleEnabled(
                             getNextArgRequiredTrueOrFalse("enabled", "disabled"));
                     return 0;
+                case "aware-attach": {
+                    if (sWifiAwareSession != null) {
+                        return 0;
+                    }
+                    if (mWifiAwareManager == null) {
+                        pw.println("aware not support");
+                        return -1;
+                    }
+                    mWifiThreadRunner.post(() -> {
+                        mWifiAwareManager.attach(new AttachCallback() {
+                            @Override
+                            public void onAttached(WifiAwareSession session) {
+                                Log.d(TAG, "onAttached");
+                                sWifiAwareSession = session;
+                            }
+                        }, mWifiThreadRunner.getHandler());
+                    });
+                    return 0;
+                }
+                case "aware-publish": {
+                    if (sWifiAwareSession == null) {
+                        pw.println("null aware session");
+                        return -1;
+                    }
+                    String awareServiceName = getNextArgRequired();
+                    boolean securityEnabled = getNextArgRequiredTrueOrFalse("yes", "no");
+                    boolean pairingEnabled = getNextArgRequiredTrueOrFalse("yes", "no");
+                    String bootMethods = getNextArgRequired();
+                    String pairingPw = getNextArgRequired();
+                    boolean success = mWifiThreadRunner.call(() -> {
+                        try {
+                            AwarePairingConfig pairingConfig = new AwarePairingConfig.Builder()
+                                    .setPairingCacheEnabled(true)
+                                    .setPairingSetupEnabled(true)
+                                    .setPairingVerificationEnabled(true)
+                                    .setBootstrappingMethods(Integer.parseInt(bootMethods))
+                                    .build();
+                            WifiAwareDataPathSecurityConfig securityConfig =
+                                    new WifiAwareDataPathSecurityConfig
+                                            .Builder(WIFI_AWARE_CIPHER_SUITE_NCS_SK_128)
+                                            .setPskPassphrase(pairingPw)
+                                            .build();
+                            PublishConfig.Builder builder = new PublishConfig.Builder()
+                                    .setServiceName(awareServiceName)
+                                    .setPublishType(PUBLISH_TYPE_SOLICITED);
+                            if (securityEnabled) {
+                                builder.setDataPathSecurityConfig(securityConfig);
+                            }
+
+                            if (pairingEnabled && SdkLevel.isAtLeastU()) {
+                                builder.setPairingConfig(pairingConfig);
+                            }
+                            sWifiAwareSession.publish(builder.build(),
+                                    new DiscoverySessionCallback() {
+                                        @Override
+                                        public void onPublishStarted(
+                                                PublishDiscoverySession session) {
+                                            Log.d(TAG, "onPublishStarted");
+                                            sDiscoverySession = session;
+                                        }
+
+                                        public void onPairingSetupRequestReceived(
+                                                PeerHandle peerHandle, int requestId) {
+                                            Log.d(TAG, "onPairingSetupRequestReceived");
+                                            sPeerHandle = peerHandle;
+                                            if (SdkLevel.isAtLeastU()) {
+                                                sDiscoverySession.acceptPairingRequest(requestId,
+                                                        peerHandle,
+                                                        "test",
+                                                        WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128,
+                                                        pairingPw);
+                                            }
+                                        }
+
+                                        public void onPairingSetupSucceeded(
+                                                PeerHandle peerHandle, String alias) {
+                                            Log.d(TAG, "onPairingSetupSucceeded");
+                                        }
+
+                                        public void onPairingVerificationSucceed(
+                                                PeerHandle peerHandle, String alias) {
+                                            Log.d(TAG, "onPairingVerificationSucceed");
+                                        }
+
+                                        public void onBootstrappingSucceeded(PeerHandle peerHandle,
+                                                int method) {
+                                            sPeerHandle = peerHandle;
+                                            Log.d(TAG, "onBootstrappingSucceeded");
+                                        }
+                                    }, mWifiThreadRunner.getHandler());
+                        } catch (Exception e) {
+                            pw.println(e.getLocalizedMessage());
+                            return false;
+                        }
+                        return true;
+                    }, false);
+                    return success ? 0 : -1;
+                }
+                case "aware-subscribe": {
+                    if (sWifiAwareSession == null) {
+                        pw.println("null aware session");
+                        return -1;
+                    }
+                    String awareServiceName = getNextArgRequired();
+                    boolean enabled = getNextArgRequiredTrueOrFalse("yes", "no");
+                    String bootMethods = getNextArgRequired();
+                    boolean success = mWifiThreadRunner.call(() -> {
+                        try {
+                            AwarePairingConfig pairingConfig = new AwarePairingConfig.Builder()
+                                    .setPairingCacheEnabled(true)
+                                    .setPairingSetupEnabled(true)
+                                    .setPairingVerificationEnabled(true)
+                                    .setBootstrappingMethods(Integer.parseInt(bootMethods))
+                                    .build();
+                            SubscribeConfig.Builder builder = new SubscribeConfig.Builder()
+                                    .setServiceName(awareServiceName)
+                                    .setSubscribeType(SUBSCRIBE_TYPE_ACTIVE);
+                            if (SdkLevel.isAtLeastU()) {
+                                builder.setPairingConfig(pairingConfig);
+                            }
+                            sWifiAwareSession.subscribe(builder.build(),
+                                    new DiscoverySessionCallback() {
+                                        public void onSubscribeStarted(
+                                                SubscribeDiscoverySession session) {
+                                            Log.d(TAG, "onSubscribeStarted");
+                                            sDiscoverySession = session;
+                                        }
+
+                                        public void onServiceDiscovered(PeerHandle peerHandle,
+                                                byte[] serviceSpecificInfo,
+                                                List<byte[]> matchFilter) {
+                                            Log.d(TAG, "onServiceDiscovered " + peerHandle.peerId);
+                                            sPeerHandle = peerHandle;
+                                            if (SdkLevel.isAtLeastU()) {
+                                                sDiscoverySession.initiateBootstrappingRequest(
+                                                        peerHandle,
+                                                        Integer.parseInt(bootMethods));
+                                            }
+                                        }
+
+                                        public void onPairingSetupSucceeded(
+                                                PeerHandle peerHandle, String alias) {
+                                            Log.d(TAG, "onPairingSetupSucceeded");
+                                        }
+
+                                        public void onPairingVerificationSucceed(
+                                                PeerHandle peerHandle,
+                                                String alias) {
+                                            Log.d(TAG, "onPairingVerificationSucceed");
+                                        }
+
+                                        public void onBootstrappingSucceeded(PeerHandle peerHandle,
+                                                int method) {
+                                            Log.d(TAG, peerHandle.peerId
+                                                    + " onBootstrappingSucceeded: " + method);
+                                        }
+                                    }, mWifiThreadRunner.getHandler());
+                        } catch (Exception e) {
+                            pw.println(e.getLocalizedMessage());
+                            return false;
+                        }
+                        return true;
+                    }, false);
+                    return success ? 0 : -1;
+                }
+                case "aware-stop-publish-subscribe": {
+                    if (sDiscoverySession == null) {
+                        pw.println("null publish/subscribe session");
+                        return -1;
+                    }
+                    mWifiThreadRunner.post(() -> {
+                        sDiscoverySession.close();
+                        sDiscoverySession = null;
+                    });
+                    return 0;
+                }
+                case "aware-initiate-pairing-request": {
+                    if (sDiscoverySession == null) {
+                        pw.println("null subscribe session");
+                        return -1;
+                    }
+                    String pairingPw = getNextArgRequired();
+                    if (SdkLevel.isAtLeastU()) {
+                        mWifiThreadRunner.post(() -> sDiscoverySession.initiatePairingRequest(
+                                sPeerHandle, "test",
+                                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128, pairingPw));
+                    }
+                    return 0;
+                }
+                case "aware-request-network":
+                    if (sDiscoverySession == null) {
+                        pw.println("null publish/subscribe session");
+                        return -1;
+                    }
+                    String pathPw = getNextArgRequired();
+                    mWifiThreadRunner.post(() -> {
+                        WifiAwareNetworkSpecifier networkSpecifier;
+                        if (sPeerHandle != null) {
+                            networkSpecifier =
+                                    new WifiAwareNetworkSpecifier.Builder(sDiscoverySession,
+                                            sPeerHandle).setPskPassphrase(pathPw).build();
+                        } else {
+                            networkSpecifier =
+                                    new WifiAwareNetworkSpecifier.Builder(
+                                            (PublishDiscoverySession) sDiscoverySession)
+                                            .setPskPassphrase(pathPw).build();
+                        }
+                        NetworkRequest networkRequest = new NetworkRequest.Builder()
+                                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI_AWARE)
+                                .setNetworkSpecifier(networkSpecifier)
+                                .build();
+                        mConnectivityManager.requestNetwork(networkRequest,
+                                new ConnectivityManager.NetworkCallback() {
+                                    public void onCapabilitiesChanged(Network arg1,
+                                            NetworkCapabilities arg2) {
+                                        Log.d(TAG, "onCapabilitiesChanged: "
+                                                + arg2.getTransportInfo().toString());
+                                    }
+                                });
+                    });
+                    return 0;
+                case "aware-teardown":
+                    if (sWifiAwareSession == null) {
+                        pw.println("null aware session");
+                        return -1;
+                    }
+                    mWifiThreadRunner.post(() -> {
+                        sWifiAwareSession.close();
+                        sWifiAwareSession = null;
+                        sPeerHandle = null;
+                        sDiscoverySession = null;
+                    });
+                    return 0;
+                case "aware-clean-paired-device":
+                    if (mWifiAwareManager == null) {
+                        pw.println("aware not support");
+                        return -1;
+                    }
+                    mWifiThreadRunner.post(mWifiAwareManager::resetPairedDevices);
+                    return 0;
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -3526,6 +3788,34 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    Example: set-ssid-roaming-mode test_ssid aggressive");
         pw.println("  set-scan-throttling-enabled enabled|disabled");
         pw.println("    Set wifi scan throttling for 3P apps enabled or disabled.");
+        pw.println("  aware-attach");
+        pw.println("    enable Wi-Fi Aware");
+        pw.println("  aware-publish <service name> <security enabled=yes|no>"
+                + "<pairing enabled=yes|no> <bootstrapping methods> <pairing password>");
+        pw.println("    Start Aware publish ");
+        pw.println("    <service name> - Name of the service, should be the same as subscribe");
+        pw.println("    <security enabled> - enable security or not");
+        pw.println("    <pairing enabled> - enable security or not");
+        pw.println("    <bootstrapping methods> - bootstrapping method for pairing");
+        pw.println("    <pairing password> - password used for pairing");
+        pw.println("  aware-subscribe <service name> <pairing enabled=yes|no> "
+                + "<bootstrapping methods>");
+        pw.println("    Start Aware subscribe ");
+        pw.println("    <service name> - Name of the service, should be the same as subscribe");
+        pw.println("    <pairing enabled> - enable security or not");
+        pw.println("    <bootstrapping methods> - bootstrapping method for pairing");
+        pw.println("  aware-stop-publish-subscribe");
+        pw.println("    stop current publish/subscribe session");
+        pw.println("  aware-initiate-pairing-request <pairing password>");
+        pw.println("    initiate pairing request to publisher, should be called from subscriber");
+        pw.println("    <pairing password> - password used for pairing");
+        pw.println("  aware-request-network <datapath password>");
+        pw.println("    request a datapath to the discovered peer");
+        pw.println("    <datapath password> - password used for datapath");
+        pw.println("  aware-teardown");
+        pw.println("    disable the Wi-Fi Aware");
+        pw.println("  aware-clean-paired-device");
+        pw.println("    Cleared all paired devices");
     }
 
     @Override

@@ -743,6 +743,16 @@ public class WifiCountryCodeTest extends WifiBaseTest {
     }
 
     @Test
+    public void testUpdateountryCodeGenericEnabledAndWifiDisabled() {
+        mResourceCache.setBoolean(R.bool.config_wifiUpdateCountryCodeFromScanResultGeneric, true);
+        mWifiCountryCode.updateCountryCodeFromScanResults(mScanDetails);
+        mModeChangeCallbackCaptor.getValue().onActiveModeManagerRemoved(mClientModeManager);
+
+        assertEquals(mDefaultCountryCode, mWifiCountryCode.getCountryCode());
+    }
+
+
+    @Test
     public void testUpdateCountryCodeGenericWithTelephonyCountryCode() {
         when(mTelephonyManager.getNetworkCountryIso()).thenReturn(TEST_COUNTRY_CODE_2);
         mResourceCache.setBoolean(R.bool.config_wifiUpdateCountryCodeFromScanResultGeneric, true);

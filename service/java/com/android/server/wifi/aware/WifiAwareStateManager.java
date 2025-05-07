@@ -4259,7 +4259,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         String methodString = "respondToBootstrappingRequestLocal";
         if (mVdbg) {
             Log.v(TAG, methodString + ": transactionId=" + transactionId
-                    + ", clientId=" + clientId + ", sessionId=" + sessionId + ", peerId=" + peerId);
+                    + ", clientId=" + clientId + ", sessionId=" + sessionId + ", peerId=" + peerId
+                    + ", accept=" + accept + ", method" + method);
         }
         WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
                 methodString);

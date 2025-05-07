@@ -3460,4 +3460,35 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 WifiMigration.KEYSTORE_MIGRATION_SUCCESS_MIGRATION_COMPLETE);
         assertTrue(mDut.mHasMigratedLegacyKeystoreAliases);
     }
+
+    /**
+     * Test that onDisconnected() event during the TOFU user notification doesn't send
+     * a broadcast authentication failure event.
+     */
+    @Test
+    public void testOnDisconnectedDuringTofuUserNotificationDoesntTriggerAuthFailure()
+            throws Exception {
+        WifiConfiguration config = new WifiConfiguration();
+        config.networkId = 1;
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_EAP);
+        config.getNetworkSelectionStatus().setCandidateSecurityParams(
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_EAP));
+        config.enterpriseConfig.enableTrustOnFirstUse(true);
+        setupMocksForConnectSequence(false);
+        executeAndValidateInitializationSequence();
+        assertTrue(mDut.connectToNetwork(WLAN0_IFACE_NAME, config));
+
+        mISupplicantStaIfaceCallback.onStateChanged(
+                StaIfaceCallbackState.ASSOCIATED,
+                NativeUtil.macAddressToByteArray(BSSID),
+                SUPPLICANT_NETWORK_ID,
+                NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(SUPPLICANT_SSID)), false);
+        mISupplicantStaIfaceCallback.onDisconnected(
+                NativeUtil.macAddressToByteArray(BSSID), true, 3);
+        verify(mWifiMonitor, never())
+                .broadcastAuthenticationFailureEvent(any(), anyInt(), anyInt(), any(), any());
+        verify(mWifiMonitor).broadcastNetworkDisconnectionEvent(
+                eq(WLAN0_IFACE_NAME), eq(true), eq(3), any(), eq(BSSID));
+    }
 }
