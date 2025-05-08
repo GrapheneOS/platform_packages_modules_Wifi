@@ -66,9 +66,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -96,7 +94,6 @@ public class HostapdHalAidlImp implements IHostapdHal {
     private IHostapd mIHostapd;
     private HashMap<String, Runnable> mSoftApFailureListeners = new HashMap<>();
     private HashMap<String, SoftApHalCallback> mSoftApHalCallbacks = new HashMap<>();
-    private Set<String> mActiveInstances = new HashSet<>();
     private HostapdDeathEventHandler mDeathEventHandler;
     private boolean mServiceDeclared = false;
     private int mServiceVersion;
@@ -395,17 +392,11 @@ public class HostapdHalAidlImp implements IHostapdHal {
                     onFailureListener.run();
                 } else {
                     // Bridged AP
-                    if (mActiveInstances.contains(instanceName)) {
-                        SoftApHalCallback callback = mSoftApHalCallbacks.get(ifaceName);
-                        if (callback != null) {
-                            callback.onInstanceFailure(instanceName);
-                        }
-                    } else {
-                        Log.w(TAG, "Ignore error for inactive instances");
-
+                    SoftApHalCallback callback = mSoftApHalCallbacks.get(ifaceName);
+                    if (callback != null) {
+                        callback.onInstanceFailure(instanceName);
                     }
                 }
-                mActiveInstances.remove(instanceName);
             }
         }
 
@@ -427,7 +418,6 @@ public class HostapdHalAidlImp implements IHostapdHal {
                                     ? MacAddress.fromBytes(info.mldMacAddress) : null,
                             vendorData);
                 }
-                mActiveInstances.add(info.apIfaceInstance);
             } catch (IllegalArgumentException iae) {
                 Log.e(TAG, " Invalid apIfaceInstanceMacAddress, " + iae);
             }

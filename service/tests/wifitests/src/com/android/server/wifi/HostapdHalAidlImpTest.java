@@ -1289,7 +1289,7 @@ public class HostapdHalAidlImpTest extends WifiBaseTest {
 
         // Trigger on failure from first instance again.
         mIHostapdCallback.onFailure(IFACE_NAME, TEST_AP_INSTANCE);
-        verify(mSoftApHalCallback, times(1)).onInstanceFailure(TEST_AP_INSTANCE);
+        verify(mSoftApHalCallback, times(2)).onInstanceFailure(TEST_AP_INSTANCE);
         verify(mSoftApHalCallback, never()).onFailure();
 
     }
