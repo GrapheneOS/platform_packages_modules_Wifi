@@ -21,6 +21,7 @@ import static org.mockito.Mockito.*;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.MacAddress;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiSsid;
@@ -115,7 +116,6 @@ public class SupplicantStateTrackerTest extends WifiBaseTest {
     public void testAuthPassInSupplicantStateChangeIntent() {
         mSupplicantStateTracker.sendMessage(getSupplicantStateChangeMessage(0, WIFI_SSID,
                 BSSID, SupplicantState.AUTHENTICATING));
-        mSupplicantStateTracker.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT);
         mLooper.dispatchAll();
 
         verify(mBroadcastQueue).queueOrSendBroadcast(
@@ -135,7 +135,9 @@ public class SupplicantStateTrackerTest extends WifiBaseTest {
      */
     @Test
     public void testAuthFailedInSupplicantStateChangeIntent() {
-        mSupplicantStateTracker.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT);
+        mSupplicantStateTracker.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
+                new AuthenticationFailureEventInfo(SSID, MacAddress.fromString(BSSID),
+                        WifiManager.ERROR_AUTH_FAILURE_EAP_FAILURE, 2));
         mSupplicantStateTracker.sendMessage(getSupplicantStateChangeMessage(0, WIFI_SSID,
                 BSSID, SupplicantState.AUTHENTICATING));
         mLooper.dispatchAll();
@@ -160,7 +162,8 @@ public class SupplicantStateTrackerTest extends WifiBaseTest {
     @Test
     public void testReasonCodeInSupplicantStateChangeIntent() {
         mSupplicantStateTracker.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
-                WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1);
+                new AuthenticationFailureEventInfo(SSID, MacAddress.fromString(BSSID),
+                        WifiManager.ERROR_AUTH_FAILURE_WRONG_PSWD, -1));
         mSupplicantStateTracker.sendMessage(getSupplicantStateChangeMessage(0, WIFI_SSID,
                 BSSID, SupplicantState.AUTHENTICATING));
         mLooper.dispatchAll();

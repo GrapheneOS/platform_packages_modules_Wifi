@@ -1564,7 +1564,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 targetConfig.networkId, Process.WIFI_UID, targetBssid);
         verify(mSecondaryClientModeManager, times(2)).enableRoaming(false);
         verify(mActiveModeWarden, times(2)).requestSecondaryLongLivedClientModeManager(
-                any(), any(), any(), any());
+                any(), any(), any(), eq(targetBssid));
 
         // Simulate connection failing on the secondary
         clearInvocations(mSecondaryClientModeManager, mPrimaryClientModeManager, mWifiNS);

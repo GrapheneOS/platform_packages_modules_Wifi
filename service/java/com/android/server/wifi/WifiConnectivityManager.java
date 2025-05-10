@@ -525,12 +525,6 @@ public class WifiConnectivityManager {
         // For secondary STA of multi internet connection, when ROLE_CLIENT_SECONDARY_LONG_LIVED
         // is used, specify the target BSSID explicitly to avoid firmware choosing same BSSID
         // as primary STA.
-        // TODO: Use new STA+STA user case DUAL_STA_NON_TRANSIENT_SECONDARY and remove the BSSID
-        // if roaming is supported on secondary.
-        String bssidToConnect = null;
-        if (!mConnectivityHelper.isFirmwareRoamingSupported()) {
-            bssidToConnect = targetBssid2;
-        }
         // Request for a new client mode manager to spin up concurrent connection
         mActiveModeWarden.requestSecondaryLongLivedClientModeManager(
                 (cm) -> {
@@ -573,7 +567,7 @@ public class WifiConnectivityManager {
                             targetNetwork.isPasspoint());
                 }, secondaryRequestorWs,
                 secondaryCmmCandidate.SSID,
-                bssidToConnect);
+                targetBssid2);
         return true;
     }
 

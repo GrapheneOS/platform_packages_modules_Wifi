@@ -194,7 +194,7 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
                 mWifiMonitor.broadcastNetworkConnectionEvent(
                         mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), filsHlpSent,
                         wifiSsid, bssidStr);
-            } else if (newState == State.ASSOCIATING) {
+            } else if (newState == State.AUTHENTICATING || newState == State.ASSOCIATING) {
                 mCurrentSsid = wifiSsid.toString();
             }
             mWifiMonitor.broadcastSupplicantStateChangeEvent(

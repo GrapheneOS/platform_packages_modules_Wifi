@@ -333,16 +333,18 @@ public class WifiP2pManagerSnippet implements Snippet {
      */
     @Rpc(description = "Accept p2p connection invitation through clicking on UI.")
     public void wifiP2pAcceptInvitation(String deviceName) throws WifiP2pManagerException {
-        if (!mUiDevice.wait(Until.hasObject(By.text("Invitation to connect")),
+        Pattern titlePattern = Pattern.compile("(Invitation to connect|Device connection)");
+        if (!mUiDevice.wait(Until.hasObject(By.text(titlePattern)),
                 UI_ACTION_LONG_TIMEOUT_MS)) {
             throw new WifiP2pManagerException(
                     "Expected connect invitation did not occur within timeout.");
         }
-        if (!mUiDevice.wait(Until.hasObject(By.text(deviceName)), UI_ACTION_SHORT_TIMEOUT_MS)) {
+        if (!mUiDevice.wait(
+                Until.hasObject(By.textContains(deviceName)), UI_ACTION_SHORT_TIMEOUT_MS)) {
             throw new WifiP2pManagerException(
                     "The connect invitation is not triggered by expected peer device.");
         }
-        Pattern pattern = Pattern.compile("(ACCEPT|OK|Accept)");
+        Pattern pattern = Pattern.compile("(ACCEPT|OK|Accept|Connect)");
         if (!mUiDevice.wait(Until.hasObject(By.text(pattern).clazz(Button.class)),
                 UI_ACTION_SHORT_TIMEOUT_MS)) {
             throw new WifiP2pManagerException("Accept button did not occur within timeout.");
@@ -365,30 +367,16 @@ public class WifiP2pManagerSnippet implements Snippet {
      */
     @Rpc(description = "Get p2p connect PIN code after calling wifiP2pConnect with WPS PIN.")
     public String wifiP2pGetPinCode(String deviceName) throws Throwable {
-        // Wait for the 'Invitation sent' dialog to appear
-        if (!mUiDevice.wait(Until.hasObject(By.text("Invitation sent")),
-                UI_ACTION_LONG_TIMEOUT_MS)) {
-            throw new WifiP2pManagerException(
-                    "Invitation sent dialog did not appear within timeout.");
-        }
-        if (!mUiDevice.wait(Until.hasObject(By.text(deviceName)), UI_ACTION_SHORT_TIMEOUT_MS)) {
+        // Wait for the PIN code dialog to get PIN coce
+        String pinCode = waitForPinCode();
+        Log.d("Retrieved PIN code: " + pinCode);
+        // Check device name
+        if (!mUiDevice.wait(
+                Until.hasObject(By.textContains(deviceName)), UI_ACTION_SHORT_TIMEOUT_MS)) {
             throw new WifiP2pManagerException(
                     "The connect invitation is not triggered by expected peer device.");
         }
-        // Find the UI lement with text='PIN:'
-        UiObject2 pinLabel = mUiDevice.findObject(By.text("PIN:"));
-        if (pinLabel == null) {
-            throw new WifiP2pManagerException("PIN label not found.");
-        }
-        // Get the sibling UI element that contains the PIN code. Use regex pattern "\d+" as PIN
-        // code must be composed entirely of numbers.
-        Pattern pattern = Pattern.compile("\\d+");
-        UiObject2 pinValue = pinLabel.getParent().findObject(By.text(pattern));
-        if (pinValue == null) {
-            throw new WifiP2pManagerException("Failed to find Pin code UI element.");
-        }
-        String pinCode = pinValue.getText();
-        Log.d("Retrieved PIN code: " + pinCode);
+
         // Click 'OK' to close the PIN code alert
         UiObject2 okButton = mUiDevice.findObject(By.text("OK").clazz(Button.class));
         if (okButton == null) {
@@ -398,6 +386,38 @@ public class WifiP2pManagerSnippet implements Snippet {
         okButton.click();
         Log.d("Closed the p2p connect invitation pop-up window.");
         return pinCode;
+    }
+
+    private String waitForPinCode() throws WifiP2pManagerException {
+        // First try finding PIN code by resource ID.
+        Pattern resPattern = Pattern.compile(".*:id/wifi_p2p_dialog2_display_pin");
+        if (mUiDevice.wait(Until.hasObject(By.res(resPattern)), UI_ACTION_LONG_TIMEOUT_MS)) {
+            UiObject2 pinLabel = mUiDevice.findObject(By.res(resPattern));
+            Log.d("pinLabel = " + pinLabel);
+            return pinLabel.getText();
+        }
+
+        // If not found, try finding PIN code by text match.
+        Pattern titlePattern = Pattern.compile(
+                "(Invitation sent|Invitation to connect|Device connection)");
+        if (mUiDevice.wait(Until.hasObject(By.text(titlePattern)), UI_ACTION_SHORT_TIMEOUT_MS)) {
+            // Find the UI lement with text='PIN:'
+            UiObject2 pinLabel = mUiDevice.findObject(By.text("PIN:"));
+            if (pinLabel == null) {
+                throw new WifiP2pManagerException("PIN label not found.");
+            }
+            Log.d("pinLabel = " + pinLabel);
+            // Get the sibling UI element that contains the PIN code. Use regex pattern "\d+" as PIN
+            // code must be composed entirely of numbers.
+            Pattern pattern = Pattern.compile("\\d+");
+            UiObject2 pinValue = pinLabel.getParent().findObject(By.text(pattern));
+            if (pinValue == null) {
+                throw new WifiP2pManagerException("Failed to find Pin code UI element.");
+            }
+            return pinValue.getText();
+        }
+        throw new WifiP2pManagerException(
+                "The dialog to get PIN code did not appear within timeout.");
     }
 
     /**
@@ -410,33 +430,18 @@ public class WifiP2pManagerSnippet implements Snippet {
      */
     @Rpc(description = "Get p2p connect PIN code after calling wifiP2pConnect with WPS PIN.")
     public String wifiP2pGetKeypadPinCode(String deviceName) throws Throwable {
-        // Wait for the 'Invitation sent' dialog to appear
-        if (!mUiDevice.wait(Until.hasObject(By.text("Invitation to connect")),
-                UI_ACTION_LONG_TIMEOUT_MS)) {
-            throw new WifiP2pManagerException(
-                    "Invitation sent dialog did not appear within timeout.");
-        }
-        if (!mUiDevice.wait(Until.hasObject(By.text(deviceName)), UI_ACTION_SHORT_TIMEOUT_MS)) {
+        // Wait for the 'Invitation sent' dialog to appear and get PIN coce
+        String pinCode = waitForPinCode();
+        Log.d("Retrieved PIN code: " + pinCode);
+        // Check device name.
+        if (!mUiDevice.wait(
+                Until.hasObject(By.textContains(deviceName)), UI_ACTION_SHORT_TIMEOUT_MS)) {
             throw new WifiP2pManagerException(
                     "The connect invitation is not triggered by expected peer device.");
         }
-        // Find the UI lement with text='PIN:'
-        UiObject2 pinLabel = mUiDevice.findObject(By.text("PIN:"));
-        if (pinLabel == null) {
-            throw new WifiP2pManagerException("PIN label not found.");
-        }
-        Log.d("pinLabel = " + pinLabel);
-        // Get the sibling UI element that contains the PIN code. Use regex pattern "\d+" as PIN
-        // code must be composed entirely of numbers.
-        Pattern pattern = Pattern.compile("\\d+");
-        UiObject2 pinValue = pinLabel.getParent().findObject(By.text(pattern));
-        if (pinValue == null) {
-            throw new WifiP2pManagerException("Failed to find Pin code UI element.");
-        }
-        String pinCode = pinValue.getText();
-        Log.d("Retrieved PIN code: " + pinCode);
         // Click 'OK' to close the PIN code alert
-        UiObject2 okButton = mUiDevice.findObject(By.text("Accept").clazz(Button.class));
+        Pattern pattern = Pattern.compile("(Accept|Connect)");
+        UiObject2 okButton = mUiDevice.findObject(By.text(pattern).clazz(Button.class));
         if (okButton == null) {
             throw new WifiP2pManagerException(
                     "OK button not found in the p2p connection invitation pop-up window.");
@@ -455,26 +460,16 @@ public class WifiP2pManagerSnippet implements Snippet {
      */
     @Rpc(description = "Enter the PIN code to accept a P2P connection invitation.")
     public void wifiP2pEnterPin(String pinCode, String deviceName) throws WifiP2pManagerException {
-        // Wait for the 'Invitation to connect' dialog to appear
-        if (!mUiDevice.wait(Until.hasObject(By.textContains("Invitation to connect")),
-                UI_ACTION_LONG_TIMEOUT_MS)) {
+        waitAndEnterPinCode(pinCode);
+        // Check device name
+        if (!mUiDevice.wait(
+                Until.hasObject(By.textContains(deviceName)), UI_ACTION_SHORT_TIMEOUT_MS)) {
             throw new WifiP2pManagerException(
-                    "Invitation to connect dialog did not appear within timeout.");
+                "The connect invitation is not triggered by expected peer device.");
         }
-        if (!mUiDevice.wait(Until.hasObject(By.text(deviceName)), UI_ACTION_SHORT_TIMEOUT_MS)) {
-            throw new WifiP2pManagerException(
-                    "The connect invitation is not triggered by expected peer device.");
-        }
-        // Find the PIN entry field
-        UiObject2 pinEntryField = mUiDevice.findObject(By.focused(true));
-        if (pinEntryField == null) {
-            throw new WifiP2pManagerException("PIN entry field not found.");
-        }
-        // Enter the PIN code
-        pinEntryField.setText(pinCode);
-        Log.d("Entered PIN code: " + pinCode);
         // Accept the invitation
-        Pattern acceptPattern = Pattern.compile("(ACCEPT|OK|Accept)", Pattern.CASE_INSENSITIVE);
+        Pattern acceptPattern = Pattern.compile(
+                "(ACCEPT|OK|Accept|Connect)", Pattern.CASE_INSENSITIVE);
         UiObject2 acceptButton = mUiDevice.findObject(By.clazz(Button.class).text(acceptPattern));
         if (acceptButton == null) {
             throw new WifiP2pManagerException(
@@ -482,6 +477,35 @@ public class WifiP2pManagerSnippet implements Snippet {
         }
         acceptButton.click();
         Log.d("Accepted the connection.");
+    }
+
+    private void waitAndEnterPinCode(String pinCode) throws WifiP2pManagerException {
+        // First try finding input box by resource ID.
+        // "wifi_p2p_wps_pin" is a legacy resource ID.
+        // "wifi_p2p_dialog2_enter_pin" is the latest resource ID.
+        Pattern resPattern = Pattern.compile(".*:id/(wifi_p2p_dialog2_enter_pin|wifi_p2p_wps_pin)");
+        if (mUiDevice.wait(Until.hasObject(By.res(resPattern)), UI_ACTION_LONG_TIMEOUT_MS)) {
+            UiObject2 pinEntryField = mUiDevice.findObject(By.res(resPattern));
+            pinEntryField.setText(pinCode);
+            Log.d("Entered PIN code: " + pinCode);
+            return;
+        }
+
+        // If not found, try finding input box by text match.
+        Pattern titlePattern = Pattern.compile("(Invitation to connect|Device connection)");
+        if (mUiDevice.wait(Until.hasObject(By.text(titlePattern)), UI_ACTION_SHORT_TIMEOUT_MS)) {
+            // Find the PIN entry field
+            UiObject2 pinEntryField = mUiDevice.findObject(By.focused(true));
+            if (pinEntryField == null) {
+                throw new WifiP2pManagerException("PIN entry field not found.");
+            }
+            // Enter the PIN code
+            pinEntryField.setText(pinCode);
+            Log.d("Entered PIN code: " + pinCode);
+            return;
+        }
+        throw new WifiP2pManagerException(
+                "The dialog to enter PIN code did not appear within timeout.");
     }
 
     /**

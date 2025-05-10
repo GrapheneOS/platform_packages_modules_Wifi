@@ -23,19 +23,23 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import android.net.IpConfiguration;
 import android.net.MacAddress;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConfiguration.NetworkSelectionStatus;
 import android.net.wifi.WifiEnterpriseConfig;
+import android.net.wifi.util.Environment;
 import android.util.Pair;
 import android.util.Xml;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.net.module.util.MacAddressUtils;
@@ -46,10 +50,13 @@ import com.android.server.wifi.util.XmlUtil.IpConfigurationXmlUtil;
 import com.android.server.wifi.util.XmlUtil.NetworkSelectionStatusXmlUtil;
 import com.android.server.wifi.util.XmlUtil.WifiConfigurationXmlUtil;
 import com.android.server.wifi.util.XmlUtil.WifiEnterpriseConfigXmlUtil;
+import com.android.wifi.flags.Flags;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlSerializer;
@@ -93,9 +100,25 @@ public class XmlUtilTest extends WifiBaseTest {
     private static final String ANONYMOUS_IDENTITY = "aaa@bbb.cc.ddd";
     private WifiConfigStoreEncryptionUtil mWifiConfigStoreEncryptionUtil = null;
 
+    private MockitoSession mSession;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(Flags.class, withSettings().lenient())
+                .startMocking();
+    }
+
+    /**
+     * Called after each test
+     */
+    @After
+    public void cleanup() {
+        validateMockitoUsage();
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
     }
 
     /**
@@ -981,6 +1004,22 @@ public class XmlUtilTest extends WifiBaseTest {
         assumeTrue(SdkLevel.isAtLeastV());
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
         config.setVendorData(OuiKeyedDataUtil.createTestOuiKeyedDataList(10));
+        serializeDeserializeWifiConfiguration(config);
+    }
+
+    /**
+     * Verify that the vendor data field is serialized and deserialized correctly
+     * when provided.
+     */
+    @Test
+    public void testWifiConfigurationWithAllowedToUpdateByOtherUsers() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+        when(Flags.multiUserWifiEnhancement()).thenReturn(false);
+        config.setAllowedToUpdateByOtherUsers(true);
+        serializeDeserializeWifiConfiguration(config);
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        config.setAllowedToUpdateByOtherUsers(false);
         serializeDeserializeWifiConfiguration(config);
     }
 }

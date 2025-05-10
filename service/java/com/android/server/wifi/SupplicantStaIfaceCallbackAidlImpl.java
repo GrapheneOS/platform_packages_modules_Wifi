@@ -223,7 +223,8 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                 mWifiMonitor.broadcastNetworkConnectionEvent(
                         mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), filsHlpSent,
                         wifiSsid, bssidStr, keyMgmtMask);
-            } else if (newState == StaIfaceCallbackState.ASSOCIATING) {
+            } else if (newState == StaIfaceCallbackState.AUTHENTICATING
+                    || newState == StaIfaceCallbackState.ASSOCIATING) {
                 mCurrentSsid = wifiSsid.toString();
             }
             mWifiMonitor.broadcastSupplicantStateChangeEvent(

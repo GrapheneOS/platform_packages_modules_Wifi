@@ -2097,7 +2097,6 @@ public class WifiMetrics {
                     mNetworkSelectorExperimentId;
             currentConnectionEvent.updateFromWifiConfiguration(config);
             currentConnectionEvent.mIsOobPseudonymEnabled = isOobPseudonymEnabled;
-            currentConnectionEvent.mConfigBssid = "any";
             currentConnectionEvent.mWifiState = mWifiState;
             currentConnectionEvent.mScreenOn = mScreenOn;
             currentConnectionEvent.mConnectionEvent.isFirstConnectionAfterBoot =

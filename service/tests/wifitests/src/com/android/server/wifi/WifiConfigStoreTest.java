@@ -26,6 +26,7 @@ import android.content.pm.PackageManager;
 import android.net.MacAddress;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiMigration;
+import android.net.wifi.util.Environment;
 import android.net.wifi.util.HexEncoding;
 import android.os.UserHandle;
 import android.os.test.TestLooper;
@@ -106,6 +107,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                     + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
                     + "<boolean name=\"RepeaterEnabled\" value=\"false\" />\n"
                     + "<boolean name=\"EnableWifi7\" value=\"true\" />\n"
+                    + "%s" // String after EnableWifi7 before SecurityParamsList
                     + "<SecurityParamsList>\n"
                     + "<SecurityParams>\n"
                     + "<int name=\"SecurityType\" value=\"0\" />\n"
@@ -495,7 +497,9 @@ public class WifiConfigStoreTest extends WifiBaseTest {
         String xmlString = String.format(TEST_DATA_XML_STRING_FORMAT,
                 openNetwork.getKey().replaceAll("\"", "&quot;"),
                 openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, openNetwork.creatorUid, openNetwork.creatorName,
+                openNetwork.shared, Environment.isSdkNewerThanB()
+                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                openNetwork.creatorUid, openNetwork.creatorName,
                 openNetwork.getRandomizedMacAddress(), openNetwork.subscriptionId);
         byte[] xmlBytes = xmlString.getBytes(StandardCharsets.UTF_8);
         mUserStore.storeRawDataToWrite(xmlBytes);
@@ -533,7 +537,9 @@ public class WifiConfigStoreTest extends WifiBaseTest {
         String xmlString = String.format(TEST_DATA_XML_STRING_FORMAT,
                 openNetwork.getKey().replaceAll("\"", "&quot;"),
                 openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, openNetwork.creatorUid, openNetwork.creatorName,
+                openNetwork.shared, Environment.isSdkNewerThanB()
+                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                openNetwork.creatorUid, openNetwork.creatorName,
                 openNetwork.getRandomizedMacAddress(), openNetwork.subscriptionId);
 
         mWifiConfigStore.write();

@@ -17,8 +17,11 @@
 package com.android.server.wifi.util;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.Manifest.permission.NETWORK_CARRIER_PROVISIONING;
 import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
 import static android.Manifest.permission.RENOUNCE_PERMISSIONS;
+import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION;
+import static android.Manifest.permission.REQUEST_COMPANION_PROFILE_NEARBY_DEVICE_STREAMING;
 import static android.content.pm.PackageManager.GET_PERMISSIONS;
 import static android.content.pm.PackageManager.MATCH_UNINSTALLED_PACKAGES;
 
@@ -36,8 +39,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import android.Manifest;
 import android.app.AppOpsManager;
@@ -65,6 +70,7 @@ import android.util.ArraySet;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.BinderUtil;
 import com.android.server.wifi.FakeWifiLog;
@@ -73,14 +79,17 @@ import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiInjector;
 import com.android.wifi.resources.R;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
 import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.quality.Strictness;
 import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
@@ -111,6 +120,8 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
     @Mock private PackageManager mPackageManager;
     @Spy private FakeWifiLog mWifiLog;
     @Mock private Context mUserContext;
+
+    private MockitoSession mSession;
 
     private static final String TEST_WIFI_STACK_APK_NAME = "com.android.wifi";
     private static final String TEST_PACKAGE_NAME = "com.google.somePackage";
@@ -164,6 +175,14 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
     private void setupTestCase() throws Exception {
         setupMocks();
         setupMockInterface();
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        validateMockitoUsage();
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
     }
 
     /**
@@ -1887,6 +1906,8 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
     @Test
     public void testIsGuestUser() throws Exception {
         when(mMockContext.createContextAsUser(any(), anyInt())).thenReturn(mUserContext);
+        when(mUserContext.getSystemService(UserManager.class)).thenReturn(null);
+        when(mMockUserManager.isGuestUser()).thenReturn(true);
         when(mUserContext.getSystemService(UserManager.class)).thenReturn(mMockUserManager);
         when(mMockUserManager.isGuestUser()).thenReturn(true);
         setupTestCase();
@@ -1990,5 +2011,74 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
         when(mMockPkgMgr.checkSignatures(anyInt(), eq(Process.SYSTEM_UID)))
                 .thenReturn(PackageManager.SIGNATURE_NO_MATCH);
         assertFalse(codeUnderTest.isSignedWithPlatformKey(TEST_CALLING_UID));
+    }
+
+    /**
+     * Test checkRequestCompanionProfileAutomotiveProjectionPermission
+     */
+    @Test
+    public void testCheckRequestCompanionProfileAutomotiveProjectionPermission()
+             throws Exception {
+        setupTestCase();
+        WifiPermissionsUtil codeUnderTest = new WifiPermissionsUtil(mMockPermissionsWrapper,
+                mMockContext, mMockUserManager, mWifiInjector);
+        codeUnderTest.checkRequestCompanionProfileAutomotiveProjectionPermission(TEST_CALLING_UID);
+        verify(mMockPermissionsWrapper).getUidPermission(
+                eq(REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION),
+                eq(TEST_CALLING_UID));
+    }
+
+    /**
+     * Test checkRequestCompanionProfileNearbyDeviceStreamingPermission
+     */
+    @Test
+    public void testCheckRequestCompanionProfileNearbyDeviceStreamingPermission()
+             throws Exception {
+        setupTestCase();
+        WifiPermissionsUtil codeUnderTest = new WifiPermissionsUtil(mMockPermissionsWrapper,
+                mMockContext, mMockUserManager, mWifiInjector);
+        codeUnderTest.checkRequestCompanionProfileNearbyDeviceStreamingPermission(TEST_CALLING_UID);
+        verify(mMockPermissionsWrapper).getUidPermission(
+                eq(REQUEST_COMPANION_PROFILE_NEARBY_DEVICE_STREAMING),
+                eq(TEST_CALLING_UID));
+    }
+
+    /**
+     * Test checkNetworkCarrierProvisioningPermission
+     */
+    @Test
+    public void testCheckNetworkCarrierProvisioningPermission()
+             throws Exception {
+        setupTestCase();
+        WifiPermissionsUtil codeUnderTest = new WifiPermissionsUtil(mMockPermissionsWrapper,
+                mMockContext, mMockUserManager, mWifiInjector);
+        codeUnderTest.checkNetworkCarrierProvisioningPermission(TEST_CALLING_UID);
+        verify(mMockPermissionsWrapper).getUidPermission(eq(NETWORK_CARRIER_PROVISIONING),
+                eq(TEST_CALLING_UID));
+    }
+
+    /**
+     * Test areTwoAppsFromSameUser
+     */
+    @Test
+    public void testAreTwoAppsFromSameUser()
+             throws Exception {
+        // static mocking
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(UserHandle.class, withSettings().lenient())
+                .strictness(Strictness.LENIENT)
+                .startMocking();
+        setupTestCase();
+        WifiPermissionsUtil codeUnderTest = new WifiPermissionsUtil(mMockPermissionsWrapper,
+                mMockContext, mMockUserManager, mWifiInjector);
+        int otherCallingUid = TEST_CALLING_UID + 1;
+        UserHandle testUserHandle = mock(UserHandle.class);
+        when(UserHandle.getUserHandleForUid(anyInt())).thenReturn(null);
+        // No UserHandle
+        assertFalse(codeUnderTest.areTwoAppsFromSameUser(TEST_CALLING_UID, otherCallingUid));
+        // Same UserHandle
+        when(UserHandle.getUserHandleForUid(eq(TEST_CALLING_UID))).thenReturn(testUserHandle);
+        when(UserHandle.getUserHandleForUid(eq(otherCallingUid))).thenReturn(testUserHandle);
+        assertTrue(codeUnderTest.areTwoAppsFromSameUser(TEST_CALLING_UID, otherCallingUid));
     }
 }

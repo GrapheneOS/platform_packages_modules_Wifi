@@ -29,6 +29,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConfiguration.NetworkSelectionStatus;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.util.Environment;
 import android.text.TextUtils;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -736,6 +737,10 @@ public class WifiConfigurationTestUtil {
             assertEquals(expected.shared, actual.shared);
         }
         assertEquals(expected.getIpConfiguration(), actual.getIpConfiguration());
+        if (Environment.isSdkNewerThanB()) {
+            assertEquals(expected.isAllowedToUpdateByOtherUsers(),
+                    actual.isAllowedToUpdateByOtherUsers());
+        }
     }
 
 
@@ -802,6 +807,10 @@ public class WifiConfigurationTestUtil {
                 expected.enterpriseConfig, actual.enterpriseConfig);
         if (SdkLevel.isAtLeastV()) {
             assertEquals(expected.getVendorData(), actual.getVendorData());
+        }
+        if (Environment.isSdkNewerThanB()) {
+            assertEquals(expected.isAllowedToUpdateByOtherUsers(),
+                    actual.isAllowedToUpdateByOtherUsers());
         }
     }
 

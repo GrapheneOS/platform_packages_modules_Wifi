@@ -406,6 +406,8 @@ public class XmlUtil {
         public static final String XML_TAG_DPP_CSIGN_KEY = "DppCSignKey";
         public static final String XML_TAG_DPP_NET_ACCESS_KEY = "DppNetAccessKey";
         public static final String XML_TAG_ENABLE_WIFI7 = "EnableWifi7";
+        public static final String XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS =
+                "AllowedToUpdateByOtherUsers";
 
         /**
          * Write Wep Keys to the XML stream.
@@ -574,6 +576,7 @@ public class XmlUtil {
          * @param encryptionUtil Instance of {@link EncryptedDataXmlUtil}. Backup/restore stores
          *                       keys unencrypted.
          */
+        @SuppressLint("NewApi")
         public static void writeCommonElementsToXml(
                 XmlSerializer out, WifiConfiguration configuration,
                 @Nullable WifiConfigStoreEncryptionUtil encryptionUtil)
@@ -618,6 +621,11 @@ public class XmlUtil {
             XmlUtil.writeNextValue(out, XML_TAG_IS_REPEATER_ENABLED,
                     configuration.isRepeaterEnabled());
             XmlUtil.writeNextValue(out, XML_TAG_ENABLE_WIFI7, configuration.isWifi7Enabled());
+            if (Environment.isSdkNewerThanB()) {
+                XmlUtil.writeNextValue(out, XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS,
+                        Flags.multiUserWifiEnhancement()
+                        ? configuration.isAllowedToUpdateByOtherUsers() : true /* default */);
+            }
             writeSecurityParamsListToXml(out, configuration);
             XmlUtil.writeNextValue(out, XML_TAG_SEND_DHCP_HOSTNAME,
                     configuration.isSendDhcpHostnameEnabled());
@@ -871,6 +879,7 @@ public class XmlUtil {
          * @return Pair<Config key, WifiConfiguration object> if parsing is successful,
          * null otherwise.
          */
+        @SuppressLint("NewApi")
         public static Pair<String, WifiConfiguration> parseFromXml(
                 XmlPullParser in, int outerTagDepth, boolean shouldExpectEncryptedCredentials,
                 @Nullable WifiConfigStoreEncryptionUtil encryptionUtil, boolean fromSuggestion)
@@ -1082,6 +1091,12 @@ public class XmlUtil {
                             break;
                         case XML_TAG_ENABLE_WIFI7:
                             configuration.setWifi7Enabled((boolean) value);
+                            break;
+                        case XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS:
+                            if (Flags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()
+                                    && configuration.shared) {
+                                configuration.setAllowedToUpdateByOtherUsers((boolean) value);
+                            }
                             break;
                         default:
                             Log.w(TAG, "Ignoring unknown value name found: " + valueName[0]);

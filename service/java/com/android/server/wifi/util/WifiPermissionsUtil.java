@@ -1366,4 +1366,19 @@ public class WifiPermissionsUtil {
         return mContext.getPackageManager().checkSignatures(uid, Process.SYSTEM_UID)
                 == PackageManager.SIGNATURE_MATCH;
     }
+
+    /** Whether the uid1 and uid2 are from the same user */
+    public boolean areTwoAppsFromSameUser(int uid1, int uid2) {
+        long ident = Binder.clearCallingIdentity();
+        try {
+            UserHandle uid1UserHandle = UserHandle.getUserHandleForUid(uid1);
+            UserHandle uid2UserHandle = UserHandle.getUserHandleForUid(uid2);
+            if (uid1UserHandle != null) {
+                return uid1UserHandle.equals(uid2UserHandle);
+            }
+        } finally {
+            Binder.restoreCallingIdentity(ident);
+        }
+        return false;
+    }
 }

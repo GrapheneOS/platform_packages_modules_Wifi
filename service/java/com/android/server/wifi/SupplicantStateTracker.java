@@ -294,7 +294,11 @@ public class SupplicantStateTracker extends StateMachine {
             switch (message.what) {
                 case WifiMonitor.AUTHENTICATION_FAILURE_EVENT:
                     mAuthFailureInSupplicantBroadcast = true;
-                    mAuthFailureReason = message.arg1;
+                    AuthenticationFailureEventInfo authenticationFailureEventInfo =
+                            (AuthenticationFailureEventInfo) message.obj;
+                    if (authenticationFailureEventInfo != null) {
+                        mAuthFailureReason = authenticationFailureEventInfo.reasonCode;
+                    }
                     break;
                 case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT:
                     StateChangeResult stateChangeResult = (StateChangeResult) message.obj;
