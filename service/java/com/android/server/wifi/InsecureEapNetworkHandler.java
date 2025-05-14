@@ -34,17 +34,20 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.util.Pair;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
 import com.android.internal.util.HexDump;
 import com.android.server.wifi.util.CertificateSubjectInfo;
+import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.resources.R;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.cert.CertPath;
 import java.security.cert.CertPathValidator;
 import java.security.cert.CertPathValidatorException;
@@ -54,9 +57,11 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.StringJoiner;
 
@@ -85,6 +90,7 @@ public class InsecureEapNetworkHandler {
     private final FrameworkFacade mFacade;
     private final WifiNotificationManager mNotificationManager;
     private final WifiDialogManager mWifiDialogManager;
+    private final FeatureFlags mFeatureFlags;
     private final boolean mIsTrustOnFirstUseSupported;
     private final boolean mIsInsecureEnterpriseConfigurationAllowed;
     private final InsecureEapNetworkHandlerCallbacks mCallbacks;
@@ -148,6 +154,7 @@ public class InsecureEapNetworkHandler {
             @NonNull FrameworkFacade facade,
             @NonNull WifiNotificationManager notificationManager,
             @NonNull WifiDialogManager wifiDialogManager,
+            @NonNull FeatureFlags featureFlags,
             boolean isTrustOnFirstUseSupported,
             boolean isInsecureEnterpriseConfigurationAllowed,
             @NonNull InsecureEapNetworkHandlerCallbacks callbacks,
@@ -159,12 +166,12 @@ public class InsecureEapNetworkHandler {
         mFacade = facade;
         mNotificationManager = notificationManager;
         mWifiDialogManager = wifiDialogManager;
+        mFeatureFlags = featureFlags;
         mIsTrustOnFirstUseSupported = isTrustOnFirstUseSupported;
         mIsInsecureEnterpriseConfigurationAllowed = isInsecureEnterpriseConfigurationAllowed;
         mCallbacks = callbacks;
         mInterfaceName = interfaceName;
         mHandler = handler;
-
         mOnNetworkUpdateListener = new OnNetworkUpdateListener();
         mWifiConfigManager.addOnNetworkUpdateListener(mOnNetworkUpdateListener);
 
@@ -675,6 +682,45 @@ public class InsecureEapNetworkHandler {
         if (null != mCallbacks) mCallbacks.onError(ssid);
     }
 
+    class TofuDialogCallback implements WifiDialogManager.SimpleDialogCallback {
+        @Override
+        public void onPositiveButtonClicked() {
+            if (mCurrentTofuConfig == null) {
+                return;
+            }
+            Log.d(TAG, "User accepted the server certificate");
+            handleAccept(mCurrentTofuConfig.SSID);
+        }
+
+        @Override
+        public void onNegativeButtonClicked() {
+            if (mCurrentTofuConfig == null) {
+                return;
+            }
+            Log.d(TAG, "User rejected the server certificate");
+            handleReject(mCurrentTofuConfig.SSID);
+        }
+
+        @Override
+        public void onNeutralButtonClicked() {
+            // Not used.
+            if (mCurrentTofuConfig == null) {
+                return;
+            }
+            Log.d(TAG, "User input neutral");
+            handleReject(mCurrentTofuConfig.SSID);
+        }
+
+        @Override
+        public void onCancelled() {
+            if (mCurrentTofuConfig == null) {
+                return;
+            }
+            Log.d(TAG, "User input canceled");
+            handleReject(mCurrentTofuConfig.SSID);
+        }
+    }
+
     private void askForUserApprovalForCaCertificate() {
         if (mCurrentTofuConfig == null || TextUtils.isEmpty(mCurrentTofuConfig.SSID)) return;
         if (useTrustOnFirstUse()) {
@@ -701,6 +747,10 @@ public class InsecureEapNetworkHandler {
         int messageUrlStart = 0;
         int messageUrlEnd = 0;
         if (useTrustOnFirstUse()) {
+            if (mFeatureFlags.updatedTofuDialog()) {
+                showUpdatedTofuDialog();
+                return;
+            }
             StringBuilder contentBuilder = new StringBuilder()
                     .append(mContext.getString(R.string.wifi_ca_cert_dialog_message_hint))
                     .append(mContext.getString(
@@ -745,45 +795,138 @@ public class InsecureEapNetworkHandler {
                 positiveButtonText,
                 negativeButtonText,
                 null /* neutralButtonText */,
-                new WifiDialogManager.SimpleDialogCallback() {
-                    @Override
-                    public void onPositiveButtonClicked() {
-                        if (mCurrentTofuConfig == null) {
-                            return;
-                        }
-                        Log.d(TAG, "User accepted the server certificate");
-                        handleAccept(mCurrentTofuConfig.SSID);
-                    }
-
-                    @Override
-                    public void onNegativeButtonClicked() {
-                        if (mCurrentTofuConfig == null) {
-                            return;
-                        }
-                        Log.d(TAG, "User rejected the server certificate");
-                        handleReject(mCurrentTofuConfig.SSID);
-                    }
-
-                    @Override
-                    public void onNeutralButtonClicked() {
-                        // Not used.
-                        if (mCurrentTofuConfig == null) {
-                            return;
-                        }
-                        Log.d(TAG, "User input neutral");
-                        handleReject(mCurrentTofuConfig.SSID);
-                    }
-
-                    @Override
-                    public void onCancelled() {
-                        if (mCurrentTofuConfig == null) {
-                            return;
-                        }
-                        Log.d(TAG, "User input canceled");
-                        handleReject(mCurrentTofuConfig.SSID);
-                    }
-                },
+                new TofuDialogCallback(),
                 new WifiThreadRunner(mHandler));
+        mTofuAlertDialog.launchDialog();
+    }
+
+    private static String getAttributesOnDifferentLines(@NonNull CertificateSubjectInfo info) {
+        StringJoiner sj = new StringJoiner("\n");
+        String[] attributes = info.rawData.split("(?<!\\\\),");
+        for (String attribute : attributes) {
+            sj.add(attribute);
+        }
+        return sj.toString();
+    }
+
+    @VisibleForTesting
+    static List<Pair<String, String>> createTofuDialogCertInfoList(
+            @NonNull Context context, @NonNull X509Certificate serverCert) {
+        CertificateSubjectInfo serverCertSubjectInfo =
+                CertificateSubjectInfo.parse(serverCert.getSubjectX500Principal().getName());
+        CertificateSubjectInfo serverCertIssuerInfo =
+                CertificateSubjectInfo.parse(serverCert.getIssuerX500Principal().getName());
+
+        List<Pair<String, String>> listItems = new ArrayList<>();
+
+        // Server and issuer name
+        if (serverCertSubjectInfo != null) {
+            listItems.add(new Pair<>(
+                    context.getString(R.string.wifi_tofu_dialog2_list_label_server_name),
+                    serverCertSubjectInfo.commonName));
+        }
+        if (serverCertIssuerInfo != null) {
+            listItems.add(new Pair<>(
+                    context.getString(R.string.wifi_tofu_dialog2_list_label_issuer_name),
+                    serverCertIssuerInfo.commonName));
+        }
+
+        // Validity
+        final Date validityStart = serverCert.getNotBefore();
+        final Date validityEnd = serverCert.getNotAfter();
+        if (validityStart != null && validityEnd != null) {
+            listItems.add(
+                    new Pair<>(
+                            context.getString(
+                                    R.string.wifi_tofu_dialog2_list_label_validity_period),
+                            context.getString(
+                                    R.string.wifi_tofu_dialog2_list_content_validity_period,
+                                    DateFormat.getMediumDateFormat(context).format(validityStart),
+                                    DateFormat.getMediumDateFormat(context).format(validityEnd))
+                    )
+            );
+        }
+
+        // SHA fingerprints
+        final String sha256fingerprint = getDigest(serverCert, "SHA256");
+        if (!TextUtils.isEmpty(sha256fingerprint)) {
+            listItems.add(new Pair<>(
+                    context.getString(R.string.wifi_tofu_dialog2_list_label_sha256_fingerprint),
+                    sha256fingerprint));
+        }
+        final String sha1fingerprint = getDigest(serverCert, "SHA1");
+        if (!TextUtils.isEmpty(sha1fingerprint)) {
+            listItems.add(new Pair<>(
+                    context.getString(R.string.wifi_tofu_dialog2_list_label_sha1_fingerprint),
+                    sha1fingerprint));
+        }
+
+        // Name details
+        if (serverCertSubjectInfo != null) {
+            listItems.add(new Pair<>(
+                    context.getString(R.string.wifi_tofu_dialog2_list_label_subject_name_details),
+                    getAttributesOnDifferentLines(serverCertSubjectInfo)));
+        }
+        if (serverCertIssuerInfo != null) {
+            listItems.add(new Pair<>(
+                    context.getString(R.string.wifi_tofu_dialog2_list_label_issuer_name_details),
+                    getAttributesOnDifferentLines(serverCertIssuerInfo)));
+        }
+
+        // Serial number
+        if (serverCert.getSerialNumber() != null) {
+            listItems.add(new Pair<>(
+                    context.getString(R.string.wifi_tofu_dialog2_list_label_serial_number),
+                    serverCert.getSerialNumber().toString(16)));
+        }
+
+        // Public key
+        PublicKey publicKey = serverCert.getPublicKey();
+        if (publicKey != null) {
+            listItems.add(new Pair<>(
+                    context.getString(R.string.wifi_tofu_dialog2_list_label_public_key_algorithm),
+                    publicKey.getAlgorithm()));
+            listItems.add(new Pair<>(
+                    context.getString(R.string.wifi_tofu_dialog2_list_label_public_key_size),
+                    context.getString(
+                            R.string.wifi_tofu_dialog2_list_content_public_key_size,
+                            publicKey.getEncoded().length * 8)));
+            listItems.add(new Pair<>(
+                    context.getString(R.string.wifi_tofu_dialog2_list_label_public_key),
+                    fingerprint(publicKey.getEncoded())));
+        }
+
+        // Signature
+        listItems.add(new Pair<>(
+                context.getString(R.string.wifi_tofu_dialog2_list_label_signature_algorithm),
+                serverCert.getSigAlgName()));
+        listItems.add(new Pair<>(
+                context.getString(R.string.wifi_tofu_dialog2_list_label_signature),
+                fingerprint(serverCert.getSignature())));
+
+        // Version
+        listItems.add(new Pair<>(
+                context.getString(R.string.wifi_tofu_dialog2_list_label_version),
+                String.valueOf(serverCert.getVersion())));
+
+        return listItems;
+    }
+
+    private void showUpdatedTofuDialog() {
+        if (mPendingServerCert == null) {
+            Log.e(TAG, "Tried to show tofu dialog but mPendingServerCert is null!");
+            return;
+        }
+        mTofuAlertDialog = mWifiDialogManager.createSimpleDialogBuilder()
+                .setTitle(mContext.getString(R.string.wifi_tofu_dialog2_title))
+                .setMessage(mContext.getString(R.string.wifi_tofu_dialog2_message))
+                .setListItems(createTofuDialogCertInfoList(mContext, mPendingServerCert))
+                .setPositiveButtonText(
+                        mContext.getString(R.string.wifi_tofu_dialog2_positive_button))
+                .setNegativeButtonText(
+                        mContext.getString(R.string.wifi_tofu_dialog2_negative_button))
+                .setCallback(new TofuDialogCallback(), new WifiThreadRunner(mHandler))
+                .build();
         mTofuAlertDialog.launchDialog();
     }
 

@@ -11753,6 +11753,20 @@ public class WifiManager {
             "android.net.wifi.extra.DIALOG_MESSAGE_URL_END";
 
     /**
+     * Extra String indicating the labels for the list items of a simple dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_LIST_LABELS =
+            "android.net.wifi.extra.EXTRA_DIALOG_LIST_LABELS";
+
+    /**
+     * Extra String indicating the contents for the list items of a simple dialog.
+     * @hide
+     */
+    public static final String EXTRA_DIALOG_LIST_CONTENTS =
+            "android.net.wifi.extra.EXTRA_DIALOG_LIST_CONTENTS";
+
+    /**
      * Extra String indicating the positive button text of a simple dialog.
      * @hide
      */

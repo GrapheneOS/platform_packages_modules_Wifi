@@ -97,4 +97,30 @@
     <style name="wifi_p2p_dialog2_display_pin_section" parent="@style/wifi_p2p_dialog2_pin_section" />
     <style name="wifi_p2p_dialog2_display_pin_label" parent="@style/wifi_p2p_dialog2_pin_label" />
     <style name="wifi_p2p_dialog2_display_pin" parent="@style/wifi_p2p_dialog2_pin" />
+
+    <style name="wifi_dialog_list_divider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">@android:drawable/divider_horizontal_bright</item>
+    </style>
+
+    <style name="wifi_dialog_list_item_label">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginLeft">24dp</item>
+        <item name="android:layout_marginRight">24dp</item>
+        <item name="android:layout_marginTop">14dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">@android:color/primary_text_light</item>
+    </style>
+
+    <style name="wifi_dialog_list_item_content">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginBottom">14dp</item>
+        <item name="android:layout_marginLeft">24dp</item>
+        <item name="android:layout_marginRight">24dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@android:color/secondary_text_light</item>
+    </style>
 </resources>

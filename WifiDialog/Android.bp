@@ -27,6 +27,7 @@ android_app {
     ],
     static_libs: [
         "androidx.appcompat_appcompat",
+        "androidx-constraintlayout_constraintlayout",
     ],
     srcs: ["src/**/*.java"],
     sdk_version: "module_current",

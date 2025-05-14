@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 import static com.android.server.wifi.InsecureEapNetworkHandler.TOFU_ANONYMOUS_IDENTITY;
+import static com.android.server.wifi.InsecureEapNetworkHandler.createTofuDialogCertInfoList;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -49,12 +50,14 @@ import android.os.Handler;
 import android.os.test.TestLooper;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
+import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.util.CertificateSubjectInfo;
+import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
@@ -322,6 +325,8 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
     @Mock FrameworkFacade mFrameworkFacade;
     @Mock WifiNotificationManager mWifiNotificationManager;
     @Mock WifiDialogManager mWifiDialogManager;
+    @Mock WifiDialogManager.SimpleDialogBuilder mDialogBuilder;
+    @Mock FeatureFlags mFeatureFlags;
     @Mock InsecureEapNetworkHandler.InsecureEapNetworkHandlerCallbacks mCallbacks;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) private Notification.Builder mNotificationBuilder;
     @Mock private WifiDialogManager.DialogHandle mTofuAlertDialog;
@@ -369,6 +374,50 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 anyString()))
                 .thenAnswer((Answer<String>) invocation ->
                         "SHA-256 Fingerprint:\n" + invocation.getArguments()[1] + "\n\n");
+
+        // Updated TOFU dialog strings
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_title)))
+                .thenReturn("wifi_tofu_dialog2_title");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_message)))
+                .thenReturn("wifi_tofu_dialog2_message");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_negative_button)))
+                .thenReturn("wifi_tofu_dialog2_negative_button");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_positive_button)))
+                .thenReturn("wifi_tofu_dialog2_positive_button");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_server_name)))
+                .thenReturn("wifi_tofu_dialog2_list_label_server_name");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_issuer_name)))
+                .thenReturn("wifi_tofu_dialog2_list_label_issuer_name");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_validity_period)))
+                .thenReturn("wifi_tofu_dialog2_list_label_validity_period");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_content_validity_period),
+                any(), any()))
+                .thenReturn("wifi_tofu_dialog2_list_content_validity_period");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_sha256_fingerprint)))
+                .thenReturn("wifi_tofu_dialog2_list_label_sha256_fingerprint");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_sha1_fingerprint)))
+                .thenReturn("wifi_tofu_dialog2_list_label_sha1_fingerprint");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_subject_name_details)))
+                .thenReturn("wifi_tofu_dialog2_list_label_subject_name_details");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_issuer_name_details)))
+                .thenReturn("wifi_tofu_dialog2_list_label_issuer_name_details");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_version)))
+                .thenReturn("wifi_tofu_dialog2_list_label_version");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_serial_number)))
+                .thenReturn("wifi_tofu_dialog2_list_label_serial_number");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_public_key_algorithm)))
+                .thenReturn("wifi_tofu_dialog2_list_label_public_key_algorithm");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_public_key_size)))
+                .thenReturn("wifi_tofu_dialog2_list_label_public_key_size");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_content_public_key_size), any()))
+                .thenReturn("wifi_tofu_dialog2_list_content_public_key_size");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_public_key)))
+                .thenReturn("wifi_tofu_dialog2_list_label_public_key");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_signature_algorithm)))
+                .thenReturn("wifi_tofu_dialog2_list_label_signature_algorithm");
+        when(mContext.getString(eq(R.string.wifi_tofu_dialog2_list_label_signature)))
+                .thenReturn("wifi_tofu_dialog2_list_label_signature");
+
         when(mContext.getWifiOverlayApkPkgName()).thenReturn("test.com.android.wifi.resources");
         when(mContext.getResources()).thenReturn(mResources);
         when(mWifiDialogManager.createLegacySimpleDialogWithUrl(
@@ -377,6 +426,16 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         when(mWifiDialogManager.createLegacySimpleDialog(
                 any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mTofuAlertDialog);
+        when(mWifiDialogManager.createSimpleDialogBuilder()).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.build()).thenReturn(mTofuAlertDialog);
+        when(mDialogBuilder.setTitle(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setMessage(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setMessageUrl(any(), anyInt(), anyInt())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setListItems(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setPositiveButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setNegativeButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setNeutralButtonText(any())).thenReturn(mDialogBuilder);
+        when(mDialogBuilder.setCallback(any(), any())).thenReturn(mDialogBuilder);
 
         when(mFrameworkFacade.makeNotificationBuilder(any(), any()))
                 .thenReturn(mNotificationBuilder);
@@ -638,7 +697,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockServerCert);
         verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, true,
                 true, false, null, mockServerCert.getCert(),
-                null);
+                null, false);
     }
 
     /**
@@ -672,7 +731,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 .thenReturn(getCertificate(TEST_GEN_CA2_CERT));
         verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, true,
                 true, false, mockCaCert.getCert(), mockServerCert.getCert(),
-                WifiConfigurationUtil.getSystemTrustStorePath());
+                WifiConfigurationUtil.getSystemTrustStorePath(), false);
     }
 
     private CertificateEventInfo generateMockCertEventInfo(int type) throws Exception {
@@ -738,6 +797,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mFrameworkFacade,
                 mWifiNotificationManager,
                 mWifiDialogManager,
+                mFeatureFlags,
                 isTrustOnFirstUseSupported,
                 isInsecureEnterpriseConfigurationAllowed,
                 mCallbacks,
@@ -808,7 +868,33 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, mockCaCert.getCert(), mockServerCert.getCert(),
-                null);
+                null, false);
+    }
+
+    /**
+     * Verify Trust On First Use flow with a minimal cert chain using the updated TOFU dialog.
+     * - This network is selected by a user.
+     * - Accept the connection.
+     */
+    @Test
+    public void verifyTrustOnFirstUseAcceptWhenConnectByUserWithMinimalChainUpdatedDialog()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        when(mFeatureFlags.updatedTofuDialog()).thenReturn(true);
+        boolean isAtLeastT = true, isTrustOnFirstUseSupported = true, isUserSelected = true;
+        boolean needUserApproval = true;
+
+        WifiConfiguration config = prepareWifiConfiguration(isAtLeastT);
+        setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
+
+        CertificateEventInfo mockCaCert = generateMockCertEventInfo(TEST_GEN_CA_CERT);
+        CertificateEventInfo mockServerCert = generateMockCertEventInfo(TEST_GEN_SERVER_CERT);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 1, mockCaCert);
+        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockServerCert);
+
+        verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, isTrustOnFirstUseSupported,
+                isUserSelected, needUserApproval, mockCaCert.getCert(), mockServerCert.getCert(),
+                null, true);
     }
 
     /**
@@ -832,7 +918,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         verifyTrustOnFirstUseFlow(config, ACTION_FORGET, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, mockSelfSignedCert.getCert(),
-                mockSelfSignedCert.getCert(), null);
+                mockSelfSignedCert.getCert(), null, false);
     }
 
     /**
@@ -998,6 +1084,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mFrameworkFacade,
                 mWifiNotificationManager,
                 mWifiDialogManager,
+                mFeatureFlags,
                 true /* isTrustOnFirstUseSupported */,
                 false /* isInsecureEnterpriseConfigurationAllowed */,
                 mCallbacks,
@@ -1074,25 +1161,40 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         }
         verifyTrustOnFirstUseFlow(config, action, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, mockCaCert.getCert(), mockServerCert.getCert(),
-                null);
+                null, false);
     }
 
     private void verifyTrustOnFirstUseFlow(WifiConfiguration config,
             int action, boolean isTrustOnFirstUseSupported, boolean isUserSelected,
             boolean needUserApproval, X509Certificate expectedCaCert,
-            X509Certificate expectedServerCert, String expectedCaPath) throws Exception {
+            X509Certificate expectedServerCert, String expectedCaPath,
+            boolean useUpdatedTofuDialog) throws Exception {
         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected);
 
         ArgumentCaptor<String> dialogMessageCaptor = ArgumentCaptor.forClass(String.class);
         if (isUserSelected) {
             ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
                     ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-            verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
-                    any(), dialogMessageCaptor.capture(), any(), anyInt(), anyInt(), any(), any(),
-                    any(), dialogCallbackCaptor.capture(), any());
+            ArgumentCaptor<List<Pair<String, String>>> dialogListCaptor =
+                    ArgumentCaptor.forClass(List.class);
+
+            if (useUpdatedTofuDialog) {
+                verify(mWifiDialogManager).createSimpleDialogBuilder();
+                verify(mDialogBuilder).setListItems(dialogListCaptor.capture());
+                verify(mDialogBuilder).setCallback(dialogCallbackCaptor.capture(), any());
+            } else {
+                verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
+                        any(), dialogMessageCaptor.capture(), any(), anyInt(), anyInt(), any(),
+                        any(), any(), dialogCallbackCaptor.capture(), any());
+            }
             if (isTrustOnFirstUseSupported) {
-                assertTofuDialogMessage(expectedServerCert,
-                        dialogMessageCaptor.getValue());
+                if (useUpdatedTofuDialog) {
+                    assertEquals(createTofuDialogCertInfoList(mContext, expectedServerCert),
+                            dialogListCaptor.getValue());
+                } else {
+                    assertTofuDialogMessage(expectedServerCert,
+                            dialogMessageCaptor.getValue());
+                }
             }
             if (action == ACTION_ACCEPT) {
                 dialogCallbackCaptor.getValue().onPositiveButtonClicked();
@@ -1255,6 +1357,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mFrameworkFacade,
                 mWifiNotificationManager,
                 mWifiDialogManager,
+                mFeatureFlags,
                 true,
                 false,
                 mCallbacks,

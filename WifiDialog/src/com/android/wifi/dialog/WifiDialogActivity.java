@@ -41,7 +41,9 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.text.style.URLSpan;
+import android.util.ArrayMap;
 import android.util.ArraySet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.ContextThemeWrapper;
@@ -53,6 +55,9 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -63,6 +68,7 @@ import com.android.wifi.x.com.android.wifi.flags.Flags;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,6 +81,8 @@ public class WifiDialogActivity extends Activity  {
     private static final String KEY_DIALOG_INTENTS = "KEY_DIALOG_INTENTS";
     private static final String EXTRA_DIALOG_P2P_PIN_INPUT =
             "com.android.wifi.dialog.DIALOG_P2P_PIN_INPUT";
+    private static final String LIST_ADAPTER_LABEL_NAME = "label";
+    private static final String LIST_ADAPTER_CONTENT_NAME = "content";
 
     private @Nullable WifiContext mWifiContext;
     private @Nullable WifiManager mWifiManager;
@@ -341,6 +349,8 @@ public class WifiDialogActivity extends Activity  {
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL),
                         intent.getIntExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_START, 0),
                         intent.getIntExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_END, 0),
+                        intent.getStringArrayListExtra(WifiManager.EXTRA_DIALOG_LIST_LABELS),
+                        intent.getStringArrayListExtra(WifiManager.EXTRA_DIALOG_LIST_CONTENTS),
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_POSITIVE_BUTTON_TEXT),
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_NEGATIVE_BUTTON_TEXT),
                         intent.getStringExtra(WifiManager.EXTRA_DIALOG_NEUTRAL_BUTTON_TEXT));
@@ -423,6 +433,8 @@ public class WifiDialogActivity extends Activity  {
             @Nullable String messageUrl,
             int messageUrlStart,
             int messageUrlEnd,
+            @Nullable List<String> listLabels,
+            @Nullable List<String> listContents,
             @Nullable String positiveButtonText,
             @Nullable String negativeButtonText,
             @Nullable String neutralButtonText) {
@@ -443,7 +455,7 @@ public class WifiDialogActivity extends Activity  {
                 }
             }
         }
-        AlertDialog dialog = getWifiAlertDialogBuilder("wifi_dialog")
+        AlertDialog.Builder dialogBuilder = getWifiAlertDialogBuilder("wifi_dialog")
                 .setTitle(title)
                 .setMessage(spannableMessage)
                 .setPositiveButton(positiveButtonText, (dialogPositive, which) -> {
@@ -477,19 +489,94 @@ public class WifiDialogActivity extends Activity  {
                     }
                     getWifiManager().replyToSimpleDialog(dialogId,
                             WifiManager.DIALOG_REPLY_CANCELLED);
-                })
-                .create();
+                });
+        final View listView;
+        if (listLabels != null && listContents != null
+                && listLabels.size() == listContents.size()) {
+            listView = createListView(dialogBuilder.getContext(), listLabels, listContents);
+            dialogBuilder.setView(listView);
+        } else {
+            listView = null;
+        }
+
         if (mIsVerboseLoggingEnabled) {
             Log.v(TAG, "Created a simple dialog."
                     + " id=" + dialogId
                     + " title=" + title
                     + " message=" + message
+                    + " listLabels=" + listLabels
+                    + " listContents=" + listContents
                     + " url=[" + messageUrl + "," + messageUrlStart + "," + messageUrlEnd + "]"
+                    + " listLabels="  + listLabels
+                    + " listContents=" + listContents
                     + " positiveButtonText=" + positiveButtonText
                     + " negativeButtonText=" + negativeButtonText
                     + " neutralButtonText=" + neutralButtonText);
         }
+
+        AlertDialog dialog = dialogBuilder.create();
+
+        // Trim the list view to 45% of the screen height so that it doesn't push the button bar out
+        // of view.
+        dialog.setOnShowListener(dlg -> {
+            if (listView == null) return;
+            trimCustomView((AlertDialog) dlg, getWifiViewId("wifi_dialog_list_data"), 0.45f);
+        });
         return dialog;
+    }
+
+    private void trimCustomView(AlertDialog dialog, int viewId, float percentageOfScreen) {
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        int maxHeightPx = (int) (displayMetrics.heightPixels * percentageOfScreen);
+
+        View customView = dialog.findViewById(viewId);
+        LinearLayout.LayoutParams params =
+                (LinearLayout.LayoutParams) customView.getLayoutParams();
+        if (params.height < maxHeightPx) {
+            params.height = maxHeightPx;
+        }
+        customView.setLayoutParams(params);
+    }
+
+    private static class UnclickableSimpleAdapter extends SimpleAdapter {
+        UnclickableSimpleAdapter(
+                Context context,
+                List<? extends Map<String, ?>> data,
+                int resource,
+                String[] from, int[] to) {
+            super(context, data, resource, from, to);
+        }
+
+        @Override
+        public boolean isEnabled(int position) {
+            return false;
+        }
+    }
+
+    private View createListView(
+            @NonNull Context context,
+            @NonNull List<String> labels,
+            @NonNull List<String> contents) {
+        List<Map<String, String>> data = new ArrayList<>();
+        Iterator<String> labelIter = labels.iterator();
+        Iterator<String> contentIter = contents.iterator();
+        while (labelIter.hasNext()) {
+            Map<String, String> listItemData = new ArrayMap<>();
+            listItemData.put(LIST_ADAPTER_LABEL_NAME, labelIter.next());
+            listItemData.put(LIST_ADAPTER_CONTENT_NAME, contentIter.next());
+            data.add(listItemData);
+        }
+        SimpleAdapter listAdapter = new UnclickableSimpleAdapter(context, data,
+                getWifiLayoutId("wifi_dialog_list_item"),
+                new String[] {LIST_ADAPTER_LABEL_NAME,  LIST_ADAPTER_CONTENT_NAME},
+                new int[] {
+                        getWifiViewId("wifi_dialog_list_item_label"),
+                        getWifiViewId("wifi_dialog_list_item_content")});
+        View listView = getWifiLayoutInflater()
+                .inflate(getWifiLayoutId("wifi_dialog_list"), null);
+        ListView dataView = listView.findViewById(getWifiViewId("wifi_dialog_list_data"));
+        dataView.setAdapter(listAdapter);
+        return listView;
     }
 
     /**

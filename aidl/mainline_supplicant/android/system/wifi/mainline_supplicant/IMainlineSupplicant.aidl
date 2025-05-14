@@ -48,4 +48,29 @@ interface IMainlineSupplicant {
      * Terminate the service.
      */
     oneway void terminate();
+
+    /**
+     * Debug log levels for the supplicant. Only log messages with a level greater than
+     * or equal to the one set via |setDebugParams| will be logged.
+     */
+    @Backing(type="byte")
+    enum DebugLevel {
+        EXCESSIVE = 0,
+        MSGDUMP = 1,
+        DEBUG = 2,
+        INFO = 3,
+        WARNING = 4,
+        ERROR = 5,
+    }
+
+    /**
+     * Set debug parameters for the supplicant.
+     *
+     * @param level Debug logging level for the supplicant.
+     * @param showKeys Determines whether to show keys in the logs.
+     *        CAUTION: Do not enable this param in production code!
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void setDebugParams(DebugLevel level, boolean showKeys);
 }

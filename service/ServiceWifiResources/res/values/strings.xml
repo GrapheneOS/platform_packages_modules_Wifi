@@ -266,6 +266,27 @@
     <string name="wifi_tofu_invalid_cert_chain_message">The server certificate chain is invalid.</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text">OK</string>
 
+    <string name="wifi_tofu_dialog2_title">Security certificate</string>
+    <string name="wifi_tofu_dialog2_message">Only continue if you trust this network and the info below looks correct.</string>
+    <string name="wifi_tofu_dialog2_negative_button">Cancel</string>
+    <string name="wifi_tofu_dialog2_positive_button">Trust</string>
+    <string name="wifi_tofu_dialog2_list_label_server_name">Server</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name">Issuer</string>
+    <string name="wifi_tofu_dialog2_list_label_validity_period">Validity</string>
+    <string name="wifi_tofu_dialog2_list_content_validity_period">From <xliff:g id="startDate">%1$s</xliff:g> to <xliff:g id="endDate">%2$s</xliff:g></string>
+    <string name="wifi_tofu_dialog2_list_label_sha256_fingerprint">SHA-256 fingerprint</string>
+    <string name="wifi_tofu_dialog2_list_label_sha1_fingerprint">SHA-1 fingerprint</string>
+    <string name="wifi_tofu_dialog2_list_label_subject_name_details">Subject name details</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name_details">Issuer name details</string>
+    <string name="wifi_tofu_dialog2_list_label_version">Version</string>
+    <string name="wifi_tofu_dialog2_list_label_serial_number">Serial number</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_algorithm">Public key algorithm</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_size">Public key size</string>
+    <string name="wifi_tofu_dialog2_list_content_public_key_size"><xliff:g id="numberOfBits">%1$s</xliff:g> bits</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key">Public key</string>
+    <string name="wifi_tofu_dialog2_list_label_signature_algorithm">Signature algorithm</string>
+    <string name="wifi_tofu_dialog2_list_label_signature">Signature</string>
+
     <!-- Legacy EAP network dialog and notification text on Pre-T devices. -->
     <string name="wifi_ca_cert_dialog_preT_title">Can\'t verify this network</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text">Stay connected</string>

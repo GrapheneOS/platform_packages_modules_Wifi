@@ -151,6 +151,8 @@ public class SelfRecovery {
 
         @Override
         public void onSubsystemRestart() {
+            WifiStatsLog.write(WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED,
+                    WifiStatsLog.WIFI_SETUP_FAILURE_CRASH_REPORTED__TYPE__SSR_CRASH);
             long timeElapsedFromLastTrigger = getTimeElapsedFromLastTrigger();
             mLastSelfRecoveryTimeStampMillis = mClock.getWallClockMillis();
             if (mRecoveryState == STATE_RESTART_WIFI) {

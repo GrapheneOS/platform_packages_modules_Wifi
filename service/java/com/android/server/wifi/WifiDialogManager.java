@@ -34,6 +34,7 @@ import android.text.method.LinkMovementMethod;
 import android.text.style.URLSpan;
 import android.util.ArraySet;
 import android.util.Log;
+import android.util.Pair;
 import android.util.SparseArray;
 import android.view.ContextThemeWrapper;
 import android.view.Display;
@@ -52,6 +53,8 @@ import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.wifi.resources.R;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -392,6 +395,8 @@ public class WifiDialogManager {
         private int mMessageUrlStart;
         private int mMessageUrlEnd;
         @Nullable
+        private List<Pair<String, String>> mListItems;
+        @Nullable
         private String mPositiveButtonText;
         @Nullable
         private String mNegativeButtonText;
@@ -429,6 +434,16 @@ public class WifiDialogManager {
             mMessageUrl = messageUrl;
             mMessageUrlStart = messageUrlStart;
             mMessageUrlEnd = messageUrlEnd;
+            return this;
+        }
+
+        /**
+         * Sets a list to display beneath the message. The list will be composed of two-line items
+         * containing a label and content beneath it.
+         * @param items List of items represented as pairs of label and content.
+         */
+        public SimpleDialogBuilder setListItems(List<Pair<String, String>> items) {
+            mListItems = items;
             return this;
         }
 
@@ -487,6 +502,17 @@ public class WifiDialogManager {
                     intent.putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL, mMessageUrl);
                     intent.putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_START, mMessageUrlStart);
                     intent.putExtra(WifiManager.EXTRA_DIALOG_MESSAGE_URL_END, mMessageUrlEnd);
+                }
+                if (mListItems != null) {
+                    ArrayList<String> labels = new ArrayList<>();
+                    ArrayList<String> contents = new ArrayList<>();
+                    for (Pair<String, String> pair : mListItems) {
+                        labels.add(pair.first);
+                        contents.add(pair.second);
+                    }
+                    intent.putStringArrayListExtra(WifiManager.EXTRA_DIALOG_LIST_LABELS, labels);
+                    intent.putStringArrayListExtra(WifiManager.EXTRA_DIALOG_LIST_CONTENTS,
+                            contents);
                 }
                 if (mPositiveButtonText != null) {
                     intent.putExtra(

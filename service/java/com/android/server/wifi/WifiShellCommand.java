@@ -1585,6 +1585,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                         Integer.valueOf(getNextArgRequired()) /* messageUrlStart */,
                                         Integer.valueOf(getNextArgRequired()) /* messageUrlEnd */);
                                 break;
+                            case "-i":
+                                dialogBuilder.setListItems(buildDialogList());
+                                break;
                             case "-y":
                                 dialogBuilder.setPositiveButtonText(getNextArgRequired());
                                 break;
@@ -3121,6 +3124,16 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         return cellChannels;
     }
 
+    private List<Pair<String, String>> buildDialogList() {
+        List<Pair<String, String>> list = new ArrayList<>();
+        String nextArg = peekNextArg();
+        while (nextArg != null && !nextArg.startsWith("-")) {
+            list.add(new Pair<>(getNextArgRequired(), getNextArgRequired()));
+            nextArg = peekNextArg();
+        }
+        return list;
+    }
+
     private int sendLinkProbe(PrintWriter pw) throws InterruptedException {
         // Note: should match WifiNl80211Manager#SEND_MGMT_FRAME_TIMEOUT_MS
         final int sendMgmtFrameTimeoutMs = 1000;
@@ -3402,9 +3415,15 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println(
                 "    Reset the WiFi resources cache which will cause them to be reloaded next "
                         + "time they are accessed. Necessary if overlays are manually modified.");
-        pw.println("  launch-dialog-simple [-t <title>] [-m <message>]"
-                + " [-l <url> <url_start> <url_end>] [-y <positive_button_text>]"
-                + " [-n <negative_button_text>] [-x <neutral_button_text>] [-c <timeout_millis>]");
+        pw.println("  launch-dialog-simple"
+                + " [-t <title>]"
+                + " [-m <message>]"
+                + " [-l <url> <url_start> <url_end>]"
+                + " [-i <label1> <content1> ... <labelN> <contentN>]"
+                + " [-y <positive_button_text>]"
+                + " [-n <negative_button_text>]"
+                + " [-x <neutral_button_text>]"
+                + " [-c <timeout_millis>]");
         pw.println("    Launches a simple dialog and waits up to 15 seconds to"
                 + " print the response.");
         pw.println("    -t - Title");
