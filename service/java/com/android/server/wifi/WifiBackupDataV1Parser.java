@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 import android.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.net.InetAddresses;
 import android.net.IpConfiguration;
 import android.net.IpConfiguration.IpAssignment;
@@ -28,12 +29,14 @@ import android.net.StaticIpConfiguration;
 import android.net.Uri;
 import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.util.Environment;
 import android.util.Log;
 import android.util.Pair;
 
 import com.android.server.wifi.util.XmlUtil;
 import com.android.server.wifi.util.XmlUtil.IpConfigurationXmlUtil;
 import com.android.server.wifi.util.XmlUtil.WifiConfigurationXmlUtil;
+import com.android.wifi.flags.Flags;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -93,7 +96,8 @@ class WifiBackupDataV1Parser implements WifiBackupDataParser {
 
     private static final String TAG = "WifiBackupDataV1Parser";
 
-    private static final int HIGHEST_SUPPORTED_MINOR_VERSION = 4;
+    private static final int HIGHEST_SUPPORTED_MINOR_VERSION =
+            Environment.isSdkNewerThanB() ? 5 : 4;
 
     // List of tags supported for <WifiConfiguration> section in minor version 0
     private static final Set<String> WIFI_CONFIGURATION_MINOR_V0_SUPPORTED_TAGS = Set.of(
@@ -167,6 +171,16 @@ class WifiBackupDataV1Parser implements WifiBackupDataParser {
                 WifiConfigurationXmlUtil.XML_TAG_IS_REPEATER_ENABLED);
         WIFI_CONFIGURATION_MINOR_V4_SUPPORTED_TAGS.add(
                 WifiConfigurationXmlUtil.XML_TAG_SEND_DHCP_HOSTNAME);
+    }
+
+    // List of tags supported for <WifiConfiguration> section in minor version 5
+    private static final Set<String> WIFI_CONFIGURATION_MINOR_V5_SUPPORTED_TAGS =
+            new HashSet<String>();
+    static {
+        WIFI_CONFIGURATION_MINOR_V5_SUPPORTED_TAGS.addAll(
+                WIFI_CONFIGURATION_MINOR_V4_SUPPORTED_TAGS);
+        WIFI_CONFIGURATION_MINOR_V5_SUPPORTED_TAGS.add(
+                WifiConfigurationXmlUtil.XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS);
     }
 
     // List of tags supported for <IpConfiguration> section in last minor version, i.e. version: 4
@@ -324,6 +338,7 @@ class WifiBackupDataV1Parser implements WifiBackupDataParser {
      * @param minorVersion  minor version number parsed from incoming data.
      * @return Pair<Config key, WifiConfiguration object> if parsing is successful, null otherwise.
      */
+    @SuppressLint("NewApi")
     private static Pair<String, WifiConfiguration> parseWifiConfigurationFromXmlInternal(
             XmlPullParser in, int outerTagDepth, int minorVersion)
             throws XmlPullParserException, IOException {
@@ -429,6 +444,13 @@ class WifiBackupDataV1Parser implements WifiBackupDataParser {
                     configuration.setSendDhcpHostnameEnabled((boolean) value);
                     sendDhcpHostnameExists = true;
                     break;
+                // V5
+                case WifiConfigurationXmlUtil.XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS:
+                    if (Flags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()
+                            && configuration.shared) {
+                        configuration.setAllowedToUpdateByOtherUsers((boolean) value);
+                    }
+                    break;
                 default:
                     // should never happen, since other tags are filtered out earlier
                     throw new XmlPullParserException(
@@ -465,6 +487,8 @@ class WifiBackupDataV1Parser implements WifiBackupDataParser {
                 return WIFI_CONFIGURATION_MINOR_V3_SUPPORTED_TAGS;
             case 4:
                 return WIFI_CONFIGURATION_MINOR_V4_SUPPORTED_TAGS;
+            case 5:
+                return WIFI_CONFIGURATION_MINOR_V5_SUPPORTED_TAGS;
             default:
                 Log.e(TAG, "Invalid minorVersion: " + minorVersion);
                 return Collections.<String>emptySet();
@@ -751,6 +775,7 @@ class WifiBackupDataV1Parser implements WifiBackupDataParser {
             case 2:
             case 3:
             case 4:
+            case 5:
                 return IP_CONFIGURATION_LAST_MINOR_SUPPORTED_TAGS;
             default:
                 Log.e(TAG, "Invalid minorVersion: " + minorVersion);

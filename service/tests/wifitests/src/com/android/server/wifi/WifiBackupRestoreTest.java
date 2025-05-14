@@ -17,21 +17,29 @@
 package com.android.server.wifi;
 
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.validateMockitoUsage;
+import static org.mockito.Mockito.withSettings;
 
 import android.net.IpConfiguration;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.util.Environment;
 import android.os.Process;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.server.wifi.util.WifiPermissionsUtil;
+import com.android.wifi.flags.Flags;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -126,139 +134,9 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
                     + "</NetworkList>\n"
                     + "</WifiBackupData>\n";
 
-    private static final String WIFI_BACKUP_DATA_V1_0 =
-            "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n"
-                    + "<WifiBackupData>\n"
-                    + "<float name=\"Version\" value=\"1.0\" />\n"
-                    + "<NetworkList>\n"
-                    + "<Network>\n"
-                    + "<WifiConfiguration>\n"
-                    + "<string name=\"ConfigKey\">&quot;" + WifiConfigurationTestUtil.TEST_SSID
-                        + "&quot;NONE</string>\n"
-                    + "<string name=\"SSID\">&quot;" + WifiConfigurationTestUtil.TEST_SSID
-                        + "&quot;</string>\n"
-                    + "<null name=\"BSSID\" />\n"
-                    + "<null name=\"PreSharedKey\" />\n"
-                    + "<null name=\"WEPKeys\" />\n"
-                    + "<int name=\"WEPTxKeyIndex\" value=\"0\" />\n"
-                    + "<boolean name=\"HiddenSSID\" value=\"false\" />\n"
-                    + "<boolean name=\"RequirePMF\" value=\"false\" />\n"
-                    + "<byte-array name=\"AllowedKeyMgmt\" num=\"1\">01</byte-array>\n"
-                    + "<byte-array name=\"AllowedProtocols\" num=\"1\">03</byte-array>\n"
-                    + "<byte-array name=\"AllowedAuthAlgos\" num=\"1\">01</byte-array>\n"
-                    + "<byte-array name=\"AllowedGroupCiphers\" num=\"1\">0f</byte-array>\n"
-                    + "<byte-array name=\"AllowedPairwiseCiphers\" num=\"1\">06</byte-array>\n"
-                    + "<boolean name=\"Shared\" value=\"true\" />\n"
-                    + "</WifiConfiguration>\n"
-                    + "<IpConfiguration>\n"
-                    + "<string name=\"IpAssignment\">DHCP</string>\n"
-                    + "<string name=\"ProxySettings\">NONE</string>\n"
-                    + "</IpConfiguration>\n"
-                    + "</Network>\n"
-                    + "</NetworkList>\n"
-                    + "</WifiBackupData>\n";
-
-    private static final String WIFI_BACKUP_DATA_V1_1 =
-            "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n"
-                    + "<WifiBackupData>\n"
-                    + "<float name=\"Version\" value=\"1.1\" />\n"
-                    + "<NetworkList>\n"
-                    + "<Network>\n"
-                    + "<WifiConfiguration>\n"
-                    + "<string name=\"ConfigKey\">&quot;" + WifiConfigurationTestUtil.TEST_SSID
-                        + "&quot;NONE</string>\n"
-                    + "<string name=\"SSID\">&quot;" + WifiConfigurationTestUtil.TEST_SSID
-                        + "&quot;</string>\n"
-                    + "<null name=\"BSSID\" />\n"
-                    + "<null name=\"PreSharedKey\" />\n"
-                    + "<null name=\"WEPKeys\" />\n"
-                    + "<int name=\"WEPTxKeyIndex\" value=\"0\" />\n"
-                    + "<boolean name=\"HiddenSSID\" value=\"false\" />\n"
-                    + "<boolean name=\"RequirePMF\" value=\"false\" />\n"
-                    + "<byte-array name=\"AllowedKeyMgmt\" num=\"1\">01</byte-array>\n"
-                    + "<byte-array name=\"AllowedProtocols\" num=\"1\">03</byte-array>\n"
-                    + "<byte-array name=\"AllowedAuthAlgos\" num=\"1\">01</byte-array>\n"
-                    + "<byte-array name=\"AllowedGroupCiphers\" num=\"1\">0f</byte-array>\n"
-                    + "<byte-array name=\"AllowedPairwiseCiphers\" num=\"1\">06</byte-array>\n"
-                    + "<boolean name=\"Shared\" value=\"true\" />\n"
-                    + "<int name=\"MeteredOverride\" value=\"1\" />\n"
-                    + "</WifiConfiguration>\n"
-                    + "<IpConfiguration>\n"
-                    + "<string name=\"IpAssignment\">DHCP</string>\n"
-                    + "<string name=\"ProxySettings\">NONE</string>\n"
-                    + "</IpConfiguration>\n"
-                    + "</Network>\n"
-                    + "</NetworkList>\n"
-                    + "</WifiBackupData>\n";
-
-    private static final String WIFI_BACKUP_DATA_V1_2 =
-            "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n"
-                    + "<WifiBackupData>\n"
-                    + "<float name=\"Version\" value=\"1.2\" />\n"
-                    + "<NetworkList>\n"
-                    + "<Network>\n"
-                    + "<WifiConfiguration>\n"
-                    + "<string name=\"ConfigKey\">&quot;" + WifiConfigurationTestUtil.TEST_SSID
-                        + "&quot;NONE</string>\n"
-                    + "<string name=\"SSID\">&quot;" + WifiConfigurationTestUtil.TEST_SSID
-                        + "&quot;</string>\n"
-                    + "<null name=\"PreSharedKey\" />\n"
-                    + "<null name=\"WEPKeys\" />\n"
-                    + "<int name=\"WEPTxKeyIndex\" value=\"0\" />\n"
-                    + "<boolean name=\"HiddenSSID\" value=\"false\" />\n"
-                    + "<boolean name=\"RequirePMF\" value=\"false\" />\n"
-                    + "<byte-array name=\"AllowedKeyMgmt\" num=\"1\">01</byte-array>\n"
-                    + "<byte-array name=\"AllowedProtocols\" num=\"1\">03</byte-array>\n"
-                    + "<byte-array name=\"AllowedAuthAlgos\" num=\"1\">01</byte-array>\n"
-                    + "<byte-array name=\"AllowedGroupCiphers\" num=\"1\">0f</byte-array>\n"
-                    + "<byte-array name=\"AllowedPairwiseCiphers\" num=\"1\">06</byte-array>\n"
-                    + "<byte-array name=\"AllowedGroupMgmtCiphers\" num=\"0\"></byte-array>\n"
-                    + "<byte-array name=\"AllowedSuiteBCiphers\" num=\"0\"></byte-array>\n"
-                    + "<boolean name=\"Shared\" value=\"true\" />\n"
-                    + "<boolean name=\"AutoJoinEnabled\" value=\"false\" />\n"
-                    + "<int name=\"MeteredOverride\" value=\"1\" />\n"
-                    + "</WifiConfiguration>\n"
-                    + "<IpConfiguration>\n"
-                    + "<string name=\"IpAssignment\">DHCP</string>\n"
-                    + "<string name=\"ProxySettings\">NONE</string>\n"
-                    + "</IpConfiguration>\n"
-                    + "</Network>\n"
-                    + "</NetworkList>\n"
-                    + "</WifiBackupData>\n";
-
-    private static final String WIFI_BACKUP_DATA_V1_3 =
-            "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n"
-                    + "<WifiBackupData>\n"
-                    + "<float name=\"Version\" value=\"1.3\" />\n"
-                    + "<NetworkList>\n"
-                    + "<Network>\n"
-                    + "<WifiConfiguration>\n"
-                    + "<string name=\"ConfigKey\">&quot;"
-                    + WifiConfigurationTestUtil.TEST_SSID
-                    + "&quot;WPA_PSK</string>\n"
-                    + "<string name=\"SSID\">&quot;"
-                    + WifiConfigurationTestUtil.TEST_SSID
-                    + "&quot;</string>\n"
-                    + "<null name=\"PreSharedKey\" />\n"
-                    + "<null name=\"WEPKeys\" />\n"
-                    + "<int name=\"WEPTxKeyIndex\" value=\"0\" />\n"
-                    + "<boolean name=\"HiddenSSID\" value=\"false\" />\n"
-                    + "<boolean name=\"RequirePMF\" value=\"false\" />\n"
-                    + "<byte-array name=\"AllowedKeyMgmt\" num=\"1\">02</byte-array>\n"
-                    + "<byte-array name=\"AllowedProtocols\" num=\"1\">03</byte-array>\n"
-                    + "<byte-array name=\"AllowedAuthAlgos\" num=\"0\"></byte-array>\n"
-                    + "<byte-array name=\"AllowedGroupCiphers\" num=\"1\">0f</byte-array>\n"
-                    + "<byte-array name=\"AllowedPairwiseCiphers\" num=\"1\">06</byte-array>\n"
-                    + "<byte-array name=\"AllowedGroupMgmtCiphers\" num=\"0\"></byte-array>\n"
-                    + "<byte-array name=\"AllowedSuiteBCiphers\" num=\"0\"></byte-array>\n"
-                    + "<boolean name=\"Shared\" value=\"true\" />\n"
-                    + "<boolean name=\"AutoJoinEnabled\" value=\"false\" />\n"
-                    + "<int name=\"Priority\" value=\"0\" />\n"
-                    + "<int name=\"DeletionPriority\" value=\"0\" />\n"
-                    + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
-                    + "<boolean name=\"RepeaterEnabled\" value=\"false\" />\n"
-                    + "<boolean name=\"EnableWifi7\" value=\"true\" />\n"
-                    + "<SecurityParamsList>\n"
+    @SuppressWarnings("StringConcatToTextBlock")
+    private static final String WIFI_BACKUP_DATA_SECURITYPARAMSLIST =
+                    "<SecurityParamsList>\n"
                     + "<SecurityParams>\n"
                     + "<int name=\"SecurityType\" value=\"2\" />\n"
                     + "<boolean name=\"IsEnabled\" value=\"true\" />\n"
@@ -267,77 +145,119 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
                     + "<boolean name=\"IsAddedByAutoUpgrade\" value=\"false\" />\n"
                     + "<byte-array name=\"AllowedSuiteBCiphers\" num=\"0\"></byte-array>\n"
                     + "</SecurityParams>\n"
-                    + "</SecurityParamsList>\n"
-                    + "<boolean name=\"SendDhcpHostname\" value=\"true\" />\n"
-                    + "<int name=\"MeteredOverride\" value=\"1\" />\n"
-                    + "</WifiConfiguration>\n"
-                    + "<IpConfiguration>\n"
-                    + "<string name=\"IpAssignment\">DHCP</string>\n"
-                    + "<string name=\"ProxySettings\">NONE</string>\n"
-                    + "</IpConfiguration>\n"
-                    + "</Network>\n"
-                    + "</NetworkList>\n"
-                    + "</WifiBackupData>\n";
+                    + "</SecurityParamsList>\n";
 
-    private static final String WIFI_BACKUP_DATA_V1_4 =
-            "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n"
-                    + "<WifiBackupData>\n"
-                    + "<float name=\"Version\" value=\"1.4\" />\n"
-                    + "<NetworkList>\n"
-                    + "<Network>\n"
-                    + "<WifiConfiguration>\n"
-                    + "<string name=\"ConfigKey\">&quot;"
-                    + WifiConfigurationTestUtil.TEST_SSID
-                    + "&quot;WPA_PSK</string>\n"
-                    + "<string name=\"SSID\">&quot;"
-                    + WifiConfigurationTestUtil.TEST_SSID
-                    + "&quot;</string>\n"
-                    + "<null name=\"PreSharedKey\" />\n"
-                    + "<null name=\"WEPKeys\" />\n"
-                    + "<int name=\"WEPTxKeyIndex\" value=\"0\" />\n"
-                    + "<boolean name=\"HiddenSSID\" value=\"false\" />\n"
-                    + "<boolean name=\"RequirePMF\" value=\"false\" />\n"
-                    + "<byte-array name=\"AllowedKeyMgmt\" num=\"1\">02</byte-array>\n"
-                    + "<byte-array name=\"AllowedProtocols\" num=\"1\">03</byte-array>\n"
-                    + "<byte-array name=\"AllowedAuthAlgos\" num=\"0\"></byte-array>\n"
-                    + "<byte-array name=\"AllowedGroupCiphers\" num=\"1\">0f</byte-array>\n"
-                    + "<byte-array name=\"AllowedPairwiseCiphers\" num=\"1\">06</byte-array>\n"
-                    + "<byte-array name=\"AllowedGroupMgmtCiphers\" num=\"0\"></byte-array>\n"
-                    + "<byte-array name=\"AllowedSuiteBCiphers\" num=\"0\"></byte-array>\n"
-                    + "<boolean name=\"Shared\" value=\"true\" />\n"
-                    + "<boolean name=\"AutoJoinEnabled\" value=\"false\" />\n"
-                    + "<int name=\"Priority\" value=\"0\" />\n"
-                    + "<int name=\"DeletionPriority\" value=\"0\" />\n"
-                    + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
-                    + "<boolean name=\"RepeaterEnabled\" value=\"true\" />\n"
-                    + "<boolean name=\"EnableWifi7\" value=\"false\" />\n"
-                    + "<SecurityParamsList>\n"
-                    + "<SecurityParams>\n"
-                    + "<int name=\"SecurityType\" value=\"2\" />\n"
-                    + "<boolean name=\"IsEnabled\" value=\"true\" />\n"
-                    + "<boolean name=\"SaeIsH2eOnlyMode\" value=\"false\" />\n"
-                    + "<boolean name=\"SaeIsPkOnlyMode\" value=\"false\" />\n"
-                    + "<boolean name=\"IsAddedByAutoUpgrade\" value=\"false\" />\n"
-                    + "<byte-array name=\"AllowedSuiteBCiphers\" num=\"0\"></byte-array>\n"
-                    + "</SecurityParams>\n"
-                    + "</SecurityParamsList>\n"
-                    + "<boolean name=\"SendDhcpHostname\" value=\"false\" />\n"
-                    + "<int name=\"MeteredOverride\" value=\"1\" />\n"
-                    + "</WifiConfiguration>\n"
-                    + "<IpConfiguration>\n"
+    @SuppressWarnings("StringConcatToTextBlock")
+    private static final String WIFI_BACKUP_DATA_IPCONFIGURATION =
+                    "<IpConfiguration>\n"
                     + "<string name=\"IpAssignment\">DHCP</string>\n"
                     + "<string name=\"ProxySettings\">NONE</string>\n"
-                    + "</IpConfiguration>\n"
-                    + "</Network>\n"
-                    + "</NetworkList>\n"
-                    + "</WifiBackupData>\n";
+                    + "</IpConfiguration>\n";
+
     @Mock WifiPermissionsUtil mWifiPermissionsUtil;
     private WifiBackupRestore mWifiBackupRestore;
+    private MockitoSession mSession;
     private boolean mCheckDump = true;
+
+    @SuppressWarnings("StringConcatToTextBlock")
+    private String generateBackupDataFromVersion(int version) {
+        if (version < 0) {
+            return null;
+        }
+        StringBuilder backupDataStringBuilder = new StringBuilder();
+        backupDataStringBuilder.append(
+            "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n"
+                    + "<WifiBackupData>\n"
+                    + "<float name=\"Version\" value=\"1.");
+        // Update version here
+        backupDataStringBuilder.append(version + "\" />\n"
+                    + "<NetworkList>\n"
+                    + "<Network>\n");
+        backupDataStringBuilder.append(
+                    "<WifiConfiguration>\n"
+                    + "<string name=\"ConfigKey\">&quot;"
+                    + WifiConfigurationTestUtil.TEST_SSID
+                    + "&quot;WPA_PSK</string>\n"
+                    + "<string name=\"SSID\">&quot;"
+                    + WifiConfigurationTestUtil.TEST_SSID
+                    + "&quot;</string>\n"
+                    + "<null name=\"PreSharedKey\" />\n"
+                    + "<null name=\"WEPKeys\" />\n"
+                    + "<int name=\"WEPTxKeyIndex\" value=\"0\" />\n"
+                    + "<boolean name=\"HiddenSSID\" value=\"false\" />\n"
+                    + "<boolean name=\"RequirePMF\" value=\"false\" />\n");
+        backupDataStringBuilder.append(
+                    "<byte-array name=\"AllowedKeyMgmt\" num=\"1\">")
+                    .append(version >= 3 ? "02" : "01")
+                    .append("</byte-array>\n")
+                    .append("<byte-array name=\"AllowedProtocols\" num=\"1\">")
+                    .append("03</byte-array>\n");
+        backupDataStringBuilder.append(
+                "<byte-array name=\"AllowedAuthAlgos\" num=\"")
+                .append(version >= 3 ? "0" : "1")
+                .append("\">")
+                .append(version >= 3 ? "" : "01")
+                .append("</byte-array>\n");
+        backupDataStringBuilder.append(
+                    "<byte-array name=\"AllowedGroupCiphers\" num=\"1\">0f</byte-array>\n"
+                    + "<byte-array name=\"AllowedPairwiseCiphers\" num=\"1\">06</byte-array>\n");
+        if (version >= 2) {
+            backupDataStringBuilder.append(
+                    "<byte-array name=\"AllowedGroupMgmtCiphers\" num=\"0\"></byte-array>\n"
+                    + "<byte-array name=\"AllowedSuiteBCiphers\" num=\"0\"></byte-array>\n");
+        }
+        backupDataStringBuilder.append(
+                    "<boolean name=\"Shared\" value=\"true\" />\n");
+        if (version >= 2) {
+            backupDataStringBuilder.append(
+                    "<boolean name=\"AutoJoinEnabled\" value=\"false\" />\n");
+        }
+        if (version >= 3) {
+            backupDataStringBuilder.append(
+                    "<int name=\"Priority\" value=\"0\" />\n"
+                    + "<int name=\"DeletionPriority\" value=\"0\" />\n"
+                    + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n");
+        }
+        if (version >= 4) {
+            backupDataStringBuilder.append(
+                    "<boolean name=\"RepeaterEnabled\" value=\"true\" />\n"
+                    + "<boolean name=\"EnableWifi7\" value=\"false\" />\n");
+        }
+        if (version >= 5) {
+            backupDataStringBuilder.append(
+                    "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"false\" />\n");
+        }
+        if (version >= 3) {
+            backupDataStringBuilder.append(WIFI_BACKUP_DATA_SECURITYPARAMSLIST);
+        }
+        if (version == 3) {
+            backupDataStringBuilder.append(
+                    "<boolean name=\"SendDhcpHostname\" value=\"true\" />\n");
+        } else if (version >= 4) {
+            backupDataStringBuilder.append(
+                    "<boolean name=\"SendDhcpHostname\" value=\"false\" />\n");
+        }
+        if (version >= 1) {
+            backupDataStringBuilder.append(
+                    "<int name=\"MeteredOverride\" value=\"1\" />\n");
+        }
+        backupDataStringBuilder.append(
+                    "</WifiConfiguration>\n"
+                    + WIFI_BACKUP_DATA_IPCONFIGURATION
+                    + "</Network>\n"
+                    + "</NetworkList>\n"
+                    + "</WifiBackupData>\n");
+        return backupDataStringBuilder.toString();
+    }
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        // static mocking
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(Flags.class, withSettings().lenient())
+                .strictness(Strictness.LENIENT)
+                .startMocking();
         when(mWifiPermissionsUtil.checkConfigOverridePermission(anyInt())).thenReturn(true);
         mWifiBackupRestore = new WifiBackupRestore(mWifiPermissionsUtil);
         // Enable verbose logging before tests to check the backup data dumps.
@@ -346,6 +266,10 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
 
     @After
     public void cleanUp() throws Exception {
+        validateMockitoUsage();
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
         if (mCheckDump) {
             StringWriter stringWriter = new StringWriter();
             mWifiBackupRestore.dump(
@@ -1154,7 +1078,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         List<WifiConfiguration> configurations = new ArrayList<>();
         configurations.add(createNetworkForConfigurationWithV1_0Data());
 
-        byte[] backupData = WIFI_BACKUP_DATA_V1_0.getBytes();
+        byte[] backupData = generateBackupDataFromVersion(0).getBytes();
         List<WifiConfiguration> retrievedConfigurations =
                 mWifiBackupRestore.retrieveConfigurationsFromBackupData(backupData);
         WifiConfigurationTestUtil.assertConfigurationsEqualForBackup(
@@ -1169,7 +1093,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         List<WifiConfiguration> configurations = new ArrayList<>();
         configurations.add(createNetworkForConfigurationWithV1_1Data());
 
-        byte[] backupData = WIFI_BACKUP_DATA_V1_1.getBytes();
+        byte[] backupData = generateBackupDataFromVersion(1).getBytes();
         List<WifiConfiguration> retrievedConfigurations =
                 mWifiBackupRestore.retrieveConfigurationsFromBackupData(backupData);
         WifiConfigurationTestUtil.assertConfigurationsEqualForBackup(
@@ -1184,7 +1108,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         List<WifiConfiguration> configurations = new ArrayList<>();
         configurations.add(createNetworkForConfigurationWithV1_2Data());
 
-        byte[] backupData = WIFI_BACKUP_DATA_V1_2.getBytes();
+        byte[] backupData = generateBackupDataFromVersion(2).getBytes();
         List<WifiConfiguration> retrievedConfigurations =
                 mWifiBackupRestore.retrieveConfigurationsFromBackupData(backupData);
         WifiConfigurationTestUtil.assertConfigurationsEqualForBackup(
@@ -1199,7 +1123,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         List<WifiConfiguration> configurations = new ArrayList<>();
         configurations.add(createNetworkForConfigurationWithV1_3Data());
 
-        byte[] backupData = WIFI_BACKUP_DATA_V1_3.getBytes();
+        byte[] backupData = generateBackupDataFromVersion(3).getBytes();
         List<WifiConfiguration> retrievedConfigurations =
                 mWifiBackupRestore.retrieveConfigurationsFromBackupData(backupData);
 
@@ -1215,7 +1139,27 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         List<WifiConfiguration> configurations = new ArrayList<>();
         configurations.add(createNetworkForConfigurationWithV1_4Data());
 
-        byte[] backupData = WIFI_BACKUP_DATA_V1_4.getBytes();
+        byte[] backupData = generateBackupDataFromVersion(4).getBytes();
+        List<WifiConfiguration> retrievedConfigurations =
+                mWifiBackupRestore.retrieveConfigurationsFromBackupData(backupData);
+
+        WifiConfigurationTestUtil.assertConfigurationsEqualForBackup(
+                configurations, retrievedConfigurations);
+    }
+
+    /**
+     * Verify that restoring of configuration from a 1.5 version backup data.
+     */
+    @Test
+    public void testRestoreFromV1_5BackupData() {
+        mCheckDump = false; // for skip case
+        assumeTrue(Environment.isSdkNewerThanB());
+        mCheckDump = true;
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        List<WifiConfiguration> configurations = new ArrayList<>();
+        configurations.add(createNetworkForConfigurationWithV1_5Data());
+        String wifiBackupDataV5 = generateBackupDataFromVersion(5);
+        byte[] backupData = wifiBackupDataV5.getBytes();
         List<WifiConfiguration> retrievedConfigurations =
                 mWifiBackupRestore.retrieveConfigurationsFromBackupData(backupData);
 
@@ -1225,14 +1169,14 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         // Also, assert in the reverse direction to ensure the serialization logic matches.
         // Note: This will stop working when we bump up the version. Then we'll need to copy
         // the below assert to the test for the latest version.
-        assertEquals(WIFI_BACKUP_DATA_V1_4,
+        assertEquals(wifiBackupDataV5,
                 new String(mWifiBackupRestore.retrieveBackupDataFromConfigurations(
                         retrievedConfigurations)));
     }
 
     /**
      * Creates correct WiFiConfiguration that should be parsed out of
-     * {@link #WIFI_BACKUP_DATA_V1_0} configuration which contains 1.0 version backup.
+     * configuration which contains 1.0 version backup.
      */
     private static WifiConfiguration createNetworkForConfigurationWithV1_0Data() {
         final WifiConfiguration config = new WifiConfiguration();
@@ -1262,7 +1206,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
 
     /**
      * Creates correct WiFiConfiguration that should be parsed out of
-     * {@link #WIFI_BACKUP_DATA_V1_1} configuration which contains 1.1 version backup.
+     * configuration which contains 1.1 version backup.
      */
     private static WifiConfiguration createNetworkForConfigurationWithV1_1Data() {
         final WifiConfiguration config = createNetworkForConfigurationWithV1_0Data();
@@ -1272,7 +1216,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
 
     /**
      * Creates correct WiFiConfiguration that should be parsed out of
-     * {@link #WIFI_BACKUP_DATA_V1_1} configuration which contains 1.2 version backup.
+     * configuration which contains 1.2 version backup.
      */
     private static WifiConfiguration createNetworkForConfigurationWithV1_2Data() {
         final WifiConfiguration config = createNetworkForConfigurationWithV1_1Data();
@@ -1282,7 +1226,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
 
     /**
      * Creates correct WiFiConfiguration that should be parsed out of
-     * {@link #WIFI_BACKUP_DATA_V1_3} configuration which contains 1.3 version backup.
+     * configuration which contains 1.3 version backup.
      */
     private static WifiConfiguration createNetworkForConfigurationWithV1_3Data() {
         final WifiConfiguration config = createNetworkForConfigurationWithV1_2Data();
@@ -1293,7 +1237,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
 
     /**
      * Creates correct WiFiConfiguration that should be parsed out of
-     * {@link #WIFI_BACKUP_DATA_V1_4} configuration which contains 1.4 version backup.
+     * configuration which contains 1.4 version backup.
      */
     private static WifiConfiguration createNetworkForConfigurationWithV1_4Data() {
         final WifiConfiguration config = createNetworkForConfigurationWithV1_3Data();
@@ -1301,6 +1245,18 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         config.setRepeaterEnabled(true);
         config.setWifi7Enabled(false);
         config.setSendDhcpHostnameEnabled(false);
+        return config;
+    }
+
+    /**
+     * Creates correct WiFiConfiguration that should be parsed out of
+     * configuration which contains 1.5 version backup.
+     */
+    private static WifiConfiguration createNetworkForConfigurationWithV1_5Data() {
+        final WifiConfiguration config = createNetworkForConfigurationWithV1_4Data();
+        // Use non-default value for testing.
+        config.shared = true; // make sure that it is a shared network.
+        config.setAllowedToUpdateByOtherUsers(false);
         return config;
     }
 
