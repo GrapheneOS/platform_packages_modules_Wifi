@@ -314,3 +314,12 @@ flag {
     bug: "394417020"
     is_fixed_read_only: true
 }
+
+flag {
+    name: "public_ssid_bssid_passphrase_for_do_carrier_tethering"
+    is_exported: true
+    namespace: "wifi"
+    description: "Public setSsid, setPassphrase, and setBssid for DO/Carrier app tethering"
+    bug: "399543884"
+    is_fixed_read_only: true
+}

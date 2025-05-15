@@ -1393,7 +1393,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         IWifiAwareDiscoverySessionCallback mockSessionCallback = mock(
                 IWifiAwareDiscoverySessionCallback.class);
         ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
-        InOrder inOrder = inOrder(mockCallback, mockSessionCallback, mMockNative);
+        InOrder inOrder = inOrder(mMockContext, mockCallback, mockSessionCallback, mMockNative);
         InOrder inOrderM = inOrder(mAwareMetricsMock);
 
         mDut.enableUsage();
@@ -1432,6 +1432,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mockSessionCallback).onSessionTerminated(anyInt());
         inOrder.verify(mMockNative).stopPublish(transactionId.capture(), eq(publishId));
         inOrder.verify(mockCallback).onAttachTerminate();
+        validateCorrectAwareResourcesChangeBroadcast(inOrder);
         inOrder.verify(mMockNative).disable(transactionId.capture());
 
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySession(eq(uid), any());
@@ -1740,7 +1741,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         IWifiAwareDiscoverySessionCallback mockSessionCallback = mock(
                 IWifiAwareDiscoverySessionCallback.class);
         ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
-        InOrder inOrder = inOrder(mockCallback, mockSessionCallback, mMockNative);
+        InOrder inOrder = inOrder(mMockContext, mockCallback, mockSessionCallback, mMockNative);
 
         mDut.enableUsage();
         mMockLooper.dispatchAll();
@@ -1774,6 +1775,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mockSessionCallback).onSessionTerminated(anyInt());
         inOrder.verify(mMockNative).stopSubscribe((short) 0, subscribeId);
         inOrder.verify(mockCallback).onAttachTerminate();
+        validateCorrectAwareResourcesChangeBroadcast(inOrder);
         inOrder.verify(mMockNative).disable(anyShort());
 
         validateInternalClientInfoCleanedUp(clientId);

@@ -3944,11 +3944,16 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mClients.delete(clientId);
         mAwareMetrics.recordAttachSessionDuration(client.getCreationTime());
         SparseArray<WifiAwareDiscoverySessionState> sessions = client.getSessions();
+        int size = sessions.size();
         for (int i = 0; i < sessions.size(); ++i) {
             mAwareMetrics.recordDiscoverySessionDuration(sessions.valueAt(i).getCreationTime(),
                     sessions.valueAt(i).isPublishSession(), sessions.valueAt(i).getSessionId());
         }
         client.destroy();
+        if (size > 0) {
+            // Has publish/subscribe session destroyed, send Aware resources changed broadcast.
+            sendAwareResourcesChangedBroadcast();
+        }
 
         if (mClients.size() == 0) {
             mCurrentAwareConfiguration = null;

@@ -729,6 +729,7 @@ public class WifiMetrics {
         public ConnectionEvent mConnectionEvent;
         private long mLastRoamCompleteMillis;
         public WifiValidationInfo mValidationInfo;
+        public int mDisconnectReason;
 
         SessionData(ConnectionEvent connectionEvent, String ssid, long sessionStartTimeMillis,
                 int band, int authType) {
@@ -2400,6 +2401,10 @@ public class WifiMetrics {
                         ? (mClock.getElapsedSinceBootMillis()
                                 - previousSession.mSessionEndTimeMillis) :
                         mClock.getElapsedSinceBootMillis()) / 1000);
+                int lastDisconnectReason = (previousSession != null
+                        ? previousSession.mDisconnectReason :
+                        WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__UNKNOWN);
+
                 WifiStatsLog.write(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED,
                         connectionSucceeded,
                         wwFailureCode, currentConnectionEvent.mConnectionEvent.signalStrength,
@@ -2419,7 +2424,8 @@ public class WifiMetrics {
                         currentConnectionEvent.mUid,
                         frequency,
                         currentConnectionEvent.mL2ConnectingDuration,
-                        currentConnectionEvent.mL3ConnectingDuration);
+                        currentConnectionEvent.mL3ConnectingDuration,
+                        lastDisconnectReason);
 
                 if (connectionSucceeded) {
                     reportRouterCapabilities(currentConnectionEvent.mRouterFingerPrint);
@@ -2878,6 +2884,7 @@ public class WifiMetrics {
                         - currentSession.mLastRoamCompleteMillis) / 1000;
                 int timeSinceLastRssiUpdateSeconds = (int) (mClock.getElapsedSinceBootMillis()
                         - lastRssiUpdateMillis) / 1000;
+                currentSession.mDisconnectReason = disconnectReason;
 
                 WifiStatsLog.write(WifiStatsLog.WIFI_DISCONNECT_REPORTED,
                         durationSeconds,

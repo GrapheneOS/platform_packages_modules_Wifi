@@ -2556,7 +2556,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(false),
                 eq(1), eq(TEST_CONNECTION_FAILURE_STATUS_CODE), anyInt(), anyInt(), anyInt(),
                 anyInt(), anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ),
-                eq(WIFI_CONNECTING_DURATION_MS), eq(WIFI_CONNECTING_DURATION_MS + 1)));
+                eq(WIFI_CONNECTING_DURATION_MS), eq(WIFI_CONNECTING_DURATION_MS + 1), eq(0)));
     }
 
     /**
@@ -6261,7 +6261,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED), anyBoolean(), anyInt(), anyInt(),
                 anyInt(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt(), anyBoolean(),
                 anyBoolean(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(),
-                eq(TEST_UID), anyInt(), anyLong(), anyLong()),
+                eq(TEST_UID), anyInt(), anyLong(), anyLong(), eq(0)),
                 times(0));
     }
 
@@ -6277,7 +6277,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED), anyBoolean(), anyInt(), anyInt(),
                 anyInt(), anyInt(), anyInt(), anyInt(), anyBoolean(), anyInt(), anyBoolean(),
                 anyBoolean(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(),
-                eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong()),
+                eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong(), eq(0)),
                 times(0));
     }
 
@@ -6310,7 +6310,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(0), eq(true), eq(false), eq(1), eq(TEST_CONNECTION_FAILURE_STATUS_CODE),
                 anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), eq(TEST_UID),
                 eq(TEST_CANDIDATE_FREQ),
-                eq(WIFI_CONNECTING_DURATION_MS), eq(WIFI_CONNECTING_DURATION_MS)),
+                eq(WIFI_CONNECTING_DURATION_MS), eq(WIFI_CONNECTING_DURATION_MS), eq(0)),
                 times(1));
     }
 
@@ -6347,7 +6347,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(true),
                 eq(0),  eq(true), eq(true), eq(1), eq(TEST_CONNECTION_FAILURE_STATUS_CODE),
                 anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), eq(TEST_UID),
-                eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong()),
+                eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong(), eq(0)),
                 times(1));
     }
 
@@ -6363,7 +6363,9 @@ public class WifiMetricsTest extends WifiBaseTest {
                 WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_NONE, TEST_CANDIDATE_FREQ,
                 TEST_CONNECTION_FAILURE_STATUS_CODE);
 
-        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0, 0);
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME,
+                WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__DISCONNECT_NEW_CONNECTION_USER,
+                0, 0, 0);
 
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED), anyBoolean(),
@@ -6371,7 +6373,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__AUTOCONNECT_BOOT),
                 anyBoolean(), anyInt(), anyBoolean(), anyBoolean(), anyInt(),
                 eq(TEST_CONNECTION_FAILURE_STATUS_CODE), anyInt(), anyInt(), anyInt(), anyInt(),
-                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong()));
+                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong(), eq(0)));
 
         mWifiMetrics.startConnectionEvent(TEST_IFACE_NAME, createComplexWifiConfig(),
                 "RED", WifiMetricsProto.ConnectionEvent.ROAM_ENTERPRISE, false,
@@ -6383,7 +6385,9 @@ public class WifiMetricsTest extends WifiBaseTest {
                 WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_NONE, TEST_CANDIDATE_FREQ,
                 TEST_CONNECTION_FAILURE_STATUS_CODE);
 
-        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0, 0);
+        mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME,
+                WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__DISCONNECT_NEW_CONNECTION_OTHERS, // NOLINT
+                0, 0, 0);
 
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED), anyBoolean(),
@@ -6391,7 +6395,8 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__RECONNECT_SAME_NETWORK),
                 anyBoolean(), anyInt(), anyBoolean(), anyBoolean(), anyInt(),
                 eq(TEST_CONNECTION_FAILURE_STATUS_CODE), anyInt(), anyInt(), anyInt(), anyInt(),
-                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong()));
+                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong(), eq(
+                        WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__DISCONNECT_NEW_CONNECTION_USER))); // NOLINT
 
         WifiConfiguration configOtherNetwork = createComplexWifiConfig();
         configOtherNetwork.networkId = 21;
@@ -6417,7 +6422,8 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__AUTOCONNECT_CONFIGURED_NETWORK),
                 anyBoolean(), anyInt(), anyBoolean(), anyBoolean(), anyInt(),
                 eq(TEST_CONNECTION_FAILURE_STATUS_CODE), anyInt(), anyInt(), anyInt(), anyInt(),
-                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong()));
+                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong(), eq(
+                        WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__DISCONNECT_NEW_CONNECTION_OTHERS))); // NOLINT
 
         WifiConfiguration config = createComplexWifiConfig();
         config.networkId = 42;
@@ -6440,7 +6446,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__MANUAL),
                 anyBoolean(), anyInt(), anyBoolean(), anyBoolean(), anyInt(),
                 eq(TEST_CONNECTION_FAILURE_STATUS_CODE), anyInt(), anyInt(), anyInt(), anyInt(),
-                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong()));
+                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong(), eq(0)));
     }
 
     @Test
@@ -6676,7 +6682,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__AUTOCONNECT_BOOT),
                 anyBoolean(), eq(10), anyBoolean(), anyBoolean(), anyInt(),
                 eq(TEST_CONNECTION_FAILURE_STATUS_CODE), anyInt(), anyInt(), anyInt(), anyInt(),
-                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong()));
+                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong(), eq(0)));
 
         mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0, 0);
 
@@ -6698,7 +6704,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                 eq(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__TRIGGER__RECONNECT_SAME_NETWORK),
                 anyBoolean(), eq(20), anyBoolean(), anyBoolean(), anyInt(),
                 eq(TEST_CONNECTION_FAILURE_STATUS_CODE), anyInt(), anyInt(), anyInt(), anyInt(),
-                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong()));
+                anyInt(), eq(TEST_UID), eq(TEST_CANDIDATE_FREQ), anyLong(), anyLong(), eq(0)));
 
         mWifiMetrics.reportNetworkDisconnect(TEST_IFACE_NAME, 0, 0, 0, 0);
     }

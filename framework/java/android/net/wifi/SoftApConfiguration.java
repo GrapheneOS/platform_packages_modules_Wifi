@@ -28,6 +28,7 @@ import android.compat.annotation.ChangeId;
 import android.compat.annotation.EnabledAfter;
 import android.net.MacAddress;
 import android.net.NetworkStack;
+import android.net.TetheringManager;
 import android.net.wifi.util.Environment;
 import android.net.wifi.util.HexEncoding;
 import android.os.Build;
@@ -1567,12 +1568,10 @@ public final class SoftApConfiguration implements Parcelable {
          *
          * @param wifiSsid SSID, or null ot have the SSID automatically chosen by the framework.
          * @return Builder for chaining.
-         *
-         * @hide
          */
         @NonNull
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        @SystemApi
+        @FlaggedApi(Flags.FLAG_PUBLIC_SSID_BSSID_PASSPHRASE_FOR_DO_CARRIER_TETHERING)
         public Builder setWifiSsid(@Nullable WifiSsid wifiSsid) {
             if (!SdkLevel.isAtLeastT()) {
                 throw new UnsupportedOperationException();
@@ -1647,23 +1646,23 @@ public final class SoftApConfiguration implements Parcelable {
          *
          * <p>
          * Callers without the listed permissions will not be able to start SoftAP with a non-null
-         * BSSID.
+         * BSSID. DO and Carrier apps starting SoftAp with {@link TetheringManager#startTethering}
+         * are exempted from this permission restriction.
          *
          * @param bssid BSSID, or null to have the BSSID chosen by the framework. The caller is
          *              responsible for avoiding collisions.
          * @return Builder for chaining.
-         * @throws IllegalArgumentException when the given BSSID is the all-zero
-         *                                  , multicast or broadcast MAC address.
-         *
-         * @hide
+         * @throws IllegalArgumentException when the given BSSID is the all-zero, multicast or
+         *                                  broadcast MAC address.
          */
         @NonNull
-        @SystemApi
         @RequiresPermission(anyOf = {
                 android.Manifest.permission.NETWORK_SETTINGS,
                 android.Manifest.permission.NETWORK_STACK,
+                android.Manifest.permission.TETHER_PRIVILEGED,
                 NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK,
         }, conditional = true)
+        @FlaggedApi(Flags.FLAG_PUBLIC_SSID_BSSID_PASSPHRASE_FOR_DO_CARRIER_TETHERING)
         public Builder setBssid(@Nullable MacAddress bssid) {
             if (bssid != null) {
                 Preconditions.checkArgument(!bssid.equals(WifiManager.ALL_ZEROS_MAC_ADDRESS));
@@ -1703,11 +1702,9 @@ public final class SoftApConfiguration implements Parcelable {
          *         when the passphrase is not between 8 and 63 bytes (inclusive) for
          *             - {@link #SECURITY_TYPE_WPA2_PSK}
          *             - {@link #SECURITY_TYPE_WPA3_SAE_TRANSITION}
-         *
-         * @hide
          */
         @NonNull
-        @SystemApi
+        @FlaggedApi(Flags.FLAG_PUBLIC_SSID_BSSID_PASSPHRASE_FOR_DO_CARRIER_TETHERING)
         public Builder setPassphrase(@Nullable String passphrase, @SecurityType int securityType) {
             if (!SdkLevel.isAtLeastT()
                     && (securityType == SECURITY_TYPE_WPA3_OWE_TRANSITION

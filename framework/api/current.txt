@@ -147,7 +147,10 @@ package android.net.wifi {
   @FlaggedApi("com.android.wifi.flags.public_bands_for_lohs") public static final class SoftApConfiguration.Builder {
     ctor public SoftApConfiguration.Builder();
     method @NonNull public android.net.wifi.SoftApConfiguration build();
+    method @FlaggedApi("com.android.wifi.flags.public_ssid_bssid_passphrase_for_do_carrier_tethering") @NonNull @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_STACK, android.Manifest.permission.TETHER_PRIVILEGED, android.net.NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK}, conditional=true) public android.net.wifi.SoftApConfiguration.Builder setBssid(@Nullable android.net.MacAddress);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setChannels(@NonNull android.util.SparseIntArray);
+    method @FlaggedApi("com.android.wifi.flags.public_ssid_bssid_passphrase_for_do_carrier_tethering") @NonNull public android.net.wifi.SoftApConfiguration.Builder setPassphrase(@Nullable String, int);
+    method @FlaggedApi("com.android.wifi.flags.public_ssid_bssid_passphrase_for_do_carrier_tethering") @NonNull public android.net.wifi.SoftApConfiguration.Builder setWifiSsid(@Nullable android.net.wifi.WifiSsid);
   }
 
   public enum SupplicantState implements android.os.Parcelable {

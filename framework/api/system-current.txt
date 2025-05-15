@@ -521,7 +521,6 @@ package android.net.wifi {
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setBlockedClientList(@NonNull java.util.List<android.net.MacAddress>);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setBridgedModeOpportunisticShutdownEnabled(boolean);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setBridgedModeOpportunisticShutdownTimeoutMillis(@IntRange(from=0xffffffff) long);
-    method @NonNull @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_STACK, android.net.NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK}, conditional=true) public android.net.wifi.SoftApConfiguration.Builder setBssid(@Nullable android.net.MacAddress);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setChannel(int, int);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setClientControlByUserEnabled(boolean);
     method @FlaggedApi("com.android.wifi.flags.ap_isolate") @NonNull public android.net.wifi.SoftApConfiguration.Builder setClientIsolationEnabled(boolean);
@@ -531,12 +530,10 @@ package android.net.wifi {
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setMacRandomizationSetting(int);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setMaxChannelBandwidth(int);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setMaxNumberOfClients(@IntRange(from=0) int);
-    method @NonNull public android.net.wifi.SoftApConfiguration.Builder setPassphrase(@Nullable String, int);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setShutdownTimeoutMillis(@IntRange(from=0xffffffff) long);
     method @Deprecated @NonNull public android.net.wifi.SoftApConfiguration.Builder setSsid(@Nullable String);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.SoftApConfiguration.Builder setVendorData(@NonNull java.util.List<android.net.wifi.OuiKeyedData>);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setVendorElements(@NonNull java.util.List<android.net.wifi.ScanResult.InformationElement>);
-    method @NonNull public android.net.wifi.SoftApConfiguration.Builder setWifiSsid(@Nullable android.net.wifi.WifiSsid);
   }
 
   public final class SoftApInfo implements android.os.Parcelable {

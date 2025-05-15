@@ -213,7 +213,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             "force-overlay-config-value",
             "get-softap-supported-features",
             "get-wifi-supported-features",
-            "get-overlay-config-values"
+            "get-overlay-config-values",
+            "get-carrier-network-offload",
     };
 
     private static final Map<String, Pair<NetworkRequest, ConnectivityManager.NetworkCallback>>
@@ -2677,6 +2678,22 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     mWifiThreadRunner.post(mWifiAwareManager::resetPairedDevices);
                     return 0;
+                case "get-carrier-network-offload":
+                    String arg1 = getNextArgRequired();
+                    int subId = -1;
+                    try {
+                        subId = Integer.parseInt(arg1);
+                    } catch (NumberFormatException e) {
+                        pw.println("Invalid argument to 'get-carrier-network-offload' "
+                                + "- 'subId' must be an Integer");
+                        return -1;
+                    }
+                    boolean enabled = mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(subId,
+                            true);
+                    pw.println("merged network offload:" + (enabled ? "enabled" : "disabled"));
+                    enabled = mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(subId, false);
+                    pw.println("not merged network offload:" + (enabled ? "enabled" : "disabled"));
+                    return 0;
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -3521,6 +3538,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    each on a separate line.");
         pw.println("  get-wifi-supported-features");
         pw.println("    Gets the features supported by WifiManager");
+        pw.println("  get-carrier-network-offload <subId>");
+        pw.println("    Gets whether the carrier network offload is enabled or not for this subId");
     }
 
     private void onHelpPrivileged(PrintWriter pw) {
