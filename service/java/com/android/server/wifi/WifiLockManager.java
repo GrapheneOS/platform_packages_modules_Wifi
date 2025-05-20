@@ -23,7 +23,6 @@ import android.net.wifi.IWifiLowLatencyLockListener;
 import android.net.wifi.WifiManager;
 import android.os.BatteryStatsManager;
 import android.os.Binder;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -74,7 +73,7 @@ public class WifiLockManager {
     private final FrameworkFacade mFrameworkFacade;
     private final ActiveModeWarden mActiveModeWarden;
     private final ActivityManager mActivityManager;
-    private final Handler mHandler;
+    private final WifiThreadRunner mThreadRunner;
     private final WifiMetrics mWifiMetrics;
 
     private final List<WifiLock> mWifiLocks = new ArrayList<>();
@@ -111,7 +110,7 @@ public class WifiLockManager {
             BatteryStatsManager batteryStats,
             ActiveModeWarden activeModeWarden,
             FrameworkFacade frameworkFacade,
-            Handler handler,
+            WifiThreadRunner threadRunner,
             Clock clock,
             WifiMetrics wifiMetrics,
             DeviceConfigFacade deviceConfigFacade,
@@ -122,7 +121,7 @@ public class WifiLockManager {
         mActiveModeWarden = activeModeWarden;
         mFrameworkFacade = frameworkFacade;
         mActivityManager = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
-        mHandler = handler;
+        mThreadRunner = threadRunner;
         mClock = clock;
         mWifiMetrics = wifiMetrics;
         mDeviceConfigFacade = deviceConfigFacade;
@@ -158,7 +157,7 @@ public class WifiLockManager {
     }
 
     private void onAppForeground(final int uid, final int importance) {
-        mHandler.post(() -> {
+        mThreadRunner.post(() -> {
             UidRec uidRec = mLowLatencyUidWatchList.get(uid);
             if (uidRec == null) {
                 // Not a uid in the watch list
@@ -181,7 +180,7 @@ public class WifiLockManager {
                 setBlameLowLatencyUid(uid, uidRec.mIsFg);
                 notifyLowLatencyActiveUsersChanged();
             }
-        });
+        }, TAG + "#onAppForeground");
     }
 
     // Detect UIDs going,
@@ -727,7 +726,7 @@ public class WifiLockManager {
 
         // Recalculate the operating mode
         updateOpMode();
-        mHandler.removeCallbacksAndMessages(mLock);
+        mThreadRunner.removeCallbacks(mLock);
         return true;
     }
 
@@ -791,7 +790,8 @@ public class WifiLockManager {
                 break;
         }
         // Delay 1s to release the lock to avoid stress the HAL.
-        mHandler.postDelayed(this::updateOpMode, mLock, DELAY_LOCK_RELEASE_MS);
+        mThreadRunner.postDelayed(this::updateOpMode, DELAY_LOCK_RELEASE_MS,
+                TAG + "#updateOpMode", mLock);
         return true;
     }
 
@@ -1269,7 +1269,7 @@ public class WifiLockManager {
         }
 
         public void binderDied() {
-            mHandler.post(() -> releaseLock(mBinder));
+            mThreadRunner.post(() -> releaseLock(mBinder), TAG + "#binderDied");
         }
 
         public void unlinkDeathRecipient() {

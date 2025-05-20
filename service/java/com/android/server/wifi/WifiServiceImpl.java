@@ -6283,7 +6283,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         if (WifiManager.VERBOSE_LOGGING_LEVEL_ENABLED_SHOW_KEY == mVerboseLoggingLevel) {
             mWifiThreadRunner.postDelayed(mAutoDisableShowKeyVerboseLoggingModeRunnable,
                     AUTO_DISABLE_SHOW_KEY_COUNTDOWN_MILLIS,
-                    TAG + "#AutoDisableShowKeyVerboseLoggingMode");
+                    TAG + "#AutoDisableShowKeyVerboseLoggingMode", null);
         }
         updateVerboseLoggingEnabled();
         final boolean halVerboseEnabled =

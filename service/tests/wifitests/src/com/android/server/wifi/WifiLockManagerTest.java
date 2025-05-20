@@ -116,7 +116,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
     @Mock WifiPermissionsUtil mWifiPermissionsUtil;
     @Mock WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
     TestLooper mLooper;
-    Handler mHandler;
+    private WifiThreadRunner mWifiThreadRunner;
 
     @Captor
     ArgumentCaptor<WifiDeviceStateChangeManager.StateChangeCallback>
@@ -142,7 +142,8 @@ public class WifiLockManagerTest extends WifiBaseTest {
                 .startMocking();
 
         mLooper = new TestLooper();
-        mHandler = new Handler(mLooper.getLooper());
+        Handler handler = new Handler(mLooper.getLooper());
+        mWifiThreadRunner = new WifiThreadRunner(handler);
         when(mContext.getSystemService(Context.ACTIVITY_SERVICE)).thenReturn(mActivityManager);
         when(mContext.getSystemService(ActivityManager.class)).thenReturn(mActivityManager);
         when(mContext.getSystemService(PowerManager.class)).thenReturn(mPowerManager);
@@ -166,7 +167,7 @@ public class WifiLockManagerTest extends WifiBaseTest {
                         mBatteryStats,
                         mActiveModeWarden,
                         mFrameworkFacade,
-                        mHandler,
+                        mWifiThreadRunner,
                         mClock,
                         mWifiMetrics,
                         mDeviceConfigFacade,

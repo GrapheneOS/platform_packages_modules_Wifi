@@ -228,12 +228,17 @@ public class WifiThreadRunner {
      * @param runnable    The Runnable that will be executed.
      * @param delayMillis The delay (in milliseconds) until the Runnable
      *                    will be executed.
+     * @param taskName    The task name for performance logging
+     * @param token An instance which can be used to cancel {@code runnable} via
+     *         {@link #removeCallbacks(Object)}.
      * @return true if the runnable was successfully posted <b>(not executed)</b> to the main Wifi
      * thread, false otherwise
      */
-    public boolean postDelayed(@NonNull Runnable runnable, long delayMillis, String taskName) {
+    public boolean postDelayed(@NonNull Runnable runnable, long delayMillis, String taskName,
+            Object token) {
         Message m = Message.obtain(mHandler, runnable);
         m.getData().putString(KEY_SIGNATURE, taskName);
+        m.obj = token;
         return mHandler.sendMessageDelayed(m, delayMillis);
     }
 
@@ -254,6 +259,16 @@ public class WifiThreadRunner {
      */
     public final boolean hasCallbacks(@NonNull Runnable r) {
         return mHandler.hasCallbacks(r);
+    }
+
+
+    /**
+     * Remove any pending posts of callbacks whose <var>obj</var> is <var>token</var>.
+     *
+     * @param token The object that will be used to query.
+     */
+    public final void removeCallbacks(@NonNull Object token) {
+        mHandler.removeCallbacksAndMessages(token);
     }
 
     /**

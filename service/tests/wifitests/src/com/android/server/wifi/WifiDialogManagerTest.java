@@ -484,7 +484,8 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         verify(builder).setNeutralButton(eq(TEST_NEUTRAL_BUTTON_TEXT),
                 neutralButtonListenerCaptor.capture());
         verify(builder).setOnCancelListener(cancelListenerCaptor.capture());
-        verify(mWifiThreadRunner, never()).postDelayed(any(Runnable.class), anyInt(), anyString());
+        verify(mWifiThreadRunner, never()).postDelayed(any(Runnable.class), anyInt(), anyString(),
+                any());
 
         // Positive
         positiveButtonListenerCaptor.getValue().onClick(dialog, DialogInterface.BUTTON_POSITIVE);
@@ -571,7 +572,8 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         verify(builder).setNeutralButton(eq(TEST_NEUTRAL_BUTTON_TEXT),
                 neutralButtonListenerCaptor.capture());
         verify(builder).setOnCancelListener(cancelListenerCaptor.capture());
-        verify(mWifiThreadRunner, never()).postDelayed(any(Runnable.class), anyInt(), anyString());
+        verify(mWifiThreadRunner, never()).postDelayed(any(Runnable.class), anyInt(), anyString(),
+                any());
 
         // Positive
         positiveButtonListenerCaptor.getValue().onClick(dialog, DialogInterface.BUTTON_POSITIVE);
