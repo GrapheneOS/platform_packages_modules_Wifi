@@ -164,6 +164,26 @@
     <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g>-এ কানেক্ট করা যাচ্ছে না"</string>
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"সার্ভার সার্টিফিকেট চেন সঠিক নয়।"</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"ঠিক আছে"</string>
+    <string name="wifi_tofu_dialog2_title" msgid="1053868315289884596">"সুরক্ষার সার্টিফিকেট"</string>
+    <string name="wifi_tofu_dialog2_message" msgid="7838488246818419952">"শুধুমাত্র এই নেটওয়ার্ক আপনার বিশ্বস্ত এবং নিম্নলিখিত তথ্য সঠিক মনে হলে তবেই চালিয়ে যান।"</string>
+    <string name="wifi_tofu_dialog2_negative_button" msgid="4366875989711122647">"বাতিল করুন"</string>
+    <string name="wifi_tofu_dialog2_positive_button" msgid="2560667815737369161">"বিশ্বাস করুন"</string>
+    <string name="wifi_tofu_dialog2_list_label_server_name" msgid="2272963470093665866">"সার্ভার"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name" msgid="3110294717897513111">"ইস্যুকারী"</string>
+    <string name="wifi_tofu_dialog2_list_label_validity_period" msgid="2250478984584839877">"মেয়াদ"</string>
+    <string name="wifi_tofu_dialog2_list_content_validity_period" msgid="1499391361985522630">"<xliff:g id="STARTDATE">%1$s</xliff:g> থেকে <xliff:g id="ENDDATE">%2$s</xliff:g> পর্যন্ত"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha256_fingerprint" msgid="3119787225230287863">"SHA-256 ফিঙ্গারপ্রিন্ট"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha1_fingerprint" msgid="4026450834454201502">"SHA-1 ফিঙ্গারপ্রিন্ট"</string>
+    <string name="wifi_tofu_dialog2_list_label_subject_name_details" msgid="982538669999578332">"বিষয়ের নাম সম্পর্কিত বিবরণ"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name_details" msgid="4112857365971740060">"ইসুকারীর নামের বিবরণ"</string>
+    <string name="wifi_tofu_dialog2_list_label_version" msgid="3336410982988123576">"ভার্সন"</string>
+    <string name="wifi_tofu_dialog2_list_label_serial_number" msgid="9175755251956389857">"সিরিয়াল নম্বর"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_algorithm" msgid="6563451612133895163">"পাবলিক কী সংক্রান্ত অ্যালগরিদম"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_size" msgid="1068488437146260684">"পাবলিক কী-র সাইজ"</string>
+    <string name="wifi_tofu_dialog2_list_content_public_key_size" msgid="6293936401636648626">"<xliff:g id="NUMBEROFBITS">%1$s</xliff:g> বিট"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key" msgid="7780723253531507500">"পাবলিক কী"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature_algorithm" msgid="8152015614684323566">"স্বাক্ষর সম্পর্কিত অ্যালগরিদম"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature" msgid="8718183896498603583">"স্বাক্ষর"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"এই নেটওয়ার্ক যাচাই করা যায়নি"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"সবসময় কানেক্ট থাকুন"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"এখনই ডিসকানেক্ট করুন"</string>

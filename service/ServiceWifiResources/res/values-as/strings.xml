@@ -164,6 +164,26 @@
     <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g>ৰ সৈতে সংযোগ কৰিব নোৱাৰি"</string>
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"ছাৰ্ভাৰৰ প্ৰমাণপত্ৰৰ শৃংখলাটো অমান্য।"</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"ঠিক আছে"</string>
+    <string name="wifi_tofu_dialog2_title" msgid="1053868315289884596">"নিৰাপত্তা সম্পৰ্কীয় প্ৰমাণপত্ৰ"</string>
+    <string name="wifi_tofu_dialog2_message" msgid="7838488246818419952">"আপুনি এই নেটৱৰ্কটোক বিশ্বাস কৰিলেহে আৰু তলত দিয়া তথ্যখিনি শুদ্ধ যেন লাগিলেহে অব্যাহত ৰাখক।"</string>
+    <string name="wifi_tofu_dialog2_negative_button" msgid="4366875989711122647">"বাতিল কৰক"</string>
+    <string name="wifi_tofu_dialog2_positive_button" msgid="2560667815737369161">"বিশ্বাসী হিচাপে চিহ্নিত কৰক"</string>
+    <string name="wifi_tofu_dialog2_list_label_server_name" msgid="2272963470093665866">"ছাৰ্ভাৰ"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name" msgid="3110294717897513111">"জাৰি কৰোঁতা"</string>
+    <string name="wifi_tofu_dialog2_list_label_validity_period" msgid="2250478984584839877">"বৈধতা"</string>
+    <string name="wifi_tofu_dialog2_list_content_validity_period" msgid="1499391361985522630">"<xliff:g id="STARTDATE">%1$s</xliff:g>ৰ পৰা <xliff:g id="ENDDATE">%2$s</xliff:g>লৈ"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha256_fingerprint" msgid="3119787225230287863">"SHA-256 ফিংগাৰপ্ৰিণ্ট"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha1_fingerprint" msgid="4026450834454201502">"SHA-1 ফিংগাৰপ্ৰিণ্ট"</string>
+    <string name="wifi_tofu_dialog2_list_label_subject_name_details" msgid="982538669999578332">"বিষয়বস্তুৰ নামৰ সবিশেষ"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name_details" msgid="4112857365971740060">"জাৰি কৰোঁতাৰ নামৰ সবিশেষ"</string>
+    <string name="wifi_tofu_dialog2_list_label_version" msgid="3336410982988123576">"সংস্কৰণ"</string>
+    <string name="wifi_tofu_dialog2_list_label_serial_number" msgid="9175755251956389857">"ক্ৰমিক নম্বৰ"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_algorithm" msgid="6563451612133895163">"ৰাজহুৱা চাবিৰ এলগ’ৰিডম"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_size" msgid="1068488437146260684">"ৰাজহুৱা চাবিৰ আকাৰ"</string>
+    <string name="wifi_tofu_dialog2_list_content_public_key_size" msgid="6293936401636648626">"<xliff:g id="NUMBEROFBITS">%1$s</xliff:g> বিট"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key" msgid="7780723253531507500">"ৰাজহুৱা চাবি"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature_algorithm" msgid="8152015614684323566">"স্বাক্ষৰৰ এলগ’ৰিয়াম"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature" msgid="8718183896498603583">"চহী"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"এই নেটৱৰ্কটো সত্যাপন কৰিব নোৱাৰি"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"সংযুক্ত হৈ থাকক"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"এতিয়া সংযোগ বিচ্ছিন্ন কৰক"</string>

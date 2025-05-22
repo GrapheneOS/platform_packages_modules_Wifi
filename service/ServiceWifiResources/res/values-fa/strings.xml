@@ -164,6 +164,26 @@
     <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"اتصال به <xliff:g id="VALUE">%1$s</xliff:g> ممکن نیست"</string>
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"زنجیره گواهینامه سرور نامعتبر است."</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"تأیید"</string>
+    <string name="wifi_tofu_dialog2_title" msgid="1053868315289884596">"گواهینامه امنیتی"</string>
+    <string name="wifi_tofu_dialog2_message" msgid="7838488246818419952">"تنها اگر به این شبکه اعتماد دارید و اطلاعات زیر درست است ادامه دهید."</string>
+    <string name="wifi_tofu_dialog2_negative_button" msgid="4366875989711122647">"لغو کردن"</string>
+    <string name="wifi_tofu_dialog2_positive_button" msgid="2560667815737369161">"اعتماد کردن"</string>
+    <string name="wifi_tofu_dialog2_list_label_server_name" msgid="2272963470093665866">"سرور"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name" msgid="3110294717897513111">"صادرکننده"</string>
+    <string name="wifi_tofu_dialog2_list_label_validity_period" msgid="2250478984584839877">"اعتبار"</string>
+    <string name="wifi_tofu_dialog2_list_content_validity_period" msgid="1499391361985522630">"از <xliff:g id="STARTDATE">%1$s</xliff:g> تا <xliff:g id="ENDDATE">%2$s</xliff:g>"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha256_fingerprint" msgid="3119787225230287863">"اثر انگشت اس‌اچ‌اِی-۲۵۶"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha1_fingerprint" msgid="4026450834454201502">"اثر انگشت اس‌اچ‌اِی-۱"</string>
+    <string name="wifi_tofu_dialog2_list_label_subject_name_details" msgid="982538669999578332">"جزئیات نام موضوع"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name_details" msgid="4112857365971740060">"جزئیات نام صادرکننده"</string>
+    <string name="wifi_tofu_dialog2_list_label_version" msgid="3336410982988123576">"نسخه"</string>
+    <string name="wifi_tofu_dialog2_list_label_serial_number" msgid="9175755251956389857">"شماره سریال"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_algorithm" msgid="6563451612133895163">"الگوریتم کلید عمومی"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_size" msgid="1068488437146260684">"اندازه کلید عمومی"</string>
+    <string name="wifi_tofu_dialog2_list_content_public_key_size" msgid="6293936401636648626">"‫<xliff:g id="NUMBEROFBITS">%1$s</xliff:g> بیت"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key" msgid="7780723253531507500">"کلید عمومی"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature_algorithm" msgid="8152015614684323566">"الگوریتم امضا"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature" msgid="8718183896498603583">"امضا"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"تأیید این شبکه ممکن نیست"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"متصل باشد"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"اکنون قطع شود"</string>

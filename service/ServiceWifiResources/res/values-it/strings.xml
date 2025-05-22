@@ -164,6 +164,26 @@
     <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Impossibile connettersi a <xliff:g id="VALUE">%1$s</xliff:g>"</string>
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"La catena di certificati del server non è valida."</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Ok"</string>
+    <string name="wifi_tofu_dialog2_title" msgid="1053868315289884596">"Certificato di sicurezza"</string>
+    <string name="wifi_tofu_dialog2_message" msgid="7838488246818419952">"Continua soltanto se ritieni attendibile questa rete e le informazioni di seguito ti sembrano corrette."</string>
+    <string name="wifi_tofu_dialog2_negative_button" msgid="4366875989711122647">"Annulla"</string>
+    <string name="wifi_tofu_dialog2_positive_button" msgid="2560667815737369161">"Attendibile"</string>
+    <string name="wifi_tofu_dialog2_list_label_server_name" msgid="2272963470093665866">"Server"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name" msgid="3110294717897513111">"Emittente"</string>
+    <string name="wifi_tofu_dialog2_list_label_validity_period" msgid="2250478984584839877">"Validità"</string>
+    <string name="wifi_tofu_dialog2_list_content_validity_period" msgid="1499391361985522630">"Dal giorno <xliff:g id="STARTDATE">%1$s</xliff:g> al giorno <xliff:g id="ENDDATE">%2$s</xliff:g>"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha256_fingerprint" msgid="3119787225230287863">"Impronta SHA-256"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha1_fingerprint" msgid="4026450834454201502">"Impronta SHA-1"</string>
+    <string name="wifi_tofu_dialog2_list_label_subject_name_details" msgid="982538669999578332">"Dettagli del nome del soggetto"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name_details" msgid="4112857365971740060">"Dettagli del nome dell\'emittente"</string>
+    <string name="wifi_tofu_dialog2_list_label_version" msgid="3336410982988123576">"Versione"</string>
+    <string name="wifi_tofu_dialog2_list_label_serial_number" msgid="9175755251956389857">"Numero di serie"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_algorithm" msgid="6563451612133895163">"Algoritmo della chiave pubblica"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_size" msgid="1068488437146260684">"Dimensioni della chiave pubblica"</string>
+    <string name="wifi_tofu_dialog2_list_content_public_key_size" msgid="6293936401636648626">"<xliff:g id="NUMBEROFBITS">%1$s</xliff:g> bit"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key" msgid="7780723253531507500">"Chiave pubblica"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature_algorithm" msgid="8152015614684323566">"Algoritmo di firma"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature" msgid="8718183896498603583">"Firma"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Impossibile verificare questa rete"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"Mantieni la connessione"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"Disconnettiti ora"</string>

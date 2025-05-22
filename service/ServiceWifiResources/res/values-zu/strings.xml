@@ -164,6 +164,26 @@
     <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Ayikwazi ukuxhumeka ku-<xliff:g id="VALUE">%1$s</xliff:g>"</string>
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Uchungechunge lwesitifiketi seseva aluvumelekile."</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"KULUNGILE"</string>
+    <string name="wifi_tofu_dialog2_title" msgid="1053868315289884596">"Isitifiketi sokuvikeleka"</string>
+    <string name="wifi_tofu_dialog2_message" msgid="7838488246818419952">"Qhubeka kuphela uma uyithemba le nethiwekhi futhi ulwazi olungezansi lubukeka lulungile."</string>
+    <string name="wifi_tofu_dialog2_negative_button" msgid="4366875989711122647">"Khansela"</string>
+    <string name="wifi_tofu_dialog2_positive_button" msgid="2560667815737369161">"Themba"</string>
+    <string name="wifi_tofu_dialog2_list_label_server_name" msgid="2272963470093665866">"Iseva"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name" msgid="3110294717897513111">"Okhiphayo"</string>
+    <string name="wifi_tofu_dialog2_list_label_validity_period" msgid="2250478984584839877">"Ukuqinisekiswa"</string>
+    <string name="wifi_tofu_dialog2_list_content_validity_period" msgid="1499391361985522630">"Kusuka ngomhla ka-<xliff:g id="STARTDATE">%1$s</xliff:g> kuye ngomhla ka-<xliff:g id="ENDDATE">%2$s</xliff:g>"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha256_fingerprint" msgid="3119787225230287863">"Isigxivizo se-SHA-256 somunwe"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha1_fingerprint" msgid="4026450834454201502">"Isigxivizo se-SHA-1 somunwe"</string>
+    <string name="wifi_tofu_dialog2_list_label_subject_name_details" msgid="982538669999578332">"Imininingwane yegama lesihloko"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name_details" msgid="4112857365971740060">"Imininingwane yegama lomgunyazi"</string>
+    <string name="wifi_tofu_dialog2_list_label_version" msgid="3336410982988123576">"Uhlobo"</string>
+    <string name="wifi_tofu_dialog2_list_label_serial_number" msgid="9175755251956389857">"Inombolo yomkhiqizo"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_algorithm" msgid="6563451612133895163">"I-algorithm yokhiye wasesidlangalaleni"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_size" msgid="1068488437146260684">"Ubungako bukakhiye osesidlangalaleni"</string>
+    <string name="wifi_tofu_dialog2_list_content_public_key_size" msgid="6293936401636648626">"Ama-bit angu-<xliff:g id="NUMBEROFBITS">%1$s</xliff:g>"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key" msgid="7780723253531507500">"Ukhiye wasesidlangalaleni"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature_algorithm" msgid="8152015614684323566">"I-algorithm yesiginesha"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature" msgid="8718183896498603583">"Isiginesha"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Ayikwazi ukuqinisekisa le nethiwekhi"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"Hlala uxhunyiwe"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"Nqamula manje"</string>

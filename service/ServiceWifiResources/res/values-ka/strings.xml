@@ -164,6 +164,26 @@
     <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g>-თან დაკავშირება ვერ მოხერხდა."</string>
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"სერვერის სერტიფიკატის ეს ჯაჭვი არასწორია."</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"კარგი"</string>
+    <string name="wifi_tofu_dialog2_title" msgid="1053868315289884596">"უსაფრთხოების სერტიფიკატი"</string>
+    <string name="wifi_tofu_dialog2_message" msgid="7838488246818419952">"გააგრძელეთ მხოლოდ იმ შემთხვევაში, თუ ენდობით ამ ქსელს და ქვემოთ მოცემული ინფორმაცია სწორად გამოიყურება."</string>
+    <string name="wifi_tofu_dialog2_negative_button" msgid="4366875989711122647">"გაუქმება"</string>
+    <string name="wifi_tofu_dialog2_positive_button" msgid="2560667815737369161">"ნდობით აღჭურვა"</string>
+    <string name="wifi_tofu_dialog2_list_label_server_name" msgid="2272963470093665866">"სერვერი"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name" msgid="3110294717897513111">"გამცემი"</string>
+    <string name="wifi_tofu_dialog2_list_label_validity_period" msgid="2250478984584839877">"მოქმედების ვადა"</string>
+    <string name="wifi_tofu_dialog2_list_content_validity_period" msgid="1499391361985522630">"<xliff:g id="STARTDATE">%1$s</xliff:g>-დან <xliff:g id="ENDDATE">%2$s</xliff:g>-მდე"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha256_fingerprint" msgid="3119787225230287863">"SHA-256 თითის ანაბეჭდი"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha1_fingerprint" msgid="4026450834454201502">"SHA-1 თითის ანაბეჭდი"</string>
+    <string name="wifi_tofu_dialog2_list_label_subject_name_details" msgid="982538669999578332">"მფლობელის სახელის დეტალები"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name_details" msgid="4112857365971740060">"გამცემის სახელის დეტალები"</string>
+    <string name="wifi_tofu_dialog2_list_label_version" msgid="3336410982988123576">"ვერსია"</string>
+    <string name="wifi_tofu_dialog2_list_label_serial_number" msgid="9175755251956389857">"სერიული ნომერი"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_algorithm" msgid="6563451612133895163">"საჯარო გასაღების ალგორითმი"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_size" msgid="1068488437146260684">"საჯარო გასაღების ზომა"</string>
+    <string name="wifi_tofu_dialog2_list_content_public_key_size" msgid="6293936401636648626">"<xliff:g id="NUMBEROFBITS">%1$s</xliff:g> ბიტი"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key" msgid="7780723253531507500">"საჯარო გასაღები"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature_algorithm" msgid="8152015614684323566">"ხელმოწერის ალგორითმი"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature" msgid="8718183896498603583">"ხელმოწერა"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"ამ ქსელის დადასტურება შეუძლებელია"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"შეინარჩუნეთ კავშირი"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"შეწყვიტეთ კავშირი ახლავე"</string>

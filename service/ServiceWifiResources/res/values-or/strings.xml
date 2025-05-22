@@ -164,6 +164,26 @@
     <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"<xliff:g id="VALUE">%1$s</xliff:g> ସହ କନେକ୍ଟ କରାଯାଇପାରିବ ନାହିଁ"</string>
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"ସର୍ଭର ସାର୍ଟିଫିକେଟ ଚେନ ଅବୈଧ ଅଟେ।"</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"ଠିକ ଅଛି"</string>
+    <string name="wifi_tofu_dialog2_title" msgid="1053868315289884596">"ସୁରକ୍ଷା ସର୍ଟିଫିକେଟ"</string>
+    <string name="wifi_tofu_dialog2_message" msgid="7838488246818419952">"ଯଦି ଆପଣ ଏହି ନେଟୱାର୍କକୁ ବିଶ୍ୱାସ କରନ୍ତି ଏବଂ ତଳେ ଥିବା ସୂଚନା ସଠିକ ଦେଖାଯାଏ, ତେବେ କେବଳ ଜାରି ରଖନ୍ତୁ।"</string>
+    <string name="wifi_tofu_dialog2_negative_button" msgid="4366875989711122647">"ବାତିଲ କରନ୍ତୁ"</string>
+    <string name="wifi_tofu_dialog2_positive_button" msgid="2560667815737369161">"ବିଶ୍ୱାସ କରନ୍ତୁ"</string>
+    <string name="wifi_tofu_dialog2_list_label_server_name" msgid="2272963470093665866">"ସର୍ଭର"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name" msgid="3110294717897513111">"ପ୍ରଦାନକାରୀ"</string>
+    <string name="wifi_tofu_dialog2_list_label_validity_period" msgid="2250478984584839877">"ବୈଧତା"</string>
+    <string name="wifi_tofu_dialog2_list_content_validity_period" msgid="1499391361985522630">"<xliff:g id="STARTDATE">%1$s</xliff:g>ରୁ <xliff:g id="ENDDATE">%2$s</xliff:g> ପର୍ଯ୍ୟନ୍ତ"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha256_fingerprint" msgid="3119787225230287863">"SHA-256 ଟିପଚିହ୍ନ"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha1_fingerprint" msgid="4026450834454201502">"SHA-1 ଟିପଚିହ୍ନ"</string>
+    <string name="wifi_tofu_dialog2_list_label_subject_name_details" msgid="982538669999578332">"ବିଷୟ ନାମର ବିବରଣୀ"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name_details" msgid="4112857365971740060">"ପ୍ରଦାନକାରୀ ନାମର ବିବରଣୀ"</string>
+    <string name="wifi_tofu_dialog2_list_label_version" msgid="3336410982988123576">"ଭର୍ସନ"</string>
+    <string name="wifi_tofu_dialog2_list_label_serial_number" msgid="9175755251956389857">"ସିରିଏଲ ନମ୍ବର"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_algorithm" msgid="6563451612133895163">"ପବ୍ଲିକ କୀ ଆଲଗୋରିଦମ"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_size" msgid="1068488437146260684">"ପବ୍ଲିକ କୀ ସାଇଜ"</string>
+    <string name="wifi_tofu_dialog2_list_content_public_key_size" msgid="6293936401636648626">"<xliff:g id="NUMBEROFBITS">%1$s</xliff:g> ବିଟ"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key" msgid="7780723253531507500">"ପବ୍ଲିକ କୀ"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature_algorithm" msgid="8152015614684323566">"ଦସ୍ତଖତ ଆଲଗୋରିଦମ"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature" msgid="8718183896498603583">"ଦସ୍ତଖତ"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"ଏହି ନେଟୱାର୍କକୁ ଯାଞ୍ଚ କରାଯାଇପାରିବ ନାହିଁ"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"କନେକ୍ଟ ରୁହନ୍ତୁ"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"ବର୍ତ୍ତମାନ ଡିସକନେକ୍ଟ କରନ୍ତୁ"</string>

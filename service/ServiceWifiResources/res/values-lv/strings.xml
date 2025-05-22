@@ -164,6 +164,26 @@
     <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Nevar izveidot savienojumu ar tīklu <xliff:g id="VALUE">%1$s</xliff:g>"</string>
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Servera sertifikātu ķēde ir nederīga."</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Labi"</string>
+    <string name="wifi_tofu_dialog2_title" msgid="1053868315289884596">"Drošības sertifikāts"</string>
+    <string name="wifi_tofu_dialog2_message" msgid="7838488246818419952">"Turpiniet tikai tad, ja uzticaties šim tīklam un tālāk norādītā informācija šķiet pareiza."</string>
+    <string name="wifi_tofu_dialog2_negative_button" msgid="4366875989711122647">"Atcelt"</string>
+    <string name="wifi_tofu_dialog2_positive_button" msgid="2560667815737369161">"Uzticēties"</string>
+    <string name="wifi_tofu_dialog2_list_label_server_name" msgid="2272963470093665866">"Serveris"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name" msgid="3110294717897513111">"Izdevējs"</string>
+    <string name="wifi_tofu_dialog2_list_label_validity_period" msgid="2250478984584839877">"Derīgums"</string>
+    <string name="wifi_tofu_dialog2_list_content_validity_period" msgid="1499391361985522630">"<xliff:g id="STARTDATE">%1$s</xliff:g>–<xliff:g id="ENDDATE">%2$s</xliff:g>"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha256_fingerprint" msgid="3119787225230287863">"SHA-256 ciparnospiedums"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha1_fingerprint" msgid="4026450834454201502">"SHA-1 ciparnospiedums"</string>
+    <string name="wifi_tofu_dialog2_list_label_subject_name_details" msgid="982538669999578332">"Detalizēta informācija par tēmas nosaukumu"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name_details" msgid="4112857365971740060">"Detalizēta informācija par izdevēju"</string>
+    <string name="wifi_tofu_dialog2_list_label_version" msgid="3336410982988123576">"Versija"</string>
+    <string name="wifi_tofu_dialog2_list_label_serial_number" msgid="9175755251956389857">"Sērijas numurs"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_algorithm" msgid="6563451612133895163">"Publiskās atslēgas algoritms"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_size" msgid="1068488437146260684">"Publiskās atslēgas izmērs"</string>
+    <string name="wifi_tofu_dialog2_list_content_public_key_size" msgid="6293936401636648626">"<xliff:g id="NUMBEROFBITS">%1$s</xliff:g> bitu"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key" msgid="7780723253531507500">"Publiskā atslēga"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature_algorithm" msgid="8152015614684323566">"Paraksta algoritms"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature" msgid="8718183896498603583">"Paraksts"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"Nevar verificēt šo tīklu"</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"Nepārtraukt savienojumu"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"Pārtraukt savienojumu tūlīt"</string>
