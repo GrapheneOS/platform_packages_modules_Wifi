@@ -164,46 +164,26 @@
     <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"يتعذّر الاتصال بشبكة \"<xliff:g id="VALUE">%1$s</xliff:g>\"."</string>
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"سلسلة شهادات الخادم غير صالحة."</string>
     <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"حسنًا"</string>
-    <!-- no translation found for wifi_tofu_dialog2_title (1053868315289884596) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_message (7838488246818419952) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_negative_button (4366875989711122647) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_positive_button (2560667815737369161) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_server_name (2272963470093665866) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_issuer_name (3110294717897513111) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_validity_period (2250478984584839877) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_content_validity_period (1499391361985522630) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_sha256_fingerprint (3119787225230287863) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_sha1_fingerprint (4026450834454201502) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_subject_name_details (982538669999578332) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_issuer_name_details (4112857365971740060) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_version (3336410982988123576) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_serial_number (9175755251956389857) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_public_key_algorithm (6563451612133895163) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_public_key_size (1068488437146260684) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_content_public_key_size (6293936401636648626) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_public_key (7780723253531507500) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_signature_algorithm (8152015614684323566) -->
-    <skip />
-    <!-- no translation found for wifi_tofu_dialog2_list_label_signature (8718183896498603583) -->
-    <skip />
+    <string name="wifi_tofu_dialog2_title" msgid="1053868315289884596">"شهادة الأمان"</string>
+    <string name="wifi_tofu_dialog2_message" msgid="7838488246818419952">"يُرجى عدم المتابعة إلا إذا كنت تثق في هذه الشبكة وتبدو المعلومات أدناه صحيحة."</string>
+    <string name="wifi_tofu_dialog2_negative_button" msgid="4366875989711122647">"إلغاء"</string>
+    <string name="wifi_tofu_dialog2_positive_button" msgid="2560667815737369161">"موثوق بها"</string>
+    <string name="wifi_tofu_dialog2_list_label_server_name" msgid="2272963470093665866">"الخادم"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name" msgid="3110294717897513111">"جهة الإصدار"</string>
+    <string name="wifi_tofu_dialog2_list_label_validity_period" msgid="2250478984584839877">"الصلاحية"</string>
+    <string name="wifi_tofu_dialog2_list_content_validity_period" msgid="1499391361985522630">"من <xliff:g id="STARTDATE">%1$s</xliff:g> إلى <xliff:g id="ENDDATE">%2$s</xliff:g>"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha256_fingerprint" msgid="3119787225230287863">"‏بصمة إصبع SHA-256"</string>
+    <string name="wifi_tofu_dialog2_list_label_sha1_fingerprint" msgid="4026450834454201502">"‏بصمة إصبع SHA-1"</string>
+    <string name="wifi_tofu_dialog2_list_label_subject_name_details" msgid="982538669999578332">"تفاصيل اسم الموضوع"</string>
+    <string name="wifi_tofu_dialog2_list_label_issuer_name_details" msgid="4112857365971740060">"تفاصيل اسم جهة الإصدار"</string>
+    <string name="wifi_tofu_dialog2_list_label_version" msgid="3336410982988123576">"الإصدار"</string>
+    <string name="wifi_tofu_dialog2_list_label_serial_number" msgid="9175755251956389857">"الرقم التسلسلي"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_algorithm" msgid="6563451612133895163">"خوارزمية المفتاح العام"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key_size" msgid="1068488437146260684">"حجم المفتاح العام"</string>
+    <string name="wifi_tofu_dialog2_list_content_public_key_size" msgid="6293936401636648626">"<xliff:g id="NUMBEROFBITS">%1$s</xliff:g> بت"</string>
+    <string name="wifi_tofu_dialog2_list_label_public_key" msgid="7780723253531507500">"المفتاح العام"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature_algorithm" msgid="8152015614684323566">"خوارزمية التوقيع"</string>
+    <string name="wifi_tofu_dialog2_list_label_signature" msgid="8718183896498603583">"التوقيع"</string>
     <string name="wifi_ca_cert_dialog_preT_title" msgid="6916320484037009061">"يتعذّر التحقّق من هذه الشبكة."</string>
     <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"البقاء على اتصال"</string>
     <string name="wifi_ca_cert_dialog_preT_abort_text" msgid="1331309662999405224">"إلغاء الاتصال الآن"</string>
