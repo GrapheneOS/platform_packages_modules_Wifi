@@ -39,7 +39,6 @@ import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.net.wifi.util.BuildProperties;
 import android.os.BugreportManager;
 import android.os.test.TestLooper;
 
@@ -71,8 +70,7 @@ import java.util.regex.Pattern;
 @SmallTest
 public class WifiDiagnosticsTest extends WifiBaseTest {
     @Mock WifiNative mWifiNative;
-    @Mock
-    BuildProperties mBuildProperties;
+    @Mock BuildProperties mBuildProperties;
     @Mock Context mContext;
     @Mock WifiInjector mWifiInjector;
     @Mock DeviceConfigFacade mDeviceConfigFacade;

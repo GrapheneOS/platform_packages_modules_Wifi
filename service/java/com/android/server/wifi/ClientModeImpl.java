@@ -6456,13 +6456,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 case CMD_CONNECTING_WATCHDOG_TIMER: {
                     if (mConnectingWatchdogCount == message.arg1) {
                         if (mVerboseLoggingEnabled) log("Connecting watchdog! -> disconnect");
-                        reportConnectionAttemptEnd(
-                                WifiMetrics.ConnectionEvent.FAILURE_NO_RESPONSE,
-                                WifiMetricsProto.ConnectionEvent.HLF_NONE,
-                                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0);
-                        handleNetworkDisconnect(false,
-                                WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__CONNECTING_WATCHDOG_TIMER);
-                        transitionTo(mDisconnectedState);
+                        mFrameworkDisconnectReasonOverride =
+                                WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__CONNECTING_WATCHDOG_TIMER;
+                        sendMessageAtFrontOfQueue(CMD_DISCONNECT,
+                                StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER);
                     }
                     break;
                 }

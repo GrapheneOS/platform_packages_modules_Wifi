@@ -4684,10 +4684,9 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         mLooper.moveTimeForward(ClientModeImpl.CONNECTING_WATCHDOG_TIMEOUT_MS);
         mLooper.dispatchAll();
-        verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(any(), any(),
-                eq(WifiBlocklistMonitor.REASON_FAILURE_NO_RESPONSE), anyInt());
-        verify(mWifiDiagnostics).reportConnectionEvent(
-                eq(WifiDiagnostics.CONNECTION_EVENT_TIMEOUT), any());
+        verify(mWifiMetrics).logStaEvent(eq(WIFI_IFACE_NAME),
+                eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
+                eq(StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER));
     }
 
     @Test
@@ -4695,17 +4694,17 @@ public class ClientModeImplTest extends WifiBaseTest {
         connect();
         mLooper.moveTimeForward(ClientModeImpl.CONNECTING_WATCHDOG_TIMEOUT_MS);
         mLooper.dispatchAll();
-        verify(mWifiBlocklistMonitor, never()).handleBssidConnectionFailure(any(), any(),
-                anyInt(), anyInt());
-        verify(mWifiDiagnostics, never()).reportConnectionEvent(
-                eq(WifiDiagnostics.CONNECTION_EVENT_TIMEOUT), any());
+        verify(mWifiMetrics, never()).logStaEvent(eq(WIFI_IFACE_NAME),
+                eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
+                eq(StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER));
     }
 
     private void verifyConnectionEventTimeoutDoesNotOccur() {
         mLooper.moveTimeForward(ClientModeImpl.CONNECTING_WATCHDOG_TIMEOUT_MS);
         mLooper.dispatchAll();
-        verify(mWifiDiagnostics, never()).reportConnectionEvent(
-                eq(WifiDiagnostics.CONNECTION_EVENT_TIMEOUT), any());
+        verify(mWifiMetrics, never()).logStaEvent(eq(WIFI_IFACE_NAME),
+                eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
+                eq(StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER));
     }
 
     /**
@@ -8143,9 +8142,9 @@ public class ClientModeImplTest extends WifiBaseTest {
         // Simulate watchdog timeout and ensure we retuned to disconnected state.
         mLooper.moveTimeForward(ClientModeImpl.CONNECTING_WATCHDOG_TIMEOUT_MS + 5L);
         mLooper.dispatchAll();
-
-        verify(mWifiNative).disableNetwork(WIFI_IFACE_NAME);
-        assertEquals("DisconnectedState", mCmi.getCurrentState().getName());
+        verify(mWifiMetrics).logStaEvent(eq(WIFI_IFACE_NAME),
+                eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
+                eq(StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER));
     }
 
     @Test

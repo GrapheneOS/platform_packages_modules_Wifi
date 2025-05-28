@@ -6797,6 +6797,8 @@ public class WifiMetrics {
                 return "DISCONNECT_UNWANTED";
             case StaEvent.DISCONNECT_ROAM_WATCHDOG_TIMER:
                 return "DISCONNECT_ROAM_WATCHDOG_TIMER";
+            case StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER:
+                return "DISCONNECT_CONNECT_WATCHDOG_TIMER";
             case StaEvent.DISCONNECT_P2P_DISCONNECT_WIFI_REQUEST:
                 return "DISCONNECT_P2P_DISCONNECT_WIFI_REQUEST";
             case StaEvent.DISCONNECT_RESET_SIM_NETWORKS:

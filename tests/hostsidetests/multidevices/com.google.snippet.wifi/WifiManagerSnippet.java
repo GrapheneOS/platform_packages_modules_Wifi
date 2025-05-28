@@ -18,14 +18,28 @@ package com.google.snippet.wifi;
 
 import static android.net.wifi.DeauthenticationReasonCode.REASON_UNKNOWN;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.NetworkInfo.DetailedState;
+import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApInfo;
+import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiScanner;
+import android.net.wifi.WifiScanner.ScanData;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -36,31 +50,46 @@ import com.android.compatibility.common.util.ShellIdentityUtils;
 import com.android.wifi.flags.Flags;
 
 import com.google.android.mobly.snippet.Snippet;
+import com.google.android.mobly.snippet.bundled.utils.JsonDeserializer;
+import com.google.android.mobly.snippet.bundled.utils.Utils;
 import com.google.android.mobly.snippet.event.EventCache;
 import com.google.android.mobly.snippet.event.SnippetEvent;
 import com.google.android.mobly.snippet.rpc.AsyncRpc;
 import com.google.android.mobly.snippet.rpc.Rpc;
+import com.google.snippet.wifi.softap.WifiSapJsonDeserializer;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-/** Snippet class for WifiManager. */
-public class WifiManagerSnippet implements Snippet {
+
+/**
+ * Snippet class for WifiManager.
+ */
+public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Snippet {
 
     private static final String TAG = "WifiManagerSnippet";
     private static final long POLLING_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(10);
+    private static final int CONNECT_TIMEOUT_IN_SEC = 90;
 
+    private final Context mContext;
     private final WifiManager mWifiManager;
     private final Handler mHandler;
     private final Object mLock = new Object();
-
     private WifiManagerSnippet.SnippetSoftApCallback mSoftApCallback;
     private WifiManager.LocalOnlyHotspotReservation mLocalOnlyHotspotReservation;
+    private BroadcastReceiver mWifiStateReceiver;
 
-    /** Callback to listen in and verify events to SoftAp. */
+    /**
+     * Callback to listen in and verify events to SoftAp.
+     */
     private static class SnippetSoftApCallback implements WifiManager.SoftApCallback {
         private final String mCallbackId;
 
@@ -104,7 +133,9 @@ public class WifiManagerSnippet implements Snippet {
         }
     }
 
-    /** Callback class to get the results of local hotspot start. */
+    /**
+     * Callback class to get the results of local hotspot start.
+     */
     private class SnippetLocalOnlyHotspotCallback extends WifiManager.LocalOnlyHotspotCallback {
         private final String mCallbackId;
 
@@ -122,18 +153,17 @@ public class WifiManagerSnippet implements Snippet {
             SnippetEvent event = new SnippetEvent(mCallbackId, "onStarted");
             event.getData().putString("ssid",
                     WifiJsonConverter.trimQuotationMarks(
-                            currentConfiguration.getWifiSsid().toString()));
-            event.getData()
-                    .putString(
-                            "passphrase",
-                            currentConfiguration.getPassphrase());
+                        currentConfiguration.getWifiSsid().toString()));
+            event.getData().putString(
+                    "passphrase",
+                    currentConfiguration.getPassphrase());
             EventCache.getInstance().postEvent(event);
         }
     }
 
     public WifiManagerSnippet() {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mWifiManager = context.getSystemService(WifiManager.class);
+        mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        mWifiManager = mContext.getSystemService(WifiManager.class);
         HandlerThread handlerThread = new HandlerThread(getClass().getSimpleName());
         handlerThread.start();
         mHandler = new Handler(handlerThread.getLooper());
@@ -178,7 +208,6 @@ public class WifiManagerSnippet implements Snippet {
             mWifiManager.registerSoftApCallback(mHandler::post, mSoftApCallback);
         }
     }
-
 
     /**
      * Registers a callback for local-only hotspot.
@@ -294,5 +323,342 @@ public class WifiManagerSnippet implements Snippet {
     public void wifiAllowAutojoinGlobal(boolean enable) {
         ShellIdentityUtils.invokeWithShellPermissions(
                 () -> mWifiManager.allowAutojoinGlobal(enable));
+    }
+
+    /**
+     * Set SoftAp Configuration with SoftApConfiguration.
+     */
+    @Rpc(description = "Set SoftAp Configuration.")
+    public boolean wifiSetWifiApConfiguration(JSONObject configJson)
+            throws JSONException, Throwable {
+        SoftApConfiguration.Builder builder = new SoftApConfiguration.Builder();
+        return executeWithShellPermission(
+            () -> mWifiManager.setSoftApConfiguration(
+                WifiSapJsonDeserializer.jsonToSoftApConfiguration(configJson, builder)),
+                 "android.permission.NETWORK_SETTINGS");
+    }
+
+    @AsyncRpc(description = "Start track for WiFi supplicant state change.")
+    public void wifiStartTrackForStateChange(String callbackId) {
+        IntentFilter filter = new IntentFilter(mWifiManager.NETWORK_STATE_CHANGED_ACTION);
+        filter.addAction(mWifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
+        filter.addAction(mWifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+        filter.addAction(mWifiManager.WIFI_STATE_CHANGED_ACTION);
+
+        mWifiStateReceiver = new WifiSupplicantStateReceiver(callbackId);
+        mContext.registerReceiver(mWifiStateReceiver, filter);
+    }
+
+    @Rpc(description = "Stop track for WfFi supplicant state change.")
+    public void wifiStopTrackForStateChange() {
+
+        mContext.unregisterReceiver(mWifiStateReceiver);
+    }
+
+    /**
+     * Register a receiver for WiFi supplicant state change event.
+     */
+    public class WifiSupplicantStateReceiver extends BroadcastReceiver {
+        private final String mCallbackId;
+        private final EventCache mEventCache = EventCache.getInstance();
+
+        public WifiSupplicantStateReceiver(String mCallbackId) {
+            this.mCallbackId = mCallbackId;
+        }
+
+        @Override
+        public void onReceive(Context ctx, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(mWifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+                Log.d(TAG, "debug> Wifi network state changed.");
+                NetworkInfo nInfo = intent.getParcelableExtra(mWifiManager.EXTRA_NETWORK_INFO);
+                Log.d(TAG, "debug> NetworkInfo " + nInfo);
+                // If network info is of type wifi, send wifi events.
+                if (nInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+                    if (nInfo.getDetailedState().equals(DetailedState.DISCONNECTED)) {
+                        String eventName = "WifiNetworkDisconnected";
+                        SnippetEvent event = new SnippetEvent(mCallbackId, eventName);
+                        mEventCache.postEvent(event);
+                        Log.d(TAG, "debug> NetworkCallback State changed called for " + eventName);
+                    } else if (nInfo.getDetailedState().equals(DetailedState.CONNECTED)) {
+                        String eventName = "WifiNetworkConnected";
+                        WifiInfo currentConnectionInfo = getConnectionInfo();
+                        SnippetEvent event = new SnippetEvent(mCallbackId, eventName);
+                        event.getData().putString("SSID",
+                                WifiJsonConverter.trimQuotationMarks(
+                                    currentConnectionInfo.getSSID()));
+                        Log.d(TAG, "debug> connection info=" + currentConnectionInfo.getSSID());
+                        mEventCache.postEvent(event);
+                        Log.d(TAG, "debug> NetworkCallback State changed called for " + eventName);
+                        Log.d(TAG, "debug> network info=" + nInfo);
+                        Log.d(TAG, "debug> connection info=" + currentConnectionInfo);
+                    }
+                }
+            } else if (action.equals(mWifiManager.WIFI_STATE_CHANGED_ACTION)) {
+                SnippetEvent event = new SnippetEvent(mCallbackId, "WifiStateChanged");
+                int state = intent.getIntExtra(
+                        mWifiManager.EXTRA_WIFI_STATE, mWifiManager.WIFI_STATE_DISABLED);
+                Log.d(TAG, "Wifi state changed to " + state);
+                boolean enabled;
+                if (state == mWifiManager.WIFI_STATE_DISABLED) {
+                    enabled = false;
+                } else if (state == mWifiManager.WIFI_STATE_ENABLED) {
+                    enabled = true;
+                } else {
+                    // we only care about enabled/disabled.
+                    Log.v(TAG, "Ignoring intermediate wifi state change event...");
+                    return;
+                }
+                event.getData().putBoolean("enabled", enabled);
+                mEventCache.postEvent(event);
+            }
+        }
+    }
+
+    private WifiInfo getConnectionInfo() {
+        return executeWithShellPermission(mWifiManager::getConnectionInfo);
+    }
+
+    private static class WifiActionListener implements WifiManager.ActionListener {
+        private final CountDownLatch mLatch;
+        WifiActionListener(CountDownLatch latch) {
+            this.mLatch = latch;
+        }
+
+        @Override
+        public void onSuccess() {
+            Log.d(TAG, "debug> WifiActionListener onSuccess callback is triggered.");
+            mLatch.countDown();
+        }
+
+        @Override
+        public void onFailure(int reason) {
+            Log.d(TAG, "debug> WifiActionListener onFailure callback is triggered.");
+            throw new RuntimeException(
+                "WifiActionListener onFailure callback is triggered: " + reason, null);
+        }
+    }
+    private boolean latchWrapper(CountDownLatch latch, Runnable runnable, int timeoutSec) {
+        runnable.run();
+        try {
+            Log.d(TAG, "Latch wrapper waits till operation is done.");
+            return latch.await(timeoutSec, SECONDS);
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Latch wrapper gets interrupted.", e);
+            return false;
+        }
+    }
+
+    /**
+     * Forget a wifi network by networkId.
+     */
+    @Rpc(description = "Forget a wifi network by networkId")
+    public void wifiForgetNetwork(Integer networkId) {
+        Log.d(TAG, "debug> networkdId: " + networkId);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        WifiActionListener listener =  new WifiActionListener(latch);
+        executeWithShellPermission(
+                () -> latchWrapper(latch, () -> mWifiManager.forget(networkId, listener), 10));
+    }
+
+    @Rpc(description = "Checks Wifi state. True if Wifi is enabled.")
+    public Boolean wifiCheckState() {
+        return mWifiManager.getWifiState() == WifiManager.WIFI_STATE_ENABLED;
+    }
+
+    /**
+     * Adds a WiFi network.
+     *
+     * @param configJson {@link JSONObject} network config
+     */
+    @Rpc(description = "Add network Configuration.")
+    public Integer wifiAddNetwork(JSONObject configJson) throws JSONException, Throwable {
+        return wifiAddOrUpdateNetwork(configJson);
+    }
+
+    /**
+     * Adds or updates a WiFi network.
+     *
+     * @param configJson {@link JSONObject} network config
+     */
+    @Rpc(description = "Add or update a WiFi network.")
+    public Integer wifiAddOrUpdateNetwork(JSONObject configJson) throws JSONException, Throwable {
+        WifiConfiguration wifiNetworkConfig = JsonDeserializer.jsonToWifiConfig(configJson);
+        return executeWithShellPermission(
+            () -> mWifiManager.addNetwork(wifiNetworkConfig));
+    }
+
+    @Rpc(description = "Enable/disable auto join for a network.")
+    public void wifiEnableAutojoin(int netId, boolean enableAutojoin) {
+        // invoke signature-protected `allowAutojoin` API via reflection
+        executeWithShellPermission(() -> mWifiManager.allowAutojoin(netId, enableAutojoin));
+    }
+
+    @Rpc(description = "Resets all WifiManager settings.")
+    public void wifiFactoryReset() {
+        executeWithShellPermission(() -> mWifiManager.factoryReset());
+    }
+
+    /**
+     * Returns the WiFi connection standard.
+     *
+     * @return WiFi connection standard
+     */
+    @Rpc(description = "Get the WiFi connection standard, e.g. 802.11N, 802.11AC etc.")
+    public Integer wifiGetConnectionStandard() {
+        return executeWithShellPermission(
+            () -> mWifiManager.getConnectionInfo().getWifiStandard());
+    }
+
+    @Rpc(description = "Check if wifi scanner is supported on this device.")
+    public Boolean wifiIsScannerSupported() {
+        return executeWithShellPermission(() -> mWifiManager.isWifiScannerSupported());
+    }
+
+    @Rpc(description = "Enable a configured network."
+            + " Initiate a connection if disableOthers is true, True if the operation succeeded.")
+    public Boolean
+            wifiEnableNetwork(Integer netId, Boolean disableOthers) {
+        return executeWithShellPermission(() -> mWifiManager.enableNetwork(netId, disableOthers));
+    }
+
+    /**
+     * Stop WifisetScanThrottleEnabled.
+     */
+    @Rpc(description = "Stop WifisetScanThrottleEnabled.")
+    public void wifiSetScanThrottleDisable() {
+        ShellIdentityUtils.invokeWithShellPermissions(
+                () -> mWifiManager.setScanThrottleEnabled(false));
+    }
+
+    /**
+     * Scan listener passed to WiFiScanner APIs.
+     *
+     * <p>With different types of events triggered when executing WiFiScanner APIs, corresponding
+     * method will be invoked. The method and its caller leverage latch to achieve synchronized
+     * call.
+     */
+    private static class WifiScanListener implements WifiScanner.ScanListener {
+        private static final int STATE_NONE = 0;
+        private static final int STATE_CMD_SUCCESS = 1;
+        private static final int STATE_CMD_FAILURE = 2;
+        private static final int STATE_SCAN_SUCCESS = 3;
+
+        private int mState;
+        private CountDownLatch mLatch;
+        private long mStartTime;
+        private long mEndTime;
+        private List<ScanResult> mResult;
+
+        void reset(CountDownLatch latch) {
+            this.mState = STATE_NONE;
+            this.mLatch = latch;
+            this.mStartTime = SystemClock.elapsedRealtime();
+            this.mEndTime = 0;
+            this.mResult = new ArrayList<ScanResult>();
+        }
+
+        @Override
+        public void onSuccess() {
+            Log.d(TAG, "WifiScanListener onSuccess callback.");
+            this.mState = STATE_CMD_SUCCESS;
+            this.mLatch.countDown();
+        }
+
+        @Override
+        public void onFailure(int reason, String description) {
+            Log.d(TAG, "WifiScanListener onFailure callback.");
+            this.mState = STATE_CMD_FAILURE;
+            this.mLatch.countDown();
+        }
+
+        @Override
+        public void onPeriodChanged(int periodInMs) {
+            Log.d(TAG, "WifiScanListener onPeriodChanged callback.");
+        }
+
+        @Override
+        public void onResults(ScanData[] results) {
+            Log.d(TAG, "WifiScanListener onResults callback.");
+            this.mState = STATE_SCAN_SUCCESS;
+            this.mEndTime = SystemClock.elapsedRealtime();
+            for (ScanData scanData : results) {
+                this.mResult.addAll(Arrays.asList(scanData.getResults()));
+            }
+        }
+
+        @Override
+        public void onFullResult(ScanResult fullScanResult) {
+            Log.d(TAG, "WifiScanListener onFullResult callback.");
+        }
+    }
+    private static class WifiManagerSnippetException extends Exception {
+
+        WifiManagerSnippetException(String msg, Throwable err) {
+            super(msg, err);
+        }
+    }
+
+    /**
+     * Connects to the network with the given configuration.
+     *
+     * @param jsonConfig {@link JSONObject} of WiFi connection parameters.
+     * @throws Throwable
+     */
+    @Rpc(description = "Connect to the network with the given configuration.")
+    public void wifiConnecting(JSONObject jsonConfig) throws Throwable {
+        Log.d(TAG, "Got network config: " + jsonConfig);
+        WifiConfiguration wifiConfig = JsonDeserializer.jsonToWifiConfig(jsonConfig);
+        CountDownLatch latch = new CountDownLatch(1);
+        WifiInfo connectionInfo = getConnectionInfo();
+        if (connectionInfo.getNetworkId() != -1
+                && connectionInfo.getSSID().equals(wifiConfig.SSID)
+                && connectionInfo.getSupplicantState().equals(SupplicantState.COMPLETED)) {
+            if (wifiConfig.BSSID == null
+                    || wifiConfig
+                    .BSSID
+                    .toLowerCase(Locale.getDefault())
+                    .equals(connectionInfo.getBSSID().toLowerCase(Locale.getDefault()))) {
+                Log.d(TAG,
+                        "Network "
+                        + connectionInfo.getSSID()
+                        + " is already connected. ConnectionInfo: "
+                        + connectionInfo);
+                return;
+            }
+        }
+
+        WifiActionListener listener = new WifiActionListener(latch);
+
+        executeWithShellPermission(
+                () -> {
+                mWifiManager.connect(wifiConfig, listener);
+                try {
+                    if (!latch.await(10, SECONDS)) {
+                        throw new TimeoutException("WiFi connection timeouts.");
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException("WiFi connection fails.", e);
+                }
+            });
+
+        if (!Utils.waitUntil(
+                () -> {
+                    WifiInfo currentConnectionInfo = getConnectionInfo();
+                    return currentConnectionInfo.getNetworkId() != -1
+                        && currentConnectionInfo.getSSID().equals(wifiConfig.SSID)
+                        && currentConnectionInfo.getSupplicantState().equals(
+                            SupplicantState.COMPLETED);
+                },
+                CONNECT_TIMEOUT_IN_SEC)) {
+            throw new WifiManagerSnippetException(
+                "Failed to connect to '"
+                    + jsonConfig
+                    + "', timeout! Current connection: '"
+                    + getConnectionInfo().getSSID()
+                    + "'",
+                null);
+        }
     }
 }

@@ -17,6 +17,7 @@
 package com.google.snippet.wifi;
 
 import android.net.wifi.SoftApConfiguration;
+import android.net.wifi.WifiConfiguration;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -59,6 +60,9 @@ public final class WifiJsonConverter {
         if (object instanceof SoftApConfiguration) {
             return serializeSoftApConfiguration((SoftApConfiguration) object);
         }
+        if (object instanceof WifiConfiguration) {
+            return serializeWifiConfiguration((WifiConfiguration) object);
+        }
 
         // By default, depends on Gson to serialize correctly.
         return new JSONObject(GSON.toJson(object));
@@ -71,5 +75,21 @@ public final class WifiJsonConverter {
         return result;
     }
 
-    private WifiJsonConverter() {}
+    private static JSONObject serializeWifiConfiguration(WifiConfiguration data)
+            throws JSONException {
+        JSONObject result = new JSONObject();
+        result.put("networkId", data.networkId);
+        result.put("Status", WifiConfiguration.Status.strings[data.status]);
+        result.put("BSSID", trimQuotationMarks(data.BSSID));
+        result.put("SSID", trimQuotationMarks(data.SSID));
+        result.put("HOME-PROVIDER-NETWORK", data.isHomeProviderNetwork);
+        result.put("PRIO", data.priority);
+        result.put("HIDDEN", data.hiddenSSID);
+        result.put("PMF", data.requirePmf);
+        result.put("CarrierId", data.carrierId);
+        result.put("SubscriptionId", data.subscriptionId);
+        return result;
+    }
+
+    private WifiJsonConverter() { }
 }

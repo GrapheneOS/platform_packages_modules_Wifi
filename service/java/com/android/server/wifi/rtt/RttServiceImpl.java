@@ -54,7 +54,6 @@ import android.net.wifi.rtt.ResponderConfig;
 import android.net.wifi.rtt.ResponderLocation;
 import android.net.wifi.rtt.SecureRangingConfig;
 import android.net.wifi.rtt.WifiRttManager;
-import android.net.wifi.util.BuildProperties;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -74,10 +73,12 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.WakeupMessage;
 import com.android.modules.utils.BasicShellCommandHandler;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.BuildProperties;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.SsidTranslator;
+import com.android.server.wifi.SystemBuildProperties;
 import com.android.server.wifi.WifiConfigManager;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.hal.WifiRttController;
@@ -172,7 +173,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
 
     public RttServiceImpl(Context context) {
         mContext = context;
-        mBuildProperties = new BuildProperties();
+        mBuildProperties = new SystemBuildProperties();
         mFrameworkFacade = new FrameworkFacade();
         mShellCommand = new RttShellCommand();
         mShellCommand.reset();

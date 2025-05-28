@@ -17,9 +17,9 @@ package com.google.snippet.wifi.aware;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.net.LinkProperties;
 import android.net.Network;
 import android.net.NetworkCapabilities;
-import android.net.LinkProperties;
 import android.net.NetworkRequest;
 import android.net.TransportInfo;
 import android.net.wifi.aware.WifiAwareChannelInfo;
@@ -40,23 +40,25 @@ import org.json.JSONException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
-import java.net.SocketException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Enumeration;
+
 
 public class ConnectivityManagerSnippet implements Snippet {
     private static final String EVENT_KEY_CB_NAME = "callbackName";
     private static final String EVENT_KEY_NETWORK = "network";
     private static final String EVENT_KEY_NETWORK_CAP = "networkCapabilities";
-    private static final String EVENT_KEY_NETWORK_INTERFACE ="interfaceName";
+    private static final String EVENT_KEY_NETWORK_INTERFACE = "interfaceName";
     private static final String EVENT_KEY_TRANSPORT_INFO_CLASS = "transportInfoClassName";
     private static final String EVENT_KEY_TRANSPORT_INFO_CHANNEL_IN_MHZ = "channelInMhz";
     private static final int CLOSE_SOCKET_TIMEOUT = 15 * 1000;
@@ -68,9 +70,9 @@ public class ConnectivityManagerSnippet implements Snippet {
     private final ConnectivityManager mConnectivityManager;
 
     private final ConcurrentHashMap<String, ServerSocket> mServerSockets =
-            new ConcurrentHashMap<>();
+                  new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, NetworkCallback> mNetworkCallBacks =
-            new ConcurrentHashMap<>();
+                  new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Socket> mSockets = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, OutputStream> mOutputStreams =
             new ConcurrentHashMap<>();
@@ -92,17 +94,16 @@ public class ConnectivityManagerSnippet implements Snippet {
         mConnectivityManager = mContext.getSystemService(ConnectivityManager.class);
         if (mConnectivityManager == null) {
             throw new ConnectivityManagerSnippetException(
-                    "ConnectivityManager not " + "available.");
+                "ConnectivityManager not "
+                + "available.");
         }
     }
 
     public class NetworkCallback extends ConnectivityManager.NetworkCallback {
 
-
         String mCallBackId;
         Network mNetWork;
         NetworkCapabilities mNetworkCapabilities;
-
 
         NetworkCallback(String callBackId) {
             mCallBackId = callBackId;
@@ -132,8 +133,7 @@ public class ConnectivityManagerSnippet implements Snippet {
             }
             if (networkCapabilities.getTransportInfo() instanceof WifiAwareNetworkInfo) {
                 WifiAwareNetworkInfo
-                        newWorkInfo =
-                        (WifiAwareNetworkInfo) networkCapabilities.getTransportInfo();
+                        newWorkInfo = (WifiAwareNetworkInfo) networkCapabilities.getTransportInfo();
                 List<WifiAwareChannelInfo> channelInfoList = newWorkInfo.getChannelInfoList();
                 ArrayList<Integer> channelFrequencies = new ArrayList<>();
                 if (!channelInfoList.isEmpty()) {
@@ -142,8 +142,7 @@ public class ConnectivityManagerSnippet implements Snippet {
                     }
                 }
                 event.getData().putIntegerArrayList(
-                    EVENT_KEY_TRANSPORT_INFO_CHANNEL_IN_MHZ, channelFrequencies
-                );
+                        EVENT_KEY_TRANSPORT_INFO_CHANNEL_IN_MHZ, channelFrequencies);
                 String ipv6 = newWorkInfo.getPeerIpv6Addr().toString();
                 if (ipv6.charAt(0) == '/') {
                     ipv6 = ipv6.substring(1);
@@ -155,7 +154,7 @@ public class ConnectivityManagerSnippet implements Snippet {
                 }
                 if (newWorkInfo.getTransportProtocol() != -1) {
                     event.getData().putInt("aware_transport_protocol",
-                    newWorkInfo.getTransportProtocol());
+                            newWorkInfo.getTransportProtocol());
                 }
             }
             EventCache.getInstance().postEvent(event);
@@ -163,13 +162,13 @@ public class ConnectivityManagerSnippet implements Snippet {
 
         @Override
         public void onLinkPropertiesChanged(Network network,
-               LinkProperties linkProperties) {
+                LinkProperties linkProperties) {
             Log.v("NetworkCallback onLinkPropertiesChanged");
             SnippetEvent event = new SnippetEvent(mCallBackId, "NetworkCallback");
             event.getData().putString(EVENT_KEY_CB_NAME, "onLinkPropertiesChanged");
             event.getData().putParcelable(EVENT_KEY_NETWORK, network);
             event.getData().putString(EVENT_KEY_NETWORK_INTERFACE,
-                   linkProperties.getInterfaceName());
+                    linkProperties.getInterfaceName());
             EventCache.getInstance().postEvent(event);
         }
 
@@ -224,6 +223,32 @@ public class ConnectivityManagerSnippet implements Snippet {
 
         return inet6Address.getHostAddress();
     }
+
+    /**
+     * Returns the IPv4 address of an interface.
+     *
+     * @param ifaceName the name of the interface
+     * @return the IPv4 address of the interface
+     */
+    // @Nullable
+    @Rpc(description = "Get the IPv4 address of an interface.")
+    public List<String> connectivityGetIPv4Addresses(String ifaceName) {
+        Enumeration<InetAddress> inetAddresses = getInetAddrsForInterface(ifaceName);
+        if (inetAddresses == null) {
+            return null;
+        }
+
+        List<String> inetAddrs = new ArrayList<>();
+        while (inetAddresses.hasMoreElements()) {
+            InetAddress addr = inetAddresses.nextElement();
+            if (addr instanceof Inet4Address) {
+                Inet4Address inet4Address = (Inet4Address) addr;
+                inetAddrs.add(inet4Address.getHostAddress());
+            }
+        }
+        return inetAddrs;
+    }
+
     /**
      * Requests a network with the specified network request and sets a callback for network
      * events.
@@ -286,7 +311,7 @@ public class ConnectivityManagerSnippet implements Snippet {
         serverSocket.setSoTimeout(ACCEPT_TIMEOUT);
         if (mSocketThreads.get(callbackId) != null) {
             throw new ConnectivityManagerSnippetException(
-                    "Server socket thread is already running.");
+                "Server socket thread is already running.");
         }
         Thread socketThread = new Thread(() -> {
             try {
@@ -337,7 +362,7 @@ public class ConnectivityManagerSnippet implements Snippet {
 
             try {
                 connectivityCloseServerSocket(sessionId);
-                thread.join(CLOSE_SOCKET_TIMEOUT);  // Wait for the thread to terminate
+                thread.join(CLOSE_SOCKET_TIMEOUT); // Wait for the thread to terminate
                 if (thread.isAlive()) {
                     throw new RuntimeException("Server socket thread did not terminate in time");
                 }
@@ -369,7 +394,7 @@ public class ConnectivityManagerSnippet implements Snippet {
         int bytesReadLength = inputStream.read(buffer, 0, len); // Read up to len bytes
         if (bytesReadLength == -1) { // End of stream reached unexpectedly
             throw new ConnectivityManagerSnippetException(
-                    "End of stream reached before reading expected bytes.");
+                "End of stream reached before reading expected bytes.");
         }
         // Convert the bytes read to a String
         String receiveStrMsg = new String(buffer, 0, bytesReadLength, StandardCharsets.UTF_8);
@@ -393,8 +418,6 @@ public class ConnectivityManagerSnippet implements Snippet {
         outputStream.write(bytes, 0, bytes.length);
         outputStream.flush();
         return true;
-
-
     }
 
     /**
@@ -409,7 +432,6 @@ public class ConnectivityManagerSnippet implements Snippet {
             socket.close();
         }
         mSockets.remove(sessionId);
-
     }
 
     /**
@@ -439,8 +461,6 @@ public class ConnectivityManagerSnippet implements Snippet {
             outputStream.close();
         }
         mOutputStreams.remove(sessionId);
-
-
     }
 
     /**
@@ -462,8 +482,8 @@ public class ConnectivityManagerSnippet implements Snippet {
         OutputStream outputStream = mOutputStreams.get(sessionId);
         if (outputStream == null) {
             throw new ConnectivityManagerSnippetException("Output stream is not created.Please "
-                    + "call connectivityCreateSocketOverWiFiAware() or "
-                    + "connectivityServerSocketAccept() first.");
+                + "call connectivityCreateSocketOverWiFiAware() or "
+                + "connectivityServerSocketAccept() first.");
         }
     }
 
@@ -471,8 +491,8 @@ public class ConnectivityManagerSnippet implements Snippet {
         InputStream inputStream = mInputStreams.get(sessionId);
         if (inputStream == null) {
             throw new ConnectivityManagerSnippetException("Input stream is not created.Please "
-                    + "call connectivityCreateSocketOverWiFiAware() or "
-                    + "connectivityServerSocketAccept() first.");
+                + "call connectivityCreateSocketOverWiFiAware() or "
+                + "connectivityServerSocketAccept() first.");
         }
     }
 
@@ -494,8 +514,10 @@ public class ConnectivityManagerSnippet implements Snippet {
         Socket socket = mSockets.get(sessionId);
         if (socket != null) {
             throw new ConnectivityManagerSnippetException("Socket is already created"
-                    + ".Please call connectivityCloseSocket(String sessionId) or "
-                    + "connectivityStopAcceptThread" + "(String sessionId) " + "to release first.");
+                + ".Please call connectivityCloseSocket(String sessionId) or "
+                + "connectivityStopAcceptThread"
+                + "(String sessionId) "
+                + "to release first.");
         }
 
         checkNetworkCapabilities(networkCapabilities);
@@ -516,10 +538,9 @@ public class ConnectivityManagerSnippet implements Snippet {
             int transportProtocol = peerAwareInfo.getTransportProtocol();
             if (transportProtocol != TRANSPORT_PROTOCOL_TCP) {
                 throw new ConnectivityManagerSnippetException(
-                        "Only support TCP transport protocol.");
+                    "Only support TCP transport protocol.");
             }
         }
-
 
         Socket createSocket = netWork.getSocketFactory().createSocket(peerIpv6Addr, peerPort);
         createSocket.setSoTimeout(SOCKET_SO_TIMEOUT);
@@ -528,14 +549,12 @@ public class ConnectivityManagerSnippet implements Snippet {
         mOutputStreams.put(sessionId, createSocket.getOutputStream());
     }
 
-
     private NetworkCallback getNetWorkCallbackBySessionId(String sessionId)
             throws ConnectivityManagerSnippetException {
         NetworkCallback callback = mNetworkCallBacks.get(sessionId);
         if (callback == null) {
             throw new ConnectivityManagerSnippetException("Network callback is not created.Please "
-                    + "call connectivityRequestNetwork() first.");
-
+                + "call connectivityRequestNetwork() first.");
         }
         return callback;
     }
@@ -571,7 +590,7 @@ public class ConnectivityManagerSnippet implements Snippet {
     private void checkServerSocket(String sessionId) throws ConnectivityManagerSnippetException {
         if (mServerSockets.get(sessionId) == null) {
             throw new ConnectivityManagerSnippetException("Server socket is not created"
-                    + ".Please call connectivityInitServerSocket() first.");
+                + ".Please call connectivityInitServerSocket() first.");
         }
     }
 
@@ -656,5 +675,10 @@ public class ConnectivityManagerSnippet implements Snippet {
             }
         }
         mInputStreams.clear();
+    }
+
+    @Rpc(description = "Check if tethering supported or not.True if tethering is supported.")
+    public boolean connectivityIsTetheringSupported() {
+        return mConnectivityManager.isTetheringSupported();
     }
 }

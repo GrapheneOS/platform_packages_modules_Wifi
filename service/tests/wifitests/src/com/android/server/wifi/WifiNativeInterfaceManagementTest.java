@@ -49,7 +49,6 @@ import android.net.wifi.WifiContext;
 import android.net.wifi.WifiMigration;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.WifiNl80211Manager;
-import android.net.wifi.util.BuildProperties;
 import android.os.Handler;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
@@ -119,8 +118,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
     @Mock private NetdWrapper mNetdWrapper;
     @Mock private PropertyService mPropertyService;
     @Mock private WifiMetrics mWifiMetrics;
-    @Mock
-    BuildProperties mBuildProperties;
+    @Mock BuildProperties mBuildProperties;
     @Mock private WifiInjector mWifiInjector;
     @Mock private WifiContext mContext;
     @Mock private HalDeviceManager mHalDeviceManager;

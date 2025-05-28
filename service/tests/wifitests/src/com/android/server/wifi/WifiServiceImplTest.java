@@ -215,7 +215,6 @@ import android.net.wifi.hotspot2.pps.Credential;
 import android.net.wifi.hotspot2.pps.HomeSp;
 import android.net.wifi.twt.TwtRequest;
 import android.net.wifi.twt.TwtSessionCallback;
-import android.net.wifi.util.BuildProperties;
 import android.net.wifi.util.Environment;
 import android.net.wifi.util.WifiResourceCache;
 import android.os.Binder;
@@ -490,8 +489,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock SarManager mSarManager;
     @Mock SelfRecovery mSelfRecovery;
     @Mock LastCallerInfoManager mLastCallerInfoManager;
-    @Mock
-    BuildProperties mBuildProperties;
+    @Mock BuildProperties mBuildProperties;
     @Mock IOnWifiDriverCountryCodeChangedListener mIOnWifiDriverCountryCodeChangedListener;
     @Mock WifiShellCommand mWifiShellCommand;
     @Mock AfcManager mAfcManager;

@@ -1481,6 +1481,9 @@ message StaEvent {
 
     // No credentials
     DISCONNECT_NO_CREDENTIALS = 20;
+
+    // Connection timed out
+    DISCONNECT_CONNECT_WATCHDOG_TIMER = 21;
   }
 
   // Authentication Failure reasons as reported through the API.

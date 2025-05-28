@@ -170,3 +170,53 @@ python_test_host {
         "cts-v-host",
     ],
 }
+
+python_library_host {
+    name: "wifi_sap_lib_utils",
+    srcs: ["softap/integration/wifi_sap_lib_utils.py"],
+
+}
+
+python_test_host {
+    name: "WifiSapTest",
+    main: "softap/integration/wifi_sap_test.py",
+    srcs: ["softap/integration/wifi_sap_test.py"],
+    libs: [
+        "mobly",
+        "wifi_test_utils",
+        "wifi_softap_constants",
+        "wifi_sap_lib_utils",
+        "aware_lib_utils",
+        "platform-test-py-annotations",
+    ],
+    device_common_data: [":wifi_mobly_snippet"],
+    test_options: {
+        unit_test: false,
+        runner: "mobly",
+    },
+    test_suites: [
+        "general-tests",
+    ],
+}
+
+python_test_host {
+    name: "WifiSoftApThreeDevicesTest",
+    main: "softap/integration/wifi_sap_three_devices_test.py",
+    srcs: ["softap/integration/wifi_sap_three_devices_test.py"],
+    libs: [
+        "mobly",
+        "wifi_test_utils",
+        "wifi_softap_constants",
+        "wifi_sap_lib_utils",
+        "aware_lib_utils",
+        "platform-test-py-annotations",
+    ],
+    device_common_data: [":wifi_mobly_snippet"],
+    test_options: {
+        unit_test: false,
+        runner: "mobly",
+    },
+    test_suites: [
+        "general-tests",
+    ],
+}
