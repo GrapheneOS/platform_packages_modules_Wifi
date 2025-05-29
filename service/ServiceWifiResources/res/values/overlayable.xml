@@ -357,6 +357,7 @@
           <item type="bool" name="config_wifi_subsystem_restart_bugreport_enabled" />
           <item type="bool" name="config_wifiVoipDetectionEnabled" />
           <item type="bool" name="config_wifiUsdPublisherSupported" />
+          <item type="bool" name="config_wifiMainlineSupplicantEnabled" />
 
           <!-- Params from config.xml that can be overlayed -->
 

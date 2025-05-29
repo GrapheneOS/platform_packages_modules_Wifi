@@ -412,6 +412,12 @@ public final class SoftApConfiguration implements Parcelable {
     private boolean mIsClientIsolationEnabled;
 
     /**
+     * Whether the frameworks should do band settings optimization.
+     * (i.e. Auto appending 2.4G band to cover co-existence / country code restriction).
+     */
+    private boolean mIsBandOptimizationEnabled;
+
+    /**
      * THe definition of security type OPEN.
      */
     public static final int SECURITY_TYPE_OPEN = 0;
@@ -480,7 +486,8 @@ public final class SoftApConfiguration implements Parcelable {
             @NonNull Set<Integer> allowedAcsChannels6g,
             @WifiAnnotations.Bandwidth int maxChannelBandwidth,
             @Nullable List<OuiKeyedData> vendorData,
-            boolean isClientIsolationEnabled) {
+            boolean isClientIsolationEnabled,
+            boolean isBandOptimizationEnabled) {
         mWifiSsid = ssid;
         mBssid = bssid;
         mPassphrase = passphrase;
@@ -513,6 +520,7 @@ public final class SoftApConfiguration implements Parcelable {
         mMaxChannelBandwidth = maxChannelBandwidth;
         mVendorData = new ArrayList<>(vendorData);
         mIsClientIsolationEnabled = isClientIsolationEnabled;
+        mIsBandOptimizationEnabled = isBandOptimizationEnabled;
     }
 
     @Override
@@ -552,7 +560,8 @@ public final class SoftApConfiguration implements Parcelable {
                 && Objects.equals(mAllowedAcsChannels6g, other.mAllowedAcsChannels6g)
                 && mMaxChannelBandwidth == other.mMaxChannelBandwidth
                 && Objects.equals(mVendorData, other.mVendorData)
-                && mIsClientIsolationEnabled == other.mIsClientIsolationEnabled;
+                && mIsClientIsolationEnabled == other.mIsClientIsolationEnabled
+                && mIsBandOptimizationEnabled == other.mIsBandOptimizationEnabled;
     }
 
     @Override
@@ -583,7 +592,8 @@ public final class SoftApConfiguration implements Parcelable {
                 mAllowedAcsChannels6g,
                 mMaxChannelBandwidth,
                 mVendorData,
-                mIsClientIsolationEnabled);
+                mIsClientIsolationEnabled,
+                mIsBandOptimizationEnabled);
     }
 
     @Override
@@ -619,6 +629,7 @@ public final class SoftApConfiguration implements Parcelable {
         sbuf.append(" \n mMaxChannelBandwidth = ").append(mMaxChannelBandwidth);
         sbuf.append(" \n mVendorData = ").append(mVendorData);
         sbuf.append(" \n mIsClientIsolationEnabled = ").append(mIsClientIsolationEnabled);
+        sbuf.append(" \n mIsBandOptimizationEnabled = ").append(mIsBandOptimizationEnabled);
         return sbuf.toString();
     }
 
@@ -650,6 +661,7 @@ public final class SoftApConfiguration implements Parcelable {
         dest.writeInt(mMaxChannelBandwidth);
         dest.writeList(mVendorData);
         dest.writeBoolean(mIsClientIsolationEnabled);
+        dest.writeBoolean(mIsBandOptimizationEnabled);
     }
 
     /* Reference from frameworks/base/core/java/android/os/Parcel.java */
@@ -762,6 +774,7 @@ public final class SoftApConfiguration implements Parcelable {
                             readHashSetInt(in),
                             in.readInt(),
                             readOuiKeyedDataList(in),
+                            in.readBoolean(),
                             in.readBoolean());
                 }
 
@@ -1250,6 +1263,18 @@ public final class SoftApConfiguration implements Parcelable {
     }
 
     /**
+     * Returns whether the frameworks should do band settings optimization.
+     * (i.e. Auto appending 2.4G band to cover co-existence / country code restriction).
+     *
+     * @hide
+     */
+    @FlaggedApi(Flags.FLAG_BAND_OPTIMIZATION_CONTROL)
+    @SystemApi
+    public boolean isBandOptimizationEnabled() {
+        return mIsBandOptimizationEnabled;
+    }
+
+    /**
      * Returns a {@link WifiConfiguration} representation of this {@link SoftApConfiguration}.
      * Note that SoftApConfiguration may contain configuration which is cannot be represented
      * by the legacy WifiConfiguration, in such cases a null will be returned.
@@ -1343,6 +1368,7 @@ public final class SoftApConfiguration implements Parcelable {
         private @WifiAnnotations.Bandwidth int mMaxChannelBandwidth;
         private @Nullable List<OuiKeyedData> mVendorData;
         private boolean mIsClientIsolationEnabled;
+        private boolean mIsBandOptimizationEnabled;
 
         /**
          * Constructs a Builder with default values (see {@link Builder}).
@@ -1379,6 +1405,7 @@ public final class SoftApConfiguration implements Parcelable {
             mMaxChannelBandwidth = SoftApInfo.CHANNEL_WIDTH_AUTO;
             mVendorData = new ArrayList<>();
             mIsClientIsolationEnabled = false;
+            mIsBandOptimizationEnabled = true; // enabled by default.
         }
 
         /**
@@ -1427,6 +1454,7 @@ public final class SoftApConfiguration implements Parcelable {
             }
             mVendorData = new ArrayList<>(other.mVendorData);
             mIsClientIsolationEnabled = other.mIsClientIsolationEnabled;
+            mIsBandOptimizationEnabled = other.mIsBandOptimizationEnabled;
         }
 
        /**
@@ -1465,7 +1493,8 @@ public final class SoftApConfiguration implements Parcelable {
                     mAllowedAcsChannels6g,
                     mMaxChannelBandwidth,
                     mVendorData,
-                    mIsClientIsolationEnabled);
+                    mIsClientIsolationEnabled,
+                    mIsBandOptimizationEnabled);
         }
 
         /**
@@ -1524,7 +1553,8 @@ public final class SoftApConfiguration implements Parcelable {
                     mAllowedAcsChannels6g,
                     mMaxChannelBandwidth,
                     mVendorData,
-                    mIsClientIsolationEnabled);
+                    mIsClientIsolationEnabled,
+                    mIsBandOptimizationEnabled);
         }
 
         /**
@@ -2478,6 +2508,23 @@ public final class SoftApConfiguration implements Parcelable {
                 throw new UnsupportedOperationException();
             }
             mIsClientIsolationEnabled = isClientIsolationEnabled;
+            return this;
+        }
+
+        /**
+         * Specifies whether the frameworks should do band settings optimization.
+         * (i.e. Auto appending 2.4G band to cover co-existence / country code restriction)..
+         *
+         * @param isBandOptimizationEnabled true when enabling band settings optimization.
+         * @return Builder for chaining.
+         *
+         * @hide
+         */
+        @FlaggedApi(Flags.FLAG_BAND_OPTIMIZATION_CONTROL)
+        @NonNull
+        @SystemApi
+        public Builder setBandOptimizationEnabled(boolean isBandOptimizationEnabled) {
+            mIsBandOptimizationEnabled = isBandOptimizationEnabled;
             return this;
         }
     }

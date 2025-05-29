@@ -136,6 +136,7 @@ public class SoftApConfigurationTest {
         if (Environment.isSdkAtLeastB()) {
             assertFalse(original.isClientIsolationEnabled());
         }
+        assertTrue(original.isBandOptimizationEnabled());
 
         SoftApConfiguration unparceled = parcelUnparcel(original);
         assertThat(unparceled).isNotSameInstanceAs(original);
@@ -237,6 +238,7 @@ public class SoftApConfigurationTest {
         if (Environment.isSdkAtLeastB()) {
             originalBuilder.setClientIsolationEnabled(true);
         }
+        originalBuilder.setBandOptimizationEnabled(false);
         SoftApConfiguration original = originalBuilder.build();
         assertThat(original.getPassphrase()).isEqualTo("secretsecret");
         assertThat(original.getSecurityType()).isEqualTo(
@@ -271,7 +273,7 @@ public class SoftApConfigurationTest {
         if (Environment.isSdkAtLeastB()) {
             assertTrue(original.isClientIsolationEnabled());
         }
-
+        assertFalse(original.isBandOptimizationEnabled());
         SoftApConfiguration unparceled = parcelUnparcel(original);
         assertThat(unparceled).isNotSameInstanceAs(original);
         assertThat(unparceled).isEqualTo(original);

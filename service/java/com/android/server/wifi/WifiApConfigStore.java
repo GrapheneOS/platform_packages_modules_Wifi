@@ -45,6 +45,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.net.module.util.MacAddressUtils;
 import com.android.server.wifi.util.ApConfigUtil;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import java.nio.charset.CharsetEncoder;
@@ -387,7 +388,12 @@ public class WifiApConfigStore {
                 // some countries are unable to support 5GHz only operation, always allow for 2GHz
                 // when config doesn't force channel
                 if ((newBand & SoftApConfiguration.BAND_2GHZ) == 0) {
-                    newBand = ApConfigUtil.append24GToBandIf24GSupported(newBand, mContext);
+                    if (Flags.bandOptimizationControl()
+                            && !config.isBandOptimizationEnabled()) {
+                        Log.i(TAG, "Band optimization is disabled, skip appending 2.4Ghz");
+                    } else {
+                        newBand = ApConfigUtil.append24GToBandIf24GSupported(newBand, mContext);
+                    }
                 }
                 // If the 6G configuration doesn't includes 5G band (2.4G have appended because
                 // countries reason), it will cause that driver can't switch channel from 6G to
@@ -396,7 +402,12 @@ public class WifiApConfigStore {
                 // 6G.
                 if ((newBand & SoftApConfiguration.BAND_6GHZ) != 0
                         && (newBand & SoftApConfiguration.BAND_5GHZ) == 0) {
-                    newBand = ApConfigUtil.append5GToBandIf5GSupported(newBand, mContext);
+                    if (Flags.bandOptimizationControl()
+                            && !config.isBandOptimizationEnabled()) {
+                        Log.i(TAG, "Band optimization is disabled, skip appending 5Ghz");
+                    } else {
+                        newBand = ApConfigUtil.append5GToBandIf5GSupported(newBand, mContext);
+                    }
                 }
             }
             newChannels.put(newBand, channel);
@@ -507,7 +518,11 @@ public class WifiApConfigStore {
             // Make sure that we use available band on old build.
             if (!SdkLevel.isAtLeastT()
                     && !isBandsSupported(customConfig.getBands(), context)) {
-                configBuilder.setBand(generateDefaultBand(context));
+                if (Flags.bandOptimizationControl() && !customConfig.isBandOptimizationEnabled()) {
+                    Log.i(TAG, "Band optimization is disabled, skip appending default band");
+                } else {
+                    configBuilder.setBand(generateDefaultBand(context));
+                }
             }
         } else {
             configBuilder = new SoftApConfiguration.Builder();
@@ -554,16 +569,22 @@ public class WifiApConfigStore {
 
         // Automotive mode can force the LOHS to specific bands
         if (hasAutomotiveFeature(context)) {
-            int desiredBand = SoftApConfiguration.BAND_2GHZ;
-            if (context.getResourceCache().getBoolean(R.bool.config_wifiLocalOnlyHotspot6ghz)
-                    && ApConfigUtil.isBandSupported(SoftApConfiguration.BAND_6GHZ, mContext)) {
-                desiredBand |= SoftApConfiguration.BAND_6GHZ;
+            if (Flags.bandOptimizationControl()
+                    && customConfig != null && !customConfig.isBandOptimizationEnabled()) {
+                Log.i(TAG, "Skipped band optimization for auto platform");
+            } else {
+                int desiredBand = SoftApConfiguration.BAND_2GHZ;
+                if (context.getResourceCache().getBoolean(R.bool.config_wifiLocalOnlyHotspot6ghz)
+                        && ApConfigUtil.isBandSupported(SoftApConfiguration.BAND_6GHZ, mContext)) {
+                    desiredBand |= SoftApConfiguration.BAND_6GHZ;
+                }
+                if (context.getResourceCache().getBoolean(
+                        R.bool.config_wifi_local_only_hotspot_5ghz)
+                        && ApConfigUtil.isBandSupported(SoftApConfiguration.BAND_5GHZ, mContext)) {
+                    desiredBand |= SoftApConfiguration.BAND_5GHZ;
+                }
+                configBuilder.setBand(desiredBand);
             }
-            if (context.getResourceCache().getBoolean(R.bool.config_wifi_local_only_hotspot_5ghz)
-                    && ApConfigUtil.isBandSupported(SoftApConfiguration.BAND_5GHZ, mContext)) {
-                desiredBand |= SoftApConfiguration.BAND_5GHZ;
-            }
-            configBuilder.setBand(desiredBand);
         }
 
         if (!wasSsidAssigned) {

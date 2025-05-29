@@ -39,7 +39,9 @@ import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.when;
 
 import android.content.pm.ApplicationInfo;
@@ -58,14 +60,19 @@ import android.util.SparseArray;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -117,6 +124,7 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
 
     private Random mRandom;
     private MockResourceCache mResources;
+    private MockitoSession mSession;
     @Mock private ApplicationInfo mMockApplInfo;
     @Mock private MacAddressUtil mMacAddressUtil;
     private SoftApStoreData.DataSource mDataStoreSource;
@@ -131,6 +139,11 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         mLooper = new TestLooper();
         mHandler = new Handler(mLooper.getLooper());
         MockitoAnnotations.initMocks(this);
+        // static mocking
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(Flags.class, withSettings().lenient())
+                .strictness(Strictness.LENIENT)
+                .startMocking();
         mMockApplInfo.targetSdkVersion = Build.VERSION_CODES.P;
         when(mContext.getApplicationInfo()).thenReturn(mMockApplInfo);
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
@@ -173,6 +186,14 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         mResources.setBoolean(R.bool.config_wifi_ap_mac_randomization_supported, true);
         mResources.setBoolean(
                 R.bool.config_wifiSoftapAutoAppendLowerBandsToBandConfigurationEnabled, true);
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        validateMockitoUsage();
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
     }
 
     private void setupAllBandsSupported() {
@@ -582,7 +603,6 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
      */
     @Test
     public void generateLocalOnlyHotspotConfigWhenOverlayConfigureTo5G() throws Exception {
-        //leslea
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)).thenReturn(true);
         when(mSoftApCapability.getSupportedChannelList(SoftApConfiguration.BAND_5GHZ))
                 .thenReturn(new int[] {36});
@@ -1375,6 +1395,55 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
 
         store_disableAutoAppendBand.setApConfiguration(config6Gonly);
         verifyApConfig(config6Gonly, store_disableAutoAppendBand.getApConfiguration());
+    }
+
+    @Test
+    public void testBandOptimizationDisabled() throws Exception {
+        // Test when resource and flag are enabled
+        mResources.setBoolean(
+                R.bool.config_wifiSoftapAutoAppendLowerBandsToBandConfigurationEnabled,
+                true);
+        when(Flags.bandOptimizationControl()).thenReturn(true);
+        SoftApConfiguration config5Gonly = setupApConfig(
+                TEST_DEFAULT_HOTSPOT_SSID,        /* SSID */
+                "randomKey",                      /* preshared key */
+                SECURITY_TYPE_WPA2_PSK,           /* security type */
+                SoftApConfiguration.BAND_5GHZ,    /* AP band */
+                0,                                /* AP channel */
+                true                              /* Hidden SSID */);
+        SoftApConfiguration config5GonlyAndNoBandOptimization =
+                new SoftApConfiguration.Builder(config5Gonly)
+                        .setBandOptimizationEnabled(false)
+                        .build();
+        WifiApConfigStore store_disableAutoAppendBand = createWifiApConfigStore();
+        // Tethering test case
+        store_disableAutoAppendBand.setApConfiguration(config5GonlyAndNoBandOptimization);
+        verifyApConfig(config5GonlyAndNoBandOptimization,
+                store_disableAutoAppendBand.getApConfiguration());
+
+        SoftApConfiguration config6GonlyAndNoBandOptimization =
+                new SoftApConfiguration.Builder(config5Gonly)
+                .setBand(SoftApConfiguration.BAND_6GHZ)
+                .setBandOptimizationEnabled(false)
+                .build();
+
+        store_disableAutoAppendBand.setApConfiguration(config6GonlyAndNoBandOptimization);
+        verifyApConfig(config6GonlyAndNoBandOptimization,
+                store_disableAutoAppendBand.getApConfiguration());
+
+        // LOHS test case for android auto
+        when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)).thenReturn(true);
+        when(mSoftApCapability.getSupportedChannelList(SoftApConfiguration.BAND_5GHZ))
+                .thenReturn(new int[] {36});
+        mResources.setBoolean(R.bool.config_wifi_local_only_hotspot_5ghz, true);
+        SoftApConfiguration config = store_disableAutoAppendBand
+                .generateLocalOnlyHotspotConfig(mContext, config5GonlyAndNoBandOptimization,
+                        mSoftApCapability, true);
+        assertThat(config.getBand()).isEqualTo(SoftApConfiguration.BAND_5GHZ);
+
+        // verify that the config passes the validateApWifiConfiguration check
+        assertTrue(WifiApConfigStore.validateApWifiConfiguration(config, true, mContext,
+                mWifiNative));
     }
 
     @Test

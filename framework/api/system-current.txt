@@ -497,6 +497,7 @@ package android.net.wifi {
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public java.util.List<android.net.wifi.OuiKeyedData> getVendorData();
     method @NonNull public java.util.List<android.net.wifi.ScanResult.InformationElement> getVendorElements();
     method public boolean isAutoShutdownEnabled();
+    method @FlaggedApi("com.android.wifi.flags.band_optimization_control") public boolean isBandOptimizationEnabled();
     method public boolean isBridgedModeOpportunisticShutdownEnabled();
     method public boolean isClientControlByUserEnabled();
     method @FlaggedApi("com.android.wifi.flags.ap_isolate") public boolean isClientIsolationEnabled();
@@ -517,6 +518,7 @@ package android.net.wifi {
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setAllowedClientList(@NonNull java.util.List<android.net.MacAddress>);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setAutoShutdownEnabled(boolean);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setBand(int);
+    method @FlaggedApi("com.android.wifi.flags.band_optimization_control") @NonNull public android.net.wifi.SoftApConfiguration.Builder setBandOptimizationEnabled(boolean);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setBands(@NonNull int[]);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setBlockedClientList(@NonNull java.util.List<android.net.MacAddress>);
     method @NonNull public android.net.wifi.SoftApConfiguration.Builder setBridgedModeOpportunisticShutdownEnabled(boolean);

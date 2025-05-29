@@ -29,10 +29,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import android.content.Context;
+import android.net.wifi.WifiContext;
 import android.net.wifi.usd.PublishConfig;
 import android.net.wifi.usd.SubscribeConfig;
 import android.net.wifi.util.Environment;
+import android.net.wifi.util.WifiResourceCache;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.test.TestLooper;
@@ -48,6 +49,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 /**
  * Unit tests for {@link MainlineSupplicant}.
  */
@@ -59,7 +63,8 @@ public class MainlineSupplicantTest {
     private @Mock IBinder mIBinderMock;
     private @Mock WifiNative.SupplicantDeathEventHandler mFrameworkDeathHandler;
     private @Mock IStaInterface mIStaInterface;
-    private @Mock Context mContext;
+    private @Mock WifiContext mContext;
+    private @Mock WifiResourceCache mResourceCache;
     private MainlineSupplicantSpy mDut;
     private TestLooper mLooper = new TestLooper();
 
@@ -84,6 +89,7 @@ public class MainlineSupplicantTest {
         MockitoAnnotations.initMocks(this);
         when(mIMainlineSupplicantMock.asBinder()).thenReturn(mIBinderMock);
         when(mIMainlineSupplicantMock.addStaInterface(anyString())).thenReturn(mIStaInterface);
+        when(mContext.getResourceCache()).thenReturn(mResourceCache);
         mDut = new MainlineSupplicantSpy();
     }
 
@@ -215,5 +221,24 @@ public class MainlineSupplicantTest {
         IStaInterface.UsdSubscribeConfig aidlConfig =
                 MainlineSupplicant.frameworkToHalUsdSubscribeConfig(frameworkConfig);
         verifyUsdBaseConfigDefaultValues(aidlConfig.baseConfig);
+    }
+
+    /**
+     * Verify that the dump method properly tracks the active interfaces.
+     */
+    @Test
+    public void testDumpActiveInterfaces() throws Exception {
+        validateServiceStart();
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+
+        // Interface has not been added, so the interface name should not be in the dump.
+        mDut.dump(pw);
+        assertFalse(sw.toString().contains(IFACE_NAME));
+
+        // Interface name should appear in the dump after it has been added.
+        assertTrue(mDut.addStaInterface(IFACE_NAME));
+        mDut.dump(pw);
+        assertTrue(sw.toString().contains(IFACE_NAME));
     }
 }

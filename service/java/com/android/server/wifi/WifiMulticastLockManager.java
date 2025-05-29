@@ -60,6 +60,7 @@ public class WifiMulticastLockManager {
     private final Clock mClock;
     private final WifiMetrics mWifiMetrics;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
+    private ConcreteClientModeManager mPrimaryClientModeManager;
 
     /** Delegate for handling state change events for multicast filtering. */
     public interface FilterController {
@@ -243,9 +244,11 @@ public class WifiMulticastLockManager {
                     mWifiMetrics.addMulticastLockManagerActiveSession(
                             mClock.getElapsedSinceBootMillis() - mFilterDisableSessionStartTime);
                 }
-                mActiveModeWarden.getPrimaryClientModeManager()
-                        .getMcastLockManagerFilterController()
-                        .startFilteringMulticastPackets();
+                if (mPrimaryClientModeManager != null) {
+                    mPrimaryClientModeManager
+                            .getMcastLockManagerFilterController()
+                            .startFilteringMulticastPackets();
+                }
                 mIsFilterDisableSessionActive = false;
             }
         }
@@ -258,9 +261,11 @@ public class WifiMulticastLockManager {
                 // since we're about to disable multicast packet filtering
                 mFilterDisableSessionStartTime = mClock.getElapsedSinceBootMillis();
             }
-            mActiveModeWarden.getPrimaryClientModeManager()
-                    .getMcastLockManagerFilterController()
-                    .stopFilteringMulticastPackets();
+            if (mPrimaryClientModeManager != null) {
+                mPrimaryClientModeManager
+                        .getMcastLockManagerFilterController()
+                        .stopFilteringMulticastPackets();
+            }
             mIsFilterDisableSessionActive = true;
         }
     }
@@ -380,6 +385,7 @@ public class WifiMulticastLockManager {
                 newPrimaryClientModeManager.getMcastLockManagerFilterController()
                         .stopFilteringMulticastPackets();
             }
+            mPrimaryClientModeManager = newPrimaryClientModeManager;
         }
     }
 }

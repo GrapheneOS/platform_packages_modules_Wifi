@@ -18,13 +18,14 @@ package com.android.server.wifi.mainline_supplicant;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.MacAddress;
+import android.net.wifi.WifiContext;
 import android.net.wifi.usd.Config;
 import android.net.wifi.usd.PublishConfig;
 import android.net.wifi.usd.SubscribeConfig;
 import android.net.wifi.util.Environment;
+import android.net.wifi.util.WifiResourceCache;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.ServiceSpecificException;
@@ -41,7 +42,9 @@ import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.usd.UsdNativeManager;
 import com.android.wifi.flags.Flags;
+import com.android.wifi.resources.R;
 
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -63,7 +66,8 @@ public class MainlineSupplicant {
     private IMainlineSupplicant mIMainlineSupplicant;
     private final Object mLock = new Object();
     private final WifiThreadRunner mWifiThreadRunner;
-    private final Context mContext;
+    private final WifiContext mContext;
+    private final WifiResourceCache mResourceCache;
     private SupplicantDeathRecipient mServiceDeathRecipient;
     private WifiNative.SupplicantDeathEventHandler mFrameworkDeathHandler;
     private CountDownLatch mWaitForDeathLatch;
@@ -73,9 +77,10 @@ public class MainlineSupplicant {
     private UsdNativeManager.UsdEventsCallback mUsdEventsCallback = null;
 
     public MainlineSupplicant(@NonNull WifiThreadRunner wifiThreadRunner,
-            @NonNull Context context) {
+            @NonNull WifiContext context) {
         mWifiThreadRunner = wifiThreadRunner;
         mContext = context;
+        mResourceCache = mContext.getResourceCache();
         mServiceDeathRecipient = new SupplicantDeathRecipient();
         mIsServiceAvailable = canServiceBeAccessed();
     }
@@ -132,6 +137,10 @@ public class MainlineSupplicant {
                         || packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE);
     }
 
+    private boolean isOverlayEnabled() {
+        return mResourceCache.getBoolean(R.bool.config_wifiMainlineSupplicantEnabled);
+    }
+
     /**
      * Check whether the mainline supplicant service can be accessed.
      */
@@ -139,7 +148,7 @@ public class MainlineSupplicant {
         // Requires an Android B+ Selinux policy, a copy of the binary, and device support.
         return Environment.isSdkAtLeastB() && Flags.mainlineSupplicant()
                 && Environment.isMainlineSupplicantBinaryInWifiApex()
-                && !isUnsupportedDevice();
+                && isOverlayEnabled() && !isUnsupportedDevice();
     }
 
     /**
@@ -703,6 +712,20 @@ public class MainlineSupplicant {
                 handleRemoteException(e, methodName);
             }
             return false;
+        }
+    }
+
+    /**
+     * Dump information about the internal state.
+     *
+     * @param pw PrintWriter to write the dump to
+     */
+    public void dump(@NonNull PrintWriter pw) {
+        synchronized (mLock) {
+            pw.println("Dump of MainlineSupplicant");
+            pw.println("isAvailable: " + isAvailable());
+            pw.println("isActive: " + isActive());
+            pw.println("activeStaIfaces: " + mActiveStaIfaces.keySet());
         }
     }
 

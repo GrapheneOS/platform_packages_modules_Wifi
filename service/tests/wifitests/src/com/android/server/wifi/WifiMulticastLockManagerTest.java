@@ -90,7 +90,6 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
                 .thenReturn(mFilterController2);
         when(mClientModeManager2.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_TRANSIENT);
 
-        when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mClientModeManager);
         when(mContext.getSystemService(ActivityManager.class)).thenReturn(mActivityManager);
         mManager = new WifiMulticastLockManager(mActiveModeWarden, mBatteryStats,
                 mLooper.getLooper(), mContext, mClock, mWifiMetrics, mWifiPermissionsUtil);
@@ -99,6 +98,7 @@ public class WifiMulticastLockManagerTest extends WifiBaseTest {
                 mPrimaryChangedCallbackCaptor.capture());
         verify(mActivityManager).addOnUidImportanceListener(
                 mUidImportanceListenerCaptor.capture(), anyInt());
+        mPrimaryChangedCallbackCaptor.getValue().onChange(null, mClientModeManager);
     }
 
     /**

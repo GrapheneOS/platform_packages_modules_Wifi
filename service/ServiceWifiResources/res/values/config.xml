@@ -1420,4 +1420,6 @@
          has longer off-channel dwell time (500 milliseconds to 1 sec) and a much longer pause
          timeout (60 sec) once it finds a subscriber. -->
     <bool translatable="false" name="config_wifiUsdPublisherSupported">false</bool>
+    <!-- Boolean indicating whether the mainline supplicant service should be enabled -->
+    <bool translatable="false" name="config_wifiMainlineSupplicantEnabled">false</bool>
 </resources>
