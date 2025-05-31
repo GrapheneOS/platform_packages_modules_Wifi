@@ -1811,12 +1811,19 @@ public class WifiCarrierInfoManager {
         Log.d(TAG, msg, null);
     }
 
+    /**
+     * Tag to be used in dumpsys request
+     */
+    public static final String DUMP_ARG = "WifiCarrierInfoManager";
     /** Dump state. */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println(TAG + ": ");
         pw.println("mImsiEncryptionInfoAvailable=" + mImsiEncryptionInfoAvailable);
         pw.println("mImsiPrivacyProtectionExemptionMap=" + mImsiPrivacyProtectionExemptionMap);
-        pw.println("mMergedCarrierNetworkOffloadMap=" + mMergedCarrierNetworkOffloadMap);
+        pw.println("mMergedCarrierNetworkOffloadMap<subId, enabled>="
+                + mMergedCarrierNetworkOffloadMap);
+        pw.println("mUnmergedCarrierNetworkOffloadMap<subId, enabled>="
+                + mUnmergedCarrierNetworkOffloadMap);
         pw.println("mSubIdToSimInfoSparseArray=" + mSubIdToSimInfoSparseArray);
         pw.println("mActiveSubInfos=" + mActiveSubInfos);
         pw.println("mCachedCarrierConfigPerSubId=" + mCachedCarrierConfigPerSubId);

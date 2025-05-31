@@ -36,6 +36,9 @@ import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
 import android.net.wifi.hotspot2.PasspointConfiguration;
+import android.net.wifi.hotspot2.pps.Credential.CertificateCredential;
+import android.net.wifi.hotspot2.pps.Credential.SimCredential;
+import android.net.wifi.hotspot2.pps.Credential.UserCredential;
 import android.os.Looper;
 import android.os.Process;
 import android.text.TextUtils;
@@ -1325,11 +1328,44 @@ public class PasspointManager {
     }
 
     /**
+     * Tag to be used in dumpsys request
+     */
+    public static final String DUMP_ARG = "PasspointManager";
+    /**
      * Dump the current state of PasspointManager to the provided output stream.
      *
      * @param pw The output stream to write to
+     * @param importantParametersOnly true to dump important parameters only
      */
-    public void dump(PrintWriter pw) {
+    public void dump(PrintWriter pw, boolean importantParametersOnly) {
+        if (importantParametersOnly) {
+            pw.println("PasspointManager - Providers Begin ---");
+            for (PasspointProvider passpointProvider : mProviders.values()) {
+                pw.println("ProviderId:" + passpointProvider.getProviderId());
+                pw.println("PackageName:" + passpointProvider.getPackageName());
+                PasspointConfiguration passpointConfiguration = passpointProvider.getConfig();
+                pw.println("FQDN:" + passpointConfiguration.getHomeSp().getFqdn());
+                pw.println("Realm:" + passpointConfiguration.getCredential().getRealm());
+                SimCredential simCredential =
+                        passpointConfiguration.getCredential().getSimCredential();
+                if (simCredential != null) {
+                    pw.println("SimCredential:" + simCredential.toString());
+                }
+                UserCredential userCredential =
+                        passpointConfiguration.getCredential().getUserCredential();
+                if (userCredential != null) {
+                    pw.println("UserCredential:" + userCredential.toString());
+                }
+                CertificateCredential certificateCredential =
+                        passpointConfiguration.getCredential().getCertCredential();
+                if (certificateCredential != null) {
+                    pw.println("CertificateCredential:" + certificateCredential.toString());
+                }
+                pw.println();
+            }
+            pw.println("PasspointManager - Providers End ---");
+            return;
+        }
         pw.println("Dump of PasspointManager");
         pw.println("mEnabled: " + mEnabled);
         pw.println("PasspointManager - Providers Begin ---");

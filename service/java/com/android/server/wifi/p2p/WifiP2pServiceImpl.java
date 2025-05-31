@@ -298,8 +298,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     // Set a two minute discover timeout to avoid STA scans from being blocked
     private static final int DISCOVER_TIMEOUT_S = 120;
 
-    // Set a 30 seconds timeout for USD service discovery and advertisement.
-    @VisibleForTesting static final int USD_BASED_SERVICE_ADVERTISEMENT_DISCOVERY_TIMEOUT_S = 30;
+    // Set a 120 seconds timeout for USD service discovery and advertisement.
+    @VisibleForTesting static final int USD_BASED_SERVICE_ADVERTISEMENT_DISCOVERY_TIMEOUT_S = 120;
 
     // Idle time after a peer is gone when the group is torn down
     private static final int GROUP_IDLE_TIME_S = 10;

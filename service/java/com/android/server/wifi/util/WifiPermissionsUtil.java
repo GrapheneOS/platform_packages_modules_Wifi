@@ -1136,6 +1136,9 @@ public class WifiPermissionsUtil {
     public boolean isSystem(String packageName, int uid) {
         long ident = Binder.clearCallingIdentity();
         try {
+            if (SdkLevel.isAtLeastT() && Process.isSdkSandboxUid(uid)) {
+                return false;
+            }
             ApplicationInfo info = mContext.getPackageManager().getApplicationInfoAsUser(
                     packageName, 0, UserHandle.getUserHandleForUid(uid));
             return (info.flags & APP_INFO_FLAGS_SYSTEM_APP) != 0;

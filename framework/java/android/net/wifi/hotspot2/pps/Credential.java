@@ -381,12 +381,12 @@ public final class Credential implements Parcelable {
         @Override
         public String toString() {
             StringBuilder builder = new StringBuilder();
-            builder.append("Username: ").append(mUsername).append("\n");
-            builder.append("MachineManaged: ").append(mMachineManaged).append("\n");
-            builder.append("SoftTokenApp: ").append(mSoftTokenApp).append("\n");
-            builder.append("AbleToShare: ").append(mAbleToShare).append("\n");
-            builder.append("EAPType: ").append(mEapType).append("\n");
-            builder.append("AuthMethod: ").append(mNonEapInnerMethod).append("\n");
+            builder.append("Username=").append(mUsername).append(", ");
+            builder.append("MachineManaged=").append(mMachineManaged).append(", ");
+            builder.append("SoftTokenApp=").append(mSoftTokenApp).append(", ");
+            builder.append("AbleToShare=").append(mAbleToShare).append(", ");
+            builder.append("EAPType=").append(mEapType).append(", ");
+            builder.append("AuthMethod=").append(mNonEapInnerMethod);
             return builder.toString();
         }
 
@@ -597,7 +597,7 @@ public final class Credential implements Parcelable {
 
         @Override
         public String toString() {
-            return "CertificateType: " + mCertType + "\n";
+            return "CertificateType=" + mCertType;
         }
 
         /**
@@ -766,9 +766,9 @@ public final class Credential implements Parcelable {
                 } else {
                     imsi = mImsi;
                 }
-                builder.append("IMSI: ").append(imsi).append("\n");
+                builder.append("IMSI=").append(imsi).append(", ");
             }
-            builder.append("EAPType: ").append(mEapType).append("\n");
+            builder.append("EAPType=").append(mEapType);
             return builder.toString();
         }
 
