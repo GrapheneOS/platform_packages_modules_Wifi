@@ -341,3 +341,57 @@ def _stop_tethering(ad: android_device.AndroidDevice) -> bool:
       return True
     ad.wifi.tetheringStopTethering()
     return ad.wifi.wifiWaitForTetheringDisabled()
+
+def start_wifi_tethering_saved_config(ad: android_device.AndroidDevice):
+    """ Turn on wifi hotspot with a config that is already saved """
+    handler_state = ad.wifi.tetheringStartTrackingTetherStateChange()
+    handler_tethering = ad.wifi.tetheringStartTetheringWithProvisioning(0, False)
+    time.sleep(_WIFI_SCAN_INTERVAL_SEC)
+    try:
+        result_receiver = handler_state.waitAndGet('TetherStateChangedReceiver')
+        callback_name = result_receiver.data["callbackName"]
+        ad.log.info('StateChanged callback_name: %s', callback_name)
+        ad.log.debug("Tethering started successfully.")
+    except Exception:
+        msg = "Failed to receive confirmation of wifi tethering starting"
+        asserts.fail(msg)
+    finally:
+      ad.wifi.tetheringStopTrackingTetherStateChange()
+
+def connect_to_wifi_network(ad, network, assert_on_fail=True,
+                            check_connectivity=True, hidden=False,
+                            num_of_scan_tries=3,
+                            num_of_connect_tries=3):
+    """Connection logic for open and psk wifi networks.
+        Args:
+            ad: AndroidDevice to use for connection
+            network: network info of the network to connect to
+            assert_on_fail: If true, errors from wifi_connect will raise
+                            test failure signals.
+            hidden: Is the Wifi network hidden.
+            num_of_scan_tries: The number of times to try scan
+                           interface before declaring failure.
+            num_of_connect_tries: The number of times to try
+                              connect wifi before declaring failure.
+    """
+    if hidden:
+        start_wifi_connection_scan_and_ensure_network_not_found(
+            ad,
+            network[constants.WiFiTethering.SSID_KEY],
+            max_tries=num_of_scan_tries)
+    else:
+        start_wifi_connection_scan_and_ensure_network_found(
+            ad,
+            network[constants.WiFiTethering.SSID_KEY],
+            max_tries=num_of_scan_tries)
+    config = {
+      "SSID": network[constants.WiFiTethering.SSID_KEY],
+      "password": network[constants.WiFiTethering.PWD_KEY],
+      }
+    if hidden:
+        config[constants.WiFiTethering.HIDDEN_KEY] = True
+        ret = ad.wifi.wifiAddNetwork(config)
+        asserts.assert_true(ret != -1, "Add network %r failed" % config)
+        ad.wifi.wifiEnableNetwork(ret, 0)
+
+    _wifi_connect(ad, config, check_connectivity=check_connectivity)

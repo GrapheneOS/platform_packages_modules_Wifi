@@ -1198,12 +1198,13 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
 
         // Simulate both TEST_BSSID_1 and TEST_BSSID_2 improving RSSI, but only TEST_BSSID_2 should
         // be removed from blocklist.
-        List<ScanDetail> enabledDetails = simulateRssiUpdate(TEST_BSSID_1, TEST_GOOD_RSSI);
-        assertEquals(0, enabledDetails.size());
+        List<Integer> enabledNetworks = simulateRssiUpdate(TEST_BSSID_1, TEST_GOOD_RSSI);
+        assertEquals(0, enabledNetworks.size());
         assertEquals(3, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
 
-        enabledDetails = simulateRssiUpdate(TEST_BSSID_2, TEST_GOOD_RSSI);
-        assertEquals(1, enabledDetails.size());
+        enabledNetworks = simulateRssiUpdate(TEST_BSSID_2, TEST_GOOD_RSSI);
+        assertEquals(1, enabledNetworks.size());
+        assertEquals(config.networkId, (int) enabledNetworks.get(0));
         assertEquals(2, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
     }
 
@@ -1228,8 +1229,9 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
         assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_3));
 
         // verify TEST_BSSID_1 is removed from the blocklist after RSSI improves
-        List<ScanDetail> enabledDetails = simulateRssiUpdate(TEST_BSSID_1, TEST_SUFFICIENT_RSSI);
-        assertEquals(1, enabledDetails.size());
+        List<Integer> enabledNetworks = simulateRssiUpdate(TEST_BSSID_1, TEST_SUFFICIENT_RSSI);
+        assertEquals(1, enabledNetworks.size());
+        assertEquals(config.networkId, (int) enabledNetworks.get(0));
         assertEquals(0, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
     }
 
@@ -1283,7 +1285,7 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
         assertEquals(0, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
     }
 
-    private List<ScanDetail> simulateRssiUpdate(String bssid, int rssi) {
+    private List<Integer> simulateRssiUpdate(String bssid, int rssi) {
         ScanDetail scanDetail = mock(ScanDetail.class);
         ScanResult scanResult = mock(ScanResult.class);
         scanResult.BSSID = bssid;
@@ -1309,14 +1311,15 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
         assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
 
         // verify the blocklist is not cleared when the rssi improvement is not large enough.
-        List<ScanDetail> enabledDetails =
+        List<Integer> enabledNetworks =
                 simulateRssiUpdate(TEST_BSSID_1, TEST_SUFFICIENT_RSSI - 1);
-        assertTrue(enabledDetails.isEmpty());
+        assertTrue(enabledNetworks.isEmpty());
         assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
 
         // verify TEST_BSSID_1 is removed from the blocklist after RSSI improves
-        enabledDetails = simulateRssiUpdate(TEST_BSSID_1, TEST_SUFFICIENT_RSSI);
-        assertEquals(1, enabledDetails.size());
+        enabledNetworks = simulateRssiUpdate(TEST_BSSID_1, TEST_SUFFICIENT_RSSI);
+        assertEquals(1, enabledNetworks.size());
+        assertEquals(config.networkId, (int) enabledNetworks.get(0));
         assertEquals(0, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
     }
 
@@ -1335,8 +1338,9 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
         assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
 
         // verify TEST_BSSID_1 is not removed from blocklist
-        List<ScanDetail> enabledDetails = simulateRssiUpdate(TEST_BSSID_1, TEST_GOOD_RSSI);
-        assertEquals(1, enabledDetails.size());
+        List<Integer> enabledNetworks = simulateRssiUpdate(TEST_BSSID_1, TEST_GOOD_RSSI);
+        assertEquals(1, enabledNetworks.size());
+        assertEquals(config.networkId, (int) enabledNetworks.get(0));
         assertEquals(0, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
     }
 
@@ -1355,8 +1359,8 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
         assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
 
         // verify TEST_BSSID_1 is not removed from blocklist
-        List<ScanDetail> enabledDetails = simulateRssiUpdate(TEST_BSSID_1, TEST_GOOD_RSSI - 1);
-        assertTrue(enabledDetails.isEmpty());
+        List<Integer> enabledNetworks = simulateRssiUpdate(TEST_BSSID_1, TEST_GOOD_RSSI - 1);
+        assertTrue(enabledNetworks.isEmpty());
         assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
     }
 
@@ -1373,8 +1377,8 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
                 TEST_SUFFICIENT_RSSI - MIN_RSSI_DIFF_TO_UNBLOCK_BSSID);
         assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
 
-        List<ScanDetail> enabledDetails = simulateRssiUpdate(TEST_BSSID_1, TEST_SUFFICIENT_RSSI);
-        assertTrue(enabledDetails.isEmpty());
+        List<Integer> enabledNetworks = simulateRssiUpdate(TEST_BSSID_1, TEST_SUFFICIENT_RSSI);
+        assertTrue(enabledNetworks.isEmpty());
         assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
     }
 

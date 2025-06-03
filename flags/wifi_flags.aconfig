@@ -325,6 +325,13 @@ flag {
 }
 
 flag {
+    name: "icm_dialog_timeout"
+    namespace: "wifi"
+    description: "Timeout for InterfaceConflictManager dialogs."
+    bug: "416621831"
+}
+
+flag {
     name: "band_optimization_control"
     is_exported: true
     namespace: "wifi"

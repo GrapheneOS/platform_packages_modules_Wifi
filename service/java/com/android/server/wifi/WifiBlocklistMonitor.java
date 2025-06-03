@@ -314,6 +314,7 @@ public class WifiBlocklistMonitor {
             @FailureReason int reason, int rssi) {
         entry.setAsBlocked(durationMs, reason, rssi);
         localLog(TAG + " addToBlocklist: bssid=" + entry.bssid + ", ssid=" + entry.ssid
+                + ", networkId=" + entry.networkId
                 + ", durationMs=" + durationMs + ", reason=" + getFailureReasonString(reason)
                 + ", rssi=" + rssi);
     }
@@ -324,8 +325,8 @@ public class WifiBlocklistMonitor {
      * @return the BssidStatus for the BSSID
      */
     private @NonNull BssidStatus incrementFailureCountForBssid(
-            @NonNull String bssid, @NonNull String ssid, int reasonCode) {
-        BssidStatus status = getOrCreateBssidStatus(bssid, ssid);
+            @NonNull String bssid, @NonNull WifiConfiguration config, int reasonCode) {
+        BssidStatus status = getOrCreateBssidStatus(bssid, config.SSID, config.networkId);
         status.incrementFailureCount(reasonCode);
         return status;
     }
@@ -334,14 +335,14 @@ public class WifiBlocklistMonitor {
      * Get the BssidStatus representing the BSSID or create a new one if it doesn't exist.
      */
     private @NonNull BssidStatus getOrCreateBssidStatus(@NonNull String bssid,
-            @NonNull String ssid) {
+            @NonNull String ssid, int networkId) {
         BssidStatus status = mBssidStatusMap.get(bssid);
         if (status == null || !ssid.equals(status.ssid)) {
             if (status != null) {
                 localLog("getOrCreateBssidStatus: BSSID=" + bssid + ", SSID changed from "
                         + status.ssid + " to " + ssid);
             }
-            status = new BssidStatus(bssid, ssid);
+            status = new BssidStatus(bssid, ssid, networkId);
             mBssidStatusMap.put(bssid, status);
         }
         return status;
@@ -413,7 +414,7 @@ public class WifiBlocklistMonitor {
                     + ", rssi=" + rssi);
             return;
         }
-        BssidStatus status = getOrCreateBssidStatus(bssid, config.SSID);
+        BssidStatus status = getOrCreateBssidStatus(bssid, config.SSID, config.networkId);
         if (status.isInBlocklist
                 && status.blocklistEndTimeMs - mClock.getWallClockMillis() > durationMs) {
             // Return because this BSSID is already being blocked for a longer time.
@@ -425,7 +426,7 @@ public class WifiBlocklistMonitor {
          * BSSID.
          */
         for (String affiliatedBssid : getAffiliatedBssids(bssid)) {
-            status = getOrCreateBssidStatus(affiliatedBssid, config.SSID);
+            status = getOrCreateBssidStatus(affiliatedBssid, config.SSID, config.networkId);
             addToBlocklist(status, durationMs, blockReason, rssi);
         }
     }
@@ -490,11 +491,11 @@ public class WifiBlocklistMonitor {
         return FAILURE_COUNT_DISABLE_THRESHOLD[reasonCode];
     }
 
-    private boolean handleBssidConnectionFailureInternal(String bssid, String ssid,
+    private boolean handleBssidConnectionFailureInternal(String bssid, WifiConfiguration config,
             @FailureReason int reasonCode, int rssi) {
-        BssidStatus entry = incrementFailureCountForBssid(bssid, ssid, reasonCode);
+        BssidStatus entry = incrementFailureCountForBssid(bssid, config, reasonCode);
         int failureThreshold = getFailureThresholdForReason(reasonCode);
-        int currentStreak = mWifiScoreCard.getBssidBlocklistStreak(ssid, bssid, reasonCode);
+        int currentStreak = mWifiScoreCard.getBssidBlocklistStreak(config.SSID, bssid, reasonCode);
         if (currentStreak > 0 || entry.failureCount[reasonCode] >= failureThreshold) {
             // To rule out potential device side issues, don't add to blocklist if
             // WifiLastResortWatchdog is still not triggered
@@ -520,17 +521,19 @@ public class WifiBlocklistMonitor {
             long expBackoff = getBlocklistDurationWithExponentialBackoff(currentStreak,
                     baseBlockDurationMs);
             addToBlocklist(entry, expBackoff, reasonCode, rssi);
-            mWifiScoreCard.incrementBssidBlocklistStreak(ssid, bssid, reasonCode);
+            mWifiScoreCard.incrementBssidBlocklistStreak(config.SSID, bssid, reasonCode);
 
             /**
              * Block list affiliated BSSID with same parameters, e.g. reason code, rssi ..etc.
              * as connected BSSID.
              */
             for (String affiliatedBssid : getAffiliatedBssids(bssid)) {
-                BssidStatus affEntry = getOrCreateBssidStatus(affiliatedBssid, ssid);
+                BssidStatus affEntry = getOrCreateBssidStatus(affiliatedBssid, config.SSID,
+                        config.networkId);
                 affEntry.failureCount[reasonCode] = entry.failureCount[reasonCode];
                 addToBlocklist(affEntry, expBackoff, reasonCode, rssi);
-                mWifiScoreCard.incrementBssidBlocklistStreak(ssid, affiliatedBssid, reasonCode);
+                mWifiScoreCard.incrementBssidBlocklistStreak(config.SSID, affiliatedBssid,
+                        reasonCode);
             }
 
             return true;
@@ -581,7 +584,7 @@ public class WifiBlocklistMonitor {
                 return false;
             }
         }
-        return handleBssidConnectionFailureInternal(bssid, ssid, reasonCode, rssi);
+        return handleBssidConnectionFailureInternal(bssid, config, reasonCode, rssi);
     }
 
     /**
@@ -842,13 +845,13 @@ public class WifiBlocklistMonitor {
     /**
      * Attempts to re-enable BSSIDs that likely experienced failures due to low RSSI.
      * @param scanDetails
-     * @return the list of ScanDetails for which BSSIDs were re-enabled.
+     * @return the list of networkId for which BSSIDs were re-enabled.
      */
-    public @NonNull List<ScanDetail> tryEnablingBlockedBssids(List<ScanDetail> scanDetails) {
+    public @NonNull List<Integer> tryEnablingBlockedBssids(List<ScanDetail> scanDetails) {
         if (scanDetails == null) {
             return Collections.EMPTY_LIST;
         }
-        List<ScanDetail> results = new ArrayList<>();
+        Set<Integer> networkEnabled = new ArraySet<>();
         for (ScanDetail scanDetail : scanDetails) {
             ScanResult scanResult = scanDetail.getScanResult();
             if (scanResult == null) {
@@ -871,10 +874,10 @@ public class WifiBlocklistMonitor {
                 for (String affiliatedBssid : getAffiliatedBssids(status.bssid)) {
                     removeFromBlocklist(affiliatedBssid, "rssi significantly improved");
                 }
-                results.add(scanDetail);
+                networkEnabled.add(status.networkId);
             }
         }
-        return results;
+        return new ArrayList<>(networkEnabled);
     }
 
     private boolean isLowRssiSensitiveFailure(int blockReason) {
@@ -1058,6 +1061,7 @@ public class WifiBlocklistMonitor {
     private class BssidStatus {
         public final String bssid;
         public final String ssid;
+        public final int networkId;
         public final int[] failureCount = new int[NUMBER_REASON_CODES];
         public int blockReason = INVALID_REASON; // reason of blocking this BSSID
         // The latest RSSI that's seen before this BSSID is added to blocklist.
@@ -1068,9 +1072,10 @@ public class WifiBlocklistMonitor {
         public long blocklistEndTimeMs;
         public long blocklistStartTimeMs;
 
-        BssidStatus(String bssid, String ssid) {
+        BssidStatus(String bssid, String ssid, int networkId) {
             this.bssid = bssid;
             this.ssid = ssid;
+            this.networkId = networkId;
         }
 
         /**
@@ -1101,6 +1106,7 @@ public class WifiBlocklistMonitor {
             StringBuilder sb = new StringBuilder();
             sb.append("BSSID=" + bssid);
             sb.append(", SSID=" + ssid);
+            sb.append(", networkId=" + networkId);
             sb.append(", isInBlocklist=" + isInBlocklist);
             if (isInBlocklist) {
                 sb.append(", blockReason=" + getFailureReasonString(blockReason));

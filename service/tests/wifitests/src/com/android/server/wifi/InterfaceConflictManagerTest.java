@@ -24,9 +24,9 @@ import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_P2P;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -41,7 +41,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiContext;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.os.Handler;
 import android.os.Message;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
@@ -55,14 +54,17 @@ import com.android.internal.util.State;
 import com.android.internal.util.StateMachine;
 import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WorkSourceHelper;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -74,12 +76,14 @@ import java.util.Collections;
 public class InterfaceConflictManagerTest extends WifiBaseTest{
     private TestLooper mTestLooper;
     private InterfaceConflictManager mDut;
+    private MockitoSession mSession;
 
     @Mock WifiInjector mWifiInjector;
     @Mock WifiContext mWifiContext;
     @Mock Resources mResources;
     @Mock FrameworkFacade mFrameworkFacade;
     @Mock HalDeviceManager mHdm;
+    @Mock WifiThreadRunner mWifiThreadRunner;
     @Mock StateMachine mStateMachine;
     @Mock State mTargetState;
     @Mock WaitingState mWaitingState;
@@ -99,6 +103,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
     private static final String EXISTING_APP_NAME = "Existing App Name";
     private static final WorkSource EXISTING_WS =
             new WorkSource(EXISTING_UID, EXISTING_PACKAGE_NAME);
+    private static final int TEST_DIALOG_TIMEOUT_SECONDS = 300;
 
     ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> mCallbackCaptor =
             ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
@@ -109,12 +114,18 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
     @Before
     public void setup() throws Exception {
         MockitoAnnotations.initMocks(this);
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(Flags.class)
+                .strictness(Strictness.LENIENT)
+                .startMocking();
         mTestLooper = new TestLooper();
 
         // enable user approval (needed for most tests)
         when(mWifiContext.getResources()).thenReturn(mResources);
         when(mResources.getBoolean(
                 R.bool.config_wifiUserApprovalRequiredForD2dInterfacePriority)).thenReturn(true);
+        when(mResources.getInteger(R.integer.config_wifiUserApprovalForD2dTimeoutSeconds))
+                .thenReturn(TEST_DIALOG_TIMEOUT_SECONDS);
 
         when(mFrameworkFacade.getAppName(any(), eq(TEST_PACKAGE_NAME), anyInt()))
                 .thenReturn(TEST_APP_NAME);
@@ -140,10 +151,14 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
         when(mExistingWsHelper.getWorkSource()).thenReturn(EXISTING_WS);
     }
 
+    @After
+    public void cleanUp() {
+        mSession.finishMocking();
+    }
+
     private void initInterfaceConflictManager() {
         mDut = new InterfaceConflictManager(mWifiInjector, mWifiContext, mFrameworkFacade, mHdm,
-                new WifiThreadRunner(new Handler(mTestLooper.getLooper())), mWifiDialogManager,
-                mLocalLog);
+                mWifiThreadRunner, mWifiDialogManager, mLocalLog);
         mDut.enableVerboseLogging(true);
         mDut.handleBootCompleted();
     }
@@ -569,6 +584,94 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
         verify(mStateMachine, times(1)).deferMessage(newMsg);
         verify(mWifiDialogManager, times(2)).createSimpleDialogBuilder();
         verify(mDialogHandle, times(2)).launchDialog();
+    }
+
+    /**
+     * Verify that the interface conflict dialog will cancel after the specified timeout, transition
+     * the waiting state machine to their target state, and reset InterfaceConflictManager to accept
+     * new requests.
+     */
+    @Test
+    public void testDialogTimeout() {
+        when(Flags.icmDialogTimeout()).thenReturn(true);
+        initInterfaceConflictManager();
+
+        int interfaceType = HalDeviceManager.HDM_CREATE_IFACE_P2P;
+        Message msg = Message.obtain();
+
+        // can create interface - but with side effects
+        when(mHdm.reportImpactToCreateIface(eq(interfaceType), eq(false), eq(TEST_WS))).thenReturn(
+                Arrays.asList(Pair.create(HalDeviceManager.HDM_CREATE_IFACE_NAN, EXISTING_WS)));
+
+        // send request
+        assertEquals(InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER,
+                mDut.manageInterfaceConflictForStateMachine("Some Tag", msg,
+                        mStateMachine, mWaitingState, mTargetState,
+                        interfaceType, TEST_WS, false));
+        verify(mStateMachine).transitionTo(mWaitingState);
+        verify(mStateMachine).deferMessage(msg);
+        verify(mWifiDialogManager).createSimpleDialogBuilder();
+        verify(mDialogHandle).launchDialog();
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mWifiThreadRunner).postDelayed(runnableCaptor.capture(),
+                eq((long) TEST_DIALOG_TIMEOUT_SECONDS * 1000), any(), any());
+
+        // Emulate the dialog timing out.
+        runnableCaptor.getValue().run();
+
+        // State machine should have gone back to target
+        verify(mWaitingState).sendTransitionStateCommand(mTargetState);
+        // Dialog should have been dismissed
+        verify(mDialogHandle).dismissDialog();
+        // New request should launch dialog like normal.
+        Message newMsg = Message.obtain();
+        assertEquals(InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER,
+                mDut.manageInterfaceConflictForStateMachine("Some Tag", newMsg,
+                        mStateMachine, mWaitingState, mTargetState,
+                        interfaceType, TEST_WS, false));
+        verify(mStateMachine, times(2)).transitionTo(mWaitingState);
+        verify(mStateMachine, times(1)).deferMessage(newMsg);
+        verify(mWifiDialogManager, times(2)).createSimpleDialogBuilder();
+        verify(mDialogHandle, times(2)).launchDialog();
+    }
+
+    /**
+     * Verify that the interface conflict dialog timeout will be cleared if we get a response from
+     * the dialog.
+     */
+    @Test
+    public void testDialogTimeoutCancelled() {
+        when(Flags.icmDialogTimeout()).thenReturn(true);
+        initInterfaceConflictManager();
+
+        int interfaceType = HalDeviceManager.HDM_CREATE_IFACE_P2P;
+        Message msg = Message.obtain();
+
+        // can create interface - but with side effects
+        when(mHdm.reportImpactToCreateIface(eq(interfaceType), eq(false), eq(TEST_WS))).thenReturn(
+                Arrays.asList(Pair.create(HalDeviceManager.HDM_CREATE_IFACE_NAN, EXISTING_WS)));
+
+        // send request
+        assertEquals(InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER,
+                mDut.manageInterfaceConflictForStateMachine("Some Tag", msg,
+                        mStateMachine, mWaitingState, mTargetState,
+                        interfaceType, TEST_WS, false));
+        verify(mStateMachine).transitionTo(mWaitingState);
+        verify(mStateMachine).deferMessage(msg);
+        verify(mWifiDialogManager).createSimpleDialogBuilder();
+        ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
+                ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
+        verify(mDialogBuilder).setCallback(dialogCallbackCaptor.capture(), any());
+        verify(mDialogHandle).launchDialog();
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mWifiThreadRunner).postDelayed(runnableCaptor.capture(),
+                eq((long) TEST_DIALOG_TIMEOUT_SECONDS * 1000), any(), any());
+
+        // Cancel the timeout by replying to the dialog.
+        dialogCallbackCaptor.getValue().onPositiveButtonClicked();
+
+        // State machine should have gone back to target
+        verify(mWifiThreadRunner).removeCallbacks(runnableCaptor.getValue());
     }
 
     /**

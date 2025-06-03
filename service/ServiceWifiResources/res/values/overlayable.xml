@@ -304,6 +304,7 @@
           <item type="bool" name="config_wifiDppAkmSupported" />
           <item type="array" name="config_wifiInterfacePriorityTreatAsForegroundList"/>
           <item type="bool" name="config_wifiUserApprovalRequiredForD2dInterfacePriority" />
+          <item type="integer" name="config_wifiUserApprovalForD2dTimeoutSeconds" />
           <item type="array" name="config_wifiExcludedFromUserApprovalForD2dInterfacePriority" />
           <item type="bool" name="config_wifiUserApprovalNotRequireForDisconnectedP2p" />
           <item type="integer" name="config_disconnectedP2pIfaceLowPriorityTimeoutMs" />

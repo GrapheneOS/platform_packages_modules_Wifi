@@ -665,10 +665,10 @@ public class WifiConnectivityManager {
         }
 
         // Check if any blocklisted BSSIDs can be freed.
-        List<ScanDetail> enabledDetails =
+        List<Integer> enabledNetworks =
                 mWifiBlocklistMonitor.tryEnablingBlockedBssids(scanDetails);
-        for (ScanDetail scanDetail : enabledDetails) {
-            WifiConfiguration config = mConfigManager.getSavedNetworkForScanDetail(scanDetail);
+        for (int networkId : enabledNetworks) {
+            WifiConfiguration config = mConfigManager.getConfiguredNetwork(networkId);
             if (config != null && config.getNetworkSelectionStatus().isNetworkTemporaryDisabled()) {
                 mConfigManager.updateNetworkSelectionStatus(config.networkId,
                         WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);

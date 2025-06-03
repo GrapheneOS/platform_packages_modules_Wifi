@@ -4758,10 +4758,10 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         WifiConfiguration disabledConfig = WifiConfigurationTestUtil.createPskNetwork();
         disabledConfig.getNetworkSelectionStatus().setNetworkSelectionStatus(
                 WifiConfiguration.NetworkSelectionStatus.NETWORK_SELECTION_TEMPORARY_DISABLED);
-        List<ScanDetail> mockScanDetails = new ArrayList<>();
-        mockScanDetails.add(mock(ScanDetail.class));
-        when(mWifiBlocklistMonitor.tryEnablingBlockedBssids(any())).thenReturn(mockScanDetails);
-        when(mWifiConfigManager.getSavedNetworkForScanDetail(any())).thenReturn(
+        List<Integer> mockNetworkIds = new ArrayList<>();
+        mockNetworkIds.add(disabledConfig.networkId);
+        when(mWifiBlocklistMonitor.tryEnablingBlockedBssids(any())).thenReturn(mockNetworkIds);
+        when(mWifiConfigManager.getConfiguredNetwork(disabledConfig.networkId)).thenReturn(
                 disabledConfig);
 
         InOrder inOrder = inOrder(mWifiBlocklistMonitor, mWifiConfigManager);
@@ -4788,10 +4788,10 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         WifiConfiguration disabledConfig = WifiConfigurationTestUtil.createPskNetwork();
         disabledConfig.getNetworkSelectionStatus().setNetworkSelectionStatus(
                 WifiConfiguration.NetworkSelectionStatus.NETWORK_SELECTION_PERMANENTLY_DISABLED);
-        List<ScanDetail> mockScanDetails = new ArrayList<>();
-        mockScanDetails.add(mock(ScanDetail.class));
-        when(mWifiBlocklistMonitor.tryEnablingBlockedBssids(any())).thenReturn(mockScanDetails);
-        when(mWifiConfigManager.getSavedNetworkForScanDetail(any())).thenReturn(
+        List<Integer> mockNetworkIds = new ArrayList<>();
+        mockNetworkIds.add(disabledConfig.networkId);
+        when(mWifiBlocklistMonitor.tryEnablingBlockedBssids(any())).thenReturn(mockNetworkIds);
+        when(mWifiConfigManager.getConfiguredNetwork(disabledConfig.networkId)).thenReturn(
                 disabledConfig);
 
         InOrder inOrder = inOrder(mWifiBlocklistMonitor, mWifiConfigManager);

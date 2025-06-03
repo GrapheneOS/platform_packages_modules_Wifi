@@ -14,6 +14,7 @@
 
 # Lint as: python3
 import logging
+import time
 
 
 from android.platform.test.annotations import ApiTest
@@ -34,6 +35,7 @@ DBS_SUPPORTED_MODELS =  ["komodo"]
 STA_CONCURRENCY_SUPPORTED_MODELS  =["komodo", "caiman"]
 WIFI6_MODELS =  ["komodo"]
 
+WAIT_REBOOT_SEC = 20
 
 class WifiSoftApTest(base_test.BaseTestClass):
   """SoftAp test class.
@@ -203,6 +205,27 @@ class WifiSoftApTest(base_test.BaseTestClass):
       sutils.wait_for_wifi_state(self.host, True)
     elif self.host.wifi.wifiCheckState():
       asserts.fail("Wifi was disabled before softap and now it is enabled")
+
+  def validate_softap_after_reboot(self, band, security, hidden=False):
+    config = sutils.create_softap_config()
+    softap_config = config.copy()
+    softap_config[constants.WiFiTethering.AP_BAND_KEY] = band
+    softap_config[constants.WiFiTethering.SECURITY] = security
+    if hidden:
+      softap_config[constants.WiFiTethering.HIDDEN_KEY] = hidden
+    asserts.assert_true(
+      self.host.wifi.wifiSetWifiApConfiguration(softap_config),
+      "Failed to update WifiAp Configuration")
+    logging.info("StartTracking...")
+    self.host.wifi.tetheringStartTrackingTetherStateChange()
+    time.sleep(WAIT_REBOOT_SEC)
+    logging.info("start reboot...")
+    with self.host.handle_reboot():
+        self.host.reboot()
+        self.host.log.info("DUT rebooted successfully")
+        time.sleep(WAIT_REBOOT_SEC)
+    sutils.start_wifi_tethering_saved_config(self.host)
+    sutils.connect_to_wifi_network(self.client,softap_config, hidden=hidden)
 
   @ApiTest(
     apis=[
@@ -1030,6 +1053,266 @@ class WifiSoftApTest(base_test.BaseTestClass):
       band=constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_5G,
       test_ping=True)
 
+  def test_softap_wpa3_2g_after_reboot(self):
+
+    """Test full startup of softap in 2G band, wpa3 security after reboot.
+
+        Steps:
+        1. Save softap in 2G band and wpa3 security.
+        2. Reboot device and start softap.
+        3. Verify dut client connects to the softap.
+    """
+    for self.ad in self.ads:
+      asserts.skip_if(self.ad.model not in STA_CONCURRENCY_SUPPORTED_MODELS,
+                      "DUT does not support WPA3 softAp")
+    self.validate_softap_after_reboot(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_2G,
+      constants.SoftApSecurityType.WPA3_SAE,
+      False)
+
+  @ApiTest(
+    apis=[
+      'android.net.wifi.WifiManager#isPortableHotspotSupported()',
+      'android.net.ConnectivityManage#isTetheringSupported()',
+      'android.net.wifi.WifiManager.getWifiState()',
+      'android.net.wifi.WifiManager.setSoftApConfiguration(SoftApConfiguration.Builder())',
+      'android.net.TetheringManage.startTethering(int type,'+
+      ' @NonNull final Executor executor,final StartTetheringCallback callback)',
+      'android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION',
+      'android.net.wifi.WifiManager.startScan()',
+      'android.net.wifi.WifiManager.getScanResults()',
+      'android.net.wifi.WifiManager.addNetwork(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.enableNetwork(netId, disableOthers)',
+      'android.net.wifi.WifiManager.connect(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.getConnectionInfo().getWifiStandard()',
+      ]
+  )
+
+  def test_softap_wpa3_5g_after_reboot(self):
+    """Test full startup of softap in 5G band, wpa3 security after reboot.
+
+        Steps:
+        1. Save softap in 5G band and wpa3 security.
+        2. Reboot device and start softap.
+        3. Verify dut client connects to the softap.
+    """
+    for self.ad in self.ads:
+      asserts.skip_if(self.ad.model not in STA_CONCURRENCY_SUPPORTED_MODELS,
+                      "DUT does not support WPA3 softAp")
+    self.validate_softap_after_reboot(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_5G,
+      constants.SoftApSecurityType.WPA3_SAE,
+      False)
+
+  @ApiTest(
+    apis=[
+      'android.net.wifi.WifiManager#isPortableHotspotSupported()',
+      'android.net.ConnectivityManage#isTetheringSupported()',
+      'android.net.wifi.WifiManager.getWifiState()',
+      'android.net.wifi.WifiManager.setSoftApConfiguration(SoftApConfiguration.Builder())',
+      'android.net.TetheringManage.startTethering(int type,'+
+      ' @NonNull final Executor executor,final StartTetheringCallback callback)',
+      'android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION',
+      'android.net.wifi.WifiManager.startScan()',
+      'android.net.wifi.WifiManager.getScanResults()',
+      'android.net.wifi.WifiManager.addNetwork(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.enableNetwork(netId, disableOthers)',
+      'android.net.wifi.WifiManager.connect(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.getConnectionInfo().getWifiStandard()',
+      ]
+  )
+
+  def test_softap_wpa2_wpa3_2g_after_reboot(self):
+
+    """Test full startup of softap in 2G band, wpa2/wpa3 security after reboot.
+
+        Steps:
+        1. Save softap in 2G band and wpa2/wpa3 security.
+        2. Reboot device and start softap.
+        3. Verify dut client connects to the softap.
+    """
+    for self.ad in self.ads:
+      asserts.skip_if(self.ad.model not in STA_CONCURRENCY_SUPPORTED_MODELS,
+                      "DUT does not support WPA3 softAp")
+    self.validate_softap_after_reboot(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_2G,
+      constants.SoftApSecurityType.WPA3_SAE_TRANSITION,
+      False)
+
+  @ApiTest(
+    apis=[
+      'android.net.wifi.WifiManager#isPortableHotspotSupported()',
+      'android.net.ConnectivityManage#isTetheringSupported()',
+      'android.net.wifi.WifiManager.getWifiState()',
+      'android.net.wifi.WifiManager.setSoftApConfiguration(SoftApConfiguration.Builder())',
+      'android.net.TetheringManage.startTethering(int type,'+
+      ' @NonNull final Executor executor,final StartTetheringCallback callback)',
+      'android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION',
+      'android.net.wifi.WifiManager.startScan()',
+      'android.net.wifi.WifiManager.getScanResults()',
+      'android.net.wifi.WifiManager.addNetwork(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.enableNetwork(netId, disableOthers)',
+      'android.net.wifi.WifiManager.connect(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.getConnectionInfo().getWifiStandard()',
+      ]
+  )
+
+  def test_softap_wpa2_wpa3_5g_after_reboot(self):
+
+    """Test full startup of softap in 2G band, wpa2/wpa3 security after reboot.
+
+        Steps:
+        1. Save softap in 5G band and wpa2/wpa3 security.
+        2. Reboot device and start softap.
+        3. Verify dut client connects to the softap.
+    """
+    for self.ad in self.ads:
+      asserts.skip_if(self.ad.model not in STA_CONCURRENCY_SUPPORTED_MODELS,
+                      "DUT does not support WPA3 softAp")
+    self.validate_softap_after_reboot(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_5G,
+      constants.SoftApSecurityType.WPA3_SAE_TRANSITION,
+      False)
+
+  @ApiTest(
+    apis=[
+      'android.net.wifi.WifiManager#isPortableHotspotSupported()',
+      'android.net.ConnectivityManage#isTetheringSupported()',
+      'android.net.wifi.WifiManager.getWifiState()',
+      'android.net.wifi.WifiManager.setSoftApConfiguration(SoftApConfiguration.Builder())',
+      'android.net.TetheringManage.startTethering(int type,'+
+      ' @NonNull final Executor executor,final StartTetheringCallback callback)',
+      'android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION',
+      'android.net.wifi.WifiManager.startScan()',
+      'android.net.wifi.WifiManager.getScanResults()',
+      'android.net.wifi.WifiManager.addNetwork(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.enableNetwork(netId, disableOthers)',
+      'android.net.wifi.WifiManager.connect(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.getConnectionInfo().getWifiStandard()',
+      ]
+  )
+
+  def test_softap_wpa3_2g_hidden_after_reboot(self):
+
+    """Test full startup of softap in 2G band, wpa2/wpa3 security after reboot.
+
+        Steps:
+        1. Save softap in 2G band and wpa3 security.
+        2. Reboot device and start softap.
+        3. Verify dut client connects to the softap.
+    """
+    for self.ad in self.ads:
+      asserts.skip_if(self.ad.model not in STA_CONCURRENCY_SUPPORTED_MODELS,
+                      "DUT does not support WPA3 softAp")
+    self.validate_softap_after_reboot(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_2G,
+      constants.SoftApSecurityType.WPA3_SAE,
+      hidden=True)
+
+  @ApiTest(
+    apis=[
+      'android.net.wifi.WifiManager#isPortableHotspotSupported()',
+      'android.net.ConnectivityManage#isTetheringSupported()',
+      'android.net.wifi.WifiManager.getWifiState()',
+      'android.net.wifi.WifiManager.setSoftApConfiguration(SoftApConfiguration.Builder())',
+      'android.net.TetheringManage.startTethering(int type,'+
+      ' @NonNull final Executor executor,final StartTetheringCallback callback)',
+      'android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION',
+      'android.net.wifi.WifiManager.startScan()',
+      'android.net.wifi.WifiManager.getScanResults()',
+      'android.net.wifi.WifiManager.addNetwork(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.enableNetwork(netId, disableOthers)',
+      'android.net.wifi.WifiManager.connect(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.getConnectionInfo().getWifiStandard()',
+      ]
+  )
+
+  def test_softap_wpa3_5g_hidden_after_reboot(self):
+
+    """Test full startup of softap in 5G band, wpa2/wpa3 security after reboot.
+
+        Steps:
+        1. Save softap in 5G band and wpa3 security.
+        2. Reboot device and start softap.
+        3. Verify dut client connects to the softap.
+    """
+    for self.ad in self.ads:
+      asserts.skip_if(self.ad.model not in STA_CONCURRENCY_SUPPORTED_MODELS,
+                      "DUT does not support WPA3 softAp")
+    self.validate_softap_after_reboot(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_5G,
+      constants.SoftApSecurityType.WPA3_SAE,
+      hidden=True)
+
+  @ApiTest(
+    apis=[
+      'android.net.wifi.WifiManager#isPortableHotspotSupported()',
+      'android.net.ConnectivityManage#isTetheringSupported()',
+      'android.net.wifi.WifiManager.getWifiState()',
+      'android.net.wifi.WifiManager.setSoftApConfiguration(SoftApConfiguration.Builder())',
+      'android.net.TetheringManage.startTethering(int type,'+
+      ' @NonNull final Executor executor,final StartTetheringCallback callback)',
+      'android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION',
+      'android.net.wifi.WifiManager.startScan()',
+      'android.net.wifi.WifiManager.getScanResults()',
+      'android.net.wifi.WifiManager.addNetwork(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.enableNetwork(netId, disableOthers)',
+      'android.net.wifi.WifiManager.connect(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.getConnectionInfo().getWifiStandard()',
+      ]
+  )
+
+  def test_softap_wpa2_wpa3_2g_hidden_after_reboot(self):
+
+    """Test full startup of softap in 2G band, wpa2/wpa3 security after reboot.
+
+        Steps:
+        1. Save softap in 2G band and wpa2/wpa3 security.
+        2. Reboot device and start softap.
+        3. Verify dut client connects to the softap.
+    """
+    for self.ad in self.ads:
+      asserts.skip_if(self.ad.model not in STA_CONCURRENCY_SUPPORTED_MODELS,
+                      "DUT does not support WPA3 softAp")
+    self.validate_softap_after_reboot(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_2G,
+      constants.SoftApSecurityType.WPA3_SAE_TRANSITION,
+      hidden=True)
+
+  @ApiTest(
+    apis=[
+      'android.net.wifi.WifiManager#isPortableHotspotSupported()',
+      'android.net.ConnectivityManage#isTetheringSupported()',
+      'android.net.wifi.WifiManager.getWifiState()',
+      'android.net.wifi.WifiManager.setSoftApConfiguration(SoftApConfiguration.Builder())',
+      'android.net.TetheringManage.startTethering(int type,'+
+      ' @NonNull final Executor executor,final StartTetheringCallback callback)',
+      'android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION',
+      'android.net.wifi.WifiManager.startScan()',
+      'android.net.wifi.WifiManager.getScanResults()',
+      'android.net.wifi.WifiManager.addNetwork(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.enableNetwork(netId, disableOthers)',
+      'android.net.wifi.WifiManager.connect(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.getConnectionInfo().getWifiStandard()',
+      ]
+  )
+
+  def test_softap_wpa2_wpa3_5g_hidden_after_reboot(self):
+
+    """Test full startup of softap in 5G band, wpa2/wpa3 security after reboot.
+
+        Steps:
+        1. Save softap in 5G band and wpa2/wpa3 security.
+        2. Reboot device and start softap.
+        3. Verify dut client connects to the softap.
+    """
+    for self.ad in self.ads:
+      asserts.skip_if(self.ad.model not in STA_CONCURRENCY_SUPPORTED_MODELS,
+                      "DUT does not support WPA3 softAp")
+    self.validate_softap_after_reboot(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_5G,
+      constants.SoftApSecurityType.WPA3_SAE_TRANSITION,
+      hidden=True)
 
 if __name__ == '__main__':
 

@@ -1090,6 +1090,9 @@
          decisions (note: packages included in
          `config_excludedFromUserApprovalForD2dInterfacePriority` are excluded). -->
     <bool translatable="false" name="config_wifiUserApprovalRequiredForD2dInterfacePriority">false</bool>
+    <!-- Indicates the timeout in seconds to cancel the user approval dialog for device-to-device
+         interface priority decisions if no reply was received. -->
+    <integer translatable="false" name="config_wifiUserApprovalForD2dTimeoutSeconds">300</integer>
     <!-- list of package names that are excluded from the user approval flag
          `config_wifiUserApprovalRequiredForD2dInterfacePriority`. I.e. any priority conflicts from
           requests by these packages will be handled by the default resolution of the framework. -->

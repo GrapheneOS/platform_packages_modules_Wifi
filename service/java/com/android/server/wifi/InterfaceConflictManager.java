@@ -47,6 +47,7 @@ import com.android.internal.util.State;
 import com.android.internal.util.StateMachine;
 import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WorkSourceHelper;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -89,6 +90,10 @@ public class InterfaceConflictManager {
     private WaitingState mCurrentWaitingState;
     private State mCurrentTargetState;
     private WifiDialogManager.DialogHandle mCurrentDialogHandle;
+    private Runnable mDialogTimeoutRunnable = () -> {
+        localLog("Dialog timed out.");
+        reset();
+    };
 
     private static final String MESSAGE_BUNDLE_KEY_PENDING_USER = "pending_user_decision";
 
@@ -379,6 +384,7 @@ public class InterfaceConflictManager {
                     (result) -> {
                         localLog(tag + ": User response to creating " + getInterfaceName(
                                 createIfaceType) + ": " + result);
+                        mThreadRunner.removeCallbacks(mDialogTimeoutRunnable);
                         mUserJustApproved = result;
                         mCurrentWaitingState = null;
                         mCurrentTargetState = null;
@@ -386,6 +392,17 @@ public class InterfaceConflictManager {
                         waitingState.sendTransitionStateCommand(targetState);
                     });
             mCurrentDialogHandle.launchDialog();
+
+            if (Flags.icmDialogTimeout()) {
+                int timeoutSeconds = mContext.getResources()
+                        .getInteger(R.integer.config_wifiUserApprovalForD2dTimeoutSeconds);
+                if (timeoutSeconds > 0) {
+                    localLog(tag + ": Timing out dialog after " + timeoutSeconds + " seconds");
+                    mThreadRunner.postDelayed(mDialogTimeoutRunnable, (long) timeoutSeconds * 1000,
+                            TAG + "#mDialogTimeoutRunnable",
+                            mDialogTimeoutRunnable);
+                }
+            }
 
             return ICM_SKIP_COMMAND_WAIT_FOR_USER;
         }
@@ -489,6 +506,7 @@ public class InterfaceConflictManager {
      * any waiting StateMachines back to their target state.
      */
     public void reset() {
+        localLog("Resetting.");
         synchronized (mLock) {
             if (mCurrentWaitingState != null && mCurrentTargetState != null) {
                 mCurrentWaitingState.sendTransitionStateCommand(mCurrentTargetState);
@@ -501,6 +519,7 @@ public class InterfaceConflictManager {
             mUserApprovalPending = false;
             mUserApprovalPendingTag = null;
             mUserJustApproved = false;
+            mThreadRunner.removeCallbacks(mDialogTimeoutRunnable);
         }
     }
 
