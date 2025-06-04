@@ -21,8 +21,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.ArgumentMatchers.anyByte;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -40,6 +42,7 @@ import android.os.test.TestLooper;
 import android.system.wifi.mainline_supplicant.IMainlineSupplicant;
 import android.system.wifi.mainline_supplicant.IStaInterface;
 
+import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiThreadRunner;
 
@@ -65,6 +68,7 @@ public class MainlineSupplicantTest {
     private @Mock IStaInterface mIStaInterface;
     private @Mock WifiContext mContext;
     private @Mock WifiResourceCache mResourceCache;
+    private @Mock WifiGlobals mWifiGlobals;
     private MainlineSupplicantSpy mDut;
     private TestLooper mLooper = new TestLooper();
 
@@ -74,7 +78,7 @@ public class MainlineSupplicantTest {
     // Spy version of this class allows us to override methods for testing.
     private class MainlineSupplicantSpy extends MainlineSupplicant {
         MainlineSupplicantSpy() {
-            super(new WifiThreadRunner(new Handler(mLooper.getLooper())), mContext);
+            super(new WifiThreadRunner(new Handler(mLooper.getLooper())), mContext, mWifiGlobals);
         }
 
         @Override
@@ -240,5 +244,21 @@ public class MainlineSupplicantTest {
         assertTrue(mDut.addStaInterface(IFACE_NAME));
         mDut.dump(pw);
         assertTrue(sw.toString().contains(IFACE_NAME));
+    }
+
+    /**
+     * Verify that the debug parameters are set both when the service is started, and also
+     * when the verbose logging parameters are updated.
+     */
+    @Test
+    public void testSetDebugParams() throws Exception {
+        // Validate call when service is started.
+        when(mWifiGlobals.getShowKeyVerboseLoggingModeEnabled()).thenReturn(true);
+        validateServiceStart();
+        verify(mIMainlineSupplicantMock, times(1)).setDebugParams(anyByte(), eq(false));
+
+        // Validate call when enableVerboseLogging is called.
+        mDut.enableVerboseLogging(true, true);
+        verify(mIMainlineSupplicantMock, times(1)).setDebugParams(anyByte(), eq(true));
     }
 }

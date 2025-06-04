@@ -268,6 +268,7 @@ public class WifiNative {
         mHostapdHal.enableVerboseLogging(verboseEnabled, halVerboseEnabled);
         mWifiVendorHal.enableVerboseLogging(verboseEnabled, halVerboseEnabled);
         mIfaceMgr.enableVerboseLogging(verboseEnabled);
+        mMainlineSupplicant.enableVerboseLogging(verboseEnabled, halVerboseEnabled);
     }
 
     /**

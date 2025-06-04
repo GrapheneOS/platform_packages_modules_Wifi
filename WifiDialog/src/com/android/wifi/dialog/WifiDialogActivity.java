@@ -749,7 +749,8 @@ public class WifiDialogActivity extends Activity  {
                 .create();
         if (pinEditText != null) {
             dialog.getWindow().setSoftInputMode(
-                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+                        | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
             dialog.setOnShowListener(dialogShow -> {
                 Intent intent = mLaunchIntentsPerId.get(dialogId);
                 if (intent != null) {
@@ -954,7 +955,8 @@ public class WifiDialogActivity extends Activity  {
         AlertDialog dialog = builder.create();
         if (isPinRequested) {
             dialog.getWindow().setSoftInputMode(
-                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+                        | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
             dialog.setOnShowListener(dialogShow -> {
                 Intent intent = mLaunchIntentsPerId.get(dialogId);
                 if (intent != null) {

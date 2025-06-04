@@ -356,7 +356,7 @@ public class WifiInjector {
         mSupplicantStaIfaceHal = new SupplicantStaIfaceHal(
                 mContext, mWifiMonitor, mFrameworkFacade, mWifiHandler, mClock, mWifiMetrics,
                 mWifiGlobals, mSsidTranslator, this);
-        mMainlineSupplicant = new MainlineSupplicant(mWifiThreadRunner, mContext);
+        mMainlineSupplicant = new MainlineSupplicant(mWifiThreadRunner, mContext, mWifiGlobals);
         mHostapdHal = new HostapdHal(mContext, mWifiHandler);
         mWifiCondManager = (WifiNl80211Manager) mContext.getSystemService(
                 Context.WIFI_NL80211_SERVICE);

@@ -33,6 +33,5 @@
     <test class="MoblyAospPackageTest" />
 
     <option name="mobly_pkg" key="file" value="CtsWifiSoftApTestCases" />
-    <option name="mobly_pkg" key="file" value="WifiSApTest" />
     <option name="build_apk" key="file" value="wifi_mobly_snippet.apk" />
 </configuration>

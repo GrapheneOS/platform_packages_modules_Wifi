@@ -24,6 +24,7 @@ import android.net.wifi.WifiContext;
 import android.net.wifi.usd.Config;
 import android.net.wifi.usd.PublishConfig;
 import android.net.wifi.usd.SubscribeConfig;
+import android.net.wifi.util.BuildProperties;
 import android.net.wifi.util.Environment;
 import android.net.wifi.util.WifiResourceCache;
 import android.os.IBinder;
@@ -38,6 +39,7 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.SupplicantStaIfaceHal;
+import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.usd.UsdNativeManager;
@@ -75,12 +77,16 @@ public class MainlineSupplicant {
     private Map<String, IStaInterface> mActiveStaIfaces = new HashMap<>();
     private Map<String, IStaInterfaceCallback> mStaIfaceCallbacks = new HashMap<>();
     private UsdNativeManager.UsdEventsCallback mUsdEventsCallback = null;
+    private boolean mVerboseLoggingEnabled = false;
+    private boolean mVerboseHalLoggingEnabled = false;
+    private final WifiGlobals mWifiGlobals;
 
     public MainlineSupplicant(@NonNull WifiThreadRunner wifiThreadRunner,
-            @NonNull WifiContext context) {
+            @NonNull WifiContext context, @NonNull WifiGlobals wifiGlobals) {
         mWifiThreadRunner = wifiThreadRunner;
         mContext = context;
         mResourceCache = mContext.getResourceCache();
+        mWifiGlobals = wifiGlobals;
         mServiceDeathRecipient = new SupplicantDeathRecipient();
         mIsServiceAvailable = canServiceBeAccessed();
     }
@@ -146,9 +152,10 @@ public class MainlineSupplicant {
      */
     private boolean canServiceBeAccessed() {
         // Requires an Android B+ Selinux policy, a copy of the binary, and device support.
+        BuildProperties buildProperties = BuildProperties.getInstance();
         return Environment.isSdkAtLeastB() && Flags.mainlineSupplicant()
                 && Environment.isMainlineSupplicantBinaryInWifiApex()
-                && isOverlayEnabled() && !isUnsupportedDevice();
+                && isOverlayEnabled() && !isUnsupportedDevice() && !buildProperties.isUserBuild();
     }
 
     /**
@@ -195,6 +202,7 @@ public class MainlineSupplicant {
                 mWaitForDeathLatch = null;
                 mIMainlineSupplicant.asBinder()
                         .linkToDeath(mServiceDeathRecipient, /* flags= */  0);
+                setDebugParams(mVerboseHalLoggingEnabled);
             } catch (RemoteException e) {
                 handleRemoteException(e, "startService");
                 return false;
@@ -211,6 +219,41 @@ public class MainlineSupplicant {
     public boolean isActive() {
         synchronized (mLock) {
             return mIMainlineSupplicant != null;
+        }
+    }
+
+    /**
+     * Configure verbose logging for this class.
+     *
+     * @param fwVerboseEnabled Whether verbose logging should be enabled in the framework.
+     * @param halVerboseEnabled Whether verbose logging should be enabled in the HAL.
+     */
+    public void enableVerboseLogging(boolean fwVerboseEnabled, boolean halVerboseEnabled) {
+        synchronized (mLock) {
+            mVerboseLoggingEnabled = fwVerboseEnabled;
+            mVerboseHalLoggingEnabled = halVerboseEnabled;
+            setDebugParams(halVerboseEnabled);
+            Log.i(TAG, "Set verbose logging. Framework=" + mVerboseLoggingEnabled
+                    + ", HAL=" + mVerboseHalLoggingEnabled);
+        }
+    }
+
+    private void setDebugParams(boolean halVerboseEnabled) {
+        synchronized (mLock) {
+            final String methodName = "setDebugParams";
+            if (!checkIsActiveAndLogError(methodName)) {
+                return;
+            }
+            try {
+                byte debugLevel = IMainlineSupplicant.DebugLevel.INFO;
+                boolean showKeys = halVerboseEnabled
+                        && mWifiGlobals.getShowKeyVerboseLoggingModeEnabled();
+                mIMainlineSupplicant.setDebugParams(debugLevel, showKeys);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodName);
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodName);
+            }
         }
     }
 
