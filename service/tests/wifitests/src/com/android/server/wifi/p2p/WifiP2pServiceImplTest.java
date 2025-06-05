@@ -42,6 +42,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -1619,6 +1620,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         when(mLayoutInflater.inflate(anyInt(), any(), anyBoolean())).thenReturn(mView);
         when(mView.findViewById(eq(R.id.name))).thenReturn(mock(TextView.class));
         when(mView.findViewById(eq(R.id.value))).thenReturn(mock(TextView.class));
+        when(mView.findViewById(eq(R.id.enter_pin_section))).thenReturn(mock(TextView.class));
         when(mView.findViewById(eq(R.id.info))).thenReturn(mock(ViewGroup.class));
         ArrayList<InetAddress> p2pInetAddresses = new ArrayList<>();
         p2pInetAddresses.add(InetAddresses.parseNumericAddress(P2P_GO_IP));
@@ -1712,6 +1714,40 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         config.wps.setup = wpsType;
 
         sendNegotiationRequestEvent(config);
+    }
+
+    /**
+     * Mock Provision Discovery Event for V2 connection.
+     */
+    private void mockProvisioningDiscoveryEventForV2Connection(int pdEventId)
+            throws Exception {
+        mockPeersList();
+        WifiP2pProvDiscEvent pdEvent = createWifiP2pProvDiscEventForV2Connection(pdEventId,
+                true);
+        sendSimpleMsg(null,
+                convertPdEventIdToWifiP2pMonitorEventForV2Connection(pdEventId),
+                pdEvent);
+    }
+
+    private int convertPdEventIdToWifiP2pMonitorEventForV2Connection(int pdEventId)
+            throws Exception {
+        switch (pdEventId) {
+            case WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_REQ:
+                return WifiP2pMonitor.P2P_PROV_DISC_PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_REQ_EVENT;
+            case WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_RSP:
+                return WifiP2pMonitor.P2P_PROV_DISC_PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_RSP_EVENT;
+            case WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_ENTER_PIN:
+            case WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_ENTER_PASSPHRASE:
+                return WifiP2pMonitor
+                        .P2P_PROV_DISC_ENTER_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT;
+            case WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PIN:
+            case WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PASSPHRASE:
+                return WifiP2pMonitor
+                        .P2P_PROV_DISC_SHOW_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT;
+            default:
+                fail("Unexpected pdEvent for V2 connection: " + pdEventId);
+                return 0;
+        }
     }
 
     /** Mock enter the user authorizing invite request state. */
@@ -7214,8 +7250,9 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     private void verifySetConnectionRequestResult(MacAddress addr,
             boolean hasApprover,
             boolean hasPermission, boolean shouldSucceed,
-            int wpsType, int result) throws Exception {
+            int wpsType, int pdEventId, int result) throws Exception {
         Binder binder = new Binder();
+        MacAddress deviceMacAddress;
 
         forceP2pEnabled(mClient1);
         mockPeersList();
@@ -7224,14 +7261,23 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
             verifyAddExternalApprover(binder, true, true, addr);
         }
 
-        mockEnterUserAuthorizingNegotiationRequestState(wpsType);
+        if (wpsType != WpsInfo.INVALID) {
+            mockEnterUserAuthorizingNegotiationRequestState(wpsType);
+            deviceMacAddress = MacAddress.fromString(mTestWifiP2pDevice.deviceAddress);
+        } else if (pdEventId != 0) {
+            mockProvisioningDiscoveryEventForV2Connection(pdEventId);
+            deviceMacAddress = MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress);
+        } else {
+            fail("wpsType and pdEventId cannot both be INVALID.");
+            return;
+        }
 
         when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
                 .thenReturn(hasPermission);
         when(mWifiPermissionsUtil.checkNearbyDevicesPermission(any(), anyBoolean(), any()))
                 .thenReturn(hasPermission);
         sendSetConnectionRequestResultMsg(mClientMessenger,
-                MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
+                deviceMacAddress,
                 result, binder);
         if (shouldSucceed) {
             // There are 4 replies:
@@ -7268,7 +7314,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
         verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
                 hasApprover, hasPermission, shouldSucceed,
-                WpsInfo.PBC, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
+                WpsInfo.PBC, 0, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
     }
 
     /**
@@ -7280,7 +7326,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
         verifySetConnectionRequestResult(MacAddress.BROADCAST_ADDRESS,
                 hasApprover, hasPermission, shouldSucceed,
-                WpsInfo.PBC, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
+                WpsInfo.PBC, 0, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
     }
 
     /**
@@ -7308,6 +7354,19 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         verify(mWifiNative).p2pConnect(any(), anyBoolean());
         verify(mWifiNative, never()).p2pStopFind();
+    }
+
+    /**
+     * Verify sunny scenario for setConnectionRequestResult enter pin event.
+     */
+    @Test
+    public void testSetConnectionRequestResultSuccessEnterPin() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
+        verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
+                hasApprover, hasPermission, shouldSucceed,
+                WpsInfo.KEYPAD, 0, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
+        verify(mWifiNative).p2pConnect(any(), anyBoolean());
     }
 
     private void verifyMultiApproverMatch(List<MacAddress> addresses, MacAddress expectedMatch)
@@ -7392,7 +7451,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         boolean hasApprover = true, hasPermission = false, shouldSucceed = false;
         verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
                 hasApprover, hasPermission, shouldSucceed,
-                WpsInfo.PBC, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
+                WpsInfo.PBC, 0, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
     }
 
     /**
@@ -7404,7 +7463,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         boolean hasApprover = false, hasPermission = true, shouldSucceed = false;
         verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
                 hasApprover, hasPermission, shouldSucceed,
-                WpsInfo.PBC, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
+                WpsInfo.PBC, 0, WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
     }
 
     /** Verify the failure scenario for setConnectionRequestResult without a saved peer config. */
@@ -7437,7 +7496,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
         verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
                 hasApprover, hasPermission, shouldSucceed,
-                WpsInfo.KEYPAD, WifiP2pManager.CONNECTION_REQUEST_DEFER_SHOW_PIN_TO_SERVICE);
+                WpsInfo.KEYPAD, 0, WifiP2pManager.CONNECTION_REQUEST_DEFER_TO_SERVICE);
     }
 
     /**
@@ -8796,8 +8855,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertTrue(pincode.matches("\\d{8}"));
         verify(mDialogHandle).launchDialog();
 
-
-        // Framework is expected to send connect as soon as the PIN is Displayed
+        // Framework is expected to send connect if user accepts the connection request.
+        sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_ACCEPT);
         verify(mWifiNative, times(1)).p2pConnect(configCaptor.capture(),
                 eq(false));
         WifiP2pConfig config = configCaptor.getValue();
@@ -8843,7 +8902,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mDialogHandle).launchDialog();
 
 
-        // Framework is expected to send connect as soon as the Passphrase is Displayed
+        // Framework is expected to send connect if user accepts the connection request.
+        sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_ACCEPT);
         verify(mWifiNative, times(1)).p2pConnect(configCaptor.capture(),
                 eq(false));
         WifiP2pConfig config = configCaptor.getValue();
@@ -9297,5 +9357,179 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
         verify(mWifiNative).p2pProvisionDiscovery(any());
         verify(mWifiNative, never()).p2pReinvoke(anyInt(), any(), anyInt());
+    }
+
+    /**
+     * Test setConnectionRequestResult for pairing bootstrapping method: Opportunistic.
+     */
+    @Test
+    public void testSetConnectionRequestResultSuccessOpportunistic() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
+        verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress),
+                hasApprover, hasPermission, shouldSucceed,
+                WpsInfo.INVALID, WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_REQ,
+                WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
+        verify(mWifiNative).p2pConnect(any(), anyBoolean());
+    }
+
+    /**
+     * Test setConnectionRequestResult for pairing bootstrapping method: Display pincode.
+     */
+    @Test
+    public void testSetConnectionRequestResultSuccessDisplayPinCode() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
+        verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress),
+                hasApprover, hasPermission, shouldSucceed,
+                WpsInfo.INVALID, WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PIN,
+                WifiP2pManager.CONNECTION_REQUEST_ACCEPT);
+        verify(mWifiNative).p2pConnect(any(), anyBoolean());
+    }
+
+    /**
+     * Test setConnectionRequestResult with response as defer show pin to service for pairing
+     * bootstrapping method: Display pincode.
+     */
+    @Test
+    public void testSetConnectionRequestResultDeferDisplayPinCodeToFramework() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
+        verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress),
+                hasApprover, hasPermission, shouldSucceed,
+                WpsInfo.INVALID, WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PIN,
+                WifiP2pManager.CONNECTION_REQUEST_DEFER_SHOW_PIN_TO_SERVICE);
+        // Expect isPinRequested to false for displaying the pincode
+        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(
+                any(), eq(false), any(), anyInt(), anyInt(), any(), any());
+        verify(mDialogHandle).launchDialog();
+        verify(mWifiNative, never()).p2pConnect(any(), anyBoolean());
+    }
+
+    /**
+     * Test setConnectionRequestResult with response as defer to service for pairing
+     * bootstrapping method: keypad pincode.
+     */
+    @Test
+    public void testSetConnectionRequestResultDeferEnterPinCodeToFramework() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        boolean hasApprover = true, hasPermission = true, shouldSucceed = true;
+        verifySetConnectionRequestResult(MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress),
+                hasApprover, hasPermission, shouldSucceed,
+                WpsInfo.INVALID, WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_ENTER_PIN,
+                WifiP2pManager.CONNECTION_REQUEST_DEFER_TO_SERVICE);
+        // Expect isPinRequested to true for entering the pincode
+        verify(mWifiDialogManager).createP2pInvitationReceivedDialog(
+                any(), eq(true), any(), anyInt(), anyInt(), any(), any());
+        verify(mDialogHandle).launchDialog();
+        verify(mWifiNative, never()).p2pConnect(any(), anyBoolean());
+    }
+
+    /**
+     * Test setConnectionRequestResult on initiating device with response as defer show pin to
+     * service for pairing bootstrapping method: Display pincode.
+     */
+    @Test
+    public void testSetConnectionRequestResultDeferDisplayPinCodeToFrameworkOnInitiatorSuccess()
+            throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        forceP2pEnabled(mClient1);
+        Binder binder = new Binder();
+        verifyAddExternalApprover(binder, true, true,
+                MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress));
+
+        createTestP2pV2PeerConfig(WifiP2pPairingBootstrappingConfig
+                        .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PINCODE, "",
+                false);
+        mockEnterProvisionDiscoveryState(mTestWifiP2pV2PeerConfig);
+
+        WifiP2pProvDiscEvent pdEvent = createWifiP2pProvDiscEventForV2Connection(
+                WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PIN, true);
+        sendSimpleMsg(null,
+                WifiP2pMonitor.P2P_PROV_DISC_SHOW_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT,
+                pdEvent);
+
+        sendSetConnectionRequestResultMsg(mClientMessenger,
+                MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress),
+                WifiP2pManager.CONNECTION_REQUEST_DEFER_SHOW_PIN_TO_SERVICE, binder);
+        verify(mWifiNative, never()).p2pConnect(any(), anyBoolean());
+        verify(mWifiDialogManager).createP2pInvitationSentDialog(
+                any(), any(),
+                eq(Display.DEFAULT_DISPLAY));
+    }
+
+    /**
+     * Test setConnectionRequestResult on initiating device with response code
+     * CONNECTION_REQUEST_ACCEPT, CONNECTION_REQUEST_REJECT & CONNECTION_REQUEST_DEFER_TO_SERVICE
+     * are not handled in provision discovery state.
+     */
+    @Test
+    public void testShouldIgnoreSetConnectionRequestResultWhenInProvisionDiscoveryState()
+            throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        forceP2pEnabled(mClient1);
+        Binder binder = new Binder();
+        verifyAddExternalApprover(binder, true, true,
+                MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress));
+
+        createTestP2pV2PeerConfig(WifiP2pPairingBootstrappingConfig
+                        .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PINCODE, "",
+                false);
+        mockEnterProvisionDiscoveryState(mTestWifiP2pV2PeerConfig);
+
+        WifiP2pProvDiscEvent pdEvent = createWifiP2pProvDiscEventForV2Connection(
+                WifiP2pProvDiscEvent.PAIRING_BOOTSTRAPPING_SHOW_PIN, true);
+        sendSimpleMsg(null,
+                WifiP2pMonitor.P2P_PROV_DISC_SHOW_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT,
+                pdEvent);
+
+        sendSetConnectionRequestResultMsg(mClientMessenger,
+                MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress),
+                WifiP2pManager.CONNECTION_REQUEST_ACCEPT, binder);
+        verify(mWifiNative, never()).p2pConnect(any(), anyBoolean());
+        verify(mWifiDialogManager, never()).createP2pInvitationSentDialog(
+                any(), any(),
+                eq(Display.DEFAULT_DISPLAY));
+
+        sendSetConnectionRequestResultMsg(mClientMessenger,
+                MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress),
+                WifiP2pManager.CONNECTION_REQUEST_REJECT, binder);
+        verify(mWifiNative, never()).p2pConnect(any(), anyBoolean());
+        verify(mWifiDialogManager, never()).createP2pInvitationSentDialog(
+                any(), any(),
+                eq(Display.DEFAULT_DISPLAY));
+
+        sendSetConnectionRequestResultMsg(mClientMessenger,
+                MacAddress.fromString(mTestWifiP2pV2Device.deviceAddress),
+                WifiP2pManager.CONNECTION_REQUEST_DEFER_TO_SERVICE, binder);
+        verify(mWifiNative, never()).p2pConnect(any(), anyBoolean());
+        verify(mWifiDialogManager, never()).createP2pInvitationSentDialog(
+                any(), any(),
+                eq(Display.DEFAULT_DISPLAY));
+    }
+
+    /**
+     * Test setConnectionRequestResult with WPS configuration is not handled in
+     * ProvisionDiscoveryState.
+     */
+    @Test
+    public void testSetConnectionRequestResultWithWpsConfigInProvisionDiscoveryStateIsNotHandled()
+            throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        forceP2pEnabled(mClient1);
+        Binder binder = new Binder();
+        mTestWifiP2pPeerConfig.wps.setup = WpsInfo.DISPLAY;
+        verifyAddExternalApprover(binder, true, true,
+                MacAddress.fromString(mTestWifiP2pDevice.deviceAddress));
+
+        mockEnterProvisionDiscoveryState();
+
+        sendSetConnectionRequestResultMsg(mClientMessenger,
+                MacAddress.fromString(mTestWifiP2pDevice.deviceAddress),
+                WifiP2pManager.CONNECTION_REQUEST_DEFER_SHOW_PIN_TO_SERVICE, binder);
+        verify(mWifiNative, never()).p2pConnect(any(), anyBoolean());
+        verify(mWifiDialogManager, never()).createP2pInvitationSentDialog(
+                any(), any(),
+                eq(Display.DEFAULT_DISPLAY));
     }
 }
