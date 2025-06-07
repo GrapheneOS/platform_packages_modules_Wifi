@@ -132,7 +132,8 @@ def start_wifi_tethering(ad: android_device.AndroidDevice,
                          password: str,
                          band: str=None,
                          hidden:  bool = False,
-                         security: str =None):
+                         security: str =None,
+                         cIsolatEnabled:  bool = False):
     """Starts wifi tethering on an android_device.
 
     Args:
@@ -157,6 +158,8 @@ def start_wifi_tethering(ad: android_device.AndroidDevice,
         config[constants.WiFiTethering.HIDDEN_KEY] = hidden
     if security:
         config[constants.WiFiTethering.SECURITY] = security
+    if cIsolatEnabled:
+        config[constants.WiFiTethering.AP_CLIENT_ISOLATION_ENABLE] = cIsolatEnabled
 
     asserts.assert_true(ad.wifi.wifiSetWifiApConfiguration(config),
                         "Failed to update WifiAp Configuration")
@@ -221,21 +224,63 @@ def wait_for_wifi_state(ad, state):
     finally:
         ad.wifi.wifiStopTrackForStateChange()
 
-def adb_shell_ping(ad,
-                   count=120,
-                   dest_ip="www.google.com"):
-    try:
-      results = ad.adb.shell("ping -c %d %s" % (count, dest_ip))
-      ad.log.info("After to ping results %s" % results)
-      return True
-    except adb.AdbError:
-      time.sleep(1)
-      results=ad.adb.shell("ping -c %d %s" % (count, dest_ip))
-      return True
-    if not results:
-        asserts.fail("ping empty results - seems like a failure")
-        return False
 
+def adb_shell_ping(ad, count=4, dest_ip="www.google.com"):
+    """
+    Executes a ping command via adb shell and determines its success.
+
+    Args:
+        ad: The AndroidDevice object (Mobly's ad instance).
+        count: The number of ping packets to send. Default is 4.
+        dest_ip: The IP address or hostname to ping.
+
+    Returns:
+        True if the ping was successful (0% packet loss), False otherwise.
+    Raises:
+        AssertionError: If ad.adb.shell returns an empty result, which indicates a critical issue.
+    """
+    ping_cmd = f"ping -c {count} {dest_ip}"
+    results = "" # Initialize results outside the try block
+
+    for attempt in range(2): # Allow for one retry
+        try:
+            ad.log.info(f"Attempt {attempt + 1}: Pinging {dest_ip} from {ad.serial} with command: '{ping_cmd}'")
+            results = ad.adb.shell(ping_cmd)
+            ad.log.info(f"Ping results (Attempt {attempt + 1}): {results}")
+
+            if not results:
+                # If adb.shell returns empty, it's usually a serious issue.
+                # It might not even raise AdbError in some edge cases.
+                ad.log.error("adb.shell returned empty ping results.")
+                # This should probably be an immediate failure rather than trying to parse
+                asserts.fail("ping empty results - seems like a critical failure")
+                return False # Or raise a more specific exception if needed
+
+            # Check for success indicators in the ping output
+            # Common success indicators: "0% packet loss", "received, 0% packet loss"
+            if "0% packet loss".encode('utf-8') in results or "received, 0% packet loss".encode('utf-8') in results:
+                ad.log.info(f"Ping to {dest_ip} succeeded.")
+                return True
+            else:
+                # Ping command ran, but indicated packet loss or other issues.
+                ad.log.warning(f"Ping to {dest_ip} failed with packet loss or other errors. Output: {results}")
+                # If this is the last attempt, return False
+                if attempt == 1: # This means it failed on the second attempt too
+                    return False
+                # If not the last attempt, fall through to retry
+                time.sleep(1) # Wait before retrying
+
+        except adb.AdbError as e:
+            ad.log.error(f"Attempt {attempt + 1}: AdbError during ping to {dest_ip}: {e}")
+            # If this is the last attempt, return False
+            if attempt == 1:
+                return False
+            # If not the last attempt, sleep and then retry
+            time.sleep(1)
+
+    # If the loop finishes without returning True (meaning both attempts failed)
+    ad.log.error(f"Ping to {dest_ip} failed after {2} attempts.")
+    return False
 
 def verify_11ax_softap(dut, dut_client, wifi6_supported_models):
     """Verify 11ax SoftAp if devices support it.

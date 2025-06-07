@@ -339,3 +339,12 @@ flag {
     bug: "403649308"
     is_fixed_read_only: true
 }
+
+flag {
+    name: "get_config_empty_reason"
+    is_exported: true
+    namespace: "wifi"
+    description: "provide a detail when getting configs, not just empty list in error case"
+    bug: "404558943"
+    is_fixed_read_only: true
+}

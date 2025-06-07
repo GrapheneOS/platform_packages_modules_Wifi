@@ -171,6 +171,7 @@ class WiFiTethering(enum.StrEnum):
     AP_BAND_KEY = "apBand"
     AP_CHANNEL_KEY = "apChannel"
     AP_BANDS_KEY = "apBands"
+    AP_CLIENT_ISOLATION_ENABLE = "mClientIsolationEnabled"
 
 @enum.unique
 class WiFiHotspotBand(enum.IntEnum):

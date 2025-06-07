@@ -147,6 +147,11 @@ public class WifiSapJsonDeserializer {
             if (configJson.has("Ieee80211axEnabled")) {
                 configBuilder.setIeee80211axEnabled(configJson.getBoolean("Ieee80211axEnabled"));
             }
+
+            if (configJson.has("mClientIsolationEnabled")) {
+                configBuilder.setClientIsolationEnabled(
+                        configJson.getBoolean("mClientIsolationEnabled"));
+            }
         }
         return configBuilder.build();
     }

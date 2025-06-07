@@ -40,6 +40,7 @@ import android.net.wifi.IOnWifiActivityEnergyInfoListener;
 import android.net.wifi.IOnWifiDriverCountryCodeChangedListener;
 import android.net.wifi.IOnWifiUsabilityStatsListener;
 import android.net.wifi.IPnoScanResultsCallback;
+import android.net.wifi.IPrivilegedConfiguredNetworksListener;
 import android.net.wifi.IScanResultsCallback;
 import android.net.wifi.ISoftApCallback;
 import android.net.wifi.IStringListener;
@@ -556,6 +557,11 @@ interface IWifiManager {
 
     void storeCapturedData(int triggerType, boolean isFullCapture, long triggerStartTimeMillis,
             long triggerStopTimeMillis, in IIntegerListener listener);
+
     boolean isUsdSubscriberSupported();
+
     boolean isUsdPublisherSupported();
+
+    void queryPrivilegedConfiguredNetworks(
+            in IPrivilegedConfiguredNetworksListener listener, in Bundle extras);
 }

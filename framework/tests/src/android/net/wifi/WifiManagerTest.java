@@ -128,6 +128,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.OutcomeReceiver;
 import android.os.RemoteException;
 import android.os.connectivity.WifiActivityEnergyInfo;
 import android.os.test.TestLooper;
@@ -4568,5 +4569,44 @@ public class WifiManagerTest {
         BlockingOption option = new BlockingOption.Builder(100).build();
         mWifiManager.disallowCurrentSuggestedNetwork(option);
         verify(mWifiService).disallowCurrentSuggestedNetwork(eq(option), eq(TEST_PACKAGE_NAME));
+    }
+
+    @Test
+    public void testAyncGetPrivilegedConfiguredNetworks() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        OutcomeReceiver<List<WifiConfiguration>, Error> resultsSetCallback =
+                new OutcomeReceiver<>() {
+                    @Override
+                    public void onResult(List<WifiConfiguration> configs) {
+                    }
+
+                    @Override
+                    public void onError(Error error) {
+                    }
+                };
+        SynchronousExecutor executor = mock(SynchronousExecutor.class);
+        // Null executor/callback exception.
+        try {
+            mWifiManager.queryPrivilegedConfiguredNetworks(null, resultsSetCallback);
+            fail("expected NullPointerException");
+        } catch (NullPointerException expected) {
+        }
+
+        try {
+            mWifiManager.queryPrivilegedConfiguredNetworks(executor, null);
+            fail("expected NullPointerException");
+        } catch (NullPointerException expectedNPE) {
+        }
+
+        ArgumentCaptor<Bundle> bundleCaptor = ArgumentCaptor.forClass(Bundle.class);
+        // Set and verify.
+        mWifiManager.queryPrivilegedConfiguredNetworks(executor, resultsSetCallback);
+        verify(mWifiService).queryPrivilegedConfiguredNetworks(
+                any(IPrivilegedConfiguredNetworksListener.Stub.class),
+                bundleCaptor.capture());
+        // The attributionSource is supported from S, currently it has been mocked in setUp from S.
+        // Thus we just use "mContext.getAttributionSource" to verify it.
+        assertEquals(mContext.getAttributionSource(),
+                bundleCaptor.getValue().getParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE));
     }
 }

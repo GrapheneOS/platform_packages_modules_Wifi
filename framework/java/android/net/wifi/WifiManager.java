@@ -76,6 +76,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.OutcomeReceiver;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.RemoteException;
@@ -13327,6 +13328,57 @@ public class WifiManager {
         }
         try {
             return mService.isUsdPublisherSupported();
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Query the list of {@link WifiConfiguration} with credentials.
+     *
+     * <p> This API is similar to {@link #getPrivilegedConfiguredNetworks()}, but this new API
+     * is the async version of it.
+     *
+     * @param executor The executor on which callback will be invoked.
+     * @param resultsCallback An asynchronous callback that will return
+     *                        {@link OutcomeReceiver}
+     *
+     * @throws UnsupportedOperationException if the API is not supported on this SDK version.
+     * @throws SecurityException if the caller does not have permission.
+     *
+     * @hide
+     */
+    @FlaggedApi(Flags.FLAG_GET_CONFIG_EMPTY_REASON)
+    @RequiresApi(Build.VERSION_CODES.S)
+    @SystemApi
+    @RequiresPermission(allOf = {NEARBY_WIFI_DEVICES, READ_WIFI_CREDENTIAL})
+    public void queryPrivilegedConfiguredNetworks(@NonNull @CallbackExecutor Executor executor,
+            @NonNull OutcomeReceiver<List<WifiConfiguration>, Error> resultsCallback) {
+        if (!SdkLevel.isAtLeastS()) {
+            throw new UnsupportedOperationException();
+        }
+        Objects.requireNonNull(executor, "executor cannot be null");
+        Objects.requireNonNull(resultsCallback, "resultsCallback cannot be null");
+        Bundle extras = new Bundle();
+        extras.putParcelable(EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                mContext.getAttributionSource());
+        try {
+            mService.queryPrivilegedConfiguredNetworks(
+                    new IPrivilegedConfiguredNetworksListener.Stub() {
+                        @Override
+                        public void onResult(ParceledListSlice<WifiConfiguration> result,
+                                String errorMsg) {
+                            Binder.clearCallingIdentity();
+                            executor.execute(
+                                    () -> {
+                                        if (result != null) {
+                                            resultsCallback.onResult(result.getList());
+                                        } else {
+                                            resultsCallback.onError(new Error(errorMsg));
+                                        }
+                                    });
+                        }
+                    }, extras);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

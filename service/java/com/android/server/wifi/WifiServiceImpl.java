@@ -125,6 +125,7 @@ import android.net.wifi.IOnWifiActivityEnergyInfoListener;
 import android.net.wifi.IOnWifiDriverCountryCodeChangedListener;
 import android.net.wifi.IOnWifiUsabilityStatsListener;
 import android.net.wifi.IPnoScanResultsCallback;
+import android.net.wifi.IPrivilegedConfiguredNetworksListener;
 import android.net.wifi.IScanResultsCallback;
 import android.net.wifi.ISoftApCallback;
 import android.net.wifi.IStringListener;
@@ -2533,19 +2534,52 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         }
 
         public void notifyNewCountryCodeChangePending(@NonNull String countryCode) {
-            // If country code not changed, no need to update.
-            if (mSoftApCapability != null && !TextUtils.equals(mSoftApCapability.getCountryCode(),
+            if (mSoftApCapability == null) return;
+
+            SoftApCapability newSoftApCapability = new SoftApCapability(
+                    mSoftApCapability);
+
+            // If the country code changed back to the original country code, restore the
+            // original channels.
+            if (TextUtils.equals(
+                    mSettingsConfigStore.get(WifiSettingsConfigStore.WIFI_SOFT_AP_COUNTRY_CODE),
                     countryCode)) {
-                // Country code changed when we can't update channels from HAL, invalidate the soft
-                // ap capability for supported channels.
-                SoftApCapability newSoftApCapability = new SoftApCapability(
-                        mSoftApCapability);
+                Log.i(TAG, "BaseSoftApTracker: Using stored SoftAP channels for SoftApCapability"
+                        + " since pending country code matches.");
+                SparseArray<List<Integer>> bandChannels = new SparseArray<>();
+                for (int b : SoftApConfiguration.BAND_TYPES) {
+                    bandChannels.put(b, new ArrayList<>());
+                }
+
+                for (int freq : getStoredSoftApAvailableFreqs()) {
+                    int band = ApConfigUtil.convertFrequencyToBand(freq);
+                    if (!bandChannels.contains(band)) continue;
+
+                    int channel = ScanResult.convertFrequencyMhzToChannelIfSupported(freq);
+                    if (channel == ScanResult.UNSPECIFIED) continue;
+
+                    bandChannels.get(band).add(channel);
+                }
+
+                for (int b : SoftApConfiguration.BAND_TYPES) {
+                    List<Integer> chanList = bandChannels.get(b);
+                    int[] chanArray = new int[chanList.size()];
+                    for (int i = 0; i < chanList.size(); i++) {
+                        chanArray[i] = chanList.get(i);
+                    }
+                    newSoftApCapability.setSupportedChannelList(b, chanArray);
+                }
+            } else if (!TextUtils.equals(mSoftApCapability.getCountryCode(), countryCode)) {
+                Log.i(TAG, "BaseSoftApTracker: Invalidating SoftApCapability channels due to"
+                        + " pending country code change.");
+                // Invalidate the current available channels if a country code is pending.
                 for (int b : SoftApConfiguration.BAND_TYPES) {
                     newSoftApCapability.setSupportedChannelList(b, new int[0]);
                 }
-                // Notify the capability change
-                onCapabilityChanged(newSoftApCapability);
             }
+
+            // Notify the capability change
+            onCapabilityChanged(newSoftApCapability);
         }
 
         public SoftApCapability getSoftApCapability() {
@@ -8067,6 +8101,20 @@ public class WifiServiceImpl extends IWifiManager.Stub {
 
     private List<WifiAvailableChannel> getStoredSoftApAvailableChannels(
             @WifiScanner.WifiBand int band) {
+        List<WifiAvailableChannel> channels = new ArrayList<>();
+        for (int freq : getStoredSoftApAvailableFreqs()) {
+            if ((band & ScanResult.toBand(freq)) == 0) {
+                continue;
+            }
+            // TODO b/340956906: Save and retrieve channel width in config store along with
+            //  frequency.
+            channels.add(new WifiAvailableChannel(freq, WifiAvailableChannel.OP_MODE_SAP,
+                    ScanResult.CHANNEL_WIDTH_20MHZ));
+        }
+        return channels;
+    }
+
+    private List<Integer> getStoredSoftApAvailableFreqs() {
         List<Integer> freqs = new ArrayList<>();
         try {
             JSONArray json =
@@ -8079,17 +8127,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         } catch (JSONException e) {
             Log.i(TAG, "Failed to read stored JSON for available Soft AP channels: " + e);
         }
-        List<WifiAvailableChannel> channels = new ArrayList<>();
-        for (int freq : freqs) {
-            if ((band & ScanResult.toBand(freq)) == 0) {
-                continue;
-            }
-            // TODO b/340956906: Save and retrieve channel width in config store along with
-            //  frequency.
-            channels.add(new WifiAvailableChannel(freq, WifiAvailableChannel.OP_MODE_SAP,
-                    ScanResult.CHANNEL_WIDTH_20MHZ));
-        }
-        return channels;
+        return freqs;
     }
 
     /**
@@ -9489,5 +9527,42 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             return false;
         }
         return mWifiNative.isUsdPublisherSupported();
+    }
+
+    /**
+     * See {@link WifiManager#queryPrivilegedConfiguredNetworks()}
+     *
+     * @param listener listener to get the list of configured networks with real preSharedKey
+     * @param extras - Bundle of extra information
+     */
+    @RequiresApi(Build.VERSION_CODES.S)
+    @Override
+    public void queryPrivilegedConfiguredNetworks(
+            @NonNull IPrivilegedConfiguredNetworksListener listener, Bundle extras) {
+        if (!SdkLevel.isAtLeastS()) {
+            throw new UnsupportedOperationException();
+        }
+        Objects.requireNonNull(listener, "listener cannot be null");
+        Objects.requireNonNull(extras, "extras cannot be null");
+        enforceReadCredentialPermission();
+        mWifiPermissionsUtil.enforceNearbyDevicesPermission(
+                extras.getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE),
+                false, TAG + " queryPrivilegedConfiguredNetworks");
+        mWifiThreadRunner.post(() -> {
+            try {
+                List<WifiConfiguration> configs =
+                        mWifiConfigManager.getConfiguredNetworksWithPasswords();
+                if (configs != null) {
+                    listener.onResult(
+                            new ParceledListSlice<>(
+                                    WifiConfigurationUtil.convertMultiTypeConfigsToLegacyConfigs(
+                                            configs, false)), "");
+                } else {
+                    listener.onResult(null, "get null when querying networks");
+                }
+            } catch (RemoteException e) {
+                Log.e(TAG, e.getMessage(), e);
+            }
+        }, TAG + "#queryPrivilegedConfiguredNetworks");
     }
 }

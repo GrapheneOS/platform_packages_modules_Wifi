@@ -140,7 +140,8 @@ class WifiSoftApThreeDevicesTest(base_test.BaseTestClass):
 
   def validate_full_tether_startup(self, band=None, hidden=False,
                                      test_ping=False, test_clients=None,
-                                     security=None):
+                                     security=None,
+                                     cIsolatEnabled=False):
 
     """Test full startup of wifi tethering.
 
@@ -173,10 +174,12 @@ class WifiSoftApThreeDevicesTest(base_test.BaseTestClass):
             security (str, optional):
               The security protocol to use for the SoftAP (e.g., "WPA2_PSK").
                 Defaults to None, which might use a default or open network.
+            cIsolatEnabled(bool, optional):
+              A boolean indicating whether the SoftAP network of
+                clientIsolationEnabled setting. Defaults to False.
     """
 
     initial_wifi_state = self.host.wifi.wifiCheckState()
-    #Skip for sim state check
     self.host.log.info("current state: %s", initial_wifi_state)
     config = sutils.create_softap_config()
     sutils.start_wifi_tethering(self.host,
@@ -184,7 +187,8 @@ class WifiSoftApThreeDevicesTest(base_test.BaseTestClass):
                                 config[constants.WiFiTethering.PWD_KEY],
                                 band,
                                 hidden,
-                                security)
+                                security,
+                                cIsolatEnabled)
     if hidden:
       # First ensure it's not seen in scan results.
       # If the network is hidden, it should be saved on the client to be
@@ -201,6 +205,9 @@ class WifiSoftApThreeDevicesTest(base_test.BaseTestClass):
     if test_clients:
       if len(self.ads) > 2:
         self.validate_ping_between_two_clients(config)
+    if cIsolatEnabled:
+      if len(self.ads) > 2:
+        self.validate_isolation_between_two_clients(config)
     sutils._stop_tethering(self.host)
     asserts.assert_false(self.host.wifi.wifiIsApEnabled(),
                          "SoftAp is still reported as running")
@@ -224,7 +231,37 @@ class WifiSoftApThreeDevicesTest(base_test.BaseTestClass):
     sutils._wifi_connect(ad2, config, check_connectivity=False)
     ad1_ip = ad1.wifi.connectivityGetIPv4Addresses('wlan0')[0]
     ad2_ip = ad2.wifi.connectivityGetIPv4Addresses('wlan0')[0]
+    ad1.log.info("Try to ping test from %s to %s" % (ad1.serial,ad2_ip))
+    asserts.assert_true(
+      sutils.adb_shell_ping(ad1, count=10, dest_ip=ad2_ip),
+      "%s ping %s failed" % (ad1.serial, ad2_ip))
+    ad2.log.info("Try to ping test from %s to %s" % (ad2.serial,ad1_ip))
+    asserts.assert_true(
+      sutils.adb_shell_ping(ad2, count=10, dest_ip=ad1_ip),
+      "%s ping %s failed" % (ad2.serial, ad1_ip))
 
+  def validate_isolation_between_two_clients(self, config):
+    """Test ping between softap's clients, expecting them NOT to ping each other.
+    Connect two Android devices to the Wi-Fi hotspot.
+    Verify the clients CANNOT ping each other (due to isolation).
+
+    Args:
+      config: Wi-Fi network config with SSID, password
+    """
+    ad1 = self.client
+    ad2 = self.ads[2]
+    sutils._wifi_connect(ad1, config, check_connectivity=False)
+    sutils._wifi_connect(ad2, config, check_connectivity=False)
+    ad1_ip = ad1.wifi.connectivityGetIPv4Addresses('wlan0')[0]
+    ad2_ip = ad2.wifi.connectivityGetIPv4Addresses('wlan0')[0]
+    ad1.log.info("Try to ping test from %s to %s" % (ad1.serial,ad2_ip))
+    asserts.assert_false(
+      sutils.adb_shell_ping(ad1, count=10, dest_ip=ad2_ip),
+      "%s ping %s successfully, isolation setting failed" % (ad1.serial, ad2_ip))
+    ad2.log.info("Try to ping test from %s to %s" % (ad2.serial,ad1_ip))
+    asserts.assert_false(
+      sutils.adb_shell_ping(ad2, count=10, dest_ip=ad1_ip),
+      "%s ping %s successfully, isolation setting failed" % (ad2.serial, ad1_ip))
 
   @ApiTest(
     apis=[
@@ -278,11 +315,100 @@ class WifiSoftApThreeDevicesTest(base_test.BaseTestClass):
 
         1. Turn on 5G hotspot
         2. Two clients connect to the hotspot
-        3. Two clients ping each other
+        3. Two clients can't ping each other
     """
     self.validate_full_tether_startup(
       constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_5G, test_clients=True)
 
+  @ApiTest(
+    apis=[
+      'android.net.wifi.WifiManager#isPortableHotspotSupported()',
+      'android.net.ConnectivityManage#isTetheringSupported()',
+      'android.net.wifi.WifiManager.getWifiState()',
+      'android.net.wifi.WifiManager.setSoftApConfiguration('+
+      'SoftApConfiguration.Builder()#setClientIsolationEnabled(true)',
+      'android.net.TetheringManage.startTethering(int type,'+
+      ' @NonNull final Executor executor,final StartTetheringCallback callback)',
+      'android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION',
+      'android.net.wifi.WifiManager.startScan()',
+      'android.net.wifi.WifiManager.getScanResults()',
+      'android.net.wifi.WifiManager.addNetwork(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.enableNetwork(netId, disableOthers)',
+      'android.net.wifi.WifiManager.connect(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.getConnectionInfo().getWifiStandard()',
+      ]
+  )
+
+  def test_softap_2G_two_clients_isolation_each_other(self):
+
+    """Test for 2G hotspot with 2 clients
+
+        1. Turn on 2G hotspot
+        2. Two clients connect to the hotspot
+        3. Two clients can't ping each other
+    """
+    self.validate_full_tether_startup(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_2G, cIsolatEnabled=True)
+
+  @ApiTest(
+    apis=[
+      'android.net.wifi.WifiManager#isPortableHotspotSupported()',
+      'android.net.ConnectivityManage#isTetheringSupported()',
+      'android.net.wifi.WifiManager.getWifiState()',
+      'android.net.wifi.WifiManager.setSoftApConfiguration('+
+      'SoftApConfiguration.Builder()#setClientIsolationEnabled(true)',
+      'android.net.TetheringManage.startTethering(int type,'+
+      ' @NonNull final Executor executor,final StartTetheringCallback callback)',
+      'android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION',
+      'android.net.wifi.WifiManager.startScan()',
+      'android.net.wifi.WifiManager.getScanResults()',
+      'android.net.wifi.WifiManager.addNetwork(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.enableNetwork(netId, disableOthers)',
+      'android.net.wifi.WifiManager.connect(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.getConnectionInfo().getWifiStandard()',
+      ]
+  )
+
+  def test_softap_5G_two_clients_isolation_each_other(self):
+
+    """Test for 2G hotspot with 2 clients
+
+        1. Turn on 2G hotspot
+        2. Two clients connect to the hotspot
+        3. Two clients can't ping each other
+    """
+    self.validate_full_tether_startup(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_5G, cIsolatEnabled=True)
+
+  @ApiTest(
+    apis=[
+      'android.net.wifi.WifiManager#isPortableHotspotSupported()',
+      'android.net.ConnectivityManage#isTetheringSupported()',
+      'android.net.wifi.WifiManager.getWifiState()',
+      'android.net.wifi.WifiManager.setSoftApConfiguration('+
+      'SoftApConfiguration.Builder()#setClientIsolationEnabled(true)',
+      'android.net.TetheringManage.startTethering(int type,'+
+      ' @NonNull final Executor executor,final StartTetheringCallback callback)',
+      'android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION',
+      'android.net.wifi.WifiManager.startScan()',
+      'android.net.wifi.WifiManager.getScanResults()',
+      'android.net.wifi.WifiManager.addNetwork(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.enableNetwork(netId, disableOthers)',
+      'android.net.wifi.WifiManager.connect(android.net.wifi.WifiConfiguration(json))',
+      'android.net.wifi.WifiManager.getConnectionInfo().getWifiStandard()',
+      ]
+  )
+
+  def test_softap_auto_two_clients_isolation_each_other(self):
+
+    """Test for auto-band hotspot with 2 clients
+
+        1. Turn on auto-band hotspot
+        2. Two clients connect to the hotspot
+        3. Two clients ping each other
+    """
+    self.validate_full_tether_startup(
+      constants.WiFiHotspotBand.WIFI_CONFIG_SOFTAP_BAND_2G_5G, cIsolatEnabled=True)
 
 if __name__ == '__main__':
   test_runner.main()
