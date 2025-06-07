@@ -1025,7 +1025,6 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             intentFilter.addAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED);
             intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
             intentFilter.addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED);
-            intentFilter.addAction(Intent.ACTION_SHUTDOWN);
             mContext.registerReceiver(
                     new BroadcastReceiver() {
                         @Override
@@ -1065,14 +1064,21 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                             } else if (PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED
                                     .equals(action)) {
                                 handleIdleModeChanged();
-                            } else if (Intent.ACTION_SHUTDOWN.equals(action)) {
-                                handleShutDown();
                             }
                         }
                     },
                     intentFilter,
                     null,
                     new Handler(mWifiHandlerThread.getLooper()));
+            mContext.registerReceiver(
+                    new BroadcastReceiver() {
+                        @Override
+                        public void onReceive(Context context, Intent intent) {
+                            if (Intent.ACTION_SHUTDOWN.equals(intent.getAction())) {
+                                handleShutDown();
+                            }
+                        }},
+                    new IntentFilter(Intent.ACTION_SHUTDOWN));
             mMemoryStoreImpl.start();
             mPasspointManager.initializeProvisioner(
                     mWifiInjector.getPasspointProvisionerHandlerThread().getLooper());
@@ -1285,6 +1291,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "handleShutDown");
         }
+        mWifiConfigManager.writeDataToStorage();
         // Direct call to notify ActiveModeWarden as soon as possible with the assumption that
         // notifyShuttingDown() doesn't have codes that may cause concurrentModificationException,
         // e.g., access to a collection.
@@ -1293,9 +1300,10 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         // There is no explicit disconnection event in clientModeImpl during shutdown.
         // Call resetConnectionState() so that connection duration is calculated
         // before memory store write triggered by mMemoryStoreImpl.stop().
-        mWifiScoreCard.resetAllConnectionStates();
-        mMemoryStoreImpl.stop();
-        mWifiConfigManager.writeDataToStorage();
+        mWifiThreadRunner.post(() -> {
+            mWifiScoreCard.resetAllConnectionStates();
+            mMemoryStoreImpl.stop();
+        }, TAG + "#handleShutDown");
         mWifiNetworkSuggestionsManager.handleShutDown();
     }
 

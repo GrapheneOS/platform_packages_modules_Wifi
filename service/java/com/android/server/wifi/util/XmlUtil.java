@@ -1994,6 +1994,7 @@ public class XmlUtil {
                 "PersistentRandomizedMacAddress";
         public static final String XML_TAG_MAX_CHANNEL_WIDTH = "MaxChannelWidth";
         public static final String XML_TAG_CLIENT_ISOLATION = "ClientIsolation";
+        public static final String XML_TAG_BAND_OPTIMIZATION = "BandOptimization";
 
 
         /**
@@ -2230,6 +2231,10 @@ public class XmlUtil {
                 XmlUtil.writeNextValue(out, XML_TAG_CLIENT_ISOLATION,
                         softApConfig.isClientIsolationEnabled());
             }
+            if (Flags.bandOptimizationControl() && Environment.isSdkNewerThanB()) {
+                XmlUtil.writeNextValue(out, XML_TAG_BAND_OPTIMIZATION,
+                        softApConfig.isBandOptimizationEnabled());
+            }
         } // End of writeSoftApConfigurationToXml
 
         /**
@@ -2389,6 +2394,12 @@ public class XmlUtil {
                             case XML_TAG_CLIENT_ISOLATION:
                                 if (Flags.apIsolate() && Environment.isSdkAtLeastB()) {
                                     softApConfigBuilder.setClientIsolationEnabled((boolean) value);
+                                }
+                                break;
+                            case XML_TAG_BAND_OPTIMIZATION:
+                                if (Flags.bandOptimizationControl()
+                                        && Environment.isSdkNewerThanB()) {
+                                    softApConfigBuilder.setBandOptimizationEnabled((boolean) value);
                                 }
                                 break;
                             default:

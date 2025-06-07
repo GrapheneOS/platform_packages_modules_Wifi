@@ -118,6 +118,7 @@ public class SoftApStoreDataTest extends WifiBaseTest {
     private static final boolean TEST_USER_CONFIGURATION = false;
     // Use non default value true as test data
     private static final boolean TEST_CLIENT_ISOLATION = true;
+    private static final boolean TEST_BAND_OPTIMIZATION = false;
     private static final String TEST_TWO_VENDOR_ELEMENTS_HEX = "DD04AABBCCDDDD0401020304";
     private static final int TEST_MAX_CHANNEL_WIDTH = SoftApInfo.CHANNEL_WIDTH_40MHZ;
     private MockitoSession mSession;
@@ -300,6 +301,12 @@ public class SoftApStoreDataTest extends WifiBaseTest {
                     + "<boolean name=\"ClientIsolation\" value=\""
                     + TEST_CLIENT_ISOLATION + "\" />\n";
 
+    // TODO: Rename it once SDK name & version is lock
+    private static final String TEST_CONFIG_STRING_WITH_ALL_CONFIG_NEWER_THAN_B =
+            TEST_CONFIG_STRING_WITH_ALL_CONFIG_IN_B
+                    + "<boolean name=\"BandOptimization\" value=\""
+                    + TEST_BAND_OPTIMIZATION + "\" />\n";
+
     @Mock private Context mContext;
     @Mock SoftApStoreData.DataSource mDataSource;
     @Mock private WifiMigration.SettingsMigrationData mOemMigrationData;
@@ -339,6 +346,7 @@ public class SoftApStoreDataTest extends WifiBaseTest {
         when(Flags.softapConfigStoreMaxChannelWidth()).thenReturn(false);
         // Default flag is enabled.
         when(Flags.apIsolate()).thenReturn(true);
+        when(Flags.bandOptimizationControl()).thenReturn(true);
     }
 
     /**
@@ -449,9 +457,14 @@ public class SoftApStoreDataTest extends WifiBaseTest {
         if (Environment.isSdkAtLeastB()) {
             softApConfigBuilder.setClientIsolationEnabled(TEST_CLIENT_ISOLATION);
         }
+        if (Environment.isSdkNewerThanB()) {
+            softApConfigBuilder.setBandOptimizationEnabled(TEST_BAND_OPTIMIZATION);
+        }
         when(mDataSource.toSerialize()).thenReturn(softApConfigBuilder.build());
         byte[] actualData = serializeData();
-        if (Environment.isSdkAtLeastB()) {
+        if (Environment.isSdkNewerThanB()) {
+            assertEquals(TEST_CONFIG_STRING_WITH_ALL_CONFIG_NEWER_THAN_B, new String(actualData));
+        } else if (Environment.isSdkAtLeastB()) {
             assertEquals(TEST_CONFIG_STRING_WITH_ALL_CONFIG_IN_B, new String(actualData));
         } else if (SdkLevel.isAtLeastT()) {
             assertEquals(TEST_CONFIG_STRING_WITH_ALL_CONFIG_IN_T, new String(actualData));
@@ -504,9 +517,14 @@ public class SoftApStoreDataTest extends WifiBaseTest {
         if (Environment.isSdkAtLeastB()) {
             softApConfigBuilder.setClientIsolationEnabled(TEST_CLIENT_ISOLATION);
         }
+        if (Environment.isSdkNewerThanB()) {
+            softApConfigBuilder.setBandOptimizationEnabled(TEST_BAND_OPTIMIZATION);
+        }
         when(mDataSource.toSerialize()).thenReturn(softApConfigBuilder.build());
         byte[] actualData = serializeData();
-        if (Environment.isSdkAtLeastB()) {
+        if (Environment.isSdkNewerThanB()) {
+            assertEquals(TEST_CONFIG_STRING_WITH_ALL_CONFIG_NEWER_THAN_B, new String(actualData));
+        } else if (Environment.isSdkAtLeastB()) {
             assertEquals(TEST_CONFIG_STRING_WITH_ALL_CONFIG_IN_B, new String(actualData));
         } else if (SdkLevel.isAtLeastT()) {
             assertEquals(TEST_CONFIG_STRING_WITH_ALL_CONFIG_IN_T, new String(actualData));
@@ -525,7 +543,9 @@ public class SoftApStoreDataTest extends WifiBaseTest {
      */
     @Test
     public void deserializeSoftAp() throws Exception {
-        if (Environment.isSdkAtLeastB()) {
+        if (Environment.isSdkNewerThanB()) {
+            deserializeData(TEST_CONFIG_STRING_WITH_ALL_CONFIG_NEWER_THAN_B.getBytes());
+        } else if (Environment.isSdkAtLeastB()) {
             deserializeData(TEST_CONFIG_STRING_WITH_ALL_CONFIG_IN_B.getBytes());
         } else if (SdkLevel.isAtLeastT()) {
             deserializeData(TEST_CONFIG_STRING_WITH_ALL_CONFIG_IN_T.getBytes());
@@ -962,7 +982,7 @@ public class SoftApStoreDataTest extends WifiBaseTest {
      * @throws Exception when test fails it throws exception
      */
     @Test
-    public void testSerializeDeserializeSoftApWhenClientIsolationFalgDisabled() throws Exception {
+    public void testSerializeDeserializeSoftApWhenClientIsolationFlagDisabled() throws Exception {
         assumeTrue(Environment.isSdkAtLeastB());
         when(Flags.apIsolate()).thenReturn(false);
         SoftApConfiguration testSoftApConfig =
@@ -981,5 +1001,32 @@ public class SoftApStoreDataTest extends WifiBaseTest {
         assertNotNull(softApConfig);
         // Keep default value false which does NOT equals test data (true)
         assertNotEquals(TEST_CLIENT_ISOLATION, softApConfig.isClientIsolationEnabled());
+    }
+
+    /**
+     * Verify that the store data is serialized/deserialized when band optimization is disabled.
+     *
+     * @throws Exception when test fails it throws exception
+     */
+    @Test
+    public void testSerializeDeserializeSoftApWhenBandOptimizationFlagDisabled() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(Flags.bandOptimizationControl()).thenReturn(false);
+        SoftApConfiguration testSoftApConfig =
+                new SoftApConfiguration.Builder().setSsid(TEST_SSID)
+                .setBandOptimizationEnabled(TEST_BAND_OPTIMIZATION).build();
+        when(mDataSource.toSerialize()).thenReturn(testSoftApConfig);
+        byte[] actualData = serializeData();
+        String serializeDataString = new String(actualData);
+        assertFalse(serializeDataString.contains(
+                XmlUtil.SoftApConfigurationXmlUtil.XML_TAG_BAND_OPTIMIZATION));
+        deserializeData(TEST_CONFIG_STRING_WITH_ALL_CONFIG_NEWER_THAN_B.getBytes());
+        ArgumentCaptor<SoftApConfiguration> softapConfigCaptor =
+                ArgumentCaptor.forClass(SoftApConfiguration.class);
+        verify(mDataSource).fromDeserialized(softapConfigCaptor.capture());
+        SoftApConfiguration softApConfig = softapConfigCaptor.getValue();
+        assertNotNull(softApConfig);
+        // Keep default value false which does NOT equals test data (false)
+        assertNotEquals(TEST_BAND_OPTIMIZATION, softApConfig.isBandOptimizationEnabled());
     }
 }

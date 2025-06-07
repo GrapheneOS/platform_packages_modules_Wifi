@@ -12592,11 +12592,10 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mContext).registerReceiver(mBroadcastReceiverCaptor.capture(),
                 argThat((IntentFilter filter) ->
-                        filter.hasAction(ACTION_SHUTDOWN)),
-                isNull(),
-                any(Handler.class));
+                        filter.hasAction(ACTION_SHUTDOWN)));
         Intent intent = new Intent(ACTION_SHUTDOWN);
         mBroadcastReceiverCaptor.getValue().onReceive(mContext, intent);
+        mLooper.dispatchAll();
         verify(mActiveModeWarden).notifyShuttingDown();
         verify(mWifiScoreCard).resetAllConnectionStates();
         verify(mWifiConfigManager).writeDataToStorage();
