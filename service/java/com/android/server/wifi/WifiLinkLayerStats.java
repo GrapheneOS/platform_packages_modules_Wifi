@@ -21,6 +21,8 @@ import android.net.wifi.WifiUsabilityStatsEntry.LinkState;
 import android.net.wifi.WifiUsabilityStatsEntry.WifiChannelBandwidth;
 import android.util.SparseArray;
 
+import com.android.server.wifi.util.ArrayUtils;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -835,7 +837,7 @@ public class WifiLinkLayerStats {
      * - Squash all peer stat lists to a single list of peers.
      */
     public void aggregateLinkLayerStats() {
-        if (links == null) return;
+        if (ArrayUtils.isEmpty(links)) return;
         int i = getBestLinkIndex();
         rssi_mgmt = links[i].rssi_mgmt;
         beacon_rx = links[i].beacon_rx;

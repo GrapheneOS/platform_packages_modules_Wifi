@@ -251,4 +251,10 @@ public class WifiLinkLayerStatsTest extends WifiBaseTest {
         assertEquals(0.0, mWifiInfo.getSuccessfulTxPacketsPerSecond(), 0.0001);
         assertEquals(0.0, mWifiInfo.getSuccessfulRxPacketsPerSecond(), 0.0001);
     }
+
+    @Test
+    public void testAggregateLinkLayerStatsWithNullOrEmptyLinks() throws Exception {
+        // No exception
+        mWifiLinkLayerStats.aggregateLinkLayerStats();
+    }
 }
