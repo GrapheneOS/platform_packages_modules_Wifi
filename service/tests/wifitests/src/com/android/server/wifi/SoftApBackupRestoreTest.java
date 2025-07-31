@@ -68,7 +68,9 @@ public class SoftApBackupRestoreTest extends WifiBaseTest {
     private static final int TEST_MAXNUMBEROFCLIENTS = 10;
     private static final long TEST_SHUTDOWNTIMEOUTMILLIS = 600_000;
     private static final String TEST_BLOCKED_CLIENT = "11:22:33:44:55:66";
+    private static final String TEST_BLOCKED_CLIENT2 = "11:22:33:aa:bb:cc";
     private static final String TEST_ALLOWED_CLIENT = "aa:bb:cc:dd:ee:ff";
+    private static final String TEST_ALLOWED_CLIENT2 = "aa:bb:cc:11:22:33";
     private static final String TEST_SSID = "TestAP";
     private static final String TEST_PASSPHRASE = "TestPskPassphrase";
     private static final int TEST_SECURITY = SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSITION;
@@ -117,7 +119,8 @@ public class SoftApBackupRestoreTest extends WifiBaseTest {
 
         when(mSettingsMigrationDataHolder.retrieveData()).thenReturn(mOemMigrationData);
         when(mOemMigrationData.isSoftApTimeoutEnabled()).thenReturn(true);
-
+        mTestBlockedList.clear();
+        mTestAllowedList.clear();
         mSoftApBackupRestore = new SoftApBackupRestore(mContext, mSettingsMigrationDataHolder);
     }
 
@@ -366,6 +369,20 @@ public class SoftApBackupRestoreTest extends WifiBaseTest {
         SoftApConfiguration restoredConfig = mSoftApBackupRestore
                 .retrieveSoftApConfigurationFromBackupData(
                 retrieveSpecificVersionBackupDataFromSoftApConfiguration(expectedConfig, 8));
+        assertEquals(expectedConfig, restoredConfig);
+    }
+
+    @Test
+    public void testMaxBlockClientSizeFromVersion7() throws Exception {
+        SoftApConfiguration expectedConfig = generateExpectedSoftApConfigurationWithTestData(7);
+        mTestBlockedList.add(MacAddress.fromString(TEST_BLOCKED_CLIENT2));
+        mTestAllowedList.add(MacAddress.fromString(TEST_ALLOWED_CLIENT2));
+        SoftApConfiguration twoClientsConfig = generateExpectedSoftApConfigurationWithTestData(7);
+        // Testing max allowed / blocked client list
+        mSoftApBackupRestore.setMaxSupportedControlClientNumber(1);
+        SoftApConfiguration restoredConfig = mSoftApBackupRestore
+                .retrieveSoftApConfigurationFromBackupData(
+                retrieveSpecificVersionBackupDataFromSoftApConfiguration(twoClientsConfig, 7));
         assertEquals(expectedConfig, restoredConfig);
     }
 
