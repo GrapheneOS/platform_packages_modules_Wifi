@@ -233,6 +233,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             "get-overlay-config-values",
             "get-carrier-network-offload",
             "list-interface-names",
+            "get-power-stats",
     };
 
     private static final Map<String, Pair<NetworkRequest, ConnectivityManager.NetworkCallback>>
@@ -3464,6 +3465,24 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     return 0;
                 }
+                case "get-power-stats":
+                    WifiPowerStatsManager pwrManager = mWifiInjector.getWifiPowerStatsManager();
+                    if (pwrManager == null) {
+                        pw.println("FAILURE: WifiPowerStatsManager is not initialized.");
+                        return -1;
+                    }
+
+                    WifiChipStats stats = pwrManager.getWlanPwrStats();
+
+                    if (stats != null) {
+                        pw.println("SUCCESS: Wi-Fi Power Stats:");
+                        pw.println(stats.toString());
+                    } else {
+                        pw.println("FAILURE: Could not retrieve stats."
+                                + "(Native layer returned null)");
+                        return -1;
+                    }
+                    return 0;
                 default:
                     return handleDefaultCommands(cmd);
             }

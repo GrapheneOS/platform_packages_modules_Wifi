@@ -292,6 +292,7 @@ public class WifiInjector {
     private final PairingConfigManager mPairingConfigManager;
     private final MainlineSupplicantAidlManager mMainlineSupplicant;
     private RttServiceImpl mRttServiceImpl;
+    private final WifiPowerStatsManager mWifiPowerStatsManager;
 
     public WifiInjector(WifiContext context) {
         if (context == null) {
@@ -649,6 +650,7 @@ public class WifiInjector {
                 wifiLooper, mContext, mClock, mWifiMetrics, mWifiPermissionsUtil);
         mApplicationQosPolicyRequestHandler = new ApplicationQosPolicyRequestHandler(
                 mActiveModeWarden, mWifiNative, mWifiHandlerThread, mContext);
+        mWifiPowerStatsManager = new WifiPowerStatsManager(mNl80211Native, mActiveModeWarden);
 
         // Register the various network Nominators with the network selector.
         mWifiNetworkSelector.registerNetworkNominator(mSavedNetworkNominator);
@@ -1419,5 +1421,9 @@ public class WifiInjector {
     @NonNull
     public MainlineSupplicantAidlManager getMainlineSupplicantAidlManager() {
         return mMainlineSupplicant;
+    }
+
+    public WifiPowerStatsManager getWifiPowerStatsManager() {
+        return mWifiPowerStatsManager;
     }
 }

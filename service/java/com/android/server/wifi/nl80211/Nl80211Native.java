@@ -87,6 +87,7 @@ import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.util.NetdWrapper;
 
 import java.io.PrintWriter;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -900,6 +901,21 @@ public class Nl80211Native {
         }
 
         mVerboseLoggingEnabled = enable;
+    }
+
+    /**
+     * This method serves as a pass-through to get the Wi-Fi chip stats.
+     *
+     * @param interfaceName The name of the interface to get the power stats for.
+     * @return A {@link ByteBuffer} containing the raw chip statistics payload, or null if the
+     * proxy is not initialized or the request fails.
+     */
+    public @Nullable ByteBuffer getWifiChipStats(@NonNull String interfaceName) {
+        if (!mIsInitialized) {
+            Log.e(TAG, "Nl80211Native is not initialized.");
+            return null;
+        }
+        return mNl80211Utils.getWifiChipStats(interfaceName);
     }
 
     /**

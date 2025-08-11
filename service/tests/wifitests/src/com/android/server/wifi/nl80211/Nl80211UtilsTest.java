@@ -92,6 +92,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -1455,5 +1456,42 @@ public class Nl80211UtilsTest {
         Long cookie = mNl80211Utils.sendMgmtFrame(TEST_IF_INDEX, TEST_SSID, /* mcs */ 5);
 
         assertNull(cookie);
+    }
+
+    /**
+     * Test that wifi chip stats can be successfully retrieved.
+     */
+    @Test
+    public void testGetWifiChipStatsSuccess() throws Exception {
+        final byte[] payload = new byte[]{1, 2, 3, 4};
+
+        // Prepare the response for the vendor command (chip stats).
+        GenericNetlinkMsg statsResponse = new GenericNetlinkMsg(
+                NetlinkConstants.NL80211_CMD_VENDOR, (short) 0, (short) 0, 0);
+        statsResponse.addAttribute(
+                new StructNlAttr(NetlinkConstants.NL80211_ATTR_VENDOR_DATA, payload));
+
+        when(mNl80211Proxy.createVendorRequest(anyInt(), anyInt(), anyInt()))
+                .thenReturn(new GenericNetlinkMsg(NetlinkConstants.NL80211_CMD_VENDOR, (short) 0,
+                        (short) 0, 0));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(any(GenericNetlinkMsg.class)))
+                .thenReturn(new Nl80211Response(statsResponse));
+
+        // Mock getInterfaceInfo
+        Nl80211Utils.InterfaceInfo mockInfo = new Nl80211Utils.InterfaceInfo(
+                TEST_IF_INDEX, 0, TEST_IF_NAME, new byte[6]);
+        GenericNetlinkMsg interfaceResponse = new GenericNetlinkMsg(
+                NL80211_CMD_NEW_INTERFACE, (short) 0, (short) 0, 0);
+        interfaceResponse.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        interfaceResponse.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, TEST_IF_INDEX));
+        interfaceResponse.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, TEST_IF_NAME));
+        interfaceResponse.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, TEST_MAC_ADDR));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_INTERFACE))
+                .thenReturn(new Nl80211Response(interfaceResponse));
+
+        ByteBuffer result = mNl80211Utils.getWifiChipStats(TEST_IF_NAME);
+
+        assertNotNull(result);
+        assertEquals(ByteBuffer.wrap(payload), result);
     }
 }

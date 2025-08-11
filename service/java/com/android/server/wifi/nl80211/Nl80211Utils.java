@@ -22,6 +22,8 @@ import static android.system.OsConstants.ENODEV;
 import static android.system.OsConstants.ENOENT;
 
 import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_ACK;
+import static com.android.server.wifi.nl80211.NetlinkConstants.ANDROID_NL80211_SUBCMD_GET_PWRSTATS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.ANDROID_OUI;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_BSS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_COOKIE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_EXT_FEATURES;
@@ -46,6 +48,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCHE
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCHED_SCAN_MATCH;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCHED_SCAN_PLANS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SPLIT_WIPHY_DUMP;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_VENDOR_DATA;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_STA_INFO;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_BANDS;
@@ -1755,5 +1758,53 @@ public class Nl80211Utils {
         }
 
         return buf.getShort();
+    }
+
+    /**
+     * Retrieves Wi-Fi chip statistics from the driver via a vendor-specific Netlink command.
+     *
+     * @return A {@link ByteBuffer} containing the raw chip statistics payload from the driver,
+     */
+    public @Nullable ByteBuffer getWifiChipStats(String interfaceName) {
+        final int vendorId = ANDROID_OUI;
+        final int subcmd = ANDROID_NL80211_SUBCMD_GET_PWRSTATS;
+        InterfaceInfo info = getInterfaceInfo(interfaceName);
+        if (info == null) {
+            Log.e(TAG, "Failed to get interface info for " + interfaceName);
+            return null;
+        }
+        final int ifIndex = info.ifIndex;
+
+        GenericNetlinkMsg vendorRequest = mNl80211Proxy.createVendorRequest(
+                ifIndex, vendorId, subcmd);
+
+        if (vendorRequest == null) {
+            Log.e(TAG, "Failed to create vendor request for chip statistics.");
+            return null;
+        }
+
+        Nl80211Response vendorResponse = mNl80211Proxy.sendMessageAndReceiveResponse(vendorRequest);
+
+        if (vendorResponse == null || vendorResponse.isError()
+                || vendorResponse.getMessage() == null) {
+            Log.e(TAG, "Failed to send Wi-Fi chip statistics vendor command.");
+            return null;
+        }
+
+        GenericNetlinkMsg msg = vendorResponse.getMessage();
+        StructNlAttr payloadAttr = msg.getAttribute(NL80211_ATTR_VENDOR_DATA);
+
+        if (payloadAttr == null) {
+            Log.e(TAG, "NL80211_ATTR_VENDOR_DATA attribute not found in vendor response.");
+            return null;
+        }
+        ByteBuffer payloadBuffer = payloadAttr.getValueAsByteBuffer();
+
+        if (payloadBuffer == null) {
+            Log.e(TAG, "Chip statistics payload is null in the vendor data attribute.");
+            return null;
+        }
+
+        return payloadBuffer;
     }
 }
