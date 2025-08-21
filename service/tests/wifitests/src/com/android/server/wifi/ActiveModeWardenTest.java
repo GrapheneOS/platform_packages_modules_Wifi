@@ -42,6 +42,7 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -5978,4 +5979,112 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         assertThat(mActiveModeWarden.isSoftApRestartingForCcChange(IFACE_IP_MODE_TETHERED))
                 .isFalse();
     }
+
+    @Test
+    public void testHandleUserSwitchInEnabledState() throws Exception {
+        enterClientModeActiveState();
+        assertInEnabledState();
+        // Duplicated Switch user event
+        mActiveModeWarden.handleUserSwitch(0);
+        // Should still in enabled state
+        assertInEnabledState();
+        assertWifiShutDown(
+                () -> {
+                    // Switch user
+                    mActiveModeWarden.handleUserSwitch(10);
+                    mLooper.dispatchAll();
+                });
+    }
+
+    @Test
+    public void testHandleUserStopInEnabledState() throws Exception {
+        enterClientModeActiveState();
+        assertInEnabledState();
+        // Background user stop event
+        mActiveModeWarden.handleUserStop(10);
+        // Should still in enabled state since it is not current user.
+        assertInEnabledState();
+        assertWifiShutDown(
+                () -> {
+                    // Stop user
+                    mActiveModeWarden.handleUserStop(0);
+                    mLooper.dispatchAll();
+                });
+    }
+
+    @Test
+    public void testHandleUserSwitchInEnabledStateStopsSoftAp() throws Exception {
+        // Start in enabled state with SoftAP active
+        enterSoftApActiveMode();
+        assertNotNull(mActiveModeWarden.getTetheredSoftApManager());
+        assertWifiShutDown(
+                () -> {
+                    // Switch user
+                    mActiveModeWarden.handleUserSwitch(10);
+                    mLooper.dispatchAll();
+                });
+    }
+
+    @Test
+    public void testHandleUserUnlockInDisabledStateStartsStaWhenWifiOn() throws Exception {
+        assertInDisabledState();
+        // Set wifi toggle to on in new user
+        when(mSettingsStore.isWifiToggleEnabled()).thenReturn(true);
+        assertWifiShutDown(
+                () -> {
+                    // Switch user
+                    mActiveModeWarden.handleUserSwitch(10);
+                    mLooper.dispatchAll();
+                });
+        // Background user unlock should be dropped.
+        mActiveModeWarden.handleUserUnlock(20);
+        mLooper.dispatchAll();
+        assertInDisabledState();
+        // Current user unlock
+        mActiveModeWarden.handleUserUnlock(10);
+        mLooper.dispatchAll();
+
+        // Verify STA started
+        verify(mWifiInjector).makeClientModeManager(any(), any(),
+                eq(ActiveModeManager.ROLE_CLIENT_PRIMARY), anyBoolean());
+        assertInEnabledState();
+    }
+
+    @Test
+    public void testHandleUserUnlockInDisabledStateDoesNotStartStaWhenWifiOff() throws Exception {
+        assertInDisabledState();
+        // Set wifi toggle to off in new user
+        when(mSettingsStore.isWifiToggleEnabled()).thenReturn(false);
+        assertWifiShutDown(
+                () -> {
+                    // Switch user
+                    mActiveModeWarden.handleUserSwitch(10);
+                    mLooper.dispatchAll();
+                });
+        // Unlock user
+        mActiveModeWarden.handleUserUnlock(10);
+        mLooper.dispatchAll();
+
+        // Verify still disabled
+        verify(mWifiInjector, never()).makeClientModeManager(any(), any(), any(), anyBoolean());
+        assertInDisabledState();
+    }
+
+    @Test
+    public void testUserUnlockComingBeforeCmmStop() throws Exception {
+        enterClientModeActiveState();
+        assertInEnabledState();
+        assertWifiShutDown(
+                () -> {
+                    // Switch user
+                    mActiveModeWarden.handleUserSwitch(10);
+                    mActiveModeWarden.handleUserUnlock(10);
+                    mLooper.dispatchAll();
+                });
+        // Trigger client mode stop succeeded.
+        mClientListener.onStopped(mClientModeManager);
+        mLooper.dispatchAll();
+        assertInEnabledState();
+    }
 }
+

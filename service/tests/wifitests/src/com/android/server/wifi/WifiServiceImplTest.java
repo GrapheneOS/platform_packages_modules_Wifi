@@ -13946,4 +13946,30 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         inOrder.verify(listener).onResult(List.of("wlan0"));
     }
+
+    @Test
+    public void testHandleUserSwitchStopUnlockWhenFlagEnabled() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        final int userId = 10;
+        mWifiServiceImpl.handleUserSwitch(userId);
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).handleUserSwitch(userId);
+        verify(mActiveModeWarden).handleUserSwitch(userId);
+        verify(mWifiNotificationManager).createNotificationChannels();
+        verify(mWifiNetworkSuggestionsManager).resetNotification();
+        verify(mWifiCarrierInfoManager).resetNotification();
+        verify(mOpenNetworkNotifier).clearPendingNotification(false);
+        verify(mWakeupController).resetNotification();
+
+        mWifiServiceImpl.handleUserUnlock(userId);
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).handleUserUnlock(userId);
+        verify(mActiveModeWarden).handleUserUnlock(userId);
+
+        mWifiServiceImpl.handleUserStop(userId);
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).handleUserStop(userId);
+        verify(mActiveModeWarden).handleUserStop(userId);
+    }
 }
