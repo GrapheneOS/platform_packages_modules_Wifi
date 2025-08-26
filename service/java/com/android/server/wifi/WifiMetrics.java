@@ -2380,6 +2380,27 @@ public class WifiMetrics {
     }
 
     /**
+     * Extracts the OUI (first 3 octets) from a BSSID string.
+     * It checks the Locally Administered Bit (U/L bit) of the first octet.
+     * @param bssid The MAC address of the Access Point in "XX:XX:XX:XX:XX:XX" format.
+     * @return The OUI string, or "RANDOM_MAC" if the BSSID is a locally administered address.
+     */
+    private String getOuiFromBssid(String bssid) {
+        if (bssid == null || bssid.length() != 17) {
+            return null;
+        }
+
+        String firstOctetHex = bssid.substring(0, 2);
+        int firstOctet = Integer.parseInt(firstOctetHex, 16);
+        // Check the Locally Administered Bit (U/L Bit).
+        if ((firstOctet & 0x02) != 0) {
+            return "RANDOM_MAC";
+        }
+
+        return bssid.substring(0, 8);
+    }
+
+    /**
      * End a Connection event record. Call when wifi connection attempt succeeds or fails.
      * If a Connection event has not been started and is active when .end is called, then this
      * method will do nothing.
@@ -2460,7 +2481,8 @@ public class WifiMetrics {
                         frequency,
                         currentConnectionEvent.mL2ConnectingDuration,
                         currentConnectionEvent.mL3ConnectingDuration,
-                        lastDisconnectReason);
+                        lastDisconnectReason,
+                        getOuiFromBssid(currentConnectionEvent.mConfigBssid));
 
                 if (connectionSucceeded) {
                     reportRouterCapabilities(currentConnectionEvent.mRouterFingerPrint);
