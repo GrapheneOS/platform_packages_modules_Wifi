@@ -17,6 +17,7 @@
 package com.google.snippet.wifi.usd;
 
 import android.content.Context;
+import android.net.wifi.WifiManager;
 import android.net.wifi.usd.DiscoveryResult;
 import android.net.wifi.usd.PublishConfig;
 import android.net.wifi.usd.PublishSession;
@@ -25,8 +26,6 @@ import android.net.wifi.usd.SubscribeConfig;
 import android.net.wifi.usd.SubscribeSession;
 import android.net.wifi.usd.SubscribeSessionCallback;
 import android.net.wifi.usd.UsdManager;
-import android.platform.test.annotations.AppModeFull;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -39,330 +38,289 @@ import com.google.android.mobly.snippet.rpc.Rpc;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** Snippet class for Wi-Fi USD functionality. */
-@AppModeFull(reason = "Cannot get WifiManager in instant app mode")
 public class WifiUsdManagerSnippet implements Snippet {
-    private static final String TAG = "WifiUsdManagerSnippet";
-    private static final int WAIT_FOR_USD_CHANGE_SECS = 30;
-    private static final int MESSAGE_TIMEOUT_SECS = 30;
-
-    /** Custom exception for snippet failures. */
-    public static class WifiUsdManagerSnippetException extends Exception {
-        public WifiUsdManagerSnippetException(String message) {
-            super(message);
-        }
-    }
+    private static final String TAG = "WifiUsdSnippet";
+    private static final int TIMEOUT_SECS = 60;
 
     private final Context mContext;
     private final UsdManager mUsdManager;
+    private final WifiManager mWifiManager;
+    private final ScheduledExecutorService mExecutor;
 
     private PublishSession mActivePublishSession;
     private SubscribeSession mActiveSubscribeSession;
 
-    private ScheduledExecutorService mPublishExecutor;
-    private ScheduledExecutorService mSubscribeExecutor;
-
     private final BlockingQueue<String> mReceivedMessages = new LinkedBlockingQueue<>();
-    private static final ConcurrentHashMap<Integer, DiscoveryResult> sDiscoveredPeers =
-            new ConcurrentHashMap<>();
+    private final AtomicInteger mLastDiscoveredPeerId = new AtomicInteger(-1);
+    private final AtomicInteger mLastMessageSenderPeerId = new AtomicInteger(-1);
 
     /** Snippet constructor. */
     public WifiUsdManagerSnippet() {
-        Log.d(TAG, "WifiUsdManagerSnippet constructor: Initializing resources.");
-        this.mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        this.mUsdManager = mContext.getSystemService(UsdManager.class);
+        mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        mUsdManager = mContext.getSystemService(UsdManager.class);
+        mWifiManager = mContext.getSystemService(WifiManager.class);
+        mExecutor = Executors.newSingleThreadScheduledExecutor();
     }
 
-    @Override
-    public void shutdown() {
-        Log.d(TAG, "Shutting down WifiUsdSnippet...");
-        stopUsdPublishSession();
-        stopUsdSubscribeSession();
-    }
-
-    // --- Publisher Code ---
-    private static class PublishSessionCallbackTest extends PublishSessionCallback {
-        private static final String TAG = "WifiUsdCallback";
-
-        private final CountDownLatch mStartedLatch = new CountDownLatch(1);
-        private final BlockingQueue<String> mParentMessageQueue;
-        private PublishSession mPublishSession;
-        private String mFailureReason = null;
-
-        PublishSessionCallbackTest(BlockingQueue<String> parentMessageQueue) {
-            this.mParentMessageQueue = parentMessageQueue;
-        }
+    private class PublisherCallback extends PublishSessionCallback {
+        final CountDownLatch mStartedLatch = new CountDownLatch(1);
+        final AtomicReference<String> mFailureReason = new AtomicReference<>();
 
         @Override
-        public void onPublishFailed(int reason) {
-            mFailureReason = "Publish failed with reason: " + reason;
-            Log.e(TAG, "PUBLISHER CALLBACK FIRED: onPublishFailed with reason: " + reason);
+        public void onPublishStarted(@NonNull PublishSession session) {
+            mActivePublishSession = session;
             mStartedLatch.countDown();
         }
 
         @Override
-        public void onPublishStarted(@NonNull PublishSession session) {
-            Log.d(TAG, "PUBLISHER CALLBACK FIRED: onPublishStarted.");
-            mPublishSession = session;
+        public void onPublishFailed(int reason) {
+            mFailureReason.set("Publish failed: " + reason);
             mStartedLatch.countDown();
         }
 
         @Override
         public void onMessageReceived(int peerId, @Nullable byte[] message) {
-            Log.d(TAG, "PUBLISHER CALLBACK FIRED: onMessageReceived from peerId " + peerId);
+            mLastMessageSenderPeerId.set(peerId);
             if (message != null) {
-                mParentMessageQueue.offer(new String(message, StandardCharsets.UTF_8));
+                mReceivedMessages.offer(new String(message, StandardCharsets.UTF_8));
             }
         }
 
-        @Override
-        public void onSessionTerminated(int reason) {
-            Log.d(TAG, "PUBLISHER CALLBACK FIRED: onSessionTerminated with reason: " + reason);
-        }
-
-        void waitForStarted()
-                throws WifiUsdManagerSnippetException, InterruptedException {
-            if (!mStartedLatch.await(WAIT_FOR_USD_CHANGE_SECS, TimeUnit.SECONDS)) {
-                throw new WifiUsdManagerSnippetException(
-                        "Timeout waiting for publish session to start.");
+        void waitForStart() throws Exception {
+            if (!mStartedLatch.await(TIMEOUT_SECS, TimeUnit.SECONDS)) {
+                throw new Exception("Timeout waiting for publish to start.");
             }
-            if (mFailureReason != null) {
-                throw new WifiUsdManagerSnippetException(mFailureReason);
+            if (mFailureReason.get() != null) {
+                throw new Exception(mFailureReason.get());
             }
-        }
-
-        PublishSession getPublishSession() {
-            return mPublishSession;
         }
     }
 
-    /** Starts a USD publish session. */
-    @Rpc(description = "Starts a USD publish session.")
-    public void startUsdPublishSession(String serviceName, @Nullable String ssi) throws Exception {
-        if (mUsdManager == null) {
-            throw new WifiUsdManagerSnippetException("UsdManager is null.");
-        }
-        if (mActivePublishSession != null) {
-            stopUsdPublishSession();
-        }
-
-        PublishConfig.Builder configBuilder = new PublishConfig.Builder(serviceName);
-        if (ssi != null && !ssi.isEmpty()) {
-            configBuilder.setServiceSpecificInfo(ssi.getBytes(StandardCharsets.UTF_8));
-        }
-        PublishConfig publishConfig = configBuilder.build();
-        Log.i(TAG, "Starting publish with config: " + publishConfig);
-
-        mPublishExecutor = Executors.newSingleThreadScheduledExecutor();
-        PublishSessionCallbackTest callback = new PublishSessionCallbackTest(mReceivedMessages);
-
-        ShellIdentityUtils.invokeWithShellPermissions(
-                () -> mUsdManager.publish(publishConfig, mPublishExecutor, callback));
-
-        callback.waitForStarted();
-        mActivePublishSession = callback.getPublishSession();
-        if (mActivePublishSession == null) {
-            throw new WifiUsdManagerSnippetException("Publish session started but is null.");
-        }
-    }
-
-
-    // --- Subscriber Code ---
-    private static class SubscribeSessionCallbackTest extends SubscribeSessionCallback {
-        private static final String TAG = "WifiUsdCallback";
-
-        private final CountDownLatch mStartedLatch = new CountDownLatch(1);
-        private final CountDownLatch mDiscoveredLatch = new CountDownLatch(1);
-        private SubscribeSession mSubscribeSession;
-        private String mFailureReason = null;
+    private class SubscriberCallback extends SubscribeSessionCallback {
+        final CountDownLatch mStartedLatch = new CountDownLatch(1);
+        final CountDownLatch mDiscoveryLatch = new CountDownLatch(1);
+        final AtomicReference<String> mFailureReason = new AtomicReference<>();
 
         @Override
-        public void onSubscribeFailed(int reason) {
-            mFailureReason = "Subscribe failed with reason: " + reason;
-            Log.e(TAG, "SUBSCRIBER CALLBACK FIRED: onSubscribeFailed with reason: " + reason);
+        public void onSubscribeStarted(@NonNull SubscribeSession session) {
+            mActiveSubscribeSession = session;
             mStartedLatch.countDown();
         }
 
         @Override
-        public void onSubscribeStarted(@NonNull SubscribeSession session) {
-            Log.d(TAG, "SUBSCRIBER CALLBACK FIRED: onSubscribeStarted.");
-            mSubscribeSession = session;
+        public void onSubscribeFailed(int reason) {
+            mFailureReason.set("Subscribe failed: " + reason);
             mStartedLatch.countDown();
         }
 
         @Override
         public void onServiceDiscovered(@NonNull DiscoveryResult discoveryResult) {
-            Log.d(TAG, "SUBSCRIBER CALLBACK FIRED: onServiceDiscovered with result: "
-                    + discoveryResult.toString());
-            sDiscoveredPeers.put(discoveryResult.getPeerId(), discoveryResult);
-            mDiscoveredLatch.countDown();
+            mLastDiscoveredPeerId.set(discoveryResult.getPeerId());
+            mDiscoveryLatch.countDown();
         }
 
         @Override
-        public void onSessionTerminated(int reason) {
-            Log.d(TAG, "SUBSCRIBER CALLBACK FIRED: onSessionTerminated with reason: " + reason);
-        }
-
-        void waitForStarted() throws WifiUsdManagerSnippetException, InterruptedException {
-            if (!mStartedLatch.await(WAIT_FOR_USD_CHANGE_SECS, TimeUnit.SECONDS)) {
-                throw new WifiUsdManagerSnippetException(
-                        "Timeout waiting for subscribe session to start.");
-            }
-            if (mFailureReason != null) {
-                throw new WifiUsdManagerSnippetException(mFailureReason);
+        public void onMessageReceived(int peerId, @Nullable byte[] message) {
+            if (message != null) {
+                mReceivedMessages.offer(new String(message, StandardCharsets.UTF_8));
             }
         }
 
-        void waitForDiscovery() throws WifiUsdManagerSnippetException, InterruptedException {
-            if (!mDiscoveredLatch.await(WAIT_FOR_USD_CHANGE_SECS, TimeUnit.SECONDS)) {
-                throw new WifiUsdManagerSnippetException("Timeout waiting for service discovery.");
+        void waitForStart() throws Exception {
+            if (!mStartedLatch.await(TIMEOUT_SECS, TimeUnit.SECONDS)) {
+                throw new Exception("Timeout waiting for subscribe to start.");
+            }
+            if (mFailureReason.get() != null) {
+                throw new Exception(mFailureReason.get());
             }
         }
 
-        SubscribeSession getSubscribeSession() {
-            return mSubscribeSession;
+        void waitForDiscovery() throws Exception {
+            if (!mDiscoveryLatch.await(TIMEOUT_SECS, TimeUnit.SECONDS)) {
+                throw new Exception("Timeout waiting for service discovery.");
+            }
         }
     }
 
-    /** Performs the entire subscriber workflow atomically. */
-    @Rpc(description = "Subscribes, waits for discovery, and sends a message.")
-    public void subscribeDiscoverAndSendMessage(String serviceName, @Nullable String ssi,
-            String message) throws Exception {
-        Log.i(TAG, "subscribeDiscoverAndSendMessage: Starting...");
-        if (mUsdManager == null) {
-            throw new WifiUsdManagerSnippetException("UsdManager is null.");
-        }
-        if (mActiveSubscribeSession != null) {
-            stopUsdSubscribeSession();
-        }
-        sDiscoveredPeers.clear();
+    /** Checks if the USD feature is supported on this device. */
+    @Rpc(description = "Checks if the USD feature is supported on this device.")
+    public boolean isUsdSupported() {
+        return mUsdManager != null;
+    }
 
-        SubscribeConfig.Builder configBuilder = new SubscribeConfig.Builder(serviceName);
-        if (ssi != null && !ssi.isEmpty()) {
-            configBuilder.setServiceSpecificInfo(ssi.getBytes(StandardCharsets.UTF_8));
-        }
-        SubscribeConfig subscribeConfig = configBuilder.build();
-        Log.i(TAG, "Starting subscribe with config: " + subscribeConfig);
+    /** Checks if the USD Publisher role is supported on this device. */
+    @Rpc(description = "Checks if the USD Publisher role is supported.")
+    public boolean isUsdPublisherSupported() {
+        if (mUsdManager == null || mWifiManager == null) return false;
+        return ShellIdentityUtils.invokeWithShellPermissions(
+                () -> mWifiManager.isUsdPublisherSupported());
+    }
+    /** Checks if the USD Subscriber role is supported on this device. */
+    @Rpc(description = "Checks if the USD Subscriber role is supported.")
+    public boolean isUsdSubscriberSupported() {
+        if (mUsdManager == null || mWifiManager == null) return false;
+        return ShellIdentityUtils.invokeWithShellPermissions(
+                () -> mWifiManager.isUsdSubscriberSupported());
+    }
 
-        mSubscribeExecutor = Executors.newSingleThreadScheduledExecutor();
-        SubscribeSessionCallbackTest callback = new SubscribeSessionCallbackTest();
 
+    /** Starts a USD publish session. */
+    @Rpc(description = "Starts a USD publish session.")
+    public void startUsdPublishSession(String serviceName, String ssi) throws Exception {
+        PublishConfig config =
+                new PublishConfig.Builder(serviceName)
+                        .setServiceSpecificInfo(ssi.getBytes(StandardCharsets.UTF_8))
+                        .build();
+        PublisherCallback callback = new PublisherCallback();
         ShellIdentityUtils.invokeWithShellPermissions(
-                () -> mUsdManager.subscribe(subscribeConfig, mSubscribeExecutor, callback));
+                () -> mUsdManager.publish(config, mExecutor, callback));
+        callback.waitForStart();
+    }
 
-        callback.waitForStarted();
-        mActiveSubscribeSession = callback.getSubscribeSession();
-        if (mActiveSubscribeSession == null) {
-            throw new WifiUsdManagerSnippetException("Subscribe session started but is null.");
-        }
-        Log.i(TAG, "subscribeDiscoverAndSendMessage: Subscribe session started. "
-                + "Waiting for discovery...");
+    /** Helper method for different subscribe types. */
+    private void subscribeAndSendMessage(
+            String serviceName, String ssi, String message, int subscribeType) throws Exception {
+        SubscribeConfig.Builder configBuilder =
+                new SubscribeConfig.Builder(serviceName)
+                        .setServiceSpecificInfo(ssi.getBytes(StandardCharsets.UTF_8));
 
+        // Set the subscribe type based on the provided parameter
+        configBuilder.setSubscribeType(subscribeType);
+
+        SubscribeConfig config = configBuilder.build();
+        SubscriberCallback callback = new SubscriberCallback();
+        ShellIdentityUtils.invokeWithShellPermissions(
+                () -> mUsdManager.subscribe(config, mExecutor, callback));
+        callback.waitForStart();
         callback.waitForDiscovery();
-        Log.i(TAG, "subscribeDiscoverAndSendMessage: Discovery Succeeded.");
 
-        int peerId = getLastDiscoveredPeerId();
+        int peerId = mLastDiscoveredPeerId.get();
         if (peerId == -1) {
-            throw new WifiUsdManagerSnippetException(
-                    "Discovery succeeded but failed to get a peer ID.");
+            throw new Exception("Discovery succeeded but peer ID is invalid.");
         }
-        Log.i(TAG, "subscribeDiscoverAndSendMessage: Sending message to peer " + peerId + "...");
 
         sendMessage(peerId, message);
-
-        Log.i(TAG, "subscribeDiscoverAndSendMessage: All steps completed successfully.");
     }
 
-    // --- Common RPC Methods ---
-    /** Cancels the active USD publish session. */
-    @Rpc(description = "Cancels the active USD publish session.")
-    public void stopUsdPublishSession() {
+    /** Subscribes passively, discovers, and sends a message. */
+    @Rpc(description = "Subscribes passively, discovers, and sends a message.")
+    public void subscribePassiveAndSendMessage(String serviceName, String ssi, String message)
+            throws Exception {
+        subscribeAndSendMessage(
+                serviceName, ssi, message, SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE);
+    }
+
+    /** Subscribes actively, discovers, and sends a message. */
+    @Rpc(description = "Subscribes actively, discovers, and sends a message.")
+    public void subscribeActiveAndSendMessage(String serviceName, String ssi, String message)
+            throws Exception {
+        subscribeAndSendMessage(serviceName, ssi, message, SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE);
+    }
+
+    /** Sends a message from the current session. */
+    private void sendMessage(int peerId, String message) throws Exception {
+        if (mActiveSubscribeSession == null) {
+            throw new Exception("No active subscribe session.");
+        }
+        final CountDownLatch sendLatch = new CountDownLatch(1);
+        final AtomicReference<String> failureReason = new AtomicReference<>();
+        byte[] msgBytes = message.getBytes(StandardCharsets.UTF_8);
+
+        ShellIdentityUtils.invokeWithShellPermissions(
+                () -> {
+                    mActiveSubscribeSession.sendMessage(
+                            peerId,
+                            msgBytes,
+                            mExecutor,
+                            success -> {
+                                if (!success) {
+                                    failureReason.set("sendMessage callback returned false.");
+                                }
+                                sendLatch.countDown();
+                            });
+                });
+
+        if (!sendLatch.await(TIMEOUT_SECS, TimeUnit.SECONDS)) {
+            throw new Exception("Timeout waiting for sendMessage callback.");
+        }
+        if (failureReason.get() != null) {
+            throw new Exception(failureReason.get());
+        }
+    }
+
+    /** Sends a message from the publisher to a specified peer. */
+    @Rpc(description = "Sends a message from the publisher to a specified peer.")
+    public void sendMessageFromPublisher(int peerId, String message) throws Exception {
         if (mActivePublishSession == null) {
-            return;
+            throw new Exception("No active publish session.");
         }
-        try {
-            ShellIdentityUtils.invokeWithShellPermissions(mActivePublishSession::cancel);
-        } catch (Exception e) {
-            Log.e(TAG, "Error cancelling publish session", e);
-        } finally {
-            mActivePublishSession = null;
-            if (mPublishExecutor != null) {
-                mPublishExecutor.shutdown();
-                mPublishExecutor = null;
-            }
+        final CountDownLatch sendLatch = new CountDownLatch(1);
+        final AtomicReference<String> failureReason = new AtomicReference<>();
+        byte[] msgBytes = message.getBytes(StandardCharsets.UTF_8);
+
+        ShellIdentityUtils.invokeWithShellPermissions(
+                () -> {
+                    mActivePublishSession.sendMessage(
+                            peerId,
+                            msgBytes,
+                            mExecutor,
+                            success -> {
+                                if (!success) {
+                                    failureReason.set(
+                                            "sendMessage from publisher callback returned false.");
+                                }
+                                sendLatch.countDown();
+                            });
+                });
+        if (!sendLatch.await(TIMEOUT_SECS, TimeUnit.SECONDS)) {
+            throw new Exception("Timeout waiting for sendMessage from publisher callback.");
+        }
+        if (failureReason.get() != null) {
+            throw new Exception(failureReason.get());
         }
     }
 
-    /** Cancels the active USD subscribe session. */
-    @Rpc(description = "Cancels the active USD subscribe session.")
-    public void stopUsdSubscribeSession() {
-        if (mActiveSubscribeSession == null) {
-            return;
-        }
-        try {
-            ShellIdentityUtils.invokeWithShellPermissions(mActiveSubscribeSession::cancel);
-        } catch (Exception e) {
-            Log.e(TAG, "Error cancelling subscribe session", e);
-        } finally {
-            mActiveSubscribeSession = null;
-            if (mSubscribeExecutor != null) {
-                mSubscribeExecutor.shutdown();
-                mSubscribeExecutor = null;
-            }
-            sDiscoveredPeers.clear();
-        }
-    }
-
-    /** Sends a message to a specified peer. */
-    @Rpc(description = "Sends a message to a specified peer.")
-    public void sendMessage(int peerId, String message) throws Exception {
-        if (mActiveSubscribeSession == null) {
-            throw new WifiUsdManagerSnippetException(
-                    "No active subscribe session to send message from.");
-        }
-        final CountDownLatch latch = new CountDownLatch(1);
-        final String[] failureReason = {null};
-        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
-
-        ShellIdentityUtils.invokeWithShellPermissions(() -> {
-            mActiveSubscribeSession.sendMessage(
-                    peerId, messageBytes, mSubscribeExecutor, success -> {
-                        if (!success) {
-                            failureReason[0] = "sendMessage callback returned false.";
-                        }
-                        latch.countDown();
-                    });
-        });
-
-        if (!latch.await(MESSAGE_TIMEOUT_SECS, TimeUnit.SECONDS)) {
-            throw new WifiUsdManagerSnippetException("Timeout waiting for sendMessage result.");
-        }
-        if (failureReason[0] != null) {
-            throw new WifiUsdManagerSnippetException(failureReason[0]);
-        }
-    }
-
-    /** Retrieves the last discovered peer ID for messaging. */
-    @Rpc(description = "Retrieves the last discovered peer ID for messaging.")
-    public int getLastDiscoveredPeerId() {
-        if (sDiscoveredPeers.isEmpty()) {
-            return -1;
-        }
-        return sDiscoveredPeers.keys().nextElement();
-    }
-
-    /** Waits for and returns a message received via USD. */
-    @Rpc(description = "Waits for and returns a message received via USD.")
+    /** Waits for and returns a received message. */
+    @Rpc(description = "Waits for and returns a received message.")
     @Nullable
     public String receiveMessage() throws InterruptedException {
-        return mReceivedMessages.poll(MESSAGE_TIMEOUT_SECS, TimeUnit.SECONDS);
+        return mReceivedMessages.poll(TIMEOUT_SECS, TimeUnit.SECONDS);
+    }
+
+    /** Retrieves the peer ID of the last message sender. */
+    @Rpc(description = "Retrieves the peer ID of the last message sender.")
+    public int getLastMessageSenderPeerId() {
+        return mLastMessageSenderPeerId.get();
+    }
+
+    /** Stops any active USD sessions. */
+    @Rpc(description = "Stops any active USD sessions.")
+    public void stopUsdSessions() {
+        if (mActivePublishSession != null) {
+            ShellIdentityUtils.invokeWithShellPermissions(() -> mActivePublishSession.cancel());
+            mActivePublishSession = null;
+        }
+        if (mActiveSubscribeSession != null) {
+            ShellIdentityUtils.invokeWithShellPermissions(() -> mActiveSubscribeSession.cancel());
+            mActiveSubscribeSession = null;
+        }
+        mReceivedMessages.clear();
+    }
+
+    @Override
+    public void shutdown() {
+        stopUsdSessions();
+        if (mExecutor != null) {
+            mExecutor.shutdown();
+        }
     }
 }
