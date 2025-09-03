@@ -11791,4 +11791,57 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mWifiMetrics).onRoamComplete(eq(WIFI_IFACE_NAME));
     }
+
+    /**
+     * Verify that LinkSpeed updates only if a 20% increase in LinkSpeed Stats.
+     */
+    @Test
+    public void testLinkSpeedPollResults() throws Exception {
+        connect();
+
+        // Set up initial link speed to 100
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, TEST_RSSI, 100, 100, sFreq);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
+
+        // Enable RSSI polling and trigger a poll
+        mCmi.enableRssiPolling(true);
+        mCmi.sendMessage(ClientModeImpl.CMD_RSSI_POLL, 1);
+        mLooper.dispatchAll();
+
+        // Assert that mWifiInfo link speed is 100
+        assertEquals(100, mWifiInfo.getLinkSpeed());
+        assertEquals(100, mWifiInfo.getTxLinkSpeedMbps());
+        assertEquals(100, mWifiInfo.getRxLinkSpeedMbps());
+
+        // Set link speed to 110 & trigger another poll
+        signalPollResults.addEntry(0, TEST_RSSI, 110, 110, sFreq);
+        mLooper.moveTimeForward(3000);
+        mLooper.dispatchAll();
+
+        // Assert that mWifiInfo link speed remains at 100 (no change)
+        assertEquals(100, mWifiInfo.getLinkSpeed());
+        assertEquals(100, mWifiInfo.getTxLinkSpeedMbps());
+        assertEquals(100, mWifiInfo.getRxLinkSpeedMbps());
+
+        // Set link speed to 133 & trigger another poll (increase by > 20%)
+        signalPollResults.addEntry(0, TEST_RSSI, 133, 133, sFreq);
+        mLooper.moveTimeForward(3000);
+        mLooper.dispatchAll();
+
+        // Assert that mWifiInfo has changed to 133
+        assertEquals(133, mWifiInfo.getLinkSpeed());
+        assertEquals(133, mWifiInfo.getTxLinkSpeedMbps());
+        assertEquals(133, mWifiInfo.getRxLinkSpeedMbps());
+
+        // Set link speed to 89 & trigger another poll (decrease by > 20%)
+        signalPollResults.addEntry(0, TEST_RSSI, 89, 89, sFreq);
+        mLooper.moveTimeForward(3000);
+        mLooper.dispatchAll();
+
+        // Assert that mWifiInfo has changed to 89
+        assertEquals(89, mWifiInfo.getLinkSpeed());
+        assertEquals(89, mWifiInfo.getTxLinkSpeedMbps());
+        assertEquals(89, mWifiInfo.getRxLinkSpeedMbps());
+    }
 }
