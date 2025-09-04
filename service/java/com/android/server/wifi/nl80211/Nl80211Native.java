@@ -16,15 +16,13 @@
 
 package com.android.server.wifi.nl80211;
 
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFNAME;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.os.Handler;
 import android.util.Log;
 
-import com.android.internal.annotations.VisibleForTesting;
 import com.android.net.module.util.netlink.StructNlMsgHdr;
 
 import java.util.ArrayList;
@@ -36,20 +34,11 @@ import java.util.List;
 public class Nl80211Native {
     private static final String TAG = "Nl80211Native";
 
-    private final Nl80211Proxy mNl80211Proxy;
+    private final @NonNull Nl80211Proxy mNl80211Proxy;
     private boolean mIsInitialized;
 
-    public Nl80211Native(@NonNull Handler wifiHandler) {
-        mNl80211Proxy = createNl80211Proxy(wifiHandler);
-    }
-
-    /**
-     * Create an instance of Nl80211Proxy.
-     * Intended to be overridden in the unit tests.
-     */
-    @VisibleForTesting
-    protected Nl80211Proxy createNl80211Proxy(Handler wifiHandler) {
-        return new Nl80211Proxy(wifiHandler);
+    public Nl80211Native(@NonNull Nl80211Proxy nl80211Proxy) {
+        mNl80211Proxy = nl80211Proxy;
     }
 
     /**

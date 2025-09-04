@@ -69,6 +69,7 @@ import com.android.server.wifi.ml_connected_scorer.RandomForestModule;
 import com.android.server.wifi.ml_connected_scorer.WifiUsabilityClassifierFactory;
 import com.android.server.wifi.mockwifi.MockWifiServiceUtil;
 import com.android.server.wifi.nl80211.Nl80211Native;
+import com.android.server.wifi.nl80211.Nl80211Proxy;
 import com.android.server.wifi.p2p.SupplicantP2pIfaceHal;
 import com.android.server.wifi.p2p.WifiP2pMetrics;
 import com.android.server.wifi.p2p.WifiP2pMonitor;
@@ -367,7 +368,7 @@ public class WifiInjector {
         mHostapdHal = new HostapdHal(mContext, mWifiHandler);
         mWifiCondManager = (WifiNl80211Manager) mContext.getSystemService(
                 Context.WIFI_NL80211_SERVICE);
-        mNl80211Native = new Nl80211Native(mWifiHandler);
+        mNl80211Native = new Nl80211Native(new Nl80211Proxy(mWifiHandler));
         mWifiNative = new WifiNative(
                 mWifiVendorHal, mSupplicantStaIfaceHal, mHostapdHal, mWifiCondManager,
                 mWifiMonitor, mPropertyService, mWifiMetrics,

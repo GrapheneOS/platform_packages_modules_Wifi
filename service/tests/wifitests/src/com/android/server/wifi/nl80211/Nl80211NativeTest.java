@@ -16,51 +16,34 @@
 
 package com.android.server.wifi.nl80211;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.Mockito.when;
 
-import android.os.Handler;
+import com.android.net.module.util.netlink.StructNlAttr;
+import com.android.net.module.util.netlink.StructNlMsgHdr;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import com.android.net.module.util.netlink.StructNlAttr;
-import com.android.net.module.util.netlink.StructNlMsgHdr;
-
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Unit tests for {@link Nl80211Native}.
  */
 public class Nl80211NativeTest {
-    private TestNl80211Native mDut;
+    private Nl80211Native mDut;
 
-    @Mock Handler mHandler;
     @Mock Nl80211Proxy mNl80211Proxy;
-
-    // Extended class allows us to use a mock instance of Nl80211Proxy.
-    private class TestNl80211Native extends Nl80211Native {
-        TestNl80211Native() {
-            super(mHandler);
-        }
-
-        @Override
-        protected Nl80211Proxy createNl80211Proxy(Handler wifiHandler) {
-            return mNl80211Proxy;
-        }
-    }
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        mDut = new TestNl80211Native();
+        mDut = new Nl80211Native(mNl80211Proxy);
         when(mNl80211Proxy.initialize()).thenReturn(true);
         assertTrue(mDut.initialize());
         assertTrue(mDut.isInitialized());
