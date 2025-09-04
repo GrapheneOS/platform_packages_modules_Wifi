@@ -185,7 +185,6 @@ public class WifiInjector {
     private final WifiSettingsStore mSettingsStore;
     private final OpenNetworkNotifier mOpenNetworkNotifier;
     private final WifiLockManager mLockManager;
-    private final WifiNl80211Manager mWifiCondManager;
     private final Nl80211Native mNl80211Native;
     private final Clock mClock = new Clock();
     private final WifiMetrics mWifiMetrics;
@@ -366,16 +365,17 @@ public class WifiInjector {
                 mContext, mWifiMonitor, mFrameworkFacade, mWifiHandler, mClock, mWifiMetrics,
                 mWifiGlobals, mSsidTranslator, this);
         mHostapdHal = new HostapdHal(mContext, mWifiHandler);
-        mWifiCondManager = (WifiNl80211Manager) mContext.getSystemService(
-                Context.WIFI_NL80211_SERVICE);
-        mNl80211Native = new Nl80211Native(new Nl80211Proxy(mWifiHandler));
+        mNl80211Native = new Nl80211Native(
+                new Nl80211Proxy(mWifiHandler),
+                (WifiNl80211Manager) mContext.getSystemService(Context.WIFI_NL80211_SERVICE),
+                true /* useWificond */);
         mWifiNative = new WifiNative(
-                mWifiVendorHal, mSupplicantStaIfaceHal, mHostapdHal, mWifiCondManager,
+                mWifiVendorHal, mSupplicantStaIfaceHal, mHostapdHal, mNl80211Native,
                 mWifiMonitor, mPropertyService, mWifiMetrics,
                 mWifiHandler, new Random(), mBuildProperties, this);
         mWifiP2pMonitor = new WifiP2pMonitor();
         mSupplicantP2pIfaceHal = new SupplicantP2pIfaceHal(mWifiP2pMonitor, mWifiGlobals, this);
-        mWifiP2pNative = new WifiP2pNative(mWifiCondManager, mWifiNative, mWifiMetrics,
+        mWifiP2pNative = new WifiP2pNative(mNl80211Native, mWifiNative, mWifiMetrics,
                 mWifiVendorHal, mSupplicantP2pIfaceHal, mHalDeviceManager, mPropertyService, this);
         SubscriptionManager subscriptionManager =
                 mContext.getSystemService(SubscriptionManager.class);
@@ -1131,10 +1131,6 @@ public class WifiInjector {
             mNetdWrapper = new NetdWrapper(mContext, new Handler(mWifiHandlerThread.getLooper()));
         }
         return mNetdWrapper;
-    }
-
-    public WifiNl80211Manager getWifiCondManager() {
-        return mWifiCondManager;
     }
 
     public Nl80211Native getNl80211Native() {

@@ -16,12 +16,33 @@
 
 package com.android.server.wifi.nl80211;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.net.wifi.WifiScanner;
+import android.net.wifi.nl80211.DeviceWiphyCapabilities;
+import android.net.wifi.nl80211.NativeScanResult;
+import android.net.wifi.nl80211.PnoSettings;
+import android.net.wifi.nl80211.WifiNl80211Manager;
+import android.os.Bundle;
+
+import androidx.test.filters.SmallTest;
+
+import com.android.modules.utils.build.SdkLevel;
 import com.android.net.module.util.netlink.StructNlAttr;
 import com.android.net.module.util.netlink.StructNlMsgHdr;
 
@@ -30,42 +51,66 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Executor;
 
 /**
  * Unit tests for {@link Nl80211Native}.
  */
+@SmallTest
 public class Nl80211NativeTest {
     private Nl80211Native mDut;
+    private static final String IFACE_NAME = "wlan0";
+    private static final String COUNTRY_CODE = "US";
 
     @Mock Nl80211Proxy mNl80211Proxy;
+    @Mock WifiNl80211Manager mWificondManager;
+    @Mock Executor mExecutor;
+    @Mock Nl80211Native.ScanEventCallback mScanCallback;
+    @Mock Nl80211Native.ScanEventCallback mPnoScanCallback;
+    @Mock WifiNl80211Manager.SoftApCallback mSoftApCallback;
+    @Mock PnoSettings mPnoSettings;
+    @Mock Nl80211Native.PnoScanRequestCallback mPnoScanRequestCallback;
+    @Mock WifiNl80211Manager.SendMgmtFrameCallback mSendMgmtFrameCallback;
+    @Mock Nl80211Native.CountryCodeChangedListener mCountryCodeChangedListener;
+    @Mock Runnable mDeathEventHandler;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        mDut = new Nl80211Native(mNl80211Proxy);
         when(mNl80211Proxy.initialize()).thenReturn(true);
-        assertTrue(mDut.initialize());
-        assertTrue(mDut.isInitialized());
         when(mNl80211Proxy.createNl80211Request(
-                        NetlinkConstants.NL80211_CMD_GET_INTERFACE, StructNlMsgHdr.NLM_F_DUMP))
+                NetlinkConstants.NL80211_CMD_GET_INTERFACE, StructNlMsgHdr.NLM_F_DUMP))
                 .thenReturn(Nl80211TestUtils.createTestMessage());
+    }
+
+    private Nl80211Native initNl80211Native(boolean useWificond) {
+        Nl80211Native nl80211Native =
+                new Nl80211Native(mNl80211Proxy, mWificondManager, useWificond);
+        nl80211Native.initialize();
+        return nl80211Native;
     }
 
     /** Test that {@link Nl80211Native#getInterfaceNames()} returns the expected value. */
     @Test
     public void testGetInterfaceNames_success_returnsInterfaceNames() {
+        mDut = initNl80211Native(false);
         GenericNetlinkMsg response = Nl80211TestUtils.createTestMessage();
-        response.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_IFNAME, "wlan0"));
+        response.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_IFNAME, IFACE_NAME));
         when(mNl80211Proxy.sendMessageAndReceiveResponses(any()))
                 .thenReturn(List.of(response));
         List<String> interfaceNames = mDut.getInterfaceNames();
-        assertEquals(interfaceNames, List.of("wlan0"));
+        assertEquals(List.of(IFACE_NAME), interfaceNames);
     }
 
     /** Test that {@link Nl80211Native#getInterfaceNames()} returns null if the response is null. */
     @Test
     public void testGetInterfaceNames_failedToReceiveResponses_returnsNull() {
+        mDut = initNl80211Native(false);
         when(mNl80211Proxy.sendMessageAndReceiveResponses(any())).thenReturn(null);
         List<String> interfaceNames = mDut.getInterfaceNames();
         assertNull(interfaceNames);
@@ -77,10 +122,390 @@ public class Nl80211NativeTest {
      */
     @Test
     public void testGetInterfaceNames_failedToCreateRequest_returnsNull() {
+        mDut = initNl80211Native(false);
         when(mNl80211Proxy.createNl80211Request(
-                        NetlinkConstants.NL80211_CMD_GET_INTERFACE, StructNlMsgHdr.NLM_F_DUMP))
+                NetlinkConstants.NL80211_CMD_GET_INTERFACE, StructNlMsgHdr.NLM_F_DUMP))
                 .thenReturn(null);
         List<String> interfaceNames = mDut.getInterfaceNames();
         assertNull(interfaceNames);
+    }
+
+    @Test
+    public void testSetupInterfaceForClientMode_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.setupInterfaceForClientMode(
+                IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback)).thenReturn(true);
+        assertTrue(mDut.setupInterfaceForClientMode(
+                IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+        verify(mWificondManager).setupInterfaceForClientMode(
+                IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback);
+    }
+
+    @Test
+    public void testSetupInterfaceForClientMode_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.setupInterfaceForClientMode(
+                        IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+    }
+
+    @Test
+    public void testTearDownClientInterface_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.tearDownClientInterface(IFACE_NAME)).thenReturn(true);
+        assertTrue(mDut.tearDownClientInterface(IFACE_NAME));
+        verify(mWificondManager).tearDownClientInterface(IFACE_NAME);
+    }
+
+    @Test
+    public void testTearDownClientInterface_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.tearDownClientInterface(IFACE_NAME));
+    }
+
+    @Test
+    public void testSetupInterfaceForSoftApMode_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.setupInterfaceForSoftApMode(IFACE_NAME)).thenReturn(true);
+        assertTrue(mDut.setupInterfaceForSoftApMode(IFACE_NAME));
+        verify(mWificondManager).setupInterfaceForSoftApMode(IFACE_NAME);
+    }
+
+    @Test
+    public void testSetupInterfaceForSoftApMode_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.setupInterfaceForSoftApMode(IFACE_NAME));
+    }
+
+    @Test
+    public void testTearDownSoftApInterface_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.tearDownSoftApInterface(IFACE_NAME)).thenReturn(true);
+        assertTrue(mDut.tearDownSoftApInterface(IFACE_NAME));
+        verify(mWificondManager).tearDownSoftApInterface(IFACE_NAME);
+    }
+
+    @Test
+    public void testTearDownSoftApInterface_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.tearDownSoftApInterface(IFACE_NAME));
+    }
+
+    @Test
+    public void testTearDownInterfaces_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.tearDownInterfaces()).thenReturn(true);
+        assertTrue(mDut.tearDownInterfaces());
+        verify(mWificondManager).tearDownInterfaces();
+    }
+
+    @Test
+    public void testTearDownInterfaces_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.tearDownInterfaces());
+    }
+
+    @Test
+    public void testRegisterWificondApCallback_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.registerApCallback(IFACE_NAME, mExecutor, mSoftApCallback))
+                .thenReturn(true);
+        assertTrue(mDut.registerWificondApCallback(IFACE_NAME, mExecutor, mSoftApCallback));
+        verify(mWificondManager).registerApCallback(IFACE_NAME, mExecutor, mSoftApCallback);
+    }
+
+    @Test
+    public void testRegisterWificondApCallback_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.registerWificondApCallback(IFACE_NAME, mExecutor, mSoftApCallback));
+    }
+
+    @Test
+    public void testStartScan_useWificondEnabled_callsWificond() {
+        assumeTrue(SdkLevel.isAtLeastU());
+
+        mDut = initNl80211Native(true);
+        Set<Integer> freqs = new HashSet<>(List.of(2412));
+        List<byte[]> ssids = new ArrayList<>();
+        Bundle extras = new Bundle();
+        when(mWificondManager.startScan2(
+                IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, freqs, ssids, extras))
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
+        assertEquals(WifiScanner.REASON_SUCCEEDED, mDut.startScan(
+                IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, freqs, ssids, extras));
+        verify(mWificondManager).startScan2(
+                IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, freqs, ssids, extras);
+    }
+
+    @Test
+    public void testStartScan_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class, () -> mDut.startScan(
+                IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null, null));
+    }
+
+    @Test
+    public void testStartScanPreU_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.startScan(anyString(), anyInt(), any(), any(), any()))
+                .thenReturn(true);
+        assertTrue(mDut.startScanPreU(IFACE_NAME, 0, null, null, null));
+        verify(mWificondManager).startScan(IFACE_NAME, 0, null, null, null);
+    }
+
+    @Test
+    public void testStartScanPreU_returnsFalse() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.startScanPreU(IFACE_NAME, 0, null, null, null));
+    }
+
+    @Test
+    public void testGetScanResults_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        List<NativeScanResult> expectedResults =
+                Collections.singletonList(new NativeScanResult());
+        when(mWificondManager.getScanResults(IFACE_NAME, 0)).thenReturn(expectedResults);
+        List<NativeScanResult> results = mDut.getScanResults(IFACE_NAME, 0);
+        assertNotNull(results);
+        assertEquals(expectedResults, results);
+        verify(mWificondManager).getScanResults(IFACE_NAME, 0);
+    }
+
+    @Test
+    public void testGetScanResults_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.getScanResults(IFACE_NAME, 0));
+    }
+
+    @Test
+    public void testStartPnoScan_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.startPnoScan(
+                IFACE_NAME, mPnoSettings, mExecutor, mPnoScanRequestCallback))
+                .thenReturn(true);
+        assertTrue(mDut.startPnoScan(
+                IFACE_NAME, mPnoSettings, mExecutor, mPnoScanRequestCallback));
+        verify(mWificondManager).startPnoScan(
+                IFACE_NAME, mPnoSettings, mExecutor, mPnoScanRequestCallback);
+    }
+
+    @Test
+    public void testStartPnoScan_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.startPnoScan(
+                        IFACE_NAME, mPnoSettings, mExecutor, mPnoScanRequestCallback));
+    }
+
+    @Test
+    public void testStopPnoScan_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.stopPnoScan(IFACE_NAME)).thenReturn(true);
+        assertTrue(mDut.stopPnoScan(IFACE_NAME));
+        verify(mWificondManager).stopPnoScan(IFACE_NAME);
+    }
+
+    @Test
+    public void testStopPnoScan_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.stopPnoScan(IFACE_NAME));
+    }
+
+    @Test
+    public void testAbortScan_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        mDut.abortScan(IFACE_NAME);
+        verify(mWificondManager).abortScan(IFACE_NAME);
+    }
+
+    @Test
+    public void testAbortScan_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class, () -> mDut.abortScan(IFACE_NAME));
+    }
+
+    @Test
+    public void testWificondSignalPoll_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        WifiNl80211Manager.SignalPollResult expectedResult =
+                mock(WifiNl80211Manager.SignalPollResult.class);
+        when(mWificondManager.signalPoll(IFACE_NAME)).thenReturn(expectedResult);
+        assertEquals(expectedResult, mDut.wificondSignalPoll(IFACE_NAME));
+        verify(mWificondManager).signalPoll(IFACE_NAME);
+    }
+
+    @Test
+    public void testWificondSignalPoll_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.wificondSignalPoll(IFACE_NAME));
+    }
+
+    @Test
+    public void testGetDeviceWiphyCapabilities_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities();
+        when(mWificondManager.getDeviceWiphyCapabilities(IFACE_NAME)).thenReturn(caps);
+        assertEquals(caps, mDut.getDeviceWiphyCapabilities(IFACE_NAME));
+        verify(mWificondManager).getDeviceWiphyCapabilities(IFACE_NAME);
+    }
+
+    @Test
+    public void testGetDeviceWiphyCapabilities_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.getDeviceWiphyCapabilities(IFACE_NAME));
+    }
+
+    @Test
+    public void testGetChannelsMhzForBand_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        int[] channels = {2412, 2417};
+        when(mWificondManager.getChannelsMhzForBand(anyInt())).thenReturn(channels);
+        assertArrayEquals(channels, mDut.getChannelsMhzForBand(0));
+        verify(mWificondManager).getChannelsMhzForBand(0);
+    }
+
+    @Test
+    public void testGetChannelsMhzForBand_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.getChannelsMhzForBand(0));
+    }
+
+    @Test
+    public void testGetTxPacketCounters_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        WifiNl80211Manager.TxPacketCounters counters =
+                new WifiNl80211Manager.TxPacketCounters(4, 2);
+        when(mWificondManager.getTxPacketCounters(IFACE_NAME)).thenReturn(counters);
+        Nl80211Native.TxPacketCounters result = mDut.getTxPacketCounters(IFACE_NAME);
+        verify(mWificondManager).getTxPacketCounters(IFACE_NAME);
+        assertEquals(4, result.txPacketSucceeded);
+        assertEquals(2, result.txPacketFailed);
+    }
+
+    @Test
+    public void testGetTxPacketCounters_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.getTxPacketCounters(IFACE_NAME));
+    }
+
+    @Test
+    public void testGetMaxSsidsPerScan_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.getMaxSsidsPerScan(IFACE_NAME)).thenReturn(16);
+        assertEquals(16, mDut.getMaxSsidsPerScan(IFACE_NAME));
+        verify(mWificondManager).getMaxSsidsPerScan(IFACE_NAME);
+    }
+
+    @Test
+    public void testGetMaxSsidsPerScan_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.getMaxSsidsPerScan(IFACE_NAME));
+    }
+
+    @Test
+    public void testSendMgmtFrame_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        byte[] frame = new byte[1];
+        mDut.sendMgmtFrame(IFACE_NAME, frame, 0, mExecutor, mSendMgmtFrameCallback);
+        verify(mWificondManager).sendMgmtFrame(
+                eq(IFACE_NAME), eq(frame), eq(0), eq(mExecutor),
+                eq(mSendMgmtFrameCallback));
+    }
+
+    @Test
+    public void testSendMgmtFrame_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.sendMgmtFrame(
+                        IFACE_NAME, new byte[1], 0, mExecutor, mSendMgmtFrameCallback));
+    }
+
+    @Test
+    public void testRegisterCountryCodeChangedListener_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        when(mWificondManager.registerCountryCodeChangedListener(
+                mExecutor, mCountryCodeChangedListener)).thenReturn(true);
+        assertTrue(mDut.registerCountryCodeChangedListener(
+                mExecutor, mCountryCodeChangedListener));
+        verify(mWificondManager).registerCountryCodeChangedListener(
+                mExecutor, mCountryCodeChangedListener);
+    }
+
+    @Test
+    public void testRegisterCountryCodeChangedListener_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.registerCountryCodeChangedListener(
+                        mExecutor, mCountryCodeChangedListener));
+    }
+
+    @Test
+    public void testUnregisterCountryCodeChangedListener_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        mDut.unregisterCountryCodeChangedListener(mCountryCodeChangedListener);
+        verify(mWificondManager).unregisterCountryCodeChangedListener(
+                mCountryCodeChangedListener);
+    }
+
+    @Test
+    public void testUnregisterCountryCodeChangedListener_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.unregisterCountryCodeChangedListener(mCountryCodeChangedListener));
+    }
+
+    @Test
+    public void testNotifyCountryCodeChanged_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        mDut.notifyCountryCodeChanged(COUNTRY_CODE);
+        verify(mWificondManager).notifyCountryCodeChanged(COUNTRY_CODE);
+    }
+
+    @Test
+    public void testNotifyCountryCodeChanged_throwsException() {
+        mDut = initNl80211Native(false);
+        assertThrows(UnsupportedOperationException.class,
+                () -> mDut.notifyCountryCodeChanged(COUNTRY_CODE));
+    }
+
+    @Test
+    public void testSetWificondOnServiceDeadCallback_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        mDut.setWificondOnServiceDeadCallback(mDeathEventHandler);
+        verify(mWificondManager).setOnServiceDeadCallback(mDeathEventHandler);
+    }
+
+    @Test
+    public void testSetWificondOnServiceDeadCallback_doesNotCallWificond() {
+        mDut = initNl80211Native(false);
+        mDut.setWificondOnServiceDeadCallback(mDeathEventHandler);
+        verify(mWificondManager, never()).setOnServiceDeadCallback(any());
+    }
+
+    @Test
+    public void testEnableVerboseLogging_useWificondEnabled_callsWificond() {
+        mDut = initNl80211Native(true);
+        mDut.enableVerboseLogging(true);
+        verify(mWificondManager).enableVerboseLogging(true);
+    }
+
+    @Test
+    public void testEnableVerboseLogging_doesNotCallWificond() {
+        mDut = initNl80211Native(false);
+        mDut.enableVerboseLogging(true);
+        verify(mWificondManager, never()).enableVerboseLogging(anyBoolean());
     }
 }
