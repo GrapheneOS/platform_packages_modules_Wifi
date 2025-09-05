@@ -46,6 +46,7 @@ import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
 import android.net.wifi.IActionListener;
 import android.net.wifi.ILocalOnlyConnectionStatusListener;
+import android.net.wifi.ILocalOnlyDisconnectionStatusListener;
 import android.net.wifi.INetworkRequestMatchCallback;
 import android.net.wifi.INetworkRequestUserSelectionCallback;
 import android.net.wifi.ScanResult;
@@ -204,6 +205,8 @@ public class WifiNetworkFactory extends NetworkFactory {
     private final HashMap<String, RemoteCallbackList<ILocalOnlyConnectionStatusListener>>
             mLocalOnlyStatusListenerPerApp = new HashMap<>();
     private final HashMap<String, String> mFeatureIdPerApp = new HashMap<>();
+    private final HashMap<String, RemoteCallbackList<ILocalOnlyDisconnectionStatusListener>>
+            mLocalOnlyDisconnectionStatusListenerPerApp = new HashMap<>();
     private boolean mShouldTriggerScanImmediately = false;
 
     /**
@@ -2129,6 +2132,36 @@ public class WifiNetworkFactory extends NetworkFactory {
         if (listenersTracker != null && listenersTracker.getRegisteredCallbackCount() == 0) {
             mLocalOnlyStatusListenerPerApp.remove(packageName);
             mFeatureIdPerApp.remove(packageName);
+        }
+    }
+
+    /**
+     * Add a listener to get the disconnection of the local-only conncetion
+     */
+    public void addLocalOnlyDisconnectionStatusListener(
+            @NonNull ILocalOnlyDisconnectionStatusListener listener, String packageName) {
+        RemoteCallbackList<ILocalOnlyDisconnectionStatusListener> listenersTracker =
+                mLocalOnlyDisconnectionStatusListenerPerApp.get(packageName);
+        if (listenersTracker == null) {
+            listenersTracker = new RemoteCallbackList<>();
+        }
+        listenersTracker.register(listener);
+        mLocalOnlyDisconnectionStatusListenerPerApp.put(packageName, listenersTracker);
+    }
+
+    /**
+     * Remove a listener which added before
+     */
+    public void removeLocalOnlyDisconnectionStatusListener(
+            @NonNull ILocalOnlyDisconnectionStatusListener listener, String packageName) {
+        RemoteCallbackList<ILocalOnlyDisconnectionStatusListener> listenersTracker =
+                mLocalOnlyDisconnectionStatusListenerPerApp.get(packageName);
+        if (listenersTracker == null || !listenersTracker.unregister(listener)) {
+            Log.w(TAG, "removeLocalOnlyDisconnectionStatusListener: Listener from " + packageName
+                    + " already unregister.");
+        }
+        if (listenersTracker != null && listenersTracker.getRegisteredCallbackCount() == 0) {
+            mLocalOnlyStatusListenerPerApp.remove(packageName);
         }
     }
 

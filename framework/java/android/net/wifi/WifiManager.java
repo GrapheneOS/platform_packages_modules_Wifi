@@ -34,6 +34,7 @@ import android.annotation.IntDef;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.RequiresNoPermission;
 import android.annotation.RequiresPermission;
 import android.annotation.RestrictedForEnvironment;
 import android.annotation.SdkConstant;
@@ -369,6 +370,59 @@ public class WifiManager {
             })
     @Retention(RetentionPolicy.SOURCE)
     public @interface LocalOnlyConnectionStatusCode {}
+
+    /**
+     * Generic disconnection reason
+     * @hide
+     */
+    @SystemApi
+    @FlaggedApi(Flags.FLAG_LOCAL_ONLY_DISCONNECT_REASON)
+    public static final int STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN = 0;
+
+
+    /**
+     * Disconnect caused by {@link #disconnect()} being called.
+     * @hide
+     */
+    @SystemApi
+    @FlaggedApi(Flags.FLAG_LOCAL_ONLY_DISCONNECT_REASON)
+    public static final int STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API = 1;
+
+
+    /**
+     * Disconnecting due to connection to initiated to another network.
+     * @hide
+     */
+    @SystemApi
+    @FlaggedApi(Flags.FLAG_LOCAL_ONLY_DISCONNECT_REASON)
+    public static final int STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION = 2;
+
+    /**
+     * Disconnect because Wi-Fi is being disabled.
+     * @hide
+     */
+    @SystemApi
+    @FlaggedApi(Flags.FLAG_LOCAL_ONLY_DISCONNECT_REASON)
+    public static final int STATUS_LOCAL_ONLY_DISCONNECTION_DISABLE_WIFI = 3;
+
+    /**
+     * Disconnect because Wi-Fi is being disabled as a result of airplane mode getting turned on.
+     * @hide
+     */
+    @SystemApi
+    @FlaggedApi(Flags.FLAG_LOCAL_ONLY_DISCONNECT_REASON)
+    public static final int STATUS_LOCAL_ONLY_DISCONNECTION_AIRPLANE_MODE_ON = 4;
+
+    /** @hide */
+    @IntDef(prefix = {"STATUS_LOCAL_ONLY_DISCONNECTION_"},
+            value = {STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN,
+                    STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API,
+                    STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION,
+                    STATUS_LOCAL_ONLY_DISCONNECTION_DISABLE_WIFI,
+                    STATUS_LOCAL_ONLY_DISCONNECTION_AIRPLANE_MODE_ON
+            })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface LocalOnlyDisconnectionStatusCode {}
 
     /**
      * Status code if suggestion approval status is unknown, an App which hasn't made any
@@ -2145,6 +2199,8 @@ public class WifiManager {
             sLocalOnlyHotspotSoftApCallbackMap = new SparseArray();
     private static final SparseArray<ILocalOnlyConnectionStatusListener>
             sLocalOnlyConnectionStatusListenerMap = new SparseArray();
+    private static final SparseArray<ILocalOnlyDisconnectionStatusListener>
+            sLocalOnlyDisconnectionStatusListenerMap = new SparseArray();
     private static final SparseArray<IWifiNetworkStateChangedListener>
             sOnWifiNetworkStateChangedListenerMap = new SparseArray<>();
     private static final SparseArray<IWifiLowLatencyLockListener>
@@ -10443,6 +10499,47 @@ public class WifiManager {
     }
 
     /**
+     * Interface for local-only connection failure listener.
+     * Should be implemented by applications and set when calling
+     * {@link WifiManager#addLocalOnlyDisconnectionStatusListener(Executor, LocalOnlyDisconnectionStatusListener)}
+     * @hide
+     */
+    @SystemApi
+    @FlaggedApi(Flags.FLAG_LOCAL_ONLY_DISCONNECT_REASON)
+    public interface LocalOnlyDisconnectionStatusListener {
+
+        /**
+         * Called when the local-only network requested by the registered app is disconnecting.
+         * @param networkSpecifier The {@link WifiNetworkSpecifier} which is disconnecting
+         * @param isTriggeredByUser true if the disconnect is triggered by the user; false otherwise
+         * @param reason the disconnection reason code.
+         */
+        void onDisconnectionStatus(@NonNull WifiNetworkSpecifier networkSpecifier,
+                boolean isTriggeredByUser, @LocalOnlyDisconnectionStatusCode int reason);
+    }
+
+    private static class LocalOnlyDisconnectionStatusListenerProxy extends
+            ILocalOnlyDisconnectionStatusListener.Stub {
+        private final Executor mExecutor;
+        private final LocalOnlyDisconnectionStatusListener mListener;
+
+        LocalOnlyDisconnectionStatusListenerProxy(@NonNull Executor executor,
+                @NonNull LocalOnlyDisconnectionStatusListener listener) {
+            mExecutor = executor;
+            mListener = listener;
+        }
+
+        @Override
+        @RequiresNoPermission
+        public void onDisconnectionStatus(WifiNetworkSpecifier wifiNetworkSpecifier,
+                boolean isTriggeredByUser, int reason) {
+            Binder.clearCallingIdentity();
+            mExecutor.execute(() -> mListener.onDisconnectionStatus(wifiNetworkSpecifier,
+                    isTriggeredByUser, reason));
+        }
+    }
+
+    /**
      * Add a listener listening to wifi verbose logging changes.
      * See {@link WifiVerboseLoggingStatusChangedListener}.
      * Caller can remove a previously registered listener using
@@ -10588,6 +10685,79 @@ public class WifiManager {
                         sSuggestionConnectionStatusListenerMap.get(listenerIdentifier),
                         mContext.getOpPackageName());
                 sSuggestionConnectionStatusListenerMap.remove(listenerIdentifier);
+            }
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * For privileged apps to add a listener to get notified when their local-only networks
+     * disconnect. See {@link WifiNetworkSpecifier}.
+     * <p>
+     * Applications will only receive callback only for their own requested networks, matching based
+     * on package name and userId.
+     *
+     * @param executor The executor to execute the listener of the {@code listener} object.
+     * @param listener listener to get disconnection status.
+     * @throws SecurityException if the caller is not allowed to call this API
+     * @hide
+     */
+    @SystemApi
+    @FlaggedApi(Flags.FLAG_LOCAL_ONLY_DISCONNECT_REASON)
+    @RequiresPermission(allOf = {ACCESS_WIFI_STATE,
+            REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION})
+    public void addLocalOnlyDisconnectionStatusListener(
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull LocalOnlyDisconnectionStatusListener listener) {
+        Objects.requireNonNull(listener, "Listener cannot be null");
+        Objects.requireNonNull(executor, "Executor cannot be null");
+        try {
+            synchronized (sLocalOnlyDisconnectionStatusListenerMap) {
+                if (sLocalOnlyDisconnectionStatusListenerMap
+                        .contains(System.identityHashCode(listener))) {
+                    Log.w(TAG, "Same listener already registered");
+                    return;
+                }
+                ILocalOnlyDisconnectionStatusListener.Stub binderCallback =
+                        new LocalOnlyDisconnectionStatusListenerProxy(executor, listener);
+                sLocalOnlyDisconnectionStatusListenerMap.put(System.identityHashCode(listener),
+                        binderCallback);
+                mService.addLocalOnlyDisconnectionStatusListener(binderCallback,
+                        mContext.getOpPackageName());
+            }
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Allows a privileged app to unregister a callback previously registered with
+     * {@link #addLocalOnlyDisconnectionStatusListener(Executor,
+     * LocalOnlyDisconnectionStatusListener)}
+     *
+     * @param listener the listener to remove.
+     * @throws SecurityException if the caller is not allowed to call this API
+     * @hide
+     */
+    @SystemApi
+    @FlaggedApi(Flags.FLAG_LOCAL_ONLY_DISCONNECT_REASON)
+    @RequiresPermission(allOf = {ACCESS_WIFI_STATE,
+            REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION})
+    public void removeLocalOnlyDisconnectionStatusListener(
+            @NonNull LocalOnlyDisconnectionStatusListener listener) {
+        Objects.requireNonNull(listener, "Listener cannot be null");
+        try {
+            synchronized (sLocalOnlyDisconnectionStatusListenerMap) {
+                int listenerIdentifier = System.identityHashCode(listener);
+                if (!sLocalOnlyDisconnectionStatusListenerMap.contains(listenerIdentifier)) {
+                    Log.w(TAG, "Unknown external listener " + listenerIdentifier);
+                    return;
+                }
+                mService.removeLocalOnlyDisconnectionStatusListener(
+                        sLocalOnlyDisconnectionStatusListenerMap.get(listenerIdentifier),
+                        mContext.getOpPackageName());
+                sLocalOnlyDisconnectionStatusListenerMap.remove(listenerIdentifier);
             }
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();

@@ -760,6 +760,7 @@ package android.net.wifi {
   }
 
   @RestrictedForEnvironment(environments=android.annotation.RestrictedForEnvironment.ENVIRONMENT_SDK_RUNTIME, from=android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) public class WifiManager {
+    method @FlaggedApi("com.android.wifi.flags.local_only_disconnect_reason") @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION}) public void addLocalOnlyDisconnectionStatusListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.LocalOnlyDisconnectionStatusListener);
     method @RequiresPermission(android.Manifest.permission.WIFI_UPDATE_USABILITY_STATS_SCORE) public void addOnWifiUsabilityStatsListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.OnWifiUsabilityStatsListener);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addQosPolicies(@NonNull java.util.List<android.net.wifi.QosPolicyParams>, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.util.List<java.lang.Integer>>);
     method @FlaggedApi("com.android.wifi.flags.restrict_autojoin_callback_api") @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void addRestrictAutoJoinToSubIdCallback(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.RestrictAutoJoinToSubIdCallback);
@@ -838,6 +839,7 @@ package android.net.wifi {
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void registerTrafficStateCallback(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.TrafficStateCallback);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void removeAllQosPolicies();
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void removeAppState(int, @NonNull String);
+    method @FlaggedApi("com.android.wifi.flags.local_only_disconnect_reason") @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION}) public void removeLocalOnlyDisconnectionStatusListener(@NonNull android.net.wifi.WifiManager.LocalOnlyDisconnectionStatusListener);
     method @RequiresPermission(android.Manifest.permission.WIFI_UPDATE_USABILITY_STATS_SCORE) public void removeOnWifiUsabilityStatsListener(@NonNull android.net.wifi.WifiManager.OnWifiUsabilityStatsListener);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void removeQosPolicies(@NonNull int[]);
     method @FlaggedApi("com.android.wifi.flags.restrict_autojoin_callback_api") @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void removeRestrictAutoJoinToSubIdCallback(@NonNull android.net.wifi.WifiManager.RestrictAutoJoinToSubIdCallback);
@@ -1007,6 +1009,11 @@ package android.net.wifi {
     field public static final int SAP_START_FAILURE_NO_CHANNEL = 1; // 0x1
     field public static final int SAP_START_FAILURE_UNSUPPORTED_CONFIGURATION = 2; // 0x2
     field public static final int SAP_START_FAILURE_USER_REJECTED = 3; // 0x3
+    field @FlaggedApi("com.android.wifi.flags.local_only_disconnect_reason") public static final int STATUS_LOCAL_ONLY_DISCONNECTION_AIRPLANE_MODE_ON = 4; // 0x4
+    field @FlaggedApi("com.android.wifi.flags.local_only_disconnect_reason") public static final int STATUS_LOCAL_ONLY_DISCONNECTION_DISABLE_WIFI = 3; // 0x3
+    field @FlaggedApi("com.android.wifi.flags.local_only_disconnect_reason") public static final int STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API = 1; // 0x1
+    field @FlaggedApi("com.android.wifi.flags.local_only_disconnect_reason") public static final int STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION = 2; // 0x2
+    field @FlaggedApi("com.android.wifi.flags.local_only_disconnect_reason") public static final int STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN = 0; // 0x0
     field @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public static final String TWT_CAPABILITIES_KEY_BOOLEAN_TWT_REQUESTER = "key_requester";
     field @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public static final String TWT_CAPABILITIES_KEY_INT_MAX_WAKE_DURATION_MICROS = "key_max_wake_duration";
     field @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public static final String TWT_CAPABILITIES_KEY_INT_MIN_WAKE_DURATION_MICROS = "key_min_wake_duration";
@@ -1045,6 +1052,10 @@ package android.net.wifi {
   public abstract static class WifiManager.CoexCallback {
     ctor public WifiManager.CoexCallback();
     method public abstract void onCoexUnsafeChannelsChanged(@NonNull java.util.List<android.net.wifi.CoexUnsafeChannel>, int);
+  }
+
+  @FlaggedApi("com.android.wifi.flags.local_only_disconnect_reason") public static interface WifiManager.LocalOnlyDisconnectionStatusListener {
+    method public void onDisconnectionStatus(@NonNull android.net.wifi.WifiNetworkSpecifier, boolean, int);
   }
 
   public static interface WifiManager.NetworkRequestMatchCallback {

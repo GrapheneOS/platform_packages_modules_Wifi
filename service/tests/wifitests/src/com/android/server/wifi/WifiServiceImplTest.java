@@ -163,6 +163,7 @@ import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.ILocalOnlyConnectionStatusListener;
+import android.net.wifi.ILocalOnlyDisconnectionStatusListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.IMacAddressListListener;
 import android.net.wifi.IMapListener;
@@ -467,6 +468,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock IScanResultsCallback mScanResultsCallback;
     @Mock ISuggestionConnectionStatusListener mSuggestionConnectionStatusListener;
     @Mock ILocalOnlyConnectionStatusListener mLocalOnlyConnectionStatusListener;
+    @Mock ILocalOnlyDisconnectionStatusListener mLocalOnlyDisconnectionStatusListener;
     @Mock ISuggestionUserApprovalStatusListener mSuggestionUserApprovalStatusListener;
     @Mock IOnWifiActivityEnergyInfoListener mOnWifiActivityEnergyInfoListener;
     @Mock ISubsystemRestartCallback mSubsystemRestartCallback;
@@ -12253,6 +12255,56 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 any(), anyBoolean(), any());
         assertThrows(SecurityException.class,
                 () -> mWifiServiceImpl.getChannelData(listener, TEST_PACKAGE_NAME, mExtras));
+    }
+
+    @Test
+    public void testAddLocalOnlyDisconnectionStatusListener() {
+        // Verify null not accepted for addLocalOnlyDisconnectionStatusListener
+        assertThrows(NullPointerException.class, () -> mWifiServiceImpl
+                .addLocalOnlyDisconnectionStatusListener(null, TEST_PACKAGE_NAME));
+        assertThrows(NullPointerException.class, () -> mWifiServiceImpl
+                .addLocalOnlyDisconnectionStatusListener(mLocalOnlyDisconnectionStatusListener,
+                        null));
+
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(false);
+        assertThrows(SecurityException.class, () -> mWifiServiceImpl
+                .addLocalOnlyDisconnectionStatusListener(mLocalOnlyDisconnectionStatusListener,
+                        TEST_PACKAGE_NAME));
+
+        // verify addLocalOnlyDisconnectionStatusListener callable with permission
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(true);
+        mWifiServiceImpl.addLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkFactory).addLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME);
+    }
+
+    @Test
+    public void testRemoveLocalOnlyDisconnectionStatusListener() {
+        // Verify null not accepted for removeLocalOnlyDisconnectionStatusListener
+        assertThrows(NullPointerException.class, () -> mWifiServiceImpl
+                .removeLocalOnlyDisconnectionStatusListener(null, TEST_PACKAGE_NAME));
+        assertThrows(NullPointerException.class, () -> mWifiServiceImpl
+                .removeLocalOnlyDisconnectionStatusListener(mLocalOnlyDisconnectionStatusListener,
+                        null));
+
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(false);
+        assertThrows(SecurityException.class, () -> mWifiServiceImpl
+                .removeLocalOnlyDisconnectionStatusListener(mLocalOnlyDisconnectionStatusListener,
+                        TEST_PACKAGE_NAME));
+
+        // verify removeLocalOnlyDisconnectionStatusListener callable with permission
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(true);
+        mWifiServiceImpl.removeLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkFactory).removeLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME);
     }
 
     /**

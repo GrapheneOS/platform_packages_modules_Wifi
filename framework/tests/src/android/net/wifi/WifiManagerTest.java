@@ -217,6 +217,8 @@ public class WifiManagerTest {
     @Mock SuggestionConnectionStatusListener mSuggestionConnectionListener;
     @Mock
     WifiManager.LocalOnlyConnectionFailureListener mLocalOnlyConnectionFailureListener;
+    @Mock
+    WifiManager.LocalOnlyDisconnectionStatusListener mLocalOnlyDisconnectionStatusListener;
     @Mock Runnable mRunnable;
     @Mock Executor mExecutor;
     @Mock Executor mAnotherExecutor;
@@ -4159,7 +4161,7 @@ public class WifiManagerTest {
     }
 
     @Test
-    public void testAddRemoveLocaOnlyConnectionListener() throws RemoteException {
+    public void testAddRemoveLocalOnlyConnectionListener() throws RemoteException {
         assertThrows(IllegalArgumentException.class, () -> mWifiManager
                 .addLocalOnlyConnectionFailureListener(null, mLocalOnlyConnectionFailureListener));
         assertThrows(IllegalArgumentException.class, () -> mWifiManager
@@ -4170,6 +4172,27 @@ public class WifiManagerTest {
                 nullable(String.class));
         mWifiManager.removeLocalOnlyConnectionFailureListener(mLocalOnlyConnectionFailureListener);
         verify(mWifiService).removeLocalOnlyConnectionStatusListener(any(), eq(TEST_PACKAGE_NAME));
+    }
+
+    @Test
+    public void testAddRemoveLocalOnlyDisconnectionListener() throws RemoteException {
+        // test addLocalOnlyDisconnectionStatusListener
+        assertThrows(NullPointerException.class, () -> mWifiManager
+                .addLocalOnlyDisconnectionStatusListener(null,
+                        mLocalOnlyDisconnectionStatusListener));
+        assertThrows(NullPointerException.class, () -> mWifiManager
+                .addLocalOnlyDisconnectionStatusListener(mExecutor, null));
+        mWifiManager.addLocalOnlyDisconnectionStatusListener(mExecutor,
+                mLocalOnlyDisconnectionStatusListener);
+        verify(mWifiService).addLocalOnlyDisconnectionStatusListener(any(), eq(TEST_PACKAGE_NAME));
+
+        // test removeLocalOnlyDisconnectionStatusListener
+        assertThrows(NullPointerException.class, () -> mWifiManager
+                .removeLocalOnlyDisconnectionStatusListener(null));
+        mWifiManager.removeLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener);
+        verify(mWifiService).removeLocalOnlyDisconnectionStatusListener(any(),
+                eq(TEST_PACKAGE_NAME));
     }
 
     /**

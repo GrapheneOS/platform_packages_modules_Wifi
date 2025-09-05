@@ -449,6 +449,14 @@ flag {
 }
 
 flag {
+    name: "local_only_disconnect_reason"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to get local-only connection disconnect reason"
+    bug: "440270888"
+}
+
+flag {
     name: "ml_scorer_in_wifi_fw"
     namespace: "wifi"
     description: "Add ML scorer into Wi-Fi framework"

@@ -118,6 +118,7 @@ import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.ILocalOnlyConnectionStatusListener;
+import android.net.wifi.ILocalOnlyDisconnectionStatusListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.IMacAddressListListener;
 import android.net.wifi.IMapListener;
@@ -7918,6 +7919,61 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 TAG + "#removeLocalOnlyConnectionStatusListener");
     }
 
+    /**
+     * See {@link WifiManager#addLocalOnlyDisconnectionStatusListener(Executor,
+     * WifiManager.LocalOnlyDisconnectionStatusListener)}
+     */
+    @Override
+    public void addLocalOnlyDisconnectionStatusListener(
+            @NonNull ILocalOnlyDisconnectionStatusListener listener, @NonNull String packageName) {
+        Objects.requireNonNull(listener, "Listener must not be null");
+        Objects.requireNonNull(packageName, "packageName must not be null");
+        enforceAccessPermission();
+        int uid = Binder.getCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, packageName);
+        if (!mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(uid)) {
+            throw new SecurityException("UID " + uid + " has no permission to access API");
+        }
+        long callingIdentity = Binder.clearCallingIdentity();
+        try {
+            if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(uid)) {
+                Log.e(TAG, "UID " + uid + " not visible to the current user");
+                throw new SecurityException("UID " + uid + " not visible to the current user");
+            }
+        } finally {
+            // restore calling identity
+            Binder.restoreCallingIdentity(callingIdentity);
+        }
+        if (mVerboseLoggingEnabled) {
+            mLog.info("addLocalOnlyDisconnectionStatusListener uid=%")
+                    .c(uid).flush();
+        }
+        mWifiThreadRunner.post(() -> mWifiNetworkFactory.addLocalOnlyDisconnectionStatusListener(
+                listener, packageName), TAG + "#addLocalOnlyDisconnectionStatusListener");
+    }
+
+    /**
+     * See {@link WifiManager#removeLocalOnlyDisconnectionStatusListener(
+     * WifiManager.LocalOnlyDisconnectionStatusListener)}
+     */
+    @Override
+    public void removeLocalOnlyDisconnectionStatusListener(
+            @NonNull ILocalOnlyDisconnectionStatusListener listener, @NonNull String packageName) {
+        Objects.requireNonNull(listener, "Listener must not be null");
+        Objects.requireNonNull(packageName, "packageName must not be null");
+        enforceAccessPermission();
+        int uid = Binder.getCallingUid();
+        mWifiPermissionsUtil.checkPackage(uid, packageName);
+        if (!mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(uid)) {
+            throw new SecurityException("UID " + uid + " has no permission to access API");
+        }
+        if (mVerboseLoggingEnabled) {
+            mLog.info("removeLocalOnlyDisconnectionStatusListener uid=%")
+                    .c(uid).flush();
+        }
+        mWifiThreadRunner.post(() -> mWifiNetworkFactory.removeLocalOnlyDisconnectionStatusListener(
+                listener, packageName), TAG + "#removeLocalOnlyDisconnectionStatusListener");
+    }
     @Override
     public int calculateSignalLevel(int rssi) {
         return RssiUtil.calculateSignalLevel(mContext, rssi);
