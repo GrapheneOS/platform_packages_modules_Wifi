@@ -124,3 +124,26 @@ python_test_host {
         },
     },
 }
+
+python_test_host {
+    name: "WifiP2pThroughputTest",
+    main: "wifi_p2p_throughput_test.py",
+    srcs: [
+        "wifi_p2p_throughput_test.py",
+    ],
+    libs: [
+        "aware_lib_utils",
+        "mobly",
+        "wifi_direct_constants",
+        "wifi_direct_test_utils",
+        "wifi_p2p_lib",
+        "wifi_test_utils",
+        "platform-test-py-annotations",
+    ],
+    device_common_data: [":wifi_mobly_snippet"],
+    test_options: {
+        unit_test: false,
+        tags: ["mobly"],
+    },
+    test_suites: ["general-tests"],
+}
