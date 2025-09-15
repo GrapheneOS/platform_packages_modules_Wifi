@@ -102,6 +102,7 @@ import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -113,6 +114,8 @@ import org.mockito.quality.Strictness;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -417,6 +420,52 @@ public class RttServiceImplTest extends WifiBaseTest {
                 WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
         verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
+                mAlarmManager.getAlarmManager());
+    }
+
+    /**
+     * Validate a downgraded secure ranging flow.
+     */
+    @Test
+    public void testSecureRangingDowngrade() throws RemoteException {
+        // Reset RTT controller capabilities.
+        mDut.setRttCapabilitiesForTest(null);
+        RangingRequest request = RttTestUtils.getDummySecureRangingRequest(
+                RangingRequest.SECURITY_MODE_OPPORTUNISTIC);
+        mWifiConfiguration.preSharedKey = "TEST_PASSWORD";
+        WifiSsid ssid = request.mRttPeers.get(
+                1).getSecureRangingConfig().getPasnConfig().getWifiSsid();
+        when(mWifiConfigManager.getConfiguredNetworkWithPassword(eq(ssid),
+                eq(WifiConfiguration.SECURITY_TYPE_SAE))).thenReturn(mWifiConfiguration);
+        when(mSsidTranslator.getTranslatedSsid(eq(ssid))).thenReturn(ssid);
+
+        // Make sure the second peer is configured with no password for SAE.
+        assertNull(request.mRttPeers.get(1).getSecureRangingConfig().getPasnConfig().getPassword());
+
+        ClockAnswer clock = new ClockAnswer();
+        doAnswer(clock).when(mockClock).getWallClockMillis();
+        clock.time = 100;
+        mDut.startRanging(mockIbinder, mPackageName, mFeatureId, null, request, mockCallback,
+                mExtras);
+        mMockLooper.dispatchAll();
+        verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), mRequestCaptor.capture());
+        verifyWakeupSet(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, 0);
+        // Verify the timeout was set to default value HAL_RANGING_TIMEOUT_MS
+        RangingRequest halRequest = mRequestCaptor.getValue();
+        assertNotEquals("Request to WifiRttController is not null", null, halRequest);
+        assertEquals("Size of request", request.mRttPeers.size(), halRequest.mRttPeers.size());
+
+        // Verify ranging results are processed correctly
+        Pair<List<RangingResult>, List<RangingResult>> resultsPair = getDummyRangingResults(
+                halRequest);
+        mRangingResultsCbCaptor.getValue().onRangingResults(mIntCaptor.getValue(),
+                resultsPair.second);
+        mMockLooper.dispatchAll();
+        verify(mockCallback).onRangingResults(mListCaptor.capture());
+        assertTrue(compareListContentsNoOrdering(resultsPair.second, mListCaptor.getValue()));
+
+        verifyWakeupCancelled();
+        verifyNoMoreInteractions(mockRttControllerHal, mockCallback,
                 mAlarmManager.getAlarmManager());
     }
 
@@ -1772,5 +1821,179 @@ public class RttServiceImplTest extends WifiBaseTest {
         public long answer() {
             return time;
         }
+    }
+
+    @Mock
+    WifiRttController.Capabilities mMockCapabilities;
+
+    /**
+     * Helper to create a mock ResponderConfig.
+     */
+    private ResponderConfig createMockResponderConfig(int type, boolean is80211azNtbSupported,
+            long ntbMaxTimeMicros) {
+        ResponderConfig mockConfig = mock(ResponderConfig.class);
+        when(mockConfig.getResponderType()).thenReturn(type);
+        when(mockConfig.is80211azNtbSupported()).thenReturn(is80211azNtbSupported);
+        when(mockConfig.getNtbMaxTimeBetweenMeasurementsMicros()).thenReturn(ntbMaxTimeMicros);
+        return mockConfig;
+    }
+
+    @Test
+    public void calculateTimeout_emptyResponderList_returnsBaseTimeout() {
+        List<ResponderConfig> responders = Collections.emptyList();
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_nullResponderList_returnsBaseTimeout() {
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(null, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_noSpecialResponders_returnsBaseTimeout() {
+        ResponderConfig normalResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP,
+                false, 0); // Assuming RESPONDER_AP is a valid type
+        List<ResponderConfig> responders = Collections.singletonList(normalResponder);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_oneAwareResponder_returnsAwareTimeout() {
+        ResponderConfig awareResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AWARE,
+                false, 0);
+        List<ResponderConfig> responders = Collections.singletonList(awareResponder);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_awareAndNormalResponders_returnsAwareTimeout() {
+        ResponderConfig awareResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AWARE,
+                false, 0);
+        ResponderConfig normalResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP,
+                false, 0);
+        List<ResponderConfig> responders = Arrays.asList(normalResponder, awareResponder);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_ntbSupported_ntbResponder_returnsNtbTimeout() {
+        mMockCapabilities.ntbInitiatorSupported = true;
+        long ntbTimeMicros = 15000_000; // 15 seconds
+        long ntbTimeMillis = ntbTimeMicros / 1000;
+
+        ResponderConfig ntbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP, true,
+                ntbTimeMicros);
+        List<ResponderConfig> responders = Collections.singletonList(ntbResponder);
+
+        long expectedTimeout = Math.max(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, ntbTimeMillis);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        assertEquals(expectedTimeout, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_ntbNotSupportedByInitiator_ntbResponder_returnsBaseTimeout() {
+        mMockCapabilities.ntbInitiatorSupported = false; // Initiator doesn't
+        // support NTB
+        long ntbTimeMicros = 15000_000; // 15 seconds
+
+        ResponderConfig ntbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP, true,
+                ntbTimeMicros); // Responder supports NTB
+        List<ResponderConfig> responders = Collections.singletonList(ntbResponder);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeout); // Should fallback
+        // to base
+    }
+
+    @Test
+    public void calculateTimeout_ntbSupported_ntbResponderNotSupported_returnsBaseTimeout() {
+        mMockCapabilities.ntbInitiatorSupported = true;
+        long ntbTimeMicros = 15000_000; // 15 seconds
+
+        ResponderConfig nonNtbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP,
+                false, ntbTimeMicros); // Responder doesn't support
+        // NTB
+        List<ResponderConfig> responders = Collections.singletonList(nonNtbResponder);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeout); // Should fallback
+        // to base
+    }
+
+    @Test
+    public void calculateTimeout_awareAndNtbResponders_ntbHigher_returnsNtbTimeout() {
+        mMockCapabilities.ntbInitiatorSupported = true;
+        long ntbTimeMicros =
+                (RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS + 1000) * 1000; // NTB time >
+        // Aware time
+        long ntbTimeMillis = ntbTimeMicros / 1000;
+
+        ResponderConfig awareResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AWARE,
+                false, 0);
+        ResponderConfig ntbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP, true,
+                ntbTimeMicros);
+        List<ResponderConfig> responders = Arrays.asList(awareResponder, ntbResponder);
+
+        long expectedTimeout = Math.max(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, ntbTimeMillis);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        assertEquals(expectedTimeout, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_awareAndNtbResponders_awareHigher_returnsAwareTimeout() {
+        mMockCapabilities.ntbInitiatorSupported = true;
+        // NTB time < Aware time (after conversion to ms)
+        long ntbTimeMicros = (RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS - 1000) * 1000;
+        if (ntbTimeMicros < 0) {
+            ntbTimeMicros = RttServiceImpl.HAL_RANGING_TIMEOUT_MS * 500; // ensure
+        }
+        // positive and smaller
+        long ntbTimeMillis = ntbTimeMicros / 1000;
+
+
+        ResponderConfig awareResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AWARE,
+                false, 0);
+        ResponderConfig ntbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP, true,
+                ntbTimeMicros);
+        List<ResponderConfig> responders = Arrays.asList(awareResponder, ntbResponder);
+
+        long expectedTimeout = Math.max(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, ntbTimeMillis);
+        // In this setup, Aware timeout should be greater
+        expectedTimeout = Math.max(expectedTimeout, RttServiceImpl.HAL_RANGING_TIMEOUT_MS);
+
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(expectedTimeout, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_nullCapabilities_ntbResponder_returnsBaseOrDefaultAware() {
+        // If capabilities is null, ntbInitiatorSupported check should effectively be false.
+        long ntbTimeMicros = 15000_000; // 15 seconds
+
+        ResponderConfig ntbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP, true,
+                ntbTimeMicros);
+        ResponderConfig awareResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AWARE,
+                false, 0);
+
+        List<ResponderConfig> respondersNtbOnly = Collections.singletonList(ntbResponder);
+        long timeoutNtbOnly = RttServiceImpl.calculateRangeRequestTimeoutMs(respondersNtbOnly,
+                null); // Pass null capabilities
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeoutNtbOnly);
+
+        List<ResponderConfig> respondersWithAware = Arrays.asList(ntbResponder, awareResponder);
+        long timeoutWithAware = RttServiceImpl.calculateRangeRequestTimeoutMs(respondersWithAware,
+                null); // Pass null capabilities
+        Assert.assertEquals(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, timeoutWithAware);
     }
 }
