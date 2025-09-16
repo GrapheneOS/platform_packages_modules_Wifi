@@ -52,7 +52,7 @@
     <string name="wifi_connect_default_application" msgid="8917703737222707062">"Апликација"</string>
     <string name="accept" msgid="8346431649376483879">"Прихвати"</string>
     <string name="decline" msgid="4172251727603762084">"Одбиј"</string>
-    <string name="ok" msgid="847575529546290102">"Потврди"</string>
+    <string name="ok" msgid="847575529546290102">"Важи"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"Позивница је послата"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"Позивница за повезивање"</string>
     <string name="wifi_p2p_invitation_seconds_remaining" msgid="4214101104506918344">"{0,plural, =1{Прихватите за # секунду.}one{Прихватите за # секунду.}few{Прихватите за # секунде.}other{Прихватите за # секунди.}}"</string>
@@ -66,7 +66,7 @@
     <string name="wifi_p2p_dialog2_sent_message_display_pin" msgid="5017076731258834940">"Да бисте се повезали, унесите овај PIN на уређају <xliff:g id="DEVICE_NAME">%1$s</xliff:g>."</string>
     <string name="wifi_p2p_dialog2_sent_title_display_password" msgid="5945341353229150520">"Повезивање уређаја"</string>
     <string name="wifi_p2p_dialog2_sent_message_display_password" msgid="3091741241294462551">"Да бисте их повезали, унесите ову лозинку на уређају <xliff:g id="DEVICE_NAME">%1$s</xliff:g>."</string>
-    <string name="wifi_p2p_dialog2_sent_positive_button" msgid="6464227471745156497">"Потврди"</string>
+    <string name="wifi_p2p_dialog2_sent_positive_button" msgid="6464227471745156497">"Важи"</string>
     <string name="wifi_p2p_dialog2_received_title" msgid="6897349204607457747">"Веза уређаја"</string>
     <string name="wifi_p2p_dialog2_received_title_enter_pin" msgid="6431543271224139601">"Веза уређаја"</string>
     <string name="wifi_p2p_dialog2_received_title_display_pin" msgid="5017007825248741433">"Веза уређаја"</string>
@@ -89,7 +89,7 @@
     <string name="wifi_p2p_dialog2_display_pin_label" msgid="3929561425167093538">"PIN"</string>
     <string name="wifi_p2p_dialog2_display_password_label" msgid="6091997937026945119">"Лозинка"</string>
     <string name="wifi_p2p_frequency_conflict_message" msgid="8535404941723941766">"Уређај ће привремено прекинути везу са WiFi мрежом док је повезан са уређајем <xliff:g id="DEVICE_NAME">%1$s</xliff:g>"</string>
-    <string name="dlg_ok" msgid="254496739491689405">"Потврди"</string>
+    <string name="dlg_ok" msgid="254496739491689405">"Важи"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_title" msgid="2344570489693915253">"Повезивање на мрежу <xliff:g id="SSID">%1$s</xliff:g> није успело"</string>
     <string name="wifi_cannot_connect_with_randomized_mac_message" msgid="4834133226521813352">"Додирните да бисте променили подешавања приватности и пробали поново"</string>
     <string name="wifi_disable_mac_randomization_dialog_title" msgid="2054540994993681606">"Желите ли да промените подешавања приватности?"</string>
@@ -173,7 +173,7 @@
     <string name="wifi_ca_cert_failed_to_install_ca_cert" msgid="4864192219789736195">"Инсталација сертификата није успела."</string>
     <string name="wifi_tofu_invalid_cert_chain_title" msgid="332710627417595752">"Повезивање на мрежу <xliff:g id="VALUE">%1$s</xliff:g> није успело"</string>
     <string name="wifi_tofu_invalid_cert_chain_message" msgid="7047987920029432392">"Ланац сертификата за сервер је неважећи."</string>
-    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Потврди"</string>
+    <string name="wifi_tofu_invalid_cert_chain_ok_text" msgid="9098567577510279854">"Важи"</string>
     <string name="wifi_tofu_dialog2_title" msgid="1053868315289884596">"Безбедносни сертификат"</string>
     <string name="wifi_tofu_dialog2_message" msgid="7838488246818419952">"Наставите само ако сматрате да је ова мрежа поуздана и ако информације у наставку делују тачно."</string>
     <string name="wifi_tofu_dialog2_negative_button" msgid="4366875989711122647">"Откажи"</string>
