@@ -27,9 +27,11 @@ import com.android.server.wifi.util.WifiPermissionsUtil;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class ConfigurationMap {
@@ -152,5 +154,24 @@ public class ConfigurationMap {
 
     public Collection<WifiConfiguration> valuesForCurrentUser() {
         return mPerIDForCurrentUser.values();
+    }
+
+    /**
+     * Retrieves the list of |WifiConfiguration| object matching the provided |scanResult| from
+     * the internal map.
+     * Essentially checks if network config and scan result have the same SSID and encryption type.
+     */
+    public List<WifiConfiguration> getConfigsByScanResultForCurrentUser(ScanResult scanResult) {
+        if (scanResult == null) {
+            return null;
+        }
+        ScanResultMatchInfo fromScanResult = ScanResultMatchInfo.fromScanResult(scanResult);
+        List<WifiConfiguration> matchedConfigs = new ArrayList<>();
+        for (WifiConfiguration config : mPerIDForCurrentUser.values()) {
+            if (fromScanResult.equals(ScanResultMatchInfo.fromWifiConfiguration(config))) {
+                matchedConfigs.add(config);
+            }
+        }
+        return matchedConfigs;
     }
 }

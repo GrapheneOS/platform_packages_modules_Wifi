@@ -127,6 +127,42 @@ public class WifiNetworkSelectorTestUtil {
 
     /**
      * Build a list of ScanDetail based on the caller supplied network SSID, BSSID,
+     * frequency, capability and RSSI level information. Create the corresponding
+     * WifiConfiguration for these networks and set up the mocked WifiConfigManager.
+     *
+     * @param ssids an array of SSIDs
+     * @param bssids an array of BSSIDs
+     * @param freqs an array of the network's frequency
+     * @param caps an array of the network's capability
+     * @param levels an array of the network's RSSI levels
+     * @param securities an array of the network's security setting
+     * @param wifiConfigManager the mocked WifiConfigManager
+     * @param clock the mockec Clock
+     * @param iesByteStream an array of the network's ie setting
+     * @param shareds an array of the network's shared setting
+     * @return the constructed ScanDetail list and WifiConfiguration array
+     */
+    public static ScanDetailsAndWifiConfigs setupScanDetailsAndConfigStore(String[] ssids,
+                String[] bssids, int[] freqs, String[] caps, int[] levels,
+                int[] securities, WifiConfigManager wifiConfigManager, Clock clock,
+                byte[][] iesByteStream, boolean[] shareds) {
+        List<ScanDetail> scanDetails = null;
+        if (iesByteStream == null) {
+            scanDetails = buildScanDetails(ssids, bssids, freqs, caps, levels, clock);
+        } else {
+            scanDetails = buildScanDetailsWithNetworkDetails(ssids, bssids, freqs,
+                caps, levels, iesByteStream, clock);
+        }
+
+        WifiConfiguration[] savedConfigs = generateWifiConfigurations(ssids, securities, shareds);
+
+        addWifiConfigAndLinkScanResult(wifiConfigManager, savedConfigs, scanDetails);
+
+        return new ScanDetailsAndWifiConfigs(scanDetails, savedConfigs);
+    }
+
+    /**
+     * Build a list of ScanDetail based on the caller supplied network SSID, BSSID,
      * frequency and RSSI level information. Create the EAP-SIM authticated
      * WifiConfiguration for these networks and set up the mocked WifiConfigManager.
      *
@@ -273,6 +309,23 @@ public class WifiNetworkSelectorTestUtil {
         if (ssids == null || securities == null || ssids.length != securities.length) {
             throw new IllegalArgumentException();
         }
+        return generateWifiConfigurations(ssids, securities, null);
+    }
+
+    /**
+     * Generate an array of {@link android.net.wifi.WifiConfiguration} based on the caller
+     * supplied network SSID and security information.
+     *
+     * @param ssids an array of SSIDs
+     * @param securities an array of the network's security setting
+     * @param shareds an array of the network's shared setting
+     * @return the constructed array of {@link android.net.wifi.WifiConfiguration}
+     */
+    public static WifiConfiguration[] generateWifiConfigurations(String[] ssids,
+                int[] securities, boolean[] shareds) {
+        if (ssids == null || securities == null || ssids.length != securities.length) {
+            throw new IllegalArgumentException();
+        }
 
         BitSet supportedFeaturesAll = new BitSet();
         supportedFeaturesAll.set(0, 63); // mark all features as supported
@@ -283,6 +336,9 @@ public class WifiNetworkSelectorTestUtil {
         WifiConfiguration[] configs = new WifiConfiguration[ssids.length];
         for (int index = 0; index < ssids.length; index++) {
             String configKey = ssids[index] + securities[index];
+            if (shareds != null && ssids.length == shareds.length) {
+                configKey += shareds[index];
+            }
             Integer id = netIdMap.get(configKey);
             if (id == null) {
                 id = netId;
@@ -292,6 +348,9 @@ public class WifiNetworkSelectorTestUtil {
 
             configs[index] = generateWifiConfig(id, 0, ssids[index], false, true, null,
                     null, securities[index]);
+            if (shareds != null && ssids.length == shareds.length) {
+                configs[index].shared = shareds[index];
+            }
             if ((securities[index] & SECURITY_PSK) != 0 || (securities[index] & SECURITY_SAE) != 0
                     || (securities[index] & SECURITY_WAPI_PSK) != 0) {
                 configs[index].preSharedKey = "\"PA55W0RD\""; // needed to validate with PSK

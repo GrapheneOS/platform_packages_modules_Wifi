@@ -117,6 +117,7 @@ public class ScoringParams {
         public int lastUnmeteredSelectionMinutes = 480;
         public int lastMeteredSelectionMinutes = 120;
         public int estimateRssiErrorMargin = 5;
+        private int mPrivateConfigBonus = 1;
         public static final int MIN_MINUTES = 1;
         public static final int MAX_MINUTES = Integer.MAX_VALUE / (60 * 1000);
 
@@ -588,6 +589,10 @@ public class ScoringParams {
      */
     public int getSavedNetworkBonus() {
         return mVal.savedNetworkBonus;
+    }
+
+    public int getPrivateConfigBonus() {
+        return mVal.mPrivateConfigBonus;
     }
 
     /*

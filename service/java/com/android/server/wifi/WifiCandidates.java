@@ -171,6 +171,11 @@ public class WifiCandidates {
         int getPredictedMultiLinkThroughputMbps();
 
         /**
+         * Return true if the candidate is a private configuration;
+         */
+        boolean isPrivateConfig();
+
+        /**
          * Sets the predicted multi-link throughput in Mbps.
          */
         void setPredictedMultiLinkThroughputMbps(int throughput);
@@ -248,6 +253,7 @@ public class WifiCandidates {
         private final int mEstimatedPercentInternetAvailability;
         private final MacAddress mApMldMacAddress;
         private final boolean mIpProvisioningTimedOut;
+        private final boolean mIsPrivateConfig;
 
         CandidateImpl(Key key, WifiConfiguration config,
                 WifiScoreCard.PerBssid perBssid,
@@ -291,6 +297,7 @@ public class WifiCandidates {
             this.mPredictedMultiLinkThroughputMbps = 0;
             this.mApMldMacAddress = apMldMacAddress;
             this.mIpProvisioningTimedOut = config.isIpProvisioningTimedOut();
+            this.mIsPrivateConfig = !config.shared;
         }
 
         @Override
@@ -436,6 +443,11 @@ public class WifiCandidates {
         @Override
         public boolean isIpProvisioningTimedOut() {
             return mIpProvisioningTimedOut;
+        }
+
+        @Override
+        public boolean isPrivateConfig() {
+            return mIsPrivateConfig;
         }
 
         /**

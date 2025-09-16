@@ -51,6 +51,7 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
     private int mPredictedMultiLinkThroughputMbps = 0;
     private MacAddress mApMldMacAddress;
     private int mNumRebootsSinceLastUse;
+    private boolean mIsPrivateConfig;
 
     private boolean mIpProvisioningTimedOut;
 
@@ -94,6 +95,7 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
         mNumRebootsSinceLastUse = candidate.getNumRebootsSinceLastUse();
         mApMldMacAddress = candidate.getApMldMacAddress();
         mIpProvisioningTimedOut = candidate.isIpProvisioningTimedOut();
+        mIsPrivateConfig = candidate.isPrivateConfig();
     }
 
     public ConcreteCandidate setKey(WifiCandidates.Key key) {
@@ -364,5 +366,10 @@ public final class ConcreteCandidate implements WifiCandidates.Candidate {
     @Override
     public boolean isIpProvisioningTimedOut() {
         return mIpProvisioningTimedOut;
+    }
+
+    @Override
+    public boolean isPrivateConfig() {
+        return mIsPrivateConfig;
     }
 }

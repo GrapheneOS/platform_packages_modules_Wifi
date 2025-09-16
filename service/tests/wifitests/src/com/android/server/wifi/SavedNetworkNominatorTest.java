@@ -22,11 +22,13 @@ import static com.android.server.wifi.WifiConfigurationTestUtil.SECURITY_PSK;
 import static com.android.server.wifi.TestUtil.createCapabilityBitset;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.*;
 
 import android.net.MacAddress;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.net.wifi.util.Environment;
 import android.util.LocalLog;
 import android.util.Pair;
 
@@ -37,6 +39,7 @@ import com.android.server.wifi.WifiNetworkSelectorTestUtil.ScanDetailsAndWifiCon
 import com.android.server.wifi.entitlement.PseudonymInfo;
 import com.android.server.wifi.hotspot2.PasspointNetworkNominateHelper;
 import com.android.server.wifi.util.WifiPermissionsUtil;
+import com.android.wifi.flags.Flags;
 
 import org.junit.After;
 import org.junit.Before;
@@ -45,6 +48,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -61,8 +65,9 @@ public class SavedNetworkNominatorTest extends WifiBaseTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        mStaticMockSession = mockitoSession()
+        mStaticMockSession = mockitoSession().strictness(Strictness.LENIENT)
                 .mockStatic(WifiInjector.class)
+                .mockStatic(Flags.class)
                 .startMocking();
         lenient().when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
         when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
@@ -86,7 +91,7 @@ public class SavedNetworkNominatorTest extends WifiBaseTest {
         when(mWifiNetworkSuggestionsManager
                 .shouldBeIgnoredBySecureSuggestionFromSameCarrier(any(), any()))
                 .thenReturn(false);
-
+        when(Flags.multiUserWifiEnhancement()).thenReturn(false);
     }
 
     /** Cleans up test. */
@@ -522,5 +527,39 @@ public class SavedNetworkNominatorTest extends WifiBaseTest {
                 mOnConnectableListener
         );
         verify(mOnConnectableListener, never()).onConnectable(any(), any());
+    }
+
+    private WifiConfiguration generateMockedWifiConfigurationForNetworkSelection(int networkId) {
+        WifiConfiguration configuration = mock(WifiConfiguration.class);
+        configuration.networkId = networkId;
+        configuration.allowAutojoin = true;
+        WifiConfiguration.NetworkSelectionStatus mockedStatus =
+                mock(WifiConfiguration.NetworkSelectionStatus.class);
+        when(configuration.getNetworkSelectionStatus())
+                .thenReturn(mockedStatus);
+        when(mockedStatus.isNetworkEnabled()).thenReturn(true);
+        when(configuration.getBssidAllowlistInternal()).thenReturn(null);
+        when(mWifiConfigManager.getConfiguredNetwork(eq(networkId))).thenReturn(configuration);
+        return configuration;
+    }
+
+    /**
+     * Test all matched config will be selected to candidates.
+     */
+    @Test
+    public void returnCandidatesWhenTwoMatchConfigs() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        ScanDetail scanDetail1 = mock(ScanDetail.class);
+        List<ScanDetail> scanDetails = Arrays.asList(scanDetail1);
+        WifiConfiguration configuration1 = generateMockedWifiConfigurationForNetworkSelection(1);
+        WifiConfiguration configuration2 = generateMockedWifiConfigurationForNetworkSelection(2);
+        when(mWifiConfigManager.getSavedNetworksForScanDetail(eq(scanDetail1)))
+                .thenReturn(Arrays.asList(configuration1, configuration2));
+        mSavedNetworkNominator.nominateNetworks(
+                scanDetails, null, false, true, true, Collections.emptySet(),
+                mOnConnectableListener);
+        verify(mOnConnectableListener).onConnectable(scanDetail1, configuration1);
+        verify(mOnConnectableListener).onConnectable(scanDetail1, configuration2);
     }
 }

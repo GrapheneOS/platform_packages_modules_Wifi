@@ -1733,6 +1733,7 @@ public class WifiConfigManager {
         }
 
         boolean newNetwork = (existingInternalConfig == null);
+
         // This is needed to inform IpClient about any IP configuration changes.
         boolean hasIpChanged =
                 newNetwork || WifiConfigurationUtil.hasIpChanged(
@@ -2951,6 +2952,41 @@ public class WifiConfigManager {
     }
 
     /**
+     * Retrieves configured networks corresponding to the provided scan detail.
+     *
+     * @param scanDetail ScanDetail instance  to use for looking up the network.
+     * @return List of |WifiConfiguration| object representing the networks corresponding
+     *         to the scanDetail, null if none exists.
+     */
+    public List<WifiConfiguration> getSavedNetworksForScanDetail(ScanDetail scanDetail) {
+        ScanResult scanResult = scanDetail.getScanResult();
+        if (scanResult == null) {
+            Log.e(TAG, "No scan result found in scan detail");
+            return null;
+        }
+        List<WifiConfiguration> returnNetworks = new ArrayList<>();
+        List<WifiConfiguration> savedNetworks =
+                mConfiguredNetworks.getConfigsByScanResultForCurrentUser(scanResult);
+        for (WifiConfiguration network : savedNetworks) {
+            if (network != null) {
+                saveToScanDetailCacheForNetwork(network, scanDetail);
+                // Cache DTIM values parsed from the beacon frame Traffic Indication Map (TIM)
+                // Information Element (IE), into the associated WifiConfigurations. Most of the
+                // time there is no TIM IE in the scan result (Probe Response instead of Beacon
+                // Frame), these scanResult DTIM's are negative and ignored.
+                // Used for metrics collection.
+                if (scanDetail.getNetworkDetail() != null
+                        && scanDetail.getNetworkDetail().getDtimInterval() > 0) {
+                    network.dtimInterval = scanDetail.getNetworkDetail().getDtimInterval();
+                }
+                returnNetworks.add(
+                        createExternalWifiConfiguration(network, true, Process.WIFI_UID));
+            }
+        }
+        return returnNetworks;
+    }
+
+    /**
      * Retrieves a configured network corresponding to the provided scan detail if one exists.
      *
      * @param scanDetail ScanDetail instance  to use for looking up the network.
@@ -4014,7 +4050,6 @@ public class WifiConfigManager {
                 userConfigurations.add(config);
             }
         }
-
         // Remove the configurations for migrated Passpoint configurations.
         for (int networkId : legacyPasspointNetId) {
             mConfiguredNetworks.remove(networkId);
