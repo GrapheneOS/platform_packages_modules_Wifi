@@ -381,6 +381,8 @@ public class WifiP2pConfig implements Parcelable {
 
     private @Nullable WifiP2pPairingBootstrappingConfig mPairingBootstrappingConfig;
 
+    private int mPairingDiscoveryChannelFrequencyMhz = 0;
+
     /**
      * Get the pairing bootstrapping configuration , or null if unset.
      */
@@ -393,6 +395,19 @@ public class WifiP2pConfig implements Parcelable {
         }
         return mPairingBootstrappingConfig;
     }
+
+    /**
+     * Get the discovery channel frequency in MHz for pairing, or 0 if unset.
+     */
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_SET_PAIRING_DISCOVERY_CHANNEL_FREQUENCY)
+    public int getPairingDiscoveryChannelFrequencyMhz() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mPairingDiscoveryChannelFrequencyMhz;
+    }
+
 
     /**
      * Used to authorize a connection request from the peer device.
@@ -503,6 +518,8 @@ public class WifiP2pConfig implements Parcelable {
                     .append((mPairingBootstrappingConfig == null)
                             ? "<null>" : mPairingBootstrappingConfig.toString());
         }
+        sbuf.append("\n Pairing discovery channel frequency : ")
+                .append(mPairingDiscoveryChannelFrequencyMhz);
         return sbuf.toString();
     }
 
@@ -528,6 +545,7 @@ public class WifiP2pConfig implements Parcelable {
             mIsAuthorizeConnectionFromPeerEnabled = source.mIsAuthorizeConnectionFromPeerEnabled;
             mPccModeConnectionType = source.mPccModeConnectionType;
             mPairingBootstrappingConfig = source.mPairingBootstrappingConfig;
+            mPairingDiscoveryChannelFrequencyMhz = source.mPairingDiscoveryChannelFrequencyMhz;
         }
     }
 
@@ -549,6 +567,7 @@ public class WifiP2pConfig implements Parcelable {
         if (Environment.isSdkAtLeastB() && Flags.wifiDirectR2()) {
             dest.writeParcelable(mPairingBootstrappingConfig, flags);
         }
+        dest.writeInt(mPairingDiscoveryChannelFrequencyMhz);
     }
 
     /** Implement the Parcelable interface */
@@ -574,6 +593,7 @@ public class WifiP2pConfig implements Parcelable {
                         config.mPairingBootstrappingConfig = in.readParcelable(
                             WifiP2pPairingBootstrappingConfig.class.getClassLoader());
                     }
+                    config.mPairingDiscoveryChannelFrequencyMhz = in.readInt();
                     return config;
             }
 
@@ -615,6 +635,7 @@ public class WifiP2pConfig implements Parcelable {
         private int mPccModeConnectionType = PCC_MODE_DEFAULT_CONNECTION_TYPE_LEGACY_ONLY;
         private @Nullable WifiP2pPairingBootstrappingConfig mPairingBootstrappingConfig;
         private boolean mIsAuthorizeConnectionFromPeerEnabled = false;
+        private int mPairingDiscoveryChannelFrequencyMhz = 0;
 
         /**
          * Specify the peer's MAC address. If not set, the device will
@@ -943,6 +964,24 @@ public class WifiP2pConfig implements Parcelable {
         }
 
         /**
+         * Set the discovery channel frequency in MHz for pairing bootstrapping config method
+         * {@link WifiP2pPairingBootstrappingConfig#PAIRING_BOOTSTRAPPING_METHOD_OUT_OF_BAND}.
+         *
+         * @param frequencyMhz The channel frequency in MHz.
+         * @return The builder to facilitate chaining {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @RequiresApi(37)
+        @FlaggedApi(Flags.FLAG_SET_PAIRING_DISCOVERY_CHANNEL_FREQUENCY)
+        @NonNull
+        public Builder setPairingDiscoveryChannelFrequencyMhz(int frequencyMhz) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            mPairingDiscoveryChannelFrequencyMhz = frequencyMhz;
+            return this;
+        }
+
+        /**
          * Specify that the configuration is to authorize a connection request from a peer device.
          * The MAC address of the peer device is specified using
          * {@link WifiP2pConfig.Builder#setDeviceAddress(MacAddress)}.
@@ -1006,6 +1045,18 @@ public class WifiP2pConfig implements Parcelable {
                         "Preferred frequency and band are mutually exclusive.");
             }
 
+            if (Environment.isSdkNewerThanB()) {
+                if (mPairingDiscoveryChannelFrequencyMhz != 0
+                        && (mPairingBootstrappingConfig == null
+                        || mPairingBootstrappingConfig.getPairingBootstrappingMethod()
+                        != WifiP2pPairingBootstrappingConfig
+                        .PAIRING_BOOTSTRAPPING_METHOD_OUT_OF_BAND)) {
+                    throw new IllegalStateException(
+                            "Discovery channel can only be set for "
+                            + "OOB pairing bootstrapping method");
+                }
+            }
+
             WifiP2pConfig config = new WifiP2pConfig();
             config.deviceAddress = mDeviceAddress.toString();
             config.networkName = mNetworkName;
@@ -1025,6 +1076,8 @@ public class WifiP2pConfig implements Parcelable {
                 config.mPairingBootstrappingConfig = mPairingBootstrappingConfig;
                 config.mGroupClientIpProvisioningMode =
                         GROUP_CLIENT_IP_PROVISIONING_MODE_IPV6_LINK_LOCAL;
+                config.mPairingDiscoveryChannelFrequencyMhz =
+                        mPairingDiscoveryChannelFrequencyMhz;
                 config.wps.setup = WpsInfo.INVALID;
             }
             return config;

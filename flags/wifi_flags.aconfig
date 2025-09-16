@@ -462,3 +462,11 @@ flag {
     description: "Add new API to send a service specific info in bootstrapping request"
     bug: "440620121"
 }
+
+flag {
+    name: "set_pairing_discovery_channel_frequency"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to set discovery channel for pairing"
+    bug: "438011300"
+}

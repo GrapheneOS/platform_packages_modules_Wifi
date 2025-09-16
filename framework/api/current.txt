@@ -1305,6 +1305,7 @@ package android.net.wifi.p2p {
     method public int getNetworkId();
     method @Nullable public String getNetworkName();
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") @Nullable public android.net.wifi.p2p.WifiP2pPairingBootstrappingConfig getPairingBootstrappingConfig();
+    method @FlaggedApi("com.android.wifi.flags.set_pairing_discovery_channel_frequency") public int getPairingDiscoveryChannelFrequencyMhz();
     method @Nullable public String getPassphrase();
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") public int getPccModeConnectionType();
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") public boolean isAuthorizeConnectionFromPeerEnabled();
@@ -1341,6 +1342,7 @@ package android.net.wifi.p2p {
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setGroupOperatingFrequency(int);
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setNetworkName(@NonNull String);
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setPairingBootstrappingConfig(@NonNull android.net.wifi.p2p.WifiP2pPairingBootstrappingConfig);
+    method @FlaggedApi("com.android.wifi.flags.set_pairing_discovery_channel_frequency") @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setPairingDiscoveryChannelFrequencyMhz(int);
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setPassphrase(@NonNull String);
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setPccModeConnectionType(int);
   }

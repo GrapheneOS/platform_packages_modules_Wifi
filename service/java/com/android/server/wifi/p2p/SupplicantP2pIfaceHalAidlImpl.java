@@ -928,6 +928,10 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
                         && config.groupOwnerBand != 5 && config.groupOwnerBand != 6) {
                     frequencyMHz = config.groupOwnerBand;
                 }
+                if (Environment.isSdkNewerThanB() && Flags.setPairingDiscoveryChannelFrequency()
+                        && config.getPairingDiscoveryChannelFrequencyMhz() != 0) {
+                    frequencyMHz = config.getPairingDiscoveryChannelFrequencyMhz();
+                }
                 authorize = config.isAuthorizeConnectionFromPeerEnabled();
             } else {
                 if (config.wps.setup == WpsInfo.PBC && !TextUtils.isEmpty(config.wps.pin)) {
