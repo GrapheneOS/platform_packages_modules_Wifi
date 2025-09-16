@@ -129,11 +129,12 @@ public class WifiNanIfaceHidlImplTest extends WifiBaseTest {
                 "XXX").setRangingEnabled(true).build();
         SubscribeConfig subDefault = new SubscribeConfig.Builder().setServiceName("XXX").build();
         SubscribeConfig subWithMin = new SubscribeConfig.Builder().setServiceName(
-                "XXX").setMinDistanceMm(minDistanceMm).build();
+                "XXX").setEgressDistanceMm(minDistanceMm).build();
         SubscribeConfig subWithMax = new SubscribeConfig.Builder().setServiceName(
-                "XXX").setMaxDistanceMm(maxDistanceMm).build();
+                "XXX").setIngressDistanceMm(maxDistanceMm).build();
         SubscribeConfig subWithMinMax = new SubscribeConfig.Builder().setServiceName(
-                "XXX").setMinDistanceMm(minDistanceMm).setMaxDistanceMm(maxDistanceMm).build();
+                "XXX").setEgressDistanceMm(minDistanceMm).setIngressDistanceMm(
+                maxDistanceMm).build();
 
         mDut.publish(tid, pid, pubDefault, null);
         mDut.publish(tid, pid, pubWithRanging, null);

@@ -608,6 +608,36 @@ public final class SubscribeConfig implements Parcelable {
     }
 
     /**
+     * Get the ingress distance in mm.
+     * See {@link Builder#setIngressDistanceMm(int)}.
+     *
+     * @return The ingress distance in mm.
+     * @throws IllegalStateException if the value was not set.
+     */
+    @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
+    public int getIngressDistanceMm() {
+        if (!mMaxDistanceMmSet) {
+            throw new IllegalStateException("Ingress distance was not set.");
+        }
+        return mMaxDistanceMm;
+    }
+
+    /**
+     * Get the egress distance in mm.
+     * See {@link Builder#setEgressDistanceMm(int)}.
+     *
+     * @return The egress distance in mm.
+     * @throws IllegalStateException if the value was not set.
+     */
+    @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
+    public int getEgressDistanceMm() {
+        if (!mMinDistanceMmSet) {
+            throw new IllegalStateException("Egress distance was not set.");
+        }
+        return mMinDistanceMm;
+    }
+
+    /**
      * Check if periodic range reporting is enabled for subscribe session
      * @see Builder#setPeriodicRangingEnabled(boolean)
      * @return true for enabled, false otherwise.
@@ -892,7 +922,10 @@ public final class SubscribeConfig implements Parcelable {
          *
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
+         * @deprecated Use {@link #setEgressDistanceMm(int)} instead.
          */
+        @Deprecated
+        @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
         public Builder setMinDistanceMm(int minDistanceMm) {
             mMinDistanceMm = minDistanceMm;
             mMinDistanceMmSet = true;
@@ -931,10 +964,95 @@ public final class SubscribeConfig implements Parcelable {
          *
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
+         * @deprecated Use {@link #setIngressDistanceMm(int)} instead.
          */
+        @Deprecated
+        @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
         public Builder setMaxDistanceMm(int maxDistanceMm) {
             mMaxDistanceMm = maxDistanceMm;
             mMaxDistanceMmSet = true;
+            return this;
+        }
+
+        /**
+         * An ingress distance is configured to detect when the device enters a defined range. A
+         * discovery result with range will be reported when the device moves into the range of
+         * the ingress distance (inner threshold) to a matching publisher (based on the other
+         * matching criteria in this configuration). This can be used in conjunction with
+         * {@link #setEgressDistanceMm(int)} to specify a geofence.
+         * <p>
+         * When both ingress (inner threshold) and egress (outer threshold) distances are set
+         * for geofence, the ranging result will be reported when the device moves either into
+         * the range of the inner threshold or out of the range of the outer threshold.
+         * <p>
+         * For ranging to be used in discovery it must also be enabled on the publisher using
+         * {@link PublishConfig.Builder#setRangingEnabled(boolean)}. However, ranging may
+         * not be available or enabled on the publisher or may be temporarily disabled on either
+         * subscriber or publisher - in such cases discovery will proceed without ranging.
+         * <p>
+         * When ranging is enabled and available on both publisher and subscriber and a service
+         * is discovered based on geofence constraints the
+         * {@link DiscoverySessionCallback#onServiceDiscoveredWithinRange(PeerHandle, byte[], List, int)}
+         * is called, otherwise the
+         * {@link DiscoverySessionCallback#onServiceDiscovered(PeerHandle, byte[], List)}
+         * is called.
+         * <p>
+         * The device must support Wi-Fi RTT for this feature to be used. Feature support is checked
+         * as described in {@link android.net.wifi.rtt}.
+         * <p>
+         *
+         * @param ingressDistanceMm Ingress distance, in mm, to the publisher below which to trigger
+         *                      discovery.
+         *
+         * @return The builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
+        @NonNull
+        public Builder setIngressDistanceMm(int ingressDistanceMm) {
+            mMaxDistanceMm = ingressDistanceMm;
+            mMaxDistanceMmSet = true;
+            return this;
+        }
+
+        /**
+         * An egress distance is configured to detect when the device exits a defined range. A
+         * discovery result with range will be reported when the device moves out of the range of
+         * the egress distance (outer threshold) to a matching publisher (based on the other
+         * matching criteria in this configuration). This can be used in conjunction with
+         * {@link #setIngressDistanceMm(int)} to specify a geofence.
+         * <p>
+         * When both ingress (inner threshold) and egress (outer threshold) distances are set
+         * for geofence, the ranging result will be reported when the device moves either into
+         * the range of the inner threshold or out of the range of the outer threshold.
+         * <p>
+         * For ranging to be used in discovery it must also be enabled on the publisher using
+         * {@link PublishConfig.Builder#setRangingEnabled(boolean)}. However, ranging may
+         * not be available or enabled on the publisher or may be temporarily disabled on either
+         * subscriber or publisher - in such cases discovery will proceed without ranging.
+         * <p>
+         * When ranging is enabled and available on both publisher and subscriber and a service
+         * is discovered based on geofence constraints the
+         * {@link DiscoverySessionCallback#onServiceDiscoveredWithinRange(PeerHandle, byte[], List, int)}
+         * is called, otherwise the
+         * {@link DiscoverySessionCallback#onServiceDiscovered(PeerHandle, byte[], List)}
+         * is called.
+         * <p>
+         * The device must support Wi-Fi RTT for this feature to be used. Feature support is checked
+         * as described in {@link android.net.wifi.rtt}.
+         * <p>
+         *
+         * @param egressDistanceMm Egress distance, in mm, to the publisher above which to trigger
+         *                      discovery.
+         *
+         * @return The builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
+        @NonNull
+        public Builder setEgressDistanceMm(int egressDistanceMm) {
+            mMinDistanceMm = egressDistanceMm;
+            mMinDistanceMmSet = true;
             return this;
         }
 

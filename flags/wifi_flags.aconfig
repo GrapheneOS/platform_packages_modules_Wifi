@@ -441,6 +441,14 @@ flag {
 }
 
 flag {
+    name: "aware_ingress_egress_distance"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to set/get ingress and egress distances"
+    bug: "399423727"
+}
+
+flag {
     name: "ml_scorer_in_wifi_fw"
     namespace: "wifi"
     description: "Add ML scorer into Wi-Fi framework"

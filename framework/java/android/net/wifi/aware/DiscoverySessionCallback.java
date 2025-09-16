@@ -194,9 +194,9 @@ public class DiscoverySessionCallback {
     /**
      * Called when a subscribe operation results in a
      * service discovery. Called when a Subscribe service was configured with a range requirement
-     * {@link SubscribeConfig.Builder#setMinDistanceMm(int)} and/or
-     * {@link SubscribeConfig.Builder#setMaxDistanceMm(int)} and the Publish service was configured
-     * with {@link PublishConfig.Builder#setRangingEnabled(boolean)}.
+     * {@link SubscribeConfig.Builder#setEgressDistanceMm(int)} and/or
+     * {@link SubscribeConfig.Builder#setIngressDistanceMm(int)} and the Publish service was
+     * configured with {@link PublishConfig.Builder#setRangingEnabled(boolean)}.
      * <p>
      * If either Publisher or Subscriber does not enable Ranging, or if Ranging is temporarily
      * disabled by the underlying device, service discovery proceeds without ranging and the
@@ -230,9 +230,9 @@ public class DiscoverySessionCallback {
     /**
      * Called when a subscribe operation results in a
      * service discovery. Called when a Subscribe service was configured with a range requirement
-     * {@link SubscribeConfig.Builder#setMinDistanceMm(int)} and/or
-     * {@link SubscribeConfig.Builder#setMaxDistanceMm(int)} and the Publish service was configured
-     * with {@link PublishConfig.Builder#setRangingEnabled(boolean)}.
+     * {@link SubscribeConfig.Builder#setEgressDistanceMm(int)} and/or
+     * {@link SubscribeConfig.Builder#setIngressDistanceMm(int)} and the Publish service was
+     * configured with {@link PublishConfig.Builder#setRangingEnabled(boolean)}.
      * <p>
      * If either Publisher or Subscriber does not enable Ranging, or if Ranging is temporarily
      * disabled by the underlying device, service discovery proceeds without ranging and the

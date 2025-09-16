@@ -1637,7 +1637,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         final int rangeMax = 10;
 
         ConfigRequest configRequest = new ConfigRequest.Builder().build();
-        SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().setMaxDistanceMm(
+        SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().setIngressDistanceMm(
                 rangeMax).build();
 
         IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
@@ -1822,8 +1822,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().setServiceName(serviceName)
                 .setServiceSpecificInfo(ssi.getBytes())
                 .setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)
-                .setMinDistanceMm(rangeMin)
-                .setMaxDistanceMm(rangeMax)
+                .setEgressDistanceMm(rangeMin)
+                .setIngressDistanceMm(rangeMax)
                 .build();
 
         IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
@@ -4155,8 +4155,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().setServiceName(serviceName)
                 .setServiceSpecificInfo(ssi.getBytes())
                 .setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)
-                .setMinDistanceMm(rangeMin)
-                .setMaxDistanceMm(rangeMax)
+                .setEgressDistanceMm(rangeMin)
+                .setIngressDistanceMm(rangeMax)
                 .build();
 
         IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
