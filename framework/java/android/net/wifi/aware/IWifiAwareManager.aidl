@@ -17,20 +17,18 @@
 package android.net.wifi.aware;
 
 import android.app.PendingIntent;
-
 import android.net.wifi.IBooleanListener;
 import android.net.wifi.IIntegerListener;
 import android.net.wifi.IListListener;
+import android.net.wifi.aware.AwareParams;
+import android.net.wifi.aware.AwareResources;
+import android.net.wifi.aware.Characteristics;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
-import android.net.wifi.aware.Characteristics;
-import android.net.wifi.aware.AwareResources;
-import android.net.wifi.aware.AwareParams;
-
 import android.os.Bundle;
 
 /**
@@ -38,8 +36,7 @@ import android.os.Bundle;
  *
  * @hide
  */
-interface IWifiAwareManager
-{
+interface IWifiAwareManager {
     // Aware API
     boolean isUsageEnabled();
     Characteristics getCharacteristics();
@@ -74,13 +71,14 @@ interface IWifiAwareManager
     void updatePublish(int clientId, int discoverySessionId, in PublishConfig publishConfig);
     void updateSubscribe(int clientId, int discoverySessionId, in SubscribeConfig subscribeConfig);
     void sendMessage(int clientId, int discoverySessionId, int peerId, in byte[] message,
-        int messageId, int retryCount);
+            int messageId, int retryCount);
     void terminateSession(int clientId, int discoverySessionId);
-    void initiateNanPairingSetupRequest(int clientId, int sessionId, int peerId,
-                String password, String pairingDeviceAlias, int cipherSuite);
+    void initiateNanPairingSetupRequest(int clientId, int sessionId, int peerId, String password,
+            String pairingDeviceAlias, int cipherSuite);
     void responseNanPairingSetupRequest(int clientId, int sessionId, int peerId, int requestId,
-                String password, String pairingDeviceAlias, boolean accept, int cipherSuite);
-    void initiateBootStrappingSetupRequest(int clientId, int sessionId, int peerId,int method);
+            String password, String pairingDeviceAlias, boolean accept, int cipherSuite);
+    void initiateBootStrappingSetupRequest(
+            int clientId, int sessionId, int peerId, int method, in byte[] serviceSpecificInfo);
     void suspend(int clientId, int sessionId);
     void resume(int clientId, int sessionId);
 

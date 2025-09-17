@@ -284,10 +284,11 @@ public interface IWifiNanIface {
      * @param method        the proposed bootstrapping method
      * @param pubSubId      ID of the publish/subscribe session - obtained when creating a session.
      * @param isComeBack    If the request is for a previous comeback response
+     * @param ssi           Service specific information
      * @return True if the request send succeed.
      */
     boolean initiateNanBootstrappingRequest(short transactionId, int peerId, MacAddress peer,
-            int method, byte[] cookie, byte pubSubId, boolean isComeBack);
+            int method, byte[] cookie, byte pubSubId, boolean isComeBack, byte[] ssi);
 
     /**
      * Respond to a bootstrapping request

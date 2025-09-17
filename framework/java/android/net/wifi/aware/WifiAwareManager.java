@@ -806,7 +806,7 @@ public class WifiAwareManager {
      * @hide
      */
     public void initiateBootStrappingSetupRequest(int clientId, int sessionId,
-            PeerHandle peerHandle, int method) {
+            PeerHandle peerHandle, int method, @Nullable byte[] ssi) {
         if (peerHandle == null) {
             throw new IllegalArgumentException(
                     "initiateBootStrappingSetupRequest: invalid peerHandle - must be non-null");
@@ -817,7 +817,7 @@ public class WifiAwareManager {
         }
         try {
             mService.initiateBootStrappingSetupRequest(clientId, sessionId, peerHandle.peerId,
-                    method);
+                    method, ssi);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
