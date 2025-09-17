@@ -1027,11 +1027,21 @@ public class WifiInjector {
     }
 
     /**
-     * Construct an instance of {@link SoftApStoreData}.
+     * Construct an instance of {@link SoftApStoreData.SharedStoreData}.
      */
-    public SoftApStoreData makeSoftApStoreData(
+    public SoftApStoreData makeSharedSoftApStoreData(
             SoftApStoreData.DataSource dataSource) {
-        return new SoftApStoreData(mContext, mSettingsMigrationDataHolder, dataSource);
+        return new SoftApStoreData.SharedStoreData(mContext, mSettingsMigrationDataHolder,
+                dataSource);
+    }
+
+    /**
+     * Construct an instance of {@link SoftApStoreData.UserStoreData}.
+     */
+    public SoftApStoreData makeUserSoftApStoreData(
+            SoftApStoreData.DataSource dataSource) {
+        return new SoftApStoreData.UserStoreData(mContext, mSettingsMigrationDataHolder,
+                dataSource);
     }
 
     public WifiPermissionsUtil getWifiPermissionsUtil() {

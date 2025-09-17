@@ -36,6 +36,7 @@ import com.android.server.wifi.util.EncryptedData;
 import com.android.server.wifi.util.FileUtils;
 import com.android.server.wifi.util.WifiConfigStoreEncryptionUtil;
 import com.android.server.wifi.util.XmlUtil;
+import com.android.wifi.flags.Flags;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -83,6 +84,8 @@ public class WifiConfigStore {
     public static final int STORE_FILE_SHARED_GENERAL = 0;
     /**
      * Config store file for softap shared store file.
+     * SoftAp data is now user-specific, see {@link #STORE_FILE_USER_SOFTAP}. This shared file is
+     * only used for data migration and no new data should be written into this file.
      */
     public static final int STORE_FILE_SHARED_SOFTAP = 1;
     /**
@@ -93,12 +96,17 @@ public class WifiConfigStore {
      * Config store file for network suggestions user store file.
      */
     public static final int STORE_FILE_USER_NETWORK_SUGGESTIONS = 3;
+    /**
+     * Config store file for softap user store file.
+     */
+    public static final int STORE_FILE_USER_SOFTAP = 4;
 
     @IntDef(prefix = { "STORE_FILE_" }, value = {
             STORE_FILE_SHARED_GENERAL,
             STORE_FILE_SHARED_SOFTAP,
             STORE_FILE_USER_GENERAL,
-            STORE_FILE_USER_NETWORK_SUGGESTIONS
+            STORE_FILE_USER_NETWORK_SUGGESTIONS,
+            STORE_FILE_USER_SOFTAP
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface StoreFileId { }
@@ -151,9 +159,9 @@ public class WifiConfigStore {
      */
     private static final String STORE_FILE_NAME_SHARED_GENERAL = "WifiConfigStore.xml";
     /**
-     * Config store file name for SoftAp shared store file.
+     * Config store file name for SoftAp store file.
      */
-    private static final String STORE_FILE_NAME_SHARED_SOFTAP = "WifiConfigStoreSoftAp.xml";
+    private static final String STORE_FILE_NAME_SOFTAP = "WifiConfigStoreSoftAp.xml";
     /**
      * Config store file name for general user store file.
      */
@@ -169,9 +177,10 @@ public class WifiConfigStore {
     private static final SparseArray<String> STORE_ID_TO_FILE_NAME =
             new SparseArray<String>() {{
                 put(STORE_FILE_SHARED_GENERAL, STORE_FILE_NAME_SHARED_GENERAL);
-                put(STORE_FILE_SHARED_SOFTAP, STORE_FILE_NAME_SHARED_SOFTAP);
+                put(STORE_FILE_SHARED_SOFTAP, STORE_FILE_NAME_SOFTAP);
                 put(STORE_FILE_USER_GENERAL, STORE_FILE_NAME_USER_GENERAL);
                 put(STORE_FILE_USER_NETWORK_SUGGESTIONS, STORE_FILE_NAME_USER_NETWORK_SUGGESTIONS);
+                put(STORE_FILE_USER_SOFTAP, STORE_FILE_NAME_SOFTAP);
             }};
     /**
      * Clock instance to retrieve timestamps for alarms.
@@ -180,12 +189,13 @@ public class WifiConfigStore {
     private final WifiMetrics mWifiMetrics;
     /**
      * Shared config store file instance. There are 2 shared store files:
-     * {@link #STORE_FILE_NAME_SHARED_GENERAL} & {@link #STORE_FILE_NAME_SHARED_SOFTAP}.
+     * {@link #STORE_FILE_SHARED_GENERAL} and {@link #STORE_FILE_SHARED_SOFTAP}.
      */
     private final List<StoreFile> mSharedStores;
     /**
-     * User specific store file instances. There are 2 user store files:
-     * {@link #STORE_FILE_NAME_USER_GENERAL} & {@link #STORE_FILE_NAME_USER_NETWORK_SUGGESTIONS}.
+     * User specific store file instances. There are 3 user store files:
+     * {@link #STORE_FILE_USER_GENERAL}, {@link #STORE_FILE_USER_NETWORK_SUGGESTIONS}, and
+     * {@link #STORE_FILE_USER_SOFTAP}.
      */
     private List<StoreFile> mUserStores;
     /**
@@ -322,9 +332,14 @@ public class WifiConfigStore {
     public static @Nullable List<StoreFile> createUserFiles(int userId,
             boolean shouldEncryptCredentials) {
         UserHandle userHandle = UserHandle.of(userId);
+        List<Integer> userFiles = new ArrayList<>(
+                List.of(STORE_FILE_USER_GENERAL, STORE_FILE_USER_NETWORK_SUGGESTIONS));
+        if (Flags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()) {
+            userFiles.add(STORE_FILE_USER_SOFTAP);
+        }
         return createFiles(
                 Environment.getWifiUserDirectory(userId),
-                Arrays.asList(STORE_FILE_USER_GENERAL, STORE_FILE_USER_NETWORK_SUGGESTIONS),
+                userFiles,
                 userHandle,
                 shouldEncryptCredentials);
     }
