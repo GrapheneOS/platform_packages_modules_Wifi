@@ -1211,19 +1211,30 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         mWifiThreadRunner.post(() -> {
             mWifiConfigManager.handleUserSwitch(userId);
             resetNotificationManager();
+            if (Environment.isSdkNewerThanB() && mFeatureFlags.multiUserWifiEnhancement()) {
+                mActiveModeWarden.handleUserSwitch(userId);
+            }
         }, TAG + "#handleUserSwitch");
     }
 
     public void handleUserUnlock(int userId) {
         Log.d(TAG, "Handle user unlock " + userId);
-        mWifiThreadRunner.post(() -> mWifiConfigManager.handleUserUnlock(userId),
-                TAG + "#handleUserUnlock");
+        mWifiThreadRunner.post(() -> {
+            mWifiConfigManager.handleUserUnlock(userId);
+            if (Environment.isSdkNewerThanB() && mFeatureFlags.multiUserWifiEnhancement()) {
+                mActiveModeWarden.handleUserUnlock(userId);
+            }
+        }, TAG + "#handleUserUnlock");
     }
 
     public void handleUserStop(int userId) {
         Log.d(TAG, "Handle user stop " + userId);
-        mWifiThreadRunner.post(() -> mWifiConfigManager.handleUserStop(userId),
-                TAG + "#handleUserStop");
+        mWifiThreadRunner.post(() -> {
+            mWifiConfigManager.handleUserStop(userId);
+            if (Environment.isSdkNewerThanB() && mFeatureFlags.multiUserWifiEnhancement()) {
+                mActiveModeWarden.handleUserStop(userId);
+            }
+        }, TAG + "#handleUserStop");
     }
 
     /**
