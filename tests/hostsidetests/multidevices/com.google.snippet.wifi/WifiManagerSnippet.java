@@ -33,6 +33,7 @@ import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApInfo;
 import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
@@ -40,6 +41,7 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiScanner.ScanData;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -1155,4 +1157,44 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
             mIsScanResultAvailable = true;
         }
     }
+
+    /**
+     * Gets the list of usable Wi-Fi channels for a given band and operating mode.
+     *
+     * @param band The Wi-Fi band to query, e.g., {@link SoftApConfiguration#BAND_2GHZ}.
+     * @return A list of usable channel frequencies in MHz, or an empty list on failure or if
+     *         unsupported.
+     */
+    @Rpc(description = "Gets usable Wi-Fi channels for a given band and mode.")
+    public List<Integer> wifiGetUsableChannels(int band, int mode) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            Log.w(TAG, "getUsableChannels requires Android S (API 31) or higher.");
+            return new ArrayList<>();
+        }
+        if (mWifiManager == null) {
+            Log.e(TAG, "WifiManager service not available.");
+            return new ArrayList<>();
+        }
+
+        try {
+            Log.i(TAG, "WifiManager getUsableChannels available.");
+            List<WifiAvailableChannel> channelObjects = mWifiManager.getUsableChannels(
+                            band, mode);
+            if (channelObjects == null) {
+                return  new ArrayList<>();
+            }
+            List<Integer> channelFrequencies = new ArrayList<>();
+            for (WifiAvailableChannel channel : channelObjects) {
+                channelFrequencies.add(channel.getFrequencyMhz());
+            }
+            return channelFrequencies;
+        } catch (SecurityException e) {
+            Log.e(TAG, "Permission denial for getUsableChannels.", e);
+            return new ArrayList<>();
+        } catch (Exception e) {
+            Log.e(TAG, "Error calling getUsableChannels.", e);
+            return new ArrayList<>();
+        }
+    }
+
 }

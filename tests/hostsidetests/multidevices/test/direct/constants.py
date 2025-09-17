@@ -71,6 +71,8 @@ WIFI_P2P_THIS_DEVICE_CHANGED_ACTION = 'android.net.wifi.p2p.THIS_DEVICE_CHANGED'
 
 ANONYMIZED_MAC_ADDRESS = '02:00:00:00:00:00'
 
+# throughput unit change
+BITS_TO_MBPS = 1000000
 
 @enum.unique
 class ActionListenerOnFailure(enum.IntEnum):
@@ -95,6 +97,11 @@ class Band(enum.IntEnum):
   GROUP_OWNER_BAND_AUTO = 0
   GROUP_OWNER_BAND_2GHZ = 1
   GROUP_OWNER_BAND_5GHZ = 2
+  GROUP_OWNER_BAND_5GHZ_WITH_DFS = 6
+  GROUP_OWNER_BAND_BOTH_WITH_DFS = 7
+  GROUP_OWNER_BAND_24_5_WITH_DFS_6_GHZ = 15
+  GROUP_OWNER_BAND_24_5_WITH_DFS_6_60_GHZ = 31
+
 
 
 @enum.unique
@@ -359,3 +366,15 @@ class WifiP2pManagerConstants:
     https://developer.android.com/reference/android/net/wifi/p2p/WifiP2pManager#NO_SERVICE_REQUESTS
     """
     NO_SERVICE_REQUESTS = 3
+
+class WifiAvailableChannelMode:
+    """Constants for WifiAvailableChannel.
+
+    https://developer.android.com/reference/android/net/wifi/WifiAvailableChannel
+    """
+    OP_MODE_STA = 1
+    OP_MODE_SAP = 2
+    OP_MODE_WIFI_DIRECT_CLI = 4
+    OP_MODE_WIFI_DIRECT_GO = 8
+    OP_MODE_WIFI_AWARE = 16
+    OP_MODE_TDLS = 32
