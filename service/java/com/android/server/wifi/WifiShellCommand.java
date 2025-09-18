@@ -55,6 +55,7 @@ import android.content.IntentFilter;
 import android.hardware.display.DisplayManager;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.ConnectivityDiagnosticsManager;
 import android.net.ConnectivityManager;
 import android.net.MacAddress;
 import android.net.Network;
@@ -228,6 +229,35 @@ public class WifiShellCommand extends BasicShellCommandHandler {
 
     private static final ConnectivityManager.NetworkCallback sRestrictedNetworkCallback =
             new ConnectivityManager.NetworkCallback();
+    private static final NetworkRequest sNetworkRequestForInternet = new NetworkRequest.Builder()
+            .clearCapabilities()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addTransportType(TRANSPORT_WIFI)
+            .build();
+
+    private static final ConnectivityDiagnosticsManager.ConnectivityDiagnosticsCallback
+            sConnectivityDiagnosticsCallback =
+            new ConnectivityDiagnosticsManager.ConnectivityDiagnosticsCallback() {
+                @Override
+                public void onConnectivityReportAvailable(
+                        @NonNull ConnectivityDiagnosticsManager.ConnectivityReport report) {
+                    Log.i(TAG, "ConnectivityDiagnosticsCallback onConnectivityReportAvailable");
+                }
+
+                @Override
+                public void onDataStallSuspected(
+                        @NonNull ConnectivityDiagnosticsManager.DataStallReport report) {
+                    Log.i(TAG, "ConnectivityDiagnosticsCallback onDataStallSuspected");
+                }
+
+                @Override
+                public void onNetworkConnectivityReported(
+                        @NonNull Network network, boolean hasConnectivity) {
+                    Log.i(TAG, "ConnectivityDiagnosticsCallback onNetworkConnectivityReported "
+                            + "hasConnectivity=" + hasConnectivity);
+                }
+            };
     private final ActiveModeWarden mActiveModeWarden;
     private final WifiGlobals mWifiGlobals;
     private final WifiLockManager mWifiLockManager;
@@ -240,6 +270,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     private final WifiServiceImpl mWifiService;
     private final WifiContext mContext;
     private final ConnectivityManager mConnectivityManager;
+    private final ConnectivityDiagnosticsManager mConnectivityDiagnosticsManager;
     private final WifiCarrierInfoManager mWifiCarrierInfoManager;
     private final WifiNetworkFactory mWifiNetworkFactory;
     private final SelfRecovery mSelfRecovery;
@@ -503,6 +534,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         mWifiService = wifiService;
         mContext = context;
         mConnectivityManager = context.getSystemService(ConnectivityManager.class);
+        mConnectivityDiagnosticsManager = context.getSystemService(
+                ConnectivityDiagnosticsManager.class);
         mWifiCarrierInfoManager = wifiInjector.getWifiCarrierInfoManager();
         mWifiNetworkFactory = wifiInjector.getWifiNetworkFactory();
         mSelfRecovery = wifiInjector.getSelfRecovery();
@@ -1376,6 +1409,20 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                             sRestrictedNetworkCallback),
                             "shell#remove-restricted-request");
                     Log.e("ClientModeImplTest", "removed restricted network request");
+                    return 0;
+                }
+                case "add-connectivity-diagnostic-callback": {
+                    mWifiThreadRunner.post(() -> mConnectivityDiagnosticsManager
+                            .registerConnectivityDiagnosticsCallback(sNetworkRequestForInternet,
+                                    mContext.getMainExecutor(), sConnectivityDiagnosticsCallback),
+                            "shell#add-connectivity-diagnostic-callback");
+                    return 0;
+                }
+                case "remove-connectivity-diagnostic-callback": {
+                    mWifiThreadRunner.post(() -> mConnectivityDiagnosticsManager
+                                    .unregisterConnectivityDiagnosticsCallback(
+                                            sConnectivityDiagnosticsCallback),
+                            "shell#remove-connectivity-diagnostic-callback");
                     return 0;
                 }
                 case "add-request": {
@@ -3716,6 +3763,10 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  remove-restricted-request");
         pw.println("    remove the network request for a restricted network created with "
                 + "     add-restricted-request.");
+        pw.println("  add-connectivity-diagnostic-callback");
+        pw.println("    register a connectivity diagnostic callback");
+        pw.println("  remove-connectivity-diagnostic-callback");
+        pw.println("    remove the registered connectivity diagnostic callback");
         pw.println("  add-request [-g] [-i] [-n] [-s] <ssid> open|owe|wpa2|wpa3 [<passphrase>]"
                 + " [-b <bssid>] [-d <band=2|5|6|60>]");
         pw.println("    Add a network request with provided params");
