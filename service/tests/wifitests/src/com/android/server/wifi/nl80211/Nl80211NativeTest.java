@@ -34,7 +34,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.net.wifi.WifiScanner;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.net.wifi.nl80211.NativeScanResult;
 import android.net.wifi.nl80211.PnoSettings;
 import android.net.wifi.nl80211.WifiNl80211Manager;
@@ -352,9 +351,11 @@ public class Nl80211NativeTest {
     @Test
     public void testGetDeviceWiphyCapabilities_useWificondEnabled_callsWificond() {
         mDut = initNl80211Native(true);
-        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities();
-        when(mWificondManager.getDeviceWiphyCapabilities(IFACE_NAME)).thenReturn(caps);
-        assertEquals(caps, mDut.getDeviceWiphyCapabilities(IFACE_NAME));
+        android.net.wifi.nl80211.DeviceWiphyCapabilities wificondCaps =
+                new android.net.wifi.nl80211.DeviceWiphyCapabilities();
+        when(mWificondManager.getDeviceWiphyCapabilities(IFACE_NAME)).thenReturn(wificondCaps);
+        assertEquals(new DeviceWiphyCapabilities(wificondCaps),
+                mDut.getDeviceWiphyCapabilities(IFACE_NAME));
         verify(mWificondManager).getDeviceWiphyCapabilities(IFACE_NAME);
     }
 

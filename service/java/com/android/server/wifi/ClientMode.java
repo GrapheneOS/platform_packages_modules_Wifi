@@ -32,7 +32,6 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager.DeviceMobilityState;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.IBinder;
 import android.os.Message;
@@ -42,6 +41,7 @@ import androidx.annotation.Keep;
 
 import com.android.server.wifi.WifiNative.RxFateReport;
 import com.android.server.wifi.WifiNative.TxFateReport;
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.util.ActionListenerWrapper;
 
 import java.io.FileDescriptor;

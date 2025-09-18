@@ -50,7 +50,6 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.net.wifi.util.WifiResourceCache;
 import android.text.TextUtils;
 import android.util.Log;
@@ -66,6 +65,7 @@ import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.coex.CoexManager;
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 

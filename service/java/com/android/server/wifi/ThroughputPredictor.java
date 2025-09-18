@@ -15,7 +15,6 @@
  */
 package com.android.server.wifi;
 
-import static com.android.server.wifi.util.InformationElementUtil.BssLoad.INVALID;
 import static com.android.server.wifi.util.InformationElementUtil.BssLoad.MAX_CHANNEL_UTILIZATION;
 import static com.android.server.wifi.util.InformationElementUtil.BssLoad.MIN_CHANNEL_UTILIZATION;
 
@@ -25,9 +24,9 @@ import android.content.Context;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiAnnotations.WifiStandard;
 import android.net.wifi.WifiInfo;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.util.Log;
 
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.wifi.resources.R;
 
 /**

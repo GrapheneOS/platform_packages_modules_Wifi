@@ -29,11 +29,11 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.DeviceMobilityState;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.WorkSource;
 
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.util.ActionListenerWrapper;
 
 import java.io.FileDescriptor;
