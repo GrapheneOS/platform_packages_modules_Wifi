@@ -121,7 +121,7 @@ def publish_and_subscribe(
     subscriber_peer = _wait_for_discovery(
         subscriber,
         sub_session_handler,
-        pub_service_specific_info=pub_config.service_specific_info,
+        pub_config,
         is_ranging_enabled=pub_config.ranging_enabled,
     )
     subscriber.log.info('The subscriber discovered the published service.')
@@ -220,7 +220,7 @@ def _start_subscribe(
 def _wait_for_discovery(
     subscriber: android_device.AndroidDevice,
     sub_session_handler: callback_handler_v2.CallbackHandlerV2,
-    pub_service_specific_info: bytes,
+    pub_config: constants.PublishConfig,
     is_ranging_enabled: bool,
 ) -> int:
     """Waits for discovery of the publisher's service by the subscriber.
@@ -228,7 +228,7 @@ def _wait_for_discovery(
     Args:
         subscriber: The Android device controller of the subscriber.
         sub_session_handler: The callback handler for the subscribe session.
-        pub_service_specific_info: The service info set on the publisher.
+        pub_config: The publish configuration.
         is_ranging_enabled: Whether the publisher has ranging enabled.
 
     Returns:
@@ -248,9 +248,43 @@ def _wait_for_discovery(
             constants.WifiAwareSnippetParams.SERVICE_SPECIFIC_INFO
         ]
     )
+    if pub_config.pairing_config is not None:
+        asserts.assert_equal(
+            discover_data.data[
+                constants.WifiAwareSnippetParams.PAIRED_SETUP_ENABLED
+            ],
+            pub_config.pairing_config.pairing_setup_enabled,
+            f'{subscriber} got unexpected pairing setup enabled in discovery'
+            f' callback event "{event_name}".',
+        )
+        asserts.assert_equal(
+            discover_data.data[
+                constants.WifiAwareSnippetParams.PAIRED_CACHE_ENABLED
+            ],
+            pub_config.pairing_config.pairing_cache_enabled,
+            f'{subscriber} got unexpected pairing cache enabled in discovery'
+            f' callback event "{event_name}".',
+        )
+        asserts.assert_equal(
+            discover_data.data[
+                constants.WifiAwareSnippetParams.PAIRED_VERIFICATION_ENABLED
+            ],
+            pub_config.pairing_config.pairing_verification_enabled,
+            f'{subscriber} got unexpected pairing verification enabled in'
+            f' discovery callback event "{event_name}".',
+        )
+        asserts.assert_equal(
+            discover_data.data[
+                constants.WifiAwareSnippetParams.BOOTSTRAPPING_METHOD
+            ],
+            pub_config.pairing_config.bootstrapping_methods,
+            f'{subscriber} got unexpected bootstrapping method in discovery'
+            f' callback event "{event_name}".',
+        )
+
     asserts.assert_equal(
         service_info,
-        pub_service_specific_info,
+        pub_config.service_specific_info,
         f'{subscriber} got unexpected service info in discovery'
         f' callback event "{event_name}".',
     )

@@ -243,6 +243,9 @@ class WifiAwareSnippetParams(enum.StrEnum):
     PAIRING_REQUEST_ID = 'pairingRequestId'
     BOOTSTRAPPING_METHOD = 'bootstrappingMethod'
     PEER_ID = 'peerId'
+    PAIRED_SETUP_ENABLED = 'pairingSetupEnabled'
+    PAIRED_CACHE_ENABLED = 'pairingCacheEnabled'
+    PAIRED_VERIFICATION_ENABLED = 'pairingVerificationEnabled'
 
 
 @enum.unique

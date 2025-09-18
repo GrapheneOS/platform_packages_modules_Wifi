@@ -33,6 +33,7 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.aware.AttachCallback;
 import android.net.wifi.aware.Characteristics;
 import android.net.wifi.aware.DiscoverySession;
+import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.DiscoverySessionCallback;
 import android.net.wifi.aware.IdentityChangedListener;
 import android.net.wifi.aware.PeerHandle;
@@ -443,10 +444,19 @@ public class WifiAwareManagerSnippet implements Snippet {
         public void onServiceDiscovered(ServiceDiscoveryInfo info) {
             mPeerHandles.put(info.getPeerHandle().hashCode(), info.getPeerHandle());
             SnippetEvent event = new SnippetEvent(mCallBackId, "onServiceDiscovered");
-            event.getData().putByteArray("serviceSpecificInfo", info.getServiceSpecificInfo());
-            event.getData().putString("pairedAlias", info.getPairedAlias());
-            event.getData().putInt("peerId", info.getPeerHandle().hashCode());
-            event.getData().putLong("timestampMs", System.currentTimeMillis());
+            Bundle data = event.getData();
+            data.putByteArray("serviceSpecificInfo", info.getServiceSpecificInfo());
+            data.putString("pairedAlias", info.getPairedAlias());
+            data.putInt("peerId", info.getPeerHandle().hashCode());
+            data.putLong("timestampMs", System.currentTimeMillis());
+            if (info.getPairingConfig() != null) {
+                AwarePairingConfig pairingConfig = info.getPairingConfig();
+                data.putBoolean("pairingSetupEnabled", pairingConfig.isPairingSetupEnabled());
+                data.putBoolean("pairingCacheEnabled", pairingConfig.isPairingCacheEnabled());
+                data.putBoolean("pairingVerificationEnabled", pairingConfig
+                    .isPairingVerificationEnabled());
+                data.putInt("bootstrappingMethod", pairingConfig.getBootstrappingMethods());
+            }
             List<byte[]> matchFilter = info.getMatchFilters();
             putMatchFilterData(matchFilter, event);
             EventCache.getInstance().postEvent(event);

@@ -95,6 +95,12 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         finally:
             ad.services.create_output_excerpts_all(self.current_test_info)
 
+    def on_fail(self, record: records.TestResult) -> None:
+        logging.info('Collecting bugreports...')
+        android_device.take_bug_reports(
+            self.ads, destination=self.current_test_info.output_path
+        )
+
     @ApiTest(
         apis=[
             'android.net.wifi.aware.AwarePairingConfig',
@@ -306,6 +312,146 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         self.subscriber.wifi.wifiAwareCloseDiscoverSession(sub_session)
         self.publisher.wifi.wifiAwareDetach(pub_attach_session)
         self.subscriber.wifi.wifiAwareDetach(sub_attach_session)
+
+    def test_boostraping_method_neogotiation_matched(self):
+        """Test Wi-Fi Aware bootstrapping method negotiation."""
+        pub_config = constants.PublishConfig(
+            publish_type=constants.PublishType.UNSOLICITED,
+            service_specific_info=_PUB_SSI,
+            pairing_config=constants.AwarePairingConfig(
+                pairing_setup_enabled=True,
+                pairing_cache_enabled=True,
+                pairing_verification_enabled=True,
+                bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            ),
+        )
+        sub_config = constants.SubscribeConfig(
+            subscribe_type=constants.SubscribeType.PASSIVE,
+            service_specific_info=_SUB_SSI,
+            pairing_config=constants.AwarePairingConfig(
+                pairing_setup_enabled=True,
+                pairing_cache_enabled=True,
+                pairing_verification_enabled=True,
+                bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_KEYPAD,
+            ),
+        )
+
+        # Step 1: Attach Wi-Fi Aware sessions.
+        pub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.publisher, is_ranging_enabled=False
+        )
+        sub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.subscriber, is_ranging_enabled=False
+        )
+        # Step 2: Publisher publishes an Wi-Fi Aware service, subscriber
+        # subscribes to it. Wait for service discovery.
+        (
+            pub_session,
+            pub_session_handler,
+            sub_session,
+            sub_session_handler,
+            sub_peer_id,
+        ) = aware_snippet_utils.publish_and_subscribe(
+            publisher=self.publisher,
+            pub_config=pub_config,
+            pub_attach_session=pub_attach_session,
+            subscriber=self.subscriber,
+            sub_config=sub_config,
+            sub_attach_session=sub_attach_session,
+        )
+
+        # Step 3: setup bootstrapping.
+        # Step 3.1: Subscriber initiates bootstrapping.
+        self.subscriber.wifi.wifiAwareInitiateBootstrapping(
+            sub_session,
+            sub_peer_id,
+            constants.BootstrappingMethod.PIN_CODE_KEYPAD,
+        )
+
+        # Step 3.2: Both devices get bootstrapping success callback.
+        pub_bootstrapping_success_event = pub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.BOOTSTRAPPING_SUCCEEDED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+        sub_bootstrapping_success_event = sub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.BOOTSTRAPPING_SUCCEEDED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+
+        asserts.assert_equal(
+            pub_bootstrapping_success_event.data['bootstrappingMethod'],
+            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            'Publisher received wrong bootstrapping method.',
+        )
+        asserts.assert_equal(
+            sub_bootstrapping_success_event.data['bootstrappingMethod'],
+            constants.BootstrappingMethod.PIN_CODE_KEYPAD,
+            'Subscriber received wrong bootstrapping method.',
+        )
+        self.publisher.log.info('Publisher bootstrapping succeeded.')
+        self.subscriber.log.info('Subscriber bootstrapping succeeded.')
+
+    def test_boostraping_method_neogotiation_mismatch(self):
+        """Test Wi-Fi Aware bootstrapping method negotiation."""
+        pub_config = constants.PublishConfig(
+            publish_type=constants.PublishType.UNSOLICITED,
+            service_specific_info=_PUB_SSI,
+            pairing_config=constants.AwarePairingConfig(
+                pairing_setup_enabled=True,
+                pairing_cache_enabled=True,
+                pairing_verification_enabled=True,
+                bootstrapping_methods=constants.BootstrappingMethod.NFC_READER,
+            ),
+        )
+        sub_config = constants.SubscribeConfig(
+            subscribe_type=constants.SubscribeType.PASSIVE,
+            service_specific_info=_SUB_SSI,
+            pairing_config=constants.AwarePairingConfig(
+                pairing_setup_enabled=True,
+                pairing_cache_enabled=True,
+                pairing_verification_enabled=True,
+                bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_KEYPAD,
+            ),
+        )
+
+        # Step 1: Attach Wi-Fi Aware sessions.
+        pub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.publisher, is_ranging_enabled=False
+        )
+        sub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.subscriber, is_ranging_enabled=False
+        )
+        # Step 2: Publisher publishes an Wi-Fi Aware service, subscriber
+        # subscribes to it. Wait for service discovery.
+        (
+            pub_session,
+            pub_session_handler,
+            sub_session,
+            sub_session_handler,
+            sub_peer_id,
+        ) = aware_snippet_utils.publish_and_subscribe(
+            publisher=self.publisher,
+            pub_config=pub_config,
+            pub_attach_session=pub_attach_session,
+            subscriber=self.subscriber,
+            sub_config=sub_config,
+            sub_attach_session=sub_attach_session,
+        )
+
+        # Step 3: setup bootstrapping.
+        # Step 3.1: Subscriber initiates bootstrapping.
+        self.subscriber.wifi.wifiAwareInitiateBootstrapping(
+            sub_session,
+            sub_peer_id,
+            constants.BootstrappingMethod.PIN_CODE_KEYPAD,
+        )
+
+        # Step 3.2: only subscriber gets bootstrapping failure callback.
+        sub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.BOOTSTRAPPING_FAILED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+        self.subscriber.log.info('Subscriber bootstrapping failed.')
 
 if __name__ == '__main__':
     # Take test args
