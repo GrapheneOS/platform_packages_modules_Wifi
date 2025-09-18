@@ -1,13 +1,8 @@
 TestBeds:
 - Name: WifiConnectionTestbed
   Controllers:
-    # By default, all connected Android devices will be used. To use a specific
-    # device, update the AndroidDevice section as follows:
-    # AndroidDevice:
-    #   - serial: <serial>
     AndroidDevice: '*'
+    # Specify settings for the AP.
     OpenWrtDevice:
-    - hostname: 127.0.0.1
-      ssh_port: 2222
-      username: root
+    - hostname: <AP-IP>
       skip_init_reboot: True
