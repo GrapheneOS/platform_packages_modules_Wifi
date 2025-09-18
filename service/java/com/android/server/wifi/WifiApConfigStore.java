@@ -108,6 +108,8 @@ public class WifiApConfigStore {
     private final WifiResourceCache mResourceCache;
     private final Set<UserHandle> mUsersNeedMigration = new HashSet<>();
     private SoftApConfiguration mSharedToPrivateMigrationDataHolder;
+    private int mCurrentUserId = UserHandle.SYSTEM.getIdentifier();
+    private boolean mVerboseLoggingEnabled = false;
 
     /**
      * Module to interact with the wifi config store.
@@ -912,7 +914,7 @@ public class WifiApConfigStore {
     }
 
     /**
-     * Returns the last configured Wi-Fi tethered AP passphrase.
+     * Returns the last configured Wi-Fi tethered AP passphrase for the current user.
      */
     public synchronized String getLastConfiguredTetheredApPassphraseSinceBoot() {
         return mLastConfiguredPassphrase;
@@ -924,8 +926,52 @@ public class WifiApConfigStore {
     private synchronized void resetUserSessionData() {
         mPersistentWifiApConfig = null;
         mHasNewDataToSerialize = false;
-        // TODO(b/436322521): reset all user-session related data.
-        // For now, we only reset data related to UserStoreData. We will determine all data to be
-        // reset upon user-switch and user-stop in the coming CL.
+        mLastConfiguredPassphrase = null;
+    }
+
+    /**
+     * Handles the switch to a different foreground user:
+     * - Currently, only updates {@link #mCurrentUserId} to be used by other handlers. The I/O of
+     *   {@link SoftApStoreData} is maintained by {@link WifiConfigManager#handleUserSwitch} and
+     *   data reset is called by {@link SoftApStoreData#resetData} when data for new user is loaded.
+     *
+     * Need to be called when {@link com.android.server.SystemService#onUserSwitching} is invoked.
+     *
+     * @param userId The identifier of the new foreground user, after the switch.
+     */
+    public void handleUserSwitch(int userId) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "Handling user switch for " + userId);
+        }
+        if (userId == mCurrentUserId) {
+            Log.w(TAG, "User already in foreground " + userId);
+            return;
+        }
+        mCurrentUserId = userId;
+    }
+
+    /**
+     * Handles the stop of foreground user. This is needed to clear any user data. Note that we must
+     * call this method after user data is saved by {@link WifiConfigManager#handleUserStop}, which
+     * handles the serialization of all StoreData including {@link SoftApStoreData}.
+     *
+     * Need to be called when {@link com.android.server.SystemService#onUserStopping} is invoked.
+     *
+     * @param userId The identifier of the user that stopped.
+     */
+    public void handleUserStop(int userId) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "Handling user stop for " + userId);
+        }
+        if (userId == mCurrentUserId) {
+            resetUserSessionData();
+        }
+    }
+
+    /**
+     * Enable/disable verbose logging.
+     */
+    public void enableVerboseLogging(boolean enabled) {
+        mVerboseLoggingEnabled = enabled;
     }
 }
