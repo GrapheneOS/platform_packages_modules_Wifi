@@ -4616,14 +4616,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             SubscribeConfig subscribeConfig = completedCommand.getData().getParcelable(
                     MESSAGE_BUNDLE_KEY_CONFIG);
             isRangingEnabled =
-                    subscribeConfig.mMinDistanceMmSet || subscribeConfig.mMaxDistanceMmSet
+                    subscribeConfig.mEgressDistanceMmSet || subscribeConfig.mIngressDistanceMmSet
                             || subscribeConfig.mPeriodicRangingEnabled;
             isSuspendable = SdkLevel.isAtLeastU() && subscribeConfig.isSuspendable();
-            if (subscribeConfig.mMinDistanceMmSet) {
-                minRange = subscribeConfig.mMinDistanceMm;
+            if (subscribeConfig.mEgressDistanceMmSet) {
+                minRange = subscribeConfig.mEgressDistanceMm;
             }
-            if (subscribeConfig.mMaxDistanceMmSet) {
-                maxRange = subscribeConfig.mMaxDistanceMm;
+            if (subscribeConfig.mIngressDistanceMmSet) {
+                maxRange = subscribeConfig.mIngressDistanceMm;
             }
             enableInstantMode = subscribeConfig.isInstantCommunicationModeEnabled();
             instantModeBand = subscribeConfig.getInstantCommunicationBand();
