@@ -116,6 +116,26 @@ public class PairingConfigManagerTest extends WifiBaseTest {
         assertTrue(allAlias.isEmpty());
     }
 
+    /**
+     * Test reset will clear all the caches
+     */
+    @Test
+    public void testReset() {
+        byte[] localNik = mPairingConfigManager.getNikForCallingPackage(mPackageName);
+        byte[] peerNik = mPairingConfigManager.getNikForCallingPackage(mPackageName1);
+        PairingConfigManager.PairingSecurityAssociationInfo pairingInfo =
+                new PairingConfigManager.PairingSecurityAssociationInfo(peerNik, localNik,
+                        new byte[16], WifiAwareStateManager.NAN_PAIRING_AKM_PASN,
+                        Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128);
+        mPairingConfigManager.addPairedDeviceSecurityAssociation(mPackageName, mAlias, pairingInfo);
+        List<String> allAlias = mPairingConfigManager.getAllPairedDevices(mPackageName);
+        assertEquals(1, allAlias.size());
+        assertEquals(mAlias, allAlias.get(0));
+        mPairingConfigManager.reset();
+        allAlias = mPairingConfigManager.getAllPairedDevices(mPackageName);
+        assertTrue(allAlias.isEmpty());
+    }
+
     private byte[] generateTag(byte[] nik, byte[] nonce, byte[] mac) {
         SecretKeySpec spec = new SecretKeySpec(nik, "HmacSHA256");
         try {
