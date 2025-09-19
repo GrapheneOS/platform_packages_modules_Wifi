@@ -179,6 +179,12 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         mShellCommand.reset();
     }
 
+    @VisibleForTesting
+    void setRttCapabilitiesForTest(WifiRttController.Capabilities capabilities) {
+        mCapabilities = capabilities;
+    }
+
+
     private void updateVerboseLoggingEnabled() {
         final int verboseAlwaysOnLevel = mContext.getResources().getInteger(
                 R.integer.config_wifiVerboseLoggingAlwaysOnLevel);
@@ -769,6 +775,54 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         }
     }
 
+    /**
+     * Calculates the timeout duration for a Wi-Fi RTT ranging request based on the types of
+     * responders in the request.
+     *
+     * <p>The base timeout is {@link #HAL_RANGING_TIMEOUT_MS}. However, if the request includes
+     * specific types of responders, the timeout may be increased to accommodate their
+     * potentially longer response times or specific protocol requirements:
+     *
+     * <ul>
+     *   <li>If any responder is of type {@link ResponderConfig#RESPONDER_AWARE}, the timeout
+     *       is extended to at least {@link #HAL_AWARE_RANGING_TIMEOUT_MS}.
+     *   <li>If the device supports IEEE 802.11az Non-Trigger-Based (NTB) initiation
+     *       (as indicated by {@code mCapabilities.ntbInitiatorSupported}) and any responder
+     *       also supports 802.11az NTB, the timeout is further adjusted to be at least
+     *       the maximum of the {@code NtbMaxTimeBetweenMeasurementsMicros} configured for
+     *       such responders (converted to milliseconds). This longer timeout is intended
+     *       to accommodate ranging sessions to multiple NTB peers without requiring
+     *       FTMR/FTM renegotiation for each one.
+     * </ul>
+     *
+     * <p>The method returns the maximum timeout determined by these conditions, ensuring the
+     * ranging operation waits sufficiently long for all requested peers.
+     */
+    @VisibleForTesting
+    static long calculateRangeRequestTimeoutMs(List<ResponderConfig> responderConfigs,
+            WifiRttController.Capabilities capabilities) {
+        long timeout = HAL_RANGING_TIMEOUT_MS;
+        if (responderConfigs == null) {
+            return timeout;
+        }
+        for (ResponderConfig responderConfig : responderConfigs) {
+            if (responderConfig.getResponderType() == ResponderConfig.RESPONDER_AWARE) {
+                timeout = Math.max(timeout, HAL_AWARE_RANGING_TIMEOUT_MS);
+            }
+            // For IEEE 802.11az NTB ranging, the maximum time between measurements will be
+            // configured in such a way to handle ranging to multiple peers without
+            // triggering  FTMR/FTM renegotiation for each AP. This should be set to the
+            // timeout for a ranging session, typically 15000ms (15 secs), which behaves
+            // well for positioning.
+            if (capabilities != null && capabilities.ntbInitiatorSupported
+                    && responderConfig.is80211azNtbSupported()) {
+                timeout = Math.max(timeout,
+                        responderConfig.getNtbMaxTimeBetweenMeasurementsMicros() / 1000);
+            }
+        }
+        return timeout;
+    }
+
     /*
      * SYNCHRONIZED DOMAIN
      */
@@ -1065,14 +1119,9 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             mLastRequestTimestamp = mClock.getWallClockMillis();
             if (mWifiRttController != null
                     && mWifiRttController.rangeRequest(nextRequest.cmdId, nextRequest.request)) {
-                long timeout = HAL_RANGING_TIMEOUT_MS;
-                for (ResponderConfig responderConfig : nextRequest.request.mRttPeers) {
-                    if (responderConfig.responderType == ResponderConfig.RESPONDER_AWARE) {
-                        timeout = HAL_AWARE_RANGING_TIMEOUT_MS;
-                        break;
-                    }
-                }
-                mRangingTimeoutMessage.schedule(mClock.getElapsedSinceBootMillis() + timeout);
+                mRangingTimeoutMessage.schedule(
+                        mClock.getElapsedSinceBootMillis() + calculateRangeRequestTimeoutMs(
+                                nextRequest.request.mRttPeers, mCapabilities));
             } else {
                 Log.w(TAG, "RttServiceSynchronized.startRanging: native rangeRequest call failed");
                 if (mWifiRttController == null) {
