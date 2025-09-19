@@ -1219,5 +1219,33 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         }
     }
 
+    /**
+     * Sets the country code for the device.
+     *
+     * @param countryCode The country code to set.
+     */
+    @Rpc(description = "Sets the country code for the device.")
+    public void setOverrideWifiCountryCode(String countryCode) {
+        Log.d(TAG, "setOverridetWifiCountryCode: " + countryCode);
+        executeWithShellPermission(() -> mWifiManager.setOverrideCountryCode(countryCode));
+    }
+
+    /**
+     * Gets the country code for the device.
+     *
+     * @return The country code for the device.
+     */
+    @Rpc(description = "Gets the country code for the device.")
+    public String getWifiCountryCode() {
+        return executeWithShellPermission(() -> mWifiManager.getCountryCode());
+    }
+
+    /**
+     * Clears the override country code for the device.
+     */
+    @Rpc(description = "Clears the country code for the device.")
+    public void clearOverrideWifiCountryCode() {
+        executeWithShellPermission(() -> mWifiManager.clearOverrideCountryCode());
+    }
 }
 
