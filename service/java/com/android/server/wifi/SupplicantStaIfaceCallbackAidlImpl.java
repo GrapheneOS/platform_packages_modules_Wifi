@@ -97,7 +97,7 @@ import java.util.Map;
 
 class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stub {
     private static final String TAG = "SupplicantStaIfaceCallbackAidlImpl";
-    private final SupplicantStaIfaceHalAidlImpl mStaIfaceHal;
+    private final SupplicantStaIfaceHalAidlBase mStaIfaceHal;
     private final String mIfaceName;
     private final Context mContext;
     private final WifiMonitor mWifiMonitor;
@@ -110,7 +110,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     private String mCurrentSsid = null;
     private final Handler mEventHandler;
 
-    SupplicantStaIfaceCallbackAidlImpl(@NonNull SupplicantStaIfaceHalAidlImpl staIfaceHal,
+    SupplicantStaIfaceCallbackAidlImpl(@NonNull SupplicantStaIfaceHalAidlBase staIfaceHal,
             @NonNull String ifaceName, @NonNull Object lock,
             @NonNull Context context, @NonNull WifiMonitor wifiMonitor,
             @NonNull SsidTranslator ssidTranslator, Handler eventHandler) {
@@ -1418,7 +1418,7 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
             if (qosPolicyData != null) {
                 for (QosPolicyData halPolicy : qosPolicyData) {
                     frameworkQosPolicies.add(
-                            SupplicantStaIfaceHalAidlImpl.halToFrameworkQosPolicy(halPolicy));
+                            SupplicantStaIfaceHalAidlBase.halToFrameworkQosPolicy(halPolicy));
                 }
             }
             mWifiMonitor.broadcastQosPolicyRequestEvent(mIfaceName, qosPolicyRequestId,
