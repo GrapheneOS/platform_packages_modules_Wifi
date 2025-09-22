@@ -2338,7 +2338,7 @@ public class WifiNative {
                 MockWifiServiceUtil.MOCK_NL80211_SERVICE, "startPnoScan")) {
             Log.i(TAG, "startPnoScan was called from mock wificond");
             return mMockWifiModem.getWifiNl80211Manager()
-                    .startPnoScan(ifaceName, pnoSettings.toNativePnoSettings(),
+                    .startPnoScan(ifaceName, pnoSettings.toWificondPnoSettings(),
                     Runnable::run,
                         new WifiNl80211Manager.PnoScanRequestCallback() {
                             @Override
@@ -2350,7 +2350,7 @@ public class WifiNative {
                             }
                         });
         }
-        return mNl80211Native.startPnoScan(ifaceName, pnoSettings.toNativePnoSettings(),
+        return mNl80211Native.startPnoScan(ifaceName, pnoSettings.toNl80211NativePnoSettings(),
                 Runnable::run,
                 new Nl80211Native.PnoScanRequestCallback() {
                     @Override
@@ -3709,20 +3709,36 @@ public class WifiNative {
             return Objects.hash(ssid, flags, auth_bit_field, Arrays.hashCode(frequencies));
         }
 
-        android.net.wifi.nl80211.PnoNetwork toNativePnoNetwork() {
-            android.net.wifi.nl80211.PnoNetwork nativePnoNetwork =
+        android.net.wifi.nl80211.PnoNetwork toWificondPnoNetwork() {
+            android.net.wifi.nl80211.PnoNetwork wificondPnoNetwork =
                     new android.net.wifi.nl80211.PnoNetwork();
-            nativePnoNetwork.setHidden(
+            wificondPnoNetwork.setHidden(
                     (flags & WifiScanner.PnoSettings.PnoNetwork.FLAG_DIRECTED_SCAN) != 0);
             try {
-                nativePnoNetwork.setSsid(
+                wificondPnoNetwork.setSsid(
                         NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(ssid)));
             } catch (IllegalArgumentException e) {
                 Log.e(TAG, "Illegal argument " + ssid, e);
                 return null;
             }
-            nativePnoNetwork.setFrequenciesMhz(frequencies);
-            return nativePnoNetwork;
+            wificondPnoNetwork.setFrequenciesMhz(frequencies);
+            return wificondPnoNetwork;
+        }
+
+        com.android.server.wifi.nl80211.PnoNetwork toNl80211NativePnoNetwork() {
+            com.android.server.wifi.nl80211.PnoNetwork nl80211NativePnoNetwork =
+                    new com.android.server.wifi.nl80211.PnoNetwork();
+            nl80211NativePnoNetwork.setHidden(
+                    (flags & WifiScanner.PnoSettings.PnoNetwork.FLAG_DIRECTED_SCAN) != 0);
+            try {
+                nl80211NativePnoNetwork.setSsid(
+                        NativeUtil.byteArrayFromArrayList(NativeUtil.decodeSsid(ssid)));
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "Illegal argument " + ssid, e);
+                return null;
+            }
+            nl80211NativePnoNetwork.setFrequenciesMhz(frequencies);
+            return nl80211NativePnoNetwork;
         }
     }
 
@@ -3740,30 +3756,56 @@ public class WifiNative {
         public boolean isConnected;
         public PnoNetwork[] networkList;
 
-        android.net.wifi.nl80211.PnoSettings toNativePnoSettings() {
-            android.net.wifi.nl80211.PnoSettings nativePnoSettings =
+        android.net.wifi.nl80211.PnoSettings toWificondPnoSettings() {
+            android.net.wifi.nl80211.PnoSettings wificondPnoSettings =
                     new android.net.wifi.nl80211.PnoSettings();
-            nativePnoSettings.setIntervalMillis(periodInMs);
-            nativePnoSettings.setMin2gRssiDbm(min24GHzRssi);
-            nativePnoSettings.setMin5gRssiDbm(min5GHzRssi);
-            nativePnoSettings.setMin6gRssiDbm(min6GHzRssi);
+            wificondPnoSettings.setIntervalMillis(periodInMs);
+            wificondPnoSettings.setMin2gRssiDbm(min24GHzRssi);
+            wificondPnoSettings.setMin5gRssiDbm(min5GHzRssi);
+            wificondPnoSettings.setMin6gRssiDbm(min6GHzRssi);
             if (SdkLevel.isAtLeastU()) {
-                nativePnoSettings.setScanIterations(scanIterations);
-                nativePnoSettings.setScanIntervalMultiplier(scanIntervalMultiplier);
+                wificondPnoSettings.setScanIterations(scanIterations);
+                wificondPnoSettings.setScanIntervalMultiplier(scanIntervalMultiplier);
             }
 
             List<android.net.wifi.nl80211.PnoNetwork> pnoNetworks = new ArrayList<>();
             if (networkList != null) {
                 for (PnoNetwork network : networkList) {
                     android.net.wifi.nl80211.PnoNetwork nativeNetwork =
-                            network.toNativePnoNetwork();
+                            network.toWificondPnoNetwork();
                     if (nativeNetwork != null) {
                         pnoNetworks.add(nativeNetwork);
                     }
                 }
             }
-            nativePnoSettings.setPnoNetworks(pnoNetworks);
-            return nativePnoSettings;
+            wificondPnoSettings.setPnoNetworks(pnoNetworks);
+            return wificondPnoSettings;
+        }
+
+        com.android.server.wifi.nl80211.PnoSettings toNl80211NativePnoSettings() {
+            com.android.server.wifi.nl80211.PnoSettings nl80211NativePnoSettings =
+                    new com.android.server.wifi.nl80211.PnoSettings();
+            nl80211NativePnoSettings.setIntervalMillis(periodInMs);
+            nl80211NativePnoSettings.setMin2gRssiDbm(min24GHzRssi);
+            nl80211NativePnoSettings.setMin5gRssiDbm(min5GHzRssi);
+            nl80211NativePnoSettings.setMin6gRssiDbm(min6GHzRssi);
+            if (SdkLevel.isAtLeastU()) {
+                nl80211NativePnoSettings.setScanIterations(scanIterations);
+                nl80211NativePnoSettings.setScanIntervalMultiplier(scanIntervalMultiplier);
+            }
+
+            List<com.android.server.wifi.nl80211.PnoNetwork> pnoNetworks = new ArrayList<>();
+            if (networkList != null) {
+                for (PnoNetwork network : networkList) {
+                    com.android.server.wifi.nl80211.PnoNetwork nativeNetwork =
+                            network.toNl80211NativePnoNetwork();
+                    if (nativeNetwork != null) {
+                        pnoNetworks.add(nativeNetwork);
+                    }
+                }
+            }
+            nl80211NativePnoSettings.setPnoNetworks(pnoNetworks);
+            return nl80211NativePnoSettings;
         }
     }
 

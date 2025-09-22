@@ -1046,7 +1046,7 @@ public class WifiNativeTest extends WifiBaseTest {
         ArgumentCaptor<Nl80211Native.PnoScanRequestCallback> captor =
                 ArgumentCaptor.forClass(Nl80211Native.PnoScanRequestCallback.class);
         verify(mNl80211Native).startPnoScan(eq(WIFI_IFACE_NAME),
-                eq(TEST_PNO_SETTINGS.toNativePnoSettings()), any(), captor.capture());
+                eq(TEST_PNO_SETTINGS.toNl80211NativePnoSettings()), any(), captor.capture());
         captor.getValue().onPnoRequestSucceeded();
         verify(mWifiMetrics).incrementPnoScanStartAttemptCount();
     }
@@ -1061,7 +1061,7 @@ public class WifiNativeTest extends WifiBaseTest {
         ArgumentCaptor<Nl80211Native.PnoScanRequestCallback> captor =
                 ArgumentCaptor.forClass(Nl80211Native.PnoScanRequestCallback.class);
         verify(mNl80211Native).startPnoScan(eq(WIFI_IFACE_NAME),
-                eq(TEST_PNO_SETTINGS.toNativePnoSettings()), any(), captor.capture());
+                eq(TEST_PNO_SETTINGS.toNl80211NativePnoSettings()), any(), captor.capture());
         captor.getValue().onPnoRequestFailed();
         ExtendedMockito.verify(() -> WifiStatsLog.write(WifiStatsLog.PNO_SCAN_STOPPED,
                 WifiStatsLog.PNO_SCAN_STOPPED__STOP_REASON__SCAN_FAILED,

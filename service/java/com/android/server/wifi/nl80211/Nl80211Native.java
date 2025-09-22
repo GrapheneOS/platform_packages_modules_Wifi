@@ -23,7 +23,6 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiScanner;
-import android.net.wifi.nl80211.PnoSettings;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
 import android.util.Log;
@@ -497,7 +496,8 @@ public class Nl80211Native {
             @NonNull Executor executor,
             @NonNull PnoScanRequestCallback callback) {
         if (mUseWificond) {
-            return mWificondManager.startPnoScan(ifaceName, pnoSettings, executor, callback);
+            return mWificondManager.startPnoScan(
+                    ifaceName, pnoSettings.toWificondPnoSettings(), executor, callback);
         }
 
         if (ifaceName == null) {
