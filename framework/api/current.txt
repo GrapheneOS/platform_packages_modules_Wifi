@@ -1047,6 +1047,8 @@ package android.net.wifi.aware {
 
   public final class SubscribeConfig implements android.os.Parcelable {
     method public int describeContents();
+    method @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") public int getEgressDistanceMm();
+    method @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") public int getIngressDistanceMm();
     method public int getInstantCommunicationBand();
     method @Nullable public android.net.wifi.aware.AwarePairingConfig getPairingConfig();
     method public boolean isInstantCommunicationModeEnabled();
@@ -1059,10 +1061,12 @@ package android.net.wifi.aware {
   public static final class SubscribeConfig.Builder {
     ctor public SubscribeConfig.Builder();
     method public android.net.wifi.aware.SubscribeConfig build();
+    method @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") @NonNull public android.net.wifi.aware.SubscribeConfig.Builder setEgressDistanceMm(int);
+    method @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") @NonNull public android.net.wifi.aware.SubscribeConfig.Builder setIngressDistanceMm(int);
     method @NonNull public android.net.wifi.aware.SubscribeConfig.Builder setInstantCommunicationModeEnabled(boolean, int);
     method public android.net.wifi.aware.SubscribeConfig.Builder setMatchFilter(@Nullable java.util.List<byte[]>);
-    method public android.net.wifi.aware.SubscribeConfig.Builder setMaxDistanceMm(int);
-    method public android.net.wifi.aware.SubscribeConfig.Builder setMinDistanceMm(int);
+    method @Deprecated @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") public android.net.wifi.aware.SubscribeConfig.Builder setMaxDistanceMm(int);
+    method @Deprecated @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") public android.net.wifi.aware.SubscribeConfig.Builder setMinDistanceMm(int);
     method @NonNull public android.net.wifi.aware.SubscribeConfig.Builder setPairingConfig(@Nullable android.net.wifi.aware.AwarePairingConfig);
     method public android.net.wifi.aware.SubscribeConfig.Builder setServiceName(@NonNull String);
     method public android.net.wifi.aware.SubscribeConfig.Builder setServiceSpecificInfo(@Nullable byte[]);

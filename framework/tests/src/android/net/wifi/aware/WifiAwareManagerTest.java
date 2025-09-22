@@ -878,8 +878,8 @@ public class WifiAwareManagerTest {
                         .setSubscribeType(subscribeType)
                         .setTtlSec(subscribeTtl)
                         .setTerminateNotificationEnabled(enableTerminateNotification)
-                        .setMinDistanceMm(minDistance)
-                        .setMaxDistanceMm(maxDistance)
+                        .setEgressDistanceMm(minDistance)
+                        .setIngressDistanceMm(maxDistance)
                         .setPeriodicRangingEnabled(true)
                         .setPeriodicRangingInterval(periodicRangingInterval);
         if (SdkLevel.isAtLeastV()) {
@@ -930,8 +930,8 @@ public class WifiAwareManagerTest {
                         .setSubscribeType(subscribeType)
                         .setTtlSec(subscribeTtl)
                         .setTerminateNotificationEnabled(enableTerminateNotification)
-                        .setMinDistanceMm(minDistance)
-                        .setMaxDistanceMm(maxDistance);
+                        .setEgressDistanceMm(minDistance)
+                        .setIngressDistanceMm(maxDistance);
         if (SdkLevel.isAtLeastV()) {
             subscribeConfigBuilder.setVendorData(vendorData);
         }
@@ -2010,8 +2010,8 @@ public class WifiAwareManagerTest {
     public void testSubscribeConfigAssertValidMinDistanceGreaterThanMaxDistance() {
         SubscribeConfig config = new SubscribeConfig.Builder()
                 .setServiceName("TestService")
-                .setMinDistanceMm(1000)
-                .setMaxDistanceMm(100)
+                .setEgressDistanceMm(1000)
+                .setIngressDistanceMm(100)
                 .build();
         config.assertValid(mCharacteristics, true);
     }

@@ -563,8 +563,8 @@ public final class PublishConfig implements Parcelable {
         /**
          * Configure whether the publish discovery session supports ranging and allows peers to
          * measure distance to it. This API is used in conjunction with
-         * {@link SubscribeConfig.Builder#setMinDistanceMm(int)} and
-         * {@link SubscribeConfig.Builder#setMaxDistanceMm(int)} to specify a minimum and/or
+         * {@link SubscribeConfig.Builder#setEgressDistanceMm(int)} and
+         * {@link SubscribeConfig.Builder#setIngressDistanceMm(int)} to specify a minimum and/or
          * maximum distance at which discovery will be triggered.
          * <p>
          * Optional. Disabled by default - i.e. any peer attempt to measure distance to this device

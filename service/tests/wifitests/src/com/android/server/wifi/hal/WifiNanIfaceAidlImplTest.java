@@ -38,6 +38,7 @@ import static org.mockito.Mockito.verify;
 
 import android.hardware.wifi.IWifiNanIface;
 import android.hardware.wifi.NanBandIndex;
+import android.hardware.wifi.NanBootstrappingMethod;
 import android.hardware.wifi.NanBootstrappingRequest;
 import android.hardware.wifi.NanBootstrappingResponse;
 import android.hardware.wifi.NanCipherSuiteType;
@@ -53,7 +54,6 @@ import android.hardware.wifi.NanPublishRequest;
 import android.hardware.wifi.NanRangingIndication;
 import android.hardware.wifi.NanRespondToPairingIndicationRequest;
 import android.hardware.wifi.NanSubscribeRequest;
-import android.hardware.wifi.NanBootstrappingMethod;
 import android.net.MacAddress;
 import android.net.wifi.OuiKeyedData;
 import android.net.wifi.aware.AwarePairingConfig;
@@ -155,11 +155,12 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
                 "XXX").setRangingEnabled(true).build();
         SubscribeConfig subDefault = new SubscribeConfig.Builder().setServiceName("XXX").build();
         SubscribeConfig subWithMin = new SubscribeConfig.Builder().setServiceName(
-                "XXX").setMinDistanceMm(minDistanceMm).build();
+                "XXX").setEgressDistanceMm(minDistanceMm).build();
         SubscribeConfig subWithMax = new SubscribeConfig.Builder().setServiceName(
-                "XXX").setMaxDistanceMm(maxDistanceMm).build();
+                "XXX").setIngressDistanceMm(maxDistanceMm).build();
         SubscribeConfig subWithMinMax = new SubscribeConfig.Builder().setServiceName(
-                "XXX").setMinDistanceMm(minDistanceMm).setMaxDistanceMm(maxDistanceMm).build();
+                "XXX").setEgressDistanceMm(minDistanceMm).setIngressDistanceMm(
+                maxDistanceMm).build();
 
         PublishConfig pubWithVendorData = null;
         SubscribeConfig subWithVendorData = null;
