@@ -29,7 +29,6 @@ import android.hardware.wifi.V1_0.IWifiIface;
 import android.hardware.wifi.V1_0.IWifiP2pIface;
 import android.hardware.wifi.V1_0.WifiStatus;
 import android.hardware.wifi.V1_0.WifiStatusCode;
-import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.util.Environment;
 import android.os.Handler;
@@ -49,6 +48,7 @@ import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.WifiVendorHal;
 import com.android.server.wifi.hal.WifiHal;
+import com.android.server.wifi.nl80211.Nl80211Native;
 import com.android.wifi.flags.FeatureFlags;
 
 import org.junit.Before;
@@ -74,7 +74,7 @@ public class WifiP2pNativeInterfaceManagementTest extends WifiBaseTest {
     @Mock private IWifiP2pIface mIWifiP2pIface;
     @Mock private IWifiIface mIWifiIface;
     @Mock private WifiVendorHal mWifiVendorHal;
-    @Mock private WifiNl80211Manager mWifiNl80211Manager;
+    @Mock private Nl80211Native mNl80211Native;
     @Mock private WifiNative mWifiNative;
     @Mock private WifiMetrics mWifiMetrics;
     @Mock private WifiNative.Iface mMockP2pIface;
@@ -126,7 +126,7 @@ public class WifiP2pNativeInterfaceManagementTest extends WifiBaseTest {
                     .get(eq(WifiSettingsConfigStore.WIFI_P2P_SUPPORTED_FEATURES)))
                     .thenReturn(0L);
         }
-        mWifiP2pNative = new WifiP2pNative(mWifiNl80211Manager, mWifiNative, mWifiMetrics,
+        mWifiP2pNative = new WifiP2pNative(mNl80211Native, mWifiNative, mWifiMetrics,
                 mWifiVendorHal, mSupplicantP2pIfaceHal, mHalDeviceManager, mPropertyService,
                 mWifiInjector);
     }

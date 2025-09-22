@@ -36,7 +36,6 @@ import android.app.test.MockAnswerUtil.AnswerWithArguments;
 import android.hardware.wifi.V1_0.IWifiP2pIface;
 import android.net.MacAddress;
 import android.net.wifi.WifiMigration;
-import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDirInfo;
@@ -65,6 +64,7 @@ import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.WifiVendorHal;
 import com.android.server.wifi.hal.WifiHal;
+import com.android.server.wifi.nl80211.Nl80211Native;
 import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.flags.Flags;
 
@@ -118,7 +118,7 @@ public class WifiP2pNativeTest extends WifiBaseTest {
     private static final WifiP2pDirInfo TEST_DIR_INFO = new WifiP2pDirInfo(
             MacAddress.fromString(TEST_BSSID), TEST_NONCE, TEST_DIR_TAG);
 
-    @Mock private WifiNl80211Manager mWifiCondManager;
+    @Mock private Nl80211Native mNl80211Native;
     @Mock private WifiNative mWifiNative;
     @Mock private WifiMetrics mWifiMetrics;
     @Mock private WifiVendorHal mWifiVendorHalMock;
@@ -180,7 +180,7 @@ public class WifiP2pNativeTest extends WifiBaseTest {
                     .get(eq(WifiSettingsConfigStore.WIFI_P2P_SUPPORTED_FEATURES)))
                     .thenReturn(0L);
         }
-        mWifiP2pNative = new WifiP2pNative(mWifiCondManager, mWifiNative, mWifiMetrics,
+        mWifiP2pNative = new WifiP2pNative(mNl80211Native, mWifiNative, mWifiMetrics,
                 mWifiVendorHalMock, mSupplicantP2pIfaceHalMock, mHalDeviceManagerMock,
                 mPropertyServiceMock, mWifiInjector);
         if (Environment.isSdkAtLeastB()) {
@@ -802,7 +802,7 @@ public class WifiP2pNativeTest extends WifiBaseTest {
         assertTrue(mWifiP2pNative.p2pGroupAdd(config, true));
 
         for (String intf: mWifiClientInterfaceNames) {
-            verify(mWifiCondManager).abortScan(eq(intf));
+            verify(mNl80211Native).abortScan(eq(intf));
         }
 
         if (!Environment.isSdkAtLeastB()) {

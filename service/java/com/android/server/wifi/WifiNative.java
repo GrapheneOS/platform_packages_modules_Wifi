@@ -89,6 +89,7 @@ import com.android.server.wifi.hal.WifiHal;
 import com.android.server.wifi.hal.WifiNanIface;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.mockwifi.MockWifiServiceUtil;
+import com.android.server.wifi.nl80211.Nl80211Native;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.usd.UsdRequestManager;
 import com.android.server.wifi.util.FrameParser;
@@ -133,7 +134,7 @@ public class WifiNative {
     private final SupplicantStaIfaceHal mSupplicantStaIfaceHal;
     private final HostapdHal mHostapdHal;
     private final WifiVendorHal mWifiVendorHal;
-    private final WifiNl80211Manager mWifiCondManager;
+    private final Nl80211Native mNl80211Native;
     private final WifiMonitor mWifiMonitor;
     private final PropertyService mPropertyService;
     private final WifiMetrics mWifiMetrics;
@@ -153,7 +154,7 @@ public class WifiNative {
     private final ArrayList<ScanDetail> mFakeScanDetails = new ArrayList<>();
     private BitSet mCachedFeatureSet = null;
     private boolean mQosPolicyFeatureEnabled = false;
-    private final Map<String, String> mWifiCondIfacesForBridgedAp = new ArrayMap<>();
+    private final Map<String, String> mNl80211IfacesForBridgedAp = new ArrayMap<>();
     private MockWifiServiceUtil mMockWifiModem = null;
     private InterfaceObserverInternal mInterfaceObserver;
     private InterfaceEventCallback mInterfaceListener;
@@ -170,16 +171,22 @@ public class WifiNative {
     @VisibleForTesting @Nullable SparseIntArray mUnknownAkmMap;
     private SupplicantStaIfaceHal.UsdCapabilitiesInternal mCachedUsdCapabilities = null;
 
-    public WifiNative(WifiVendorHal vendorHal,
-                      SupplicantStaIfaceHal staIfaceHal, HostapdHal hostapdHal,
-                      WifiNl80211Manager condManager, WifiMonitor wifiMonitor,
-                      PropertyService propertyService, WifiMetrics wifiMetrics,
-                      Handler handler, Random random, BuildProperties buildProperties,
-                      WifiInjector wifiInjector) {
+    public WifiNative(
+            WifiVendorHal vendorHal,
+            SupplicantStaIfaceHal staIfaceHal,
+            HostapdHal hostapdHal,
+            Nl80211Native nl80211Native,
+            WifiMonitor wifiMonitor,
+            PropertyService propertyService,
+            WifiMetrics wifiMetrics,
+            Handler handler,
+            Random random,
+            BuildProperties buildProperties,
+            WifiInjector wifiInjector) {
         mWifiVendorHal = vendorHal;
         mSupplicantStaIfaceHal = staIfaceHal;
         mHostapdHal = hostapdHal;
-        mWifiCondManager = condManager;
+        mNl80211Native = nl80211Native;
         mWifiMonitor = wifiMonitor;
         mPropertyService = propertyService;
         mWifiMetrics = wifiMetrics;
@@ -260,7 +267,7 @@ public class WifiNative {
     public void enableVerboseLogging(boolean verboseEnabled, boolean halVerboseEnabled) {
         Log.d(TAG, "enableVerboseLogging " + verboseEnabled + " hal " + halVerboseEnabled);
         mVerboseLoggingEnabled = verboseEnabled;
-        mWifiCondManager.enableVerboseLogging(verboseEnabled);
+        mNl80211Native.enableVerboseLogging(verboseEnabled);
         mSupplicantStaIfaceHal.enableVerboseLogging(verboseEnabled, halVerboseEnabled);
         mHostapdHal.enableVerboseLogging(verboseEnabled, halVerboseEnabled);
         mWifiVendorHal.enableVerboseLogging(verboseEnabled, halVerboseEnabled);
@@ -384,7 +391,7 @@ public class WifiNative {
 
     @SuppressLint("NewApi")
     private static class CountryCodeChangeListenerInternal implements
-            WifiNl80211Manager.CountryCodeChangedListener {
+            Nl80211Native.CountryCodeChangedListener {
         private WifiCountryCode.ChangeListener mListener;
 
         public void setChangeListener(@NonNull WifiCountryCode.ChangeListener listener) {
@@ -669,7 +676,7 @@ public class WifiNative {
         }
     }
 
-    private class NormalScanEventCallback implements WifiNl80211Manager.ScanEventCallback {
+    private class NormalScanEventCallback implements Nl80211Native.ScanEventCallback {
         private String mIfaceName;
 
         NormalScanEventCallback(String ifaceName) {
@@ -695,7 +702,7 @@ public class WifiNative {
         }
     }
 
-    private class PnoScanEventCallback implements WifiNl80211Manager.ScanEventCallback {
+    private class PnoScanEventCallback implements Nl80211Native.ScanEventCallback {
         private String mIfaceName;
 
         PnoScanEventCallback(String ifaceName) {
@@ -740,17 +747,17 @@ public class WifiNative {
                     Log.i(TAG, "Vendor Hal not supported, ignoring start.");
                 }
             }
-            registerWificondListenerIfNecessary();
+            registerNl80211ListenerIfNecessary();
             return true;
         }
     }
 
     /** Helper method invoked to stop HAL if there are no more ifaces */
-    private void stopHalAndWificondIfNecessary() {
+    private void stopHalAndNl80211NativeIfNecessary() {
         synchronized (mLock) {
             if (!mIfaceMgr.hasAnyIface()) {
-                if (!mWifiCondManager.tearDownInterfaces()) {
-                    Log.e(TAG, "Failed to teardown ifaces from wificond");
+                if (!mNl80211Native.tearDownInterfaces()) {
+                    Log.e(TAG, "Failed to teardown ifaces from nl80211");
                 }
                 if (mWifiVendorHal.isVendorHalSupported()) {
                     mWifiVendorHal.stopVendorHal();
@@ -762,13 +769,13 @@ public class WifiNative {
     }
 
     /**
-     * Helper method invoked to setup wificond related callback/listener.
+     * Helper method invoked to setup nl80211 related callback/listener.
      */
-    private void registerWificondListenerIfNecessary() {
+    private void registerNl80211ListenerIfNecessary() {
         if (mCountryCodeChangeListener == null && SdkLevel.isAtLeastS()) {
             // The country code listener is a new API in S.
             mCountryCodeChangeListener = new CountryCodeChangeListenerInternal();
-            mWifiCondManager.registerCountryCodeChangedListener(Runnable::run,
+            mNl80211Native.registerCountryCodeChangedListener(Runnable::run,
                     mCountryCodeChangeListener);
         }
     }
@@ -920,11 +927,11 @@ public class WifiNative {
             if (!mSupplicantStaIfaceHal.teardownIface(iface.name)) {
                 Log.e(TAG, "Failed to teardown iface in supplicant on " + iface);
             }
-            if (!mWifiCondManager.tearDownClientInterface(iface.name)) {
-                Log.e(TAG, "Failed to teardown iface in wificond on " + iface);
+            if (!mNl80211Native.tearDownClientInterface(iface.name)) {
+                Log.e(TAG, "Failed to teardown nl80211 iface on " + iface);
             }
             stopSupplicantIfNecessary();
-            stopHalAndWificondIfNecessary();
+            stopHalAndNl80211NativeIfNecessary();
         }
     }
 
@@ -935,10 +942,10 @@ public class WifiNative {
             if (!unregisterNetworkObserver(iface.networkObserver)) {
                 Log.e(TAG, "Failed to unregister network observer on " + iface);
             }
-            if (!mWifiCondManager.tearDownClientInterface(iface.name)) {
-                Log.e(TAG, "Failed to teardown iface in wificond on " + iface);
+            if (!mNl80211Native.tearDownClientInterface(iface.name)) {
+                Log.e(TAG, "Failed to teardown nl80211 iface on " + iface);
             }
-            stopHalAndWificondIfNecessary();
+            stopHalAndNl80211NativeIfNecessary();
         }
     }
 
@@ -951,16 +958,16 @@ public class WifiNative {
             if (!mHostapdHal.removeAccessPoint(iface.name)) {
                 Log.e(TAG, "Failed to remove access point on " + iface);
             }
-            String wificondIface = iface.name;
-            String bridgedApInstance = mWifiCondIfacesForBridgedAp.remove(iface.name);
+            String nl80211Iface = iface.name;
+            String bridgedApInstance = mNl80211IfacesForBridgedAp.remove(iface.name);
             if (bridgedApInstance != null) {
-                wificondIface = bridgedApInstance;
+                nl80211Iface = bridgedApInstance;
             }
-            if (!mWifiCondManager.tearDownSoftApInterface(wificondIface)) {
-                Log.e(TAG, "Failed to teardown iface in wificond on " + iface);
+            if (!mNl80211Native.tearDownSoftApInterface(nl80211Iface)) {
+                Log.e(TAG, "Failed to teardown iface in nl80211 on " + iface);
             }
             stopHostapdIfNecessary();
-            stopHalAndWificondIfNecessary();
+            stopHalAndNl80211NativeIfNecessary();
         }
     }
 
@@ -1364,7 +1371,7 @@ public class WifiNative {
             Iface iface = mIfaceMgr.allocateIface(Iface.IFACE_TYPE_P2P);
             if (iface == null) {
                 Log.e(TAG, "Failed to allocate new P2P iface");
-                stopHalAndWificondIfNecessary();
+                stopHalAndNl80211NativeIfNecessary();
                 return null;
             }
             iface.name = createP2pIfaceFromHalOrGetNameFromProperty(
@@ -1373,7 +1380,7 @@ public class WifiNative {
                 Log.e(TAG, "Failed to create P2p iface in HalDeviceManager");
                 mIfaceMgr.removeIface(iface.id);
                 mWifiMetrics.incrementNumSetupP2pInterfaceFailureDueToHal();
-                stopHalAndWificondIfNecessary();
+                stopHalAndNl80211NativeIfNecessary();
                 return null;
             }
             return iface;
@@ -1388,7 +1395,7 @@ public class WifiNative {
     public void teardownP2pIface(int interfaceId) {
         synchronized (mLock) {
             mIfaceMgr.removeIface(interfaceId);
-            stopHalAndWificondIfNecessary();
+            stopHalAndNl80211NativeIfNecessary();
             stopSupplicantIfNecessary();
         }
     }
@@ -1420,7 +1427,7 @@ public class WifiNative {
                 mIfaceMgr.removeIface(iface.id);
             }
             Log.e(TAG, "Failed to allocate new Nan iface");
-            stopHalAndWificondIfNecessary();
+            stopHalAndNl80211NativeIfNecessary();
             return null;
         }
     }
@@ -1433,7 +1440,7 @@ public class WifiNative {
     public void teardownNanIface(int interfaceId) {
         synchronized (mLock) {
             mIfaceMgr.removeIface(interfaceId);
-            stopHalAndWificondIfNecessary();
+            stopHalAndNl80211NativeIfNecessary();
         }
     }
 
@@ -1544,8 +1551,8 @@ public class WifiNative {
                 Log.e(TAG, "Failed to initialize vendor HAL");
                 return false;
             }
-            mWifiCondManager.setOnServiceDeadCallback(new WificondDeathHandlerInternal());
-            mWifiCondManager.tearDownInterfaces();
+            mNl80211Native.setWificondOnServiceDeadCallback(new WificondDeathHandlerInternal());
+            mNl80211Native.tearDownInterfaces();
             mWifiVendorHal.registerRadioModeChangeHandler(
                     new VendorHalRadioModeChangeHandlerInternal());
             mNetdWrapper = mWifiInjector.makeNetdWrapper();
@@ -1643,10 +1650,10 @@ public class WifiNative {
                 mWifiMetrics.incrementNumSetupClientInterfaceFailureDueToHal();
                 return null;
             }
-            if (!mWifiCondManager.setupInterfaceForClientMode(iface.name, Runnable::run,
+            if (!mNl80211Native.setupInterfaceForClientMode(iface.name, Runnable::run,
                     new NormalScanEventCallback(iface.name),
                     new PnoScanEventCallback(iface.name))) {
-                Log.e(TAG, "Failed to setup iface in wificond=" + iface.name);
+                Log.e(TAG, "Failed to setup iface in nl80211=" + iface.name);
                 teardownInterface(iface.name);
                 mWifiMetrics.incrementNumSetupClientInterfaceFailureDueToWificond();
                 return null;
@@ -1765,12 +1772,12 @@ public class WifiNative {
                     takeBugReportInterfaceFailureIfNeeded(bugTitle, errorMsg);
                     return null;
                 }
-                // Always select first instance as wificond interface.
+                // Always select first instance as nl80211 interface.
                 ifaceInstanceName = instances.get(0);
-                mWifiCondIfacesForBridgedAp.put(iface.name, ifaceInstanceName);
+                mNl80211IfacesForBridgedAp.put(iface.name, ifaceInstanceName);
             }
-            if (!mWifiCondManager.setupInterfaceForSoftApMode(ifaceInstanceName)) {
-                errorMsg = "Failed to setup softAp iface in wifiCond manager on " + iface;
+            if (!mNl80211Native.setupInterfaceForSoftApMode(ifaceInstanceName)) {
+                errorMsg = "Failed to setup softAp iface in Nl80211Native on " + iface;
                 Log.e(TAG, errorMsg);
                 teardownInterface(iface.name);
                 mWifiMetrics.incrementNumSetupSoftApInterfaceFailureDueToWificond();
@@ -1974,7 +1981,7 @@ public class WifiNative {
      * Teardown an interface in Client/AP mode.
      *
      * This method tears down the associated interface from all the native daemons
-     * (wificond, wpa_supplicant & vendor HAL).
+     * (nl80211, wpa_supplicant & vendor HAL).
      * Also, brings down the HAL, supplicant or hostapd as necessary.
      *
      * @param ifaceName Name of the interface.
@@ -2008,7 +2015,7 @@ public class WifiNative {
      * Teardown all the active interfaces.
      *
      * This method tears down the associated interfaces from all the native daemons
-     * (wificond, wpa_supplicant & vendor HAL).
+     * (nl80211, wpa_supplicant & vendor HAL).
      * Also, brings down the HAL, supplicant or hostapd as necessary.
      */
     public void teardownAllInterfaces() {
@@ -2047,7 +2054,7 @@ public class WifiNative {
     }
 
     /********************************************************
-     * Wificond operations
+     * Nl80211 operations
      ********************************************************/
 
     /**
@@ -2070,11 +2077,11 @@ public class WifiNative {
             // 60 GHz band is new in Android S, return empty array on older SDK versions
             return new int[0];
         }
-        return mWifiCondManager.getChannelsMhzForBand(band);
+        return mNl80211Native.getChannelsMhzForBand(band);
     }
 
     /**
-     * Start a scan using wificond for the given parameters.
+     * Start a scan using nl80211 for the given parameters.
      * @param ifaceName Name of the interface.
      * @param scanType Type of scan to perform. One of {@link WifiScanner#SCAN_TYPE_LOW_LATENCY},
      * {@link WifiScanner#SCAN_TYPE_LOW_POWER} or {@link WifiScanner#SCAN_TYPE_HIGH_ACCURACY}.
@@ -2100,27 +2107,20 @@ public class WifiNative {
                 continue;
             }
         }
-        if (SdkLevel.isAtLeastS()) {
-            // enable6GhzRnr is a new parameter first introduced in Android S.
-            Bundle extraScanningParams = new Bundle();
-            extraScanningParams.putBoolean(WifiNl80211Manager.SCANNING_PARAM_ENABLE_6GHZ_RNR,
-                    enable6GhzRnr);
-            if (SdkLevel.isAtLeastU()) {
-                extraScanningParams.putByteArray(WifiNl80211Manager.EXTRA_SCANNING_PARAM_VENDOR_IES,
-                        vendorIes);
-                scanRequestStatus = mWifiCondManager.startScan2(ifaceName, scanType, freqs,
-                        hiddenNetworkSsidsArrays, extraScanningParams);
-            } else {
-                scanStatus = mWifiCondManager.startScan(ifaceName, scanType, freqs,
-                        hiddenNetworkSsidsArrays,
-                        extraScanningParams);
-                scanRequestStatus = scanStatus
-                        ? WifiScanner.REASON_SUCCEEDED : WifiScanner.REASON_UNSPECIFIED;
 
-            }
+        // enable6GhzRnr is a new parameter first introduced in Android S.
+        Bundle extraScanningParams = new Bundle();
+        extraScanningParams.putBoolean(Nl80211Native.SCANNING_PARAM_ENABLE_6GHZ_RNR,
+                enable6GhzRnr);
+        if (SdkLevel.isAtLeastU()) {
+            extraScanningParams.putByteArray(Nl80211Native.EXTRA_SCANNING_PARAM_VENDOR_IES,
+                    vendorIes);
+            scanRequestStatus = mNl80211Native.startScan(ifaceName, scanType, freqs,
+                    hiddenNetworkSsidsArrays, extraScanningParams);
         } else {
-            scanStatus = mWifiCondManager.startScan(ifaceName, scanType, freqs,
-                        hiddenNetworkSsidsArrays);
+            scanStatus = mNl80211Native.startScanPreU(ifaceName, scanType, freqs,
+                    hiddenNetworkSsidsArrays,
+                    extraScanningParams);
             scanRequestStatus = scanStatus
                     ? WifiScanner.REASON_SUCCEEDED : WifiScanner.REASON_UNSPECIFIED;
         }
@@ -2129,7 +2129,7 @@ public class WifiNative {
     }
 
     /**
-     * Fetch the latest scan result from kernel via wificond.
+     * Fetch the latest scan result from kernel via nl80211.
      * @param ifaceName Name of the interface.
      * @return Returns an ArrayList of ScanDetail.
      * Returns an empty ArrayList on failure.
@@ -2155,8 +2155,8 @@ public class WifiNative {
             return convertNativeScanResults(ifaceName, mMockWifiModem.getWifiNl80211Manager()
                    .getScanResults(ifaceName, WifiNl80211Manager.SCAN_TYPE_SINGLE_SCAN));
         }
-        return convertNativeScanResults(ifaceName, mWifiCondManager.getScanResults(
-                ifaceName, WifiNl80211Manager.SCAN_TYPE_SINGLE_SCAN));
+        return convertNativeScanResults(ifaceName, mNl80211Native.getScanResults(
+                ifaceName, Nl80211Native.SCAN_TYPE_SINGLE_SCAN));
     }
 
     /**
@@ -2200,7 +2200,7 @@ public class WifiNative {
     }
 
     /**
-     * Fetch the latest scan result from kernel via wificond.
+     * Fetch the latest scan result from kernel via nl80211.
      * @param ifaceName Name of the interface.
      * @return Returns an ArrayList of ScanDetail.
      * Returns an empty ArrayList on failure.
@@ -2213,8 +2213,8 @@ public class WifiNative {
             return convertNativeScanResults(ifaceName, mMockWifiModem.getWifiNl80211Manager()
                    .getScanResults(ifaceName, WifiNl80211Manager.SCAN_TYPE_PNO_SCAN));
         }
-        return convertNativeScanResults(ifaceName, mWifiCondManager.getScanResults(ifaceName,
-                WifiNl80211Manager.SCAN_TYPE_PNO_SCAN));
+        return convertNativeScanResults(ifaceName, mNl80211Native.getScanResults(ifaceName,
+                Nl80211Native.SCAN_TYPE_PNO_SCAN));
     }
 
     /**
@@ -2223,7 +2223,7 @@ public class WifiNative {
      */
     public int getMaxSsidsPerScan(@NonNull String ifaceName) {
         if (SdkLevel.isAtLeastT()) {
-            return mWifiCondManager.getMaxSsidsPerScan(ifaceName);
+            return mNl80211Native.getMaxSsidsPerScan(ifaceName);
         } else {
             return -1;
         }
@@ -2293,7 +2293,7 @@ public class WifiNative {
             results.add(scanDetail);
         }
         if (mVerboseLoggingEnabled) {
-            Log.d(TAG, "get " + results.size() + " scan results from wificond");
+            Log.d(TAG, "get " + results.size() + " scan results from nl80211");
         }
 
         return results;
@@ -2344,9 +2344,9 @@ public class WifiNative {
                             }
                         });
         }
-        return mWifiCondManager.startPnoScan(ifaceName, pnoSettings.toNativePnoSettings(),
+        return mNl80211Native.startPnoScan(ifaceName, pnoSettings.toNativePnoSettings(),
                 Runnable::run,
-                new WifiNl80211Manager.PnoScanRequestCallback() {
+                new Nl80211Native.PnoScanRequestCallback() {
                     @Override
                     public void onPnoRequestSucceeded() {
                         mWifiMetrics.incrementPnoScanStartAttemptCount();
@@ -2369,7 +2369,7 @@ public class WifiNative {
      * @return true on success.
      */
     public boolean stopPnoScan(@NonNull String ifaceName) {
-        return mWifiCondManager.stopPnoScan(ifaceName);
+        return mNl80211Native.stopPnoScan(ifaceName);
     }
 
     /**
@@ -2388,7 +2388,7 @@ public class WifiNative {
      */
     public void sendMgmtFrame(@NonNull String ifaceName, @NonNull byte[] frame,
             @NonNull WifiNl80211Manager.SendMgmtFrameCallback callback, int mcs) {
-        mWifiCondManager.sendMgmtFrame(ifaceName, frame, mcs, Runnable::run, callback);
+        mNl80211Native.sendMgmtFrame(ifaceName, frame, mcs, Runnable::run, callback);
     }
 
     /**
@@ -2533,7 +2533,7 @@ public class WifiNative {
         } else {
             SoftApHalCallbackFromWificond softApHalCallbackFromWificond =
                     new SoftApHalCallbackFromWificond(ifaceName, callback);
-            if (!mWifiCondManager.registerApCallback(ifaceName,
+            if (!mNl80211Native.registerWificondApCallback(ifaceName,
                     Runnable::run, softApHalCallbackFromWificond)) {
                 Log.e(TAG, "Failed to register ap hal event callback from wificond");
                 return SoftApManager.START_RESULT_FAILURE_REGISTER_AP_CALLBACK_WIFICOND;
@@ -3187,7 +3187,7 @@ public class WifiNative {
      */
     public boolean connectToNetwork(@NonNull String ifaceName, WifiConfiguration configuration) {
         // Abort ongoing scan before connect() to unblock connection request.
-        mWifiCondManager.abortScan(ifaceName);
+        mNl80211Native.abortScan(ifaceName);
         return mSupplicantStaIfaceHal.connectToNetwork(ifaceName, configuration);
     }
 
@@ -3207,7 +3207,7 @@ public class WifiNative {
      */
     public boolean roamToNetwork(@NonNull String ifaceName, WifiConfiguration configuration) {
         // Abort ongoing scan before connect() to unblock roaming request.
-        mWifiCondManager.abortScan(ifaceName);
+        mNl80211Native.abortScan(ifaceName);
         return mSupplicantStaIfaceHal.roamToNetwork(ifaceName, configuration);
     }
 
@@ -4199,7 +4199,7 @@ public class WifiNative {
                         WifiAvailableChannel.FILTER_REGULATORY);
         int bands = 0;
         if (usableChannelList == null) {
-            // If HAL doesn't support getUsableChannels then check wificond
+            // If HAL doesn't support getUsableChannels then check nl80211
             if (getChannelsForBand(WifiScanner.WIFI_BAND_24_GHZ).length > 0) {
                 bands |= WifiScanner.WIFI_BAND_24_GHZ;
             }
@@ -4280,6 +4280,8 @@ public class WifiNative {
                 && mMockWifiModem.isMethodConfigured(
                     MockWifiServiceUtil.MOCK_NL80211_SERVICE, "signalPoll")) {
             Log.i(TAG, "signalPoll was called from mock wificond");
+            // TODO(b/394409845): Remove this when we disable the wificond fallback in
+            //                    Nl80211Native.
             WifiNl80211Manager.SignalPollResult result =
                     mMockWifiModem.getWifiNl80211Manager().signalPoll(ifaceName);
             if (result != null) {
@@ -4295,8 +4297,9 @@ public class WifiNative {
         WifiSignalPollResults results = mSupplicantStaIfaceHal.getSignalPollResults(
                 ifaceName);
         if (results == null) {
-            // Fallback to WifiCond.
-            WifiNl80211Manager.SignalPollResult result = mWifiCondManager.signalPoll(ifaceName);
+            // Fallback to Nl80211.
+            WifiNl80211Manager.SignalPollResult result =
+                    mNl80211Native.wificondSignalPoll(ifaceName);
             if (result != null) {
                 // Convert WifiNl80211Manager#SignalPollResult to WifiSignalPollResults.
                 // Assume single link and linkId = 0.
@@ -5100,7 +5103,7 @@ public class WifiNative {
     /**
      * Get the Wiphy capabilities of a device for a given interface
      * If the interface is not associated with one,
-     * it will be read from the device through wificond
+     * it will be read from the device through nl80211
      *
      * @param ifaceName name of the interface
      * @return the device capabilities for this interface
@@ -5113,7 +5116,7 @@ public class WifiNative {
     /**
      * Get the Wiphy capabilities of a device for a given interface
      * If the interface is not associated with one,
-     * it will be read from the device through wificond
+     * it will be read from the device through nl80211
      *
      * @param ifaceName name of the interface
      * @param isBridgedAp If the iface is bridge AP iface or not.
@@ -5131,11 +5134,11 @@ public class WifiNative {
                 if (isBridgedAp) {
                     List<String> instances = getBridgedApInstances(ifaceName);
                     if (instances != null && instances.size() != 0) {
-                        iface.phyCapabilities = mWifiCondManager.getDeviceWiphyCapabilities(
+                        iface.phyCapabilities = mNl80211Native.getDeviceWiphyCapabilities(
                                 instances.get(0));
                     }
                 } else {
-                    iface.phyCapabilities = mWifiCondManager.getDeviceWiphyCapabilities(ifaceName);
+                    iface.phyCapabilities = mNl80211Native.getDeviceWiphyCapabilities(ifaceName);
                 }
             }
             if (iface.phyCapabilities != null
@@ -5207,7 +5210,7 @@ public class WifiNative {
      * @param listener listener for country code changed events.
      */
     public void registerCountryCodeEventListener(WifiCountryCode.ChangeListener listener) {
-        registerWificondListenerIfNecessary();
+        registerNl80211ListenerIfNecessary();
         if (mCountryCodeChangeListener != null) {
             mCountryCodeChangeListener.setChangeListener(listener);
         }
@@ -5341,15 +5344,15 @@ public class WifiNative {
     }
 
     /**
-     * Notify wificond daemon of country code have changed.
+     * Notify Nl80211Native of country code change.
      */
     public void countryCodeChanged(String countryCode) {
         if (SdkLevel.isAtLeastT()) {
             try {
-                mWifiCondManager.notifyCountryCodeChanged(countryCode);
+                mNl80211Native.notifyCountryCodeChanged(countryCode);
             } catch (RuntimeException re) {
-                Log.e(TAG, "Fail to notify wificond country code changed to " + countryCode
-                        + "because exception happened:" + re);
+                Log.e(TAG, "Fail to notify Nl80211Native country code changed to " + countryCode
+                        + "due to exception:" + re);
             }
         }
     }

@@ -24,7 +24,6 @@ import android.annotation.Nullable;
 import android.annotation.SuppressLint;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.ScanResult;
-import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDirInfo;
 import android.net.wifi.p2p.WifiP2pDiscoveryConfig;
@@ -51,6 +50,7 @@ import com.android.server.wifi.WifiMetrics;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.WifiVendorHal;
+import com.android.server.wifi.nl80211.Nl80211Native;
 import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.flags.Flags;
 
@@ -68,7 +68,7 @@ public class WifiP2pNative {
     private final SupplicantP2pIfaceHal mSupplicantP2pIfaceHal;
     private final WifiNative mWifiNative;
     private final WifiMetrics mWifiMetrics;
-    private final WifiNl80211Manager mWifiNl80211Manager;
+    private final Nl80211Native mNl80211Native;
     private final HalDeviceManager mHalDeviceManager;
     private final PropertyService mPropertyService;
     private final WifiVendorHal mWifiVendorHal;
@@ -140,7 +140,7 @@ public class WifiP2pNative {
     }
 
     public WifiP2pNative(
-            WifiNl80211Manager wifiNl80211Manager,
+            Nl80211Native nl80211Native,
             WifiNative wifiNative,
             WifiMetrics wifiMetrics,
             WifiVendorHal wifiVendorHal,
@@ -150,7 +150,7 @@ public class WifiP2pNative {
             WifiInjector wifiInjector) {
         mWifiNative = wifiNative;
         mWifiMetrics = wifiMetrics;
-        mWifiNl80211Manager = wifiNl80211Manager;
+        mNl80211Native = nl80211Native;
         mWifiVendorHal = wifiVendorHal;
         mSupplicantP2pIfaceHal = p2pIfaceHal;
         mHalDeviceManager = halDeviceManager;
@@ -815,7 +815,7 @@ public class WifiP2pNative {
         Set<String> wifiClientInterfaces = mWifiNative.getClientInterfaceNames();
 
         for (String interfaceName: wifiClientInterfaces) {
-            mWifiNl80211Manager.abortScan(interfaceName);
+            mNl80211Native.abortScan(interfaceName);
         }
     }
 
