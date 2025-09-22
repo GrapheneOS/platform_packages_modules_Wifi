@@ -109,8 +109,32 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
             'android.net.wifi.aware.DiscoverySessionCallback#onPairingSetupSucceeded',
         ]
     )
-    def test_aware_pairing(self):
-        """Test Wi-Fi Aware pairing."""
+    def test_aware_pairing_with_cache_enabled(self):
+        """Verifies Wi-Fi Aware pairing and data-path with caching enabled.
+
+        This test case covers the end-to-end flow of Wi-Fi Aware pairing,
+        including service discovery, bootstrapping, pairing setup, and
+        establishing a data-path connection over which data is exchanged.
+        The pairing configuration has caching enabled.
+
+        Test Steps:
+        1.  Publisher and Subscriber set up pairing configs with caching
+            enabled and `PIN_CODE_DISPLAY` as the bootstrapping method.
+        2.  Publisher starts an unsolicited publish, and Subscriber starts a
+            passive subscribe.
+        3.  Wait for the service to be discovered.
+        4.  Subscriber initiates bootstrapping with the Publisher.
+        5.  Verify both devices receive the `onBootstrappingSucceeded` callback.
+        6.  Subscriber initiates a pairing request to the Publisher.
+        7.  Publisher receives the request and accepts it.
+        8.  Verify both devices receive the `onPairingSetupSucceeded` callback.
+        9.  Establish a Wi-Fi Aware data-path (socket connection) between the
+            devices.
+        10. Send messages over the socket in both directions to verify the
+            data-path is functional.
+        11. Clean up all sessions and network resources.
+        """
+
         pairing_config = constants.AwarePairingConfig(
             pairing_setup_enabled=True,
             pairing_cache_enabled=True,
@@ -313,8 +337,29 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         self.publisher.wifi.wifiAwareDetach(pub_attach_session)
         self.subscriber.wifi.wifiAwareDetach(sub_attach_session)
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.aware.AwarePairingConfig',
+            'android.net.wifi.aware.DiscoverySession#initiateBootstrapping',
+            (
+                'android.net.wifi.aware.DiscoverySessionCallback'
+                '#onBootstrappingSucceeded'
+            ),
+        ]
+    )
     def test_boostraping_method_neogotiation_matched(self):
-        """Test Wi-Fi Aware bootstrapping method negotiation."""
+        """Test negotiation with compatible bootstrapping methods.
+
+        This test verifies that bootstrapping succeeds when the initiator
+        (subscriber) and responder (publisher) have compatible bootstrapping
+        methods.
+
+        Test Steps:
+        1. Publisher supports PIN_CODE_DISPLAY.
+        2. Subscriber supports PIN_CODE_KEYPAD.
+        3. Subscriber initiates bootstrapping.
+        4. Both should receive a bootstrapping success callback.
+        """
         pub_config = constants.PublishConfig(
             publish_type=constants.PublishType.UNSOLICITED,
             service_specific_info=_PUB_SSI,
@@ -392,7 +437,17 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         self.subscriber.log.info('Subscriber bootstrapping succeeded.')
 
     def test_boostraping_method_neogotiation_mismatch(self):
-        """Test Wi-Fi Aware bootstrapping method negotiation."""
+        """Test negotiation with incompatible bootstrapping methods.
+
+        This test verifies that bootstrapping fails when the initiator
+        (subscriber) and responder (publisher) have incompatible bootstrapping
+        methods.
+
+        1. Publisher supports NFC_READER.
+        2. Subscriber supports PIN_CODE_KEYPAD.
+        3. Subscriber initiates bootstrapping.
+        4. Subscriber should receive a bootstrapping failure callback.
+        """
         pub_config = constants.PublishConfig(
             publish_type=constants.PublishType.UNSOLICITED,
             service_specific_info=_PUB_SSI,
