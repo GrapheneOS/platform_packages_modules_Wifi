@@ -1041,6 +1041,24 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
 
     }
 
+    @Test
+    public void testUserSwitch() {
+        mDut.handleUserSwitch(10);
+        verify(mAwareStateManagerMock).handleUserSwitch(10);
+    }
+
+    @Test
+    public void testUserUnlock() {
+        mDut.handleUserUnlock(10);
+        verify(mAwareStateManagerMock).handleUserUnlock(10);
+    }
+
+    @Test
+    public void testUserStop() {
+        mDut.handleUserStop(10);
+        verify(mAwareStateManagerMock).handleUserStop(10);
+    }
+
     /*
      * Utilities
      */

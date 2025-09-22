@@ -213,6 +213,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     private byte[] mPeerNik = "6789012345678901".getBytes();
     private byte[] mPmk = "01234567890123456789012345678901".getBytes();
     private StaticMockitoSession mSession;
+    private static final int TEST_USER_ID = 10;
 
     @Captor
     ArgumentCaptor<StatsManager.StatsPullAtomCallback> mPullAtomCallbackArgumentCaptor;
@@ -281,7 +282,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
-        when(mFeatureFlags.d2dWhenInfraStaOff()).thenReturn(true);
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         mDut = new WifiAwareStateManager(mWifiInjector, mPairingConfigManager);
         mDut.setNative(mMockNativeManager, mMockNative);
         mDut.start(mMockContext, mMockLooper.getLooper(), mAwareMetricsMock,
@@ -333,6 +334,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 mPullAtomCallbackArgumentCaptor.capture());
         assertEquals(StatsManager.PULL_SUCCESS, mPullAtomCallbackArgumentCaptor.getValue()
                 .onPullAtom(WIFI_AWARE_CAPABILITIES, new ArrayList<>()));
+        mDut.handleUserSwitch(TEST_USER_ID);
+        verify(mPairingConfigManager).reset();
+        reset(mPairingConfigManager);
     }
 
     /**
@@ -6121,6 +6125,36 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         assertTrue("Mac(2) mismatch", Arrays.equals(mac2, peerInfo2.mMac));
         assertNotNull("PeerHandle(2) cannot be null", peerInfo2.mPeerHandle);
         assertEquals("PeerId(2) mismatch", peerId2, peerInfo2.mPeerHandle.peerId);
+    }
+
+    @Test
+    public void testHandleUserSwitch() {
+        int userId = 20;
+        mDut.handleUserSwitch(userId);
+        mMockLooper.dispatchAll();
+        verify(mPairingConfigManager).reset();
+    }
+
+    @Test
+    public void testHandleUserSwitchSameUser() {
+        mDut.handleUserUnlock(TEST_USER_ID);
+        mMockLooper.dispatchAll();
+        verify(mPairingConfigManager, never()).reset();
+    }
+
+    @Test
+    public void testHandleUserStop() {
+        mDut.handleUserStop(TEST_USER_ID);
+        mMockLooper.dispatchAll();
+        verify(mPairingConfigManager).reset();
+    }
+
+    @Test
+    public void testHandleUserStopDifferentUser() {
+        int userId = 20;
+        mDut.handleUserStop(userId);
+        mMockLooper.dispatchAll();
+        verify(mPairingConfigManager, never()).reset();
     }
 }
 
