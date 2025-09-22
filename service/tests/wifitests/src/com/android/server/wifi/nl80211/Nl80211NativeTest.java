@@ -34,7 +34,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.net.wifi.WifiScanner;
-import android.net.wifi.nl80211.NativeScanResult;
 import android.net.wifi.nl80211.PnoSettings;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
@@ -267,13 +266,19 @@ public class Nl80211NativeTest {
     @Test
     public void testGetScanResults_useWificondEnabled_callsWificond() {
         mDut = initNl80211Native(true);
-        List<NativeScanResult> expectedResults =
-                Collections.singletonList(new NativeScanResult());
-        when(mWificondManager.getScanResults(IFACE_NAME, 0)).thenReturn(expectedResults);
+        android.net.wifi.nl80211.NativeScanResult expectedScanResult =
+                new android.net.wifi.nl80211.NativeScanResult();
+        expectedScanResult.ssid = new byte[] {'a', 's', 'd', 'f'};
+        expectedScanResult.bssid = new byte[] {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+        when(mWificondManager.getScanResults(IFACE_NAME, 0))
+                .thenReturn(Collections.singletonList(expectedScanResult));
+
         List<NativeScanResult> results = mDut.getScanResults(IFACE_NAME, 0);
+
         assertNotNull(results);
-        assertEquals(expectedResults, results);
         verify(mWificondManager).getScanResults(IFACE_NAME, 0);
+        assertEquals(1, results.size());
+        assertArrayEquals(expectedScanResult.getSsid(), results.get(0).getSsid());
     }
 
     @Test

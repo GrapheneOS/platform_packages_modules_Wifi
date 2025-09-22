@@ -55,9 +55,7 @@ import android.net.wifi.WifiManager.RoamingMode;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiScanner.ScanData;
 import android.net.wifi.WifiSsid;
-import android.net.wifi.nl80211.NativeScanResult;
 import android.net.wifi.nl80211.NativeWifiClient;
-import android.net.wifi.nl80211.RadioChainInfo;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.twt.TwtRequest;
 import android.net.wifi.twt.TwtSessionCallback;
@@ -89,7 +87,9 @@ import com.android.server.wifi.hal.WifiNanIface;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.mockwifi.MockWifiServiceUtil;
 import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
+import com.android.server.wifi.nl80211.NativeScanResult;
 import com.android.server.wifi.nl80211.Nl80211Native;
+import com.android.server.wifi.nl80211.RadioChainInfo;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.usd.UsdRequestManager;
 import com.android.server.wifi.util.FrameParser;
@@ -2152,8 +2152,11 @@ public class WifiNative {
                 && mMockWifiModem.isMethodConfigured(
                 MockWifiServiceUtil.MOCK_NL80211_SERVICE, "getScanResults")) {
             Log.i(TAG, "getScanResults was called from mock wificond");
-            return convertNativeScanResults(ifaceName, mMockWifiModem.getWifiNl80211Manager()
-                   .getScanResults(ifaceName, WifiNl80211Manager.SCAN_TYPE_SINGLE_SCAN));
+            List<android.net.wifi.nl80211.NativeScanResult> wificondScans =
+                    mMockWifiModem.getWifiNl80211Manager()
+                            .getScanResults(ifaceName, WifiNl80211Manager.SCAN_TYPE_SINGLE_SCAN);
+            return convertNativeScanResults(ifaceName,
+                    Nl80211Native.wificondScansToNl80211NativeScans(wificondScans));
         }
         return convertNativeScanResults(ifaceName, mNl80211Native.getScanResults(
                 ifaceName, Nl80211Native.SCAN_TYPE_SINGLE_SCAN));
@@ -2210,8 +2213,11 @@ public class WifiNative {
                 && mMockWifiModem.isMethodConfigured(
                     MockWifiServiceUtil.MOCK_NL80211_SERVICE, "getPnoScanResults")) {
             Log.i(TAG, "getPnoScanResults was called from mock wificond");
-            return convertNativeScanResults(ifaceName, mMockWifiModem.getWifiNl80211Manager()
-                   .getScanResults(ifaceName, WifiNl80211Manager.SCAN_TYPE_PNO_SCAN));
+            List<android.net.wifi.nl80211.NativeScanResult> wificondScans =
+                    mMockWifiModem.getWifiNl80211Manager()
+                            .getScanResults(ifaceName, WifiNl80211Manager.SCAN_TYPE_PNO_SCAN);
+            return convertNativeScanResults(ifaceName,
+                    Nl80211Native.wificondScansToNl80211NativeScans(wificondScans));
         }
         return convertNativeScanResults(ifaceName, mNl80211Native.getScanResults(ifaceName,
                 Nl80211Native.SCAN_TYPE_PNO_SCAN));
