@@ -101,10 +101,85 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
             self.ads, destination=self.current_test_info.output_path
         )
 
+    def _establish_and_verify_data_path(
+        self, pub_session, sub_session, pub_peer_id, sub_peer_id
+    ) -> int:
+        """Establishes a Wi-Fi Aware data-path and verifies data exchange."""
+        # Step 1: Establish a Wi-Fi Aware network.
+        # Step 1.1: Initialize a server socket on the publisher.
+        pub_accept_handler = (
+            self.publisher.wifi.connectivityServerSocketAccept()
+        )
+        network_id = pub_accept_handler.callback_id
+        pub_local_port = pub_accept_handler.ret_value
+
+        # Step  1.2: Request a Wi-Fi Aware network on each device.
+        network_specifier_on_pub = constants.WifiAwareNetworkSpecifier(
+            psk_passphrase=_PASSWORD,
+            port = pub_local_port,
+            transport_protocol=_TRANSPORT_PROTOCOL_TCP
+        )
+        network_specifier_on_sub = constants.WifiAwareNetworkSpecifier(
+            psk_passphrase=_PASSWORD,
+        )
+        pub_network_handler = aware_snippet_utils.request_aware_network(
+            ad=self.publisher,
+            discovery_session=pub_session,
+            peer=pub_peer_id,
+            network_id=network_id,
+            network_specifier_params=network_specifier_on_pub,
+            is_accept_any_peer=False,
+        )
+        sub_network_handler = aware_snippet_utils.request_aware_network(
+            ad=self.subscriber,
+            discovery_session=sub_session,
+            peer=sub_peer_id,
+            network_id=network_id,
+            network_specifier_params=network_specifier_on_sub,
+        )
+        # Step 1.3: Wait for network establishment.
+        aware_snippet_utils.wait_for_aware_network(
+            ad=self.publisher,
+            request_network_handler=pub_network_handler,
+        )
+        network_cap_changed_event = aware_snippet_utils.wait_for_aware_network(
+            ad=self.subscriber,
+            request_network_handler=sub_network_handler,
+        )
+
+        # Step 2: Establish a socket connection and send messages through it.
+        aware_snippet_utils.establish_socket_connection(
+            self.publisher,
+            self.subscriber,
+            pub_accept_handler=pub_accept_handler,
+            network_id=network_id,
+            pub_local_port=pub_local_port,
+        )
+
+        msg = _MSG_CLIENT_TO_SERVER.format(random_id=utils.rand_ascii_str(5))
+        aware_snippet_utils.send_socket_msg(
+            sender_ad=self.subscriber,
+            receiver_ad=self.publisher,
+            network_id=network_id,
+            msg=msg,
+        )
+        msg = _MSG_SERVER_TO_CLIENT.format(random_id=utils.rand_ascii_str(5))
+        aware_snippet_utils.send_socket_msg(
+            sender_ad=self.publisher,
+            receiver_ad=self.subscriber,
+            network_id=network_id,
+            msg=msg,
+        )
+        logging.info('Communicated through socket connection successfully.')
+        return network_id
+
     @ApiTest(
         apis=[
             'android.net.wifi.aware.AwarePairingConfig',
+            'android.net.wifi.aware.DiscoverySession#initiateBootstrapping',
+            'android.net.wifi.aware.DiscoverySessionCallback#onBootstrappingSucceeded',
             'android.net.wifi.aware.DiscoverySession#initiatePairingRequest',
+            'android.net.wifi.aware.DiscoverySessionCallback#onPairingRequestReceived',
             'android.net.wifi.aware.DiscoverySession#acceptPairingRequest',
             'android.net.wifi.aware.DiscoverySessionCallback#onPairingSetupSucceeded',
         ]
@@ -133,6 +208,9 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         10. Send messages over the socket in both directions to verify the
             data-path is functional.
         11. Clean up all sessions and network resources.
+        12. Re-attach Wi-Fi Aware sessions.
+        13. Publisher and Subscriber publish and subscribe again.
+        14. Verify both devices receive the `onPairingVerificationSucceeded` callback.
         """
 
         pairing_config = constants.AwarePairingConfig(
@@ -259,78 +337,295 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         self.publisher.log.info('Publisher pairing succeeded.')
         self.subscriber.log.info('Subscriber pairing succeeded.')
 
-        # Step 5: Establish a Wi-Fi Aware network.
-        # Step 5.1: Initialize a server socket on the publisher.
-        pub_accept_handler = (
-            self.publisher.wifi.connectivityServerSocketAccept()
-        )
-        network_id = pub_accept_handler.callback_id
-        pub_local_port = pub_accept_handler.ret_value
-
-        # Step 5.2: Request a Wi-Fi Aware network on each device.
-        network_specifier_on_pub = constants.WifiAwareNetworkSpecifier(
-            psk_passphrase=_PASSWORD,
-            port = pub_local_port,
-            transport_protocol=_TRANSPORT_PROTOCOL_TCP
-        )
-        network_specifier_on_sub = constants.WifiAwareNetworkSpecifier(
-            psk_passphrase=_PASSWORD,
-        )
-        pub_network_handler = aware_snippet_utils.request_aware_network(
-            ad=self.publisher,
-            discovery_session=pub_session,
-            peer=pub_peer_id,
-            network_id=network_id,
-            network_specifier_params=network_specifier_on_pub,
-            is_accept_any_peer=False,
-        )
-        sub_network_handler = aware_snippet_utils.request_aware_network(
-            ad=self.subscriber,
-            discovery_session=sub_session,
-            peer=sub_peer_id,
-            network_id=network_id,
-            network_specifier_params=network_specifier_on_sub,
-        )
-        # Step 5.3: Wait for network establishment.
-        aware_snippet_utils.wait_for_aware_network(
-            ad=self.publisher,
-            request_network_handler=pub_network_handler,
-        )
-        network_cap_changed_event = aware_snippet_utils.wait_for_aware_network(
-            ad=self.subscriber,
-            request_network_handler=sub_network_handler,
+        # Step 5: Establish a Wi-Fi Aware data-path and verify data exchange.
+        network_id = self._establish_and_verify_data_path(
+            pub_session, sub_session, pub_peer_id, sub_peer_id
         )
 
-        # Step 6: Establish a socket connection and send messages through it.
-        aware_snippet_utils.establish_socket_connection(
-            self.publisher,
-            self.subscriber,
-            pub_accept_handler=pub_accept_handler,
-            network_id=network_id,
-            pub_local_port=pub_local_port,
-        )
-
-        msg = _MSG_CLIENT_TO_SERVER.format(random_id=utils.rand_ascii_str(5))
-        aware_snippet_utils.send_socket_msg(
-            sender_ad=self.subscriber,
-            receiver_ad=self.publisher,
-            network_id=network_id,
-            msg=msg,
-        )
-        msg = _MSG_SERVER_TO_CLIENT.format(random_id=utils.rand_ascii_str(5))
-        aware_snippet_utils.send_socket_msg(
-            sender_ad=self.publisher,
-            receiver_ad=self.subscriber,
-            network_id=network_id,
-            msg=msg,
-        )
-        logging.info('Communicated through socket connection successfully.')
-        # Test finished, clean up.
         # Clean up network resources.
         self.publisher.wifi.connectivityCloseAllSocket(network_id)
         self.subscriber.wifi.connectivityCloseAllSocket(network_id)
         self.publisher.wifi.connectivityUnregisterNetwork(network_id)
         self.subscriber.wifi.connectivityUnregisterNetwork(network_id)
+        # Clean up Wi-Fi Aware resources.
+        self.publisher.wifi.wifiAwareCloseDiscoverSession(pub_session)
+        self.subscriber.wifi.wifiAwareCloseDiscoverSession(sub_session)
+        self.publisher.wifi.wifiAwareDetach(pub_attach_session)
+        self.subscriber.wifi.wifiAwareDetach(sub_attach_session)
+
+         # Step 6: re-Attach Wi-Fi Aware sessions.
+        pub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.publisher, is_ranging_enabled=False
+        )
+        sub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.subscriber, is_ranging_enabled=False
+        )
+
+        # Step 7: Publisher publishes an Wi-Fi Aware service, subscriber
+        # subscribes to it. Wait for service discovery.
+        (
+            pub_session,
+            pub_session_handler,
+            sub_session,
+            sub_session_handler,
+            sub_peer_id,
+        ) = aware_snippet_utils.publish_and_subscribe(
+            publisher=self.publisher,
+            pub_config=pub_config,
+            pub_attach_session=pub_attach_session,
+            subscriber=self.subscriber,
+            sub_config=sub_config,
+            sub_attach_session=sub_attach_session,
+        )
+
+        # Step 8: Both devices get pairing verification success callback.
+        pub_pairing_success_event = pub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_VERIFICATION_SUCCEEDED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+        sub_pairing_success_event = sub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_VERIFICATION_SUCCEEDED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+        asserts.assert_equal(
+            pub_pairing_success_event.data['pairedAlias'],
+            'subscriber_alias',
+            'Publisher received wrong alias.',
+        )
+        asserts.assert_equal(
+            sub_pairing_success_event.data['pairedAlias'],
+            'publisher_alias',
+            'Subscriber received wrong alias.',
+        )
+
+        # Clean up Wi-Fi Aware resources.
+        self.publisher.wifi.wifiAwareCloseDiscoverSession(pub_session)
+        self.subscriber.wifi.wifiAwareCloseDiscoverSession(sub_session)
+        self.publisher.wifi.wifiAwareDetach(pub_attach_session)
+        self.subscriber.wifi.wifiAwareDetach(sub_attach_session)
+
+    def test_aware_pairing_with_cache_disabled(self):
+        """Verifies Wi-Fi Aware pairing and data-path with caching disabled.
+
+        This test case covers the end-to-end flow of Wi-Fi Aware pairing,
+        including service discovery, bootstrapping, pairing setup, and
+        establishing a data-path connection over which data is exchanged.
+        The pairing configuration has caching disabled.
+
+        Test Steps:
+        1.  Publisher and Subscriber set up pairing configs with caching
+            disabled and `PIN_CODE_DISPLAY` as the bootstrapping method.
+        2.  Publisher starts an unsolicited publish, and Subscriber starts a
+            passive subscribe.
+        3.  Wait for the service to be discovered.
+        4.  Subscriber initiates bootstrapping with the Publisher.
+        5.  Verify both devices receive the `onBootstrappingSucceeded` callback.
+        6.  Subscriber initiates a pairing request to the Publisher.
+        7.  Publisher receives the request and accepts it.
+        8.  Verify both devices receive the `onPairingSetupSucceeded` callback.
+        9.  Establish a Wi-Fi Aware data-path (socket connection) between the
+            devices.
+        10. Send messages over the socket in both directions to verify the
+            data-path is functional.
+        11. Clean up all sessions and network resources.
+        12. Re-attach Wi-Fi Aware sessions.
+        13. Publisher and Subscriber publish and subscribe again.
+        14. Verify neither device receives the `onPairingVerificationSucceeded`
+            callback.
+        """
+
+        pairing_config = constants.AwarePairingConfig(
+            pairing_setup_enabled=True,
+            pairing_cache_enabled=False,
+            pairing_verification_enabled=True,
+            bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+        )
+        pub_config = constants.PublishConfig(
+            publish_type=constants.PublishType.UNSOLICITED,
+            service_specific_info=_PUB_SSI,
+            pairing_config=pairing_config
+        )
+        sub_config = constants.SubscribeConfig(
+            subscribe_type=constants.SubscribeType.PASSIVE,
+            service_specific_info=_SUB_SSI,
+            pairing_config=pairing_config
+        )
+
+        # Step 1: Attach Wi-Fi Aware sessions.
+        pub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.publisher, is_ranging_enabled=False
+        )
+        sub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.subscriber, is_ranging_enabled=False
+        )
+
+        # Step 2: Publisher publishes an Wi-Fi Aware service, subscriber
+        # subscribes to it. Wait for service discovery.
+        (
+            pub_session,
+            pub_session_handler,
+            sub_session,
+            sub_session_handler,
+            sub_peer_id,
+        ) = aware_snippet_utils.publish_and_subscribe(
+            publisher=self.publisher,
+            pub_config=pub_config,
+            pub_attach_session=pub_attach_session,
+            subscriber=self.subscriber,
+            sub_config=sub_config,
+            sub_attach_session=sub_attach_session,
+        )
+
+        # Step 3: setup bootstrapping.
+        # Step 3.1: Subscriber initiates bootstrapping.
+        self.subscriber.wifi.wifiAwareInitiateBootstrapping(
+            sub_session,
+            sub_peer_id,
+            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+        )
+
+        # Step 3.2: Both devices get bootstrapping success callback.
+        pub_bootstrapping_success_event = pub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.BOOTSTRAPPING_SUCCEEDED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+        sub_bootstrapping_success_event = sub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.BOOTSTRAPPING_SUCCEEDED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+
+        asserts.assert_equal(
+            pub_bootstrapping_success_event.data['bootstrappingMethod'],
+            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            'Publisher received wrong bootstrapping method.',
+        )
+        asserts.assert_equal(
+            sub_bootstrapping_success_event.data['bootstrappingMethod'],
+            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            'Subscriber received wrong bootstrapping method.',
+        )
+        self.publisher.log.info('Publisher bootstrapping succeeded.')
+        self.subscriber.log.info('Subscriber bootstrapping succeeded.')
+
+        # Step 4: setup pairing.
+        # Step 4.1: Subscriber initiates pairing request.
+        self.subscriber.log.info('Subscriber initiates pairing request.')
+        self.subscriber.wifi.wifiAwareInitiatePairing(
+            sub_session,
+            sub_peer_id,
+            'publisher_alias',
+            _CIPHER_SUITE.value,
+            _PASSWORD,
+        )
+
+        # Step 4.2: Publisher receives and accepts pairing request.
+        pairing_request_event = pub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_REQUEST_RECEIVED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+        request_id = pairing_request_event.data['pairingRequestId']
+        pub_peer_id = pairing_request_event.data['peerId']
+        self.publisher.log.info('Publisher received pairing request.')
+        self.publisher.wifi.wifiAwareAcceptPairing(
+            pub_session,
+            request_id,
+            pub_peer_id,
+            'subscriber_alias',
+            _CIPHER_SUITE.value,
+            _PASSWORD,
+        )
+
+        # Step 4.3: Both devices get pairing success callback.
+        pub_pairing_success_event = pub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_SETUP_SUCCEEDED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+        sub_pairing_success_event = sub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_SETUP_SUCCEEDED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+
+        asserts.assert_equal(
+            pub_pairing_success_event.data['pairedAlias'],
+            'subscriber_alias',
+            'Publisher received wrong alias.',
+        )
+        asserts.assert_equal(
+            sub_pairing_success_event.data['pairedAlias'],
+            'publisher_alias',
+            'Subscriber received wrong alias.',
+        )
+        self.publisher.log.info('Publisher pairing succeeded.')
+        self.subscriber.log.info('Subscriber pairing succeeded.')
+
+        # Step 5: Establish a Wi-Fi Aware data-path and verify data exchange.
+        network_id = self._establish_and_verify_data_path(
+            pub_session, sub_session, pub_peer_id, sub_peer_id
+        )
+
+        # Clean up network resources.
+        self.publisher.wifi.connectivityCloseAllSocket(network_id)
+        self.subscriber.wifi.connectivityCloseAllSocket(network_id)
+        self.publisher.wifi.connectivityUnregisterNetwork(network_id)
+        self.subscriber.wifi.connectivityUnregisterNetwork(network_id)
+        # Clean up Wi-Fi Aware resources.
+        self.publisher.wifi.wifiAwareCloseDiscoverSession(pub_session)
+        self.subscriber.wifi.wifiAwareCloseDiscoverSession(sub_session)
+        self.publisher.wifi.wifiAwareDetach(pub_attach_session)
+        self.subscriber.wifi.wifiAwareDetach(sub_attach_session)
+
+        # Step 6: re-Attach Wi-Fi Aware sessions.
+        pub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.publisher, is_ranging_enabled=False
+        )
+        sub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.subscriber, is_ranging_enabled=False
+        )
+
+        # Step 7: Publisher publishes an Wi-Fi Aware service, subscriber
+        # subscribes to it. Wait for service discovery.
+        (
+            pub_session,
+            pub_session_handler,
+            sub_session,
+            sub_session_handler,
+            sub_peer_id,
+        ) = aware_snippet_utils.publish_and_subscribe(
+            publisher=self.publisher,
+            pub_config=pub_config,
+            pub_attach_session=pub_attach_session,
+            subscriber=self.subscriber,
+            sub_config=sub_config,
+            sub_attach_session=sub_attach_session,
+        )
+
+        # Step 8: Both devices shouldn't get pairing verification callback.
+        try:
+          pub_pairing_success_event = pub_session_handler.waitAndGet(
+              event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_VERIFICATION_SUCCEEDED,
+              timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+          )
+        except Exception as e:
+          self.publisher.log.info(
+              'Publisher did not receive pairing verification callback.')
+        try:
+          sub_pairing_success_event = sub_session_handler.waitAndGet(
+              event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_VERIFICATION_SUCCEEDED,
+              timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+          )
+        except Exception as e:
+          self.subscriber.log.info(
+              'Subscriber did not receive pairing verification callback.')
+
+        asserts.assert_is_none(
+            pub_pairing_success_event,
+            'Publisher received wrong pairing verification callback.',
+        )
+        asserts.assert_is_none(
+            sub_pairing_success_event,
+            'Subscriber received wrong pairing verification callback.',
+        )
+
         # Clean up Wi-Fi Aware resources.
         self.publisher.wifi.wifiAwareCloseDiscoverSession(pub_session)
         self.subscriber.wifi.wifiAwareCloseDiscoverSession(sub_session)
