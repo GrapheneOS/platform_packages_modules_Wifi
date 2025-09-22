@@ -48,7 +48,6 @@ import android.os.HandlerThread;
 import android.os.SystemClock;
 import android.util.Log;
 
-import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.test.platform.app.InstrumentationRegistry;
 
@@ -1106,27 +1105,6 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         }
     }
 
-    /**
-     * Constants for device mobility states.
-     */
-    @IntDef({
-        WifiManager.DEVICE_MOBILITY_STATE_UNKNOWN,
-        WifiManager.DEVICE_MOBILITY_STATE_HIGH_MVMT,
-        WifiManager.DEVICE_MOBILITY_STATE_LOW_MVMT,
-        WifiManager.DEVICE_MOBILITY_STATE_STATIONARY
-    })
-    private @interface DeviceMobilityState {}
-
-    /**
-    * Sets the device mobility state for testing.
-    * @param state The mobility state to set.
-    */
-    @Rpc(description = "Sets the device mobility state.")
-    public void wifiSetDeviceMobilityState(@DeviceMobilityState int state) throws Throwable {
-        Log.d(TAG, "Setting device mobility state to: " + state);
-        // This runs the command with elevated shell permissions.
-        executeWithShellPermission(() -> mWifiManager.setDeviceMobilityState(state));
-    }
     /** Turns on Wi-Fi. */
     @Rpc(description = "Turn on Wi-Fi.")
     public void wifiToggleEnable() throws InterruptedException, WifiManagerSnippetException {
@@ -1220,4 +1198,3 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     }
 
 }
-

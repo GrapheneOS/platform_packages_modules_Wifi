@@ -131,6 +131,7 @@ genrule {
     out: ["CtsWifiConnectionTests_py.zip"],
 }
 
+
 python_library_host {
     name: "wifi_direct_constants",
     srcs: ["direct/constants.py"],
@@ -338,26 +339,4 @@ python_test_host {
         "general-tests",
     ],
 
-}
-
-// New entry for the Wi-Fi Mobility Test
-python_test_host {
-    name: "WifiIntegrationMobilityTest",
-    main: "wifi_mobility_test.py",
-    srcs: ["wifi_mobility_test.py"],
-    // Use test_config to point to the XML configuration file.
-    test_config: "AndroidTest.xml",
-    libs: [
-        "mobly",
-        "wifi_test_utils",
-        "platform-test-py-annotations",
-    ],
-    device_common_data: [":wifi_mobly_snippet"],
-    test_options: {
-        unit_test: false,
-        runner: "mobly",
-    },
-    test_suites: [
-        "general-tests",
-    ],
 }
