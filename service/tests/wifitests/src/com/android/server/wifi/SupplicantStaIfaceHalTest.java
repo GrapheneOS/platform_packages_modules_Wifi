@@ -58,15 +58,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Unit tests for SupplicantStaIfaceHal, which functions as a wrapper for either
- * SupplicantStaIfaceHalHidlImpl or SupplicantStaIfaceHalAidlImpl, depending on
- * which service (HIDL or AIDL) is available. Test the initialization logic and
- * verify that calls to all public methods are forwarded to the actual implementation.
+ * Unit tests for {@link SupplicantStaIfaceHal}, which functions as a wrapper for either HIDL or
+ * AIDL (vendor) implementation of the Supplicant STA Iface HAL, depending on which service is
+ * available. Test the initialization logic and verify that calls to all public methods are
+ * forwarded to the actual implementation.
  */
 public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     private SupplicantStaIfaceHalSpy mDut;
     private @Mock SupplicantStaIfaceHalHidlImpl mStaIfaceHalHidlMock;
-    private @Mock SupplicantStaIfaceHalAidlImpl mStaIfaceHalAidlMock;
+    private @Mock SupplicantStaIfaceHalAidlVendorImpl mStaIfaceHalAidlMock;
     private @Mock WifiNative.SupplicantDeathEventHandler mSupplicantHalDeathHandler;
     private @Mock Context mContext;
     private @Mock WifiMonitor mWifiMonitor;
@@ -96,6 +96,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     private static final int QOS_POLICY_SRC_PORT = DscpPolicy.SOURCE_PORT_ANY;
     private static final int QOS_POLICY_PROTOCOL = DscpPolicy.PROTOCOL_ANY;
 
+    /**
+     * Implementation of SupplicantStaIfaceHalSpy that uses the AIDL Vendor mock internally.
+     */
     private class SupplicantStaIfaceHalSpy extends SupplicantStaIfaceHal {
         SupplicantStaIfaceHalSpy() {
             super(mContext, mWifiMonitor, mFrameworkFacade,
@@ -144,9 +147,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     }
 
     /**
-     * Initialize SupplicantStaIfaceHal with the AIDL implementation.
+     * Initialize SupplicantStaIfaceHal with the AIDL Vendor implementation.
      */
-    private void initializeWithAidlImpl(boolean shouldSucceed) {
+    private void initializeWithAidlVendorImpl(boolean shouldSucceed) {
         when(mStaIfaceHalAidlMock.initialize()).thenReturn(shouldSucceed);
         assertEquals(shouldSucceed, mDut.initialize());
         verify(mStaIfaceHalAidlMock).initialize();
@@ -165,11 +168,11 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     }
 
     /**
-     * Tests successful initialization with the AIDL implementation.
+     * Tests successful initialization with the AIDL Vendor implementation.
      */
     @Test
-    public void testInitSuccessAidl() {
-        initializeWithAidlImpl(true);
+    public void testInitSuccessAidlVendor() {
+        initializeWithAidlVendorImpl(true);
     }
 
     /**
@@ -181,11 +184,11 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     }
 
     /**
-     * Tests failed initialization with the AIDL implementation.
+     * Tests failed initialization with the AIDL Vendor implementation.
      */
     @Test
-    public void testInitFailureAidl() {
-        initializeWithAidlImpl(false);
+    public void testInitFailureAidlVendor() {
+        initializeWithAidlVendorImpl(false);
     }
 
     /**
@@ -228,7 +231,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetupIface() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.setupIface(anyString())).thenReturn(true);
         assertTrue(mDut.setupIface(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).setupIface(eq(IFACE_NAME));
@@ -239,7 +242,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testTeardownIface() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.teardownIface(anyString())).thenReturn(true);
         assertTrue(mDut.teardownIface(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).teardownIface(eq(IFACE_NAME));
@@ -250,7 +253,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testRegisterDeathHandler() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.registerDeathHandler(
                 any(WifiNative.SupplicantDeathEventHandler.class))).thenReturn(true);
         assertTrue(mDut.registerDeathHandler(mSupplicantHalDeathHandler));
@@ -262,7 +265,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testDeregisterDeathHandler() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.deregisterDeathHandler()).thenReturn(true);
         assertTrue(mDut.deregisterDeathHandler());
         verify(mStaIfaceHalAidlMock).deregisterDeathHandler();
@@ -273,7 +276,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testIsInitializationStarted() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.isInitializationStarted()).thenReturn(true);
         assertTrue(mDut.isInitializationStarted());
         verify(mStaIfaceHalAidlMock).isInitializationStarted();
@@ -284,7 +287,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testIsInitializationComplete() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.isInitializationComplete()).thenReturn(true);
         assertTrue(mDut.isInitializationComplete());
         verify(mStaIfaceHalAidlMock).isInitializationComplete();
@@ -295,7 +298,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStartDaemon() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.startDaemon()).thenReturn(true);
         assertTrue(mDut.startDaemon());
         verify(mStaIfaceHalAidlMock).startDaemon();
@@ -306,7 +309,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testTerminate() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         doNothing().when(mStaIfaceHalAidlMock).terminate();
         mDut.terminate();
         verify(mStaIfaceHalAidlMock).terminate();
@@ -317,7 +320,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testConnectToNetwork() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         WifiConfiguration testConfig = new WifiConfiguration();
         when(mStaIfaceHalAidlMock.connectToNetwork(anyString(), any(WifiConfiguration.class)))
             .thenReturn(true);
@@ -330,7 +333,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testRoamToNetwork() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         WifiConfiguration testConfig = mock(WifiConfiguration.class);
         when(mStaIfaceHalAidlMock.roamToNetwork(anyString(), any(WifiConfiguration.class)))
                 .thenReturn(true);
@@ -343,7 +346,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveNetworkCachedData() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         doNothing().when(mStaIfaceHalAidlMock).removeNetworkCachedData(anyInt());
         mDut.removeNetworkCachedData(NETWORK_ID);
         verify(mStaIfaceHalAidlMock).removeNetworkCachedData(eq(NETWORK_ID));
@@ -354,7 +357,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveNetworkCachedDataIfNeeded() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         MacAddress testAddress = MacAddress.fromString(BSSID);
         doNothing().when(mStaIfaceHalAidlMock)
                 .removeNetworkCachedDataIfNeeded(anyInt(), any(MacAddress.class));
@@ -368,7 +371,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveAllNetworks() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.removeAllNetworks(anyString())).thenReturn(true);
         assertTrue(mDut.removeAllNetworks(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).removeAllNetworks(eq(IFACE_NAME));
@@ -379,7 +382,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testDisableCurrentNetwork() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.disableCurrentNetwork(anyString())).thenReturn(true);
         assertTrue(mDut.disableCurrentNetwork(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).disableCurrentNetwork(eq(IFACE_NAME));
@@ -390,7 +393,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetCurrentNetworkBssid() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.setCurrentNetworkBssid(anyString(), anyString()))
                 .thenReturn(true);
         assertTrue(mDut.setCurrentNetworkBssid(IFACE_NAME, BSSID));
@@ -402,11 +405,12 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testGetCurrentNetworkWpsNfcConfigurationToken() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.getCurrentNetworkWpsNfcConfigurationToken(anyString()))
                 .thenReturn(RESPONSE);
         assertEquals(RESPONSE, mDut.getCurrentNetworkWpsNfcConfigurationToken(IFACE_NAME));
-        verify(mStaIfaceHalAidlMock).getCurrentNetworkWpsNfcConfigurationToken(eq(IFACE_NAME));
+        verify(mStaIfaceHalAidlMock)
+                .getCurrentNetworkWpsNfcConfigurationToken(eq(IFACE_NAME));
     }
 
     /**
@@ -414,7 +418,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testGetCurrentNetworkEapAnonymousIdentity() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.getCurrentNetworkEapAnonymousIdentity(anyString()))
                 .thenReturn(RESPONSE);
         assertEquals(RESPONSE, mDut.getCurrentNetworkEapAnonymousIdentity(IFACE_NAME));
@@ -426,7 +430,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSendCurrentNetworkEapIdentityResponse() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         String identity = "blah@blah.com";
         String encryptedIdentity = "blah2@blah.com";
         when(mStaIfaceHalAidlMock.sendCurrentNetworkEapIdentityResponse(
@@ -442,8 +446,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSendCurrentNetworkEapSimGsmAuthResponse() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.sendCurrentNetworkEapSimGsmAuthResponse(anyString(), anyString()))
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock
+                .sendCurrentNetworkEapSimGsmAuthResponse(anyString(), anyString()))
                 .thenReturn(true);
         assertTrue(mDut.sendCurrentNetworkEapSimGsmAuthResponse(IFACE_NAME, PARAMS));
         verify(mStaIfaceHalAidlMock).sendCurrentNetworkEapSimGsmAuthResponse(
@@ -455,7 +460,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSendCurrentNetworkEapSimGsmAuthFailure() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.sendCurrentNetworkEapSimGsmAuthFailure(anyString()))
                 .thenReturn(true);
         assertTrue(mDut.sendCurrentNetworkEapSimGsmAuthFailure(IFACE_NAME));
@@ -467,7 +472,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSendCurrentNetworkEapSimUmtsAuthResponse() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.sendCurrentNetworkEapSimUmtsAuthResponse(
                 anyString(), anyString())).thenReturn(true);
         assertTrue(mDut.sendCurrentNetworkEapSimUmtsAuthResponse(IFACE_NAME, PARAMS));
@@ -480,7 +485,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSendCurrentNetworkEapSimUmtsAutsResponse() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.sendCurrentNetworkEapSimUmtsAutsResponse(
                 anyString(), anyString())).thenReturn(true);
         assertTrue(mDut.sendCurrentNetworkEapSimUmtsAutsResponse(IFACE_NAME, PARAMS));
@@ -493,7 +498,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSendCurrentNetworkEapSimUmtsAuthFailure() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.sendCurrentNetworkEapSimUmtsAuthFailure(anyString()))
                 .thenReturn(true);
         assertTrue(mDut.sendCurrentNetworkEapSimUmtsAuthFailure(IFACE_NAME));
@@ -505,8 +510,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetWpsDeviceName() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.setWpsDeviceName(anyString(), anyString())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.setWpsDeviceName(anyString(), anyString()))
+                .thenReturn(true);
         assertTrue(mDut.setWpsDeviceName(IFACE_NAME, PARAMS));
         verify(mStaIfaceHalAidlMock).setWpsDeviceName(eq(IFACE_NAME), eq(PARAMS));
     }
@@ -516,8 +522,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetWpsDeviceType() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.setWpsDeviceType(anyString(), anyString())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.setWpsDeviceType(anyString(), anyString()))
+                .thenReturn(true);
         assertTrue(mDut.setWpsDeviceType(IFACE_NAME, PARAMS));
         verify(mStaIfaceHalAidlMock).setWpsDeviceType(eq(IFACE_NAME), eq(PARAMS));
     }
@@ -527,8 +534,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetWpsManufacturer() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.setWpsManufacturer(anyString(), anyString())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.setWpsManufacturer(anyString(), anyString()))
+                .thenReturn(true);
         assertTrue(mDut.setWpsManufacturer(IFACE_NAME, PARAMS));
         verify(mStaIfaceHalAidlMock).setWpsManufacturer(eq(IFACE_NAME), eq(PARAMS));
     }
@@ -538,7 +546,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetWpsModelName() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.setWpsModelName(anyString(), anyString())).thenReturn(true);
         assertTrue(mDut.setWpsModelName(IFACE_NAME, PARAMS));
         verify(mStaIfaceHalAidlMock).setWpsModelName(eq(IFACE_NAME), eq(PARAMS));
@@ -549,8 +557,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetWpsModelNumber() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.setWpsModelNumber(anyString(), anyString())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.setWpsModelNumber(anyString(), anyString()))
+                .thenReturn(true);
         assertTrue(mDut.setWpsModelNumber(IFACE_NAME, PARAMS));
         verify(mStaIfaceHalAidlMock).setWpsModelNumber(eq(IFACE_NAME), eq(PARAMS));
     }
@@ -560,8 +569,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetWpsSerialNumber() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.setWpsSerialNumber(anyString(), anyString())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.setWpsSerialNumber(anyString(), anyString()))
+                .thenReturn(true);
         assertTrue(mDut.setWpsSerialNumber(IFACE_NAME, PARAMS));
         verify(mStaIfaceHalAidlMock).setWpsSerialNumber(eq(IFACE_NAME), eq(PARAMS));
     }
@@ -571,8 +581,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetWpsConfigMethods() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.setWpsConfigMethods(anyString(), anyString())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.setWpsConfigMethods(anyString(), anyString()))
+                .thenReturn(true);
         assertTrue(mDut.setWpsConfigMethods(IFACE_NAME, PARAMS));
         verify(mStaIfaceHalAidlMock).setWpsConfigMethods(eq(IFACE_NAME), eq(PARAMS));
     }
@@ -582,7 +593,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testReassociate() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.reassociate(anyString())).thenReturn(true);
         assertTrue(mDut.reassociate(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).reassociate(eq(IFACE_NAME));
@@ -593,7 +604,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testReconnect() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.reconnect(anyString())).thenReturn(true);
         assertTrue(mDut.reconnect(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).reconnect(eq(IFACE_NAME));
@@ -604,7 +615,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testDisconnect() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.disconnect(anyString())).thenReturn(true);
         assertTrue(mDut.disconnect(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).disconnect(eq(IFACE_NAME));
@@ -615,7 +626,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetPowerSave() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.setPowerSave(anyString(), anyBoolean())).thenReturn(true);
         assertTrue(mDut.setPowerSave(IFACE_NAME, ENABLE));
         verify(mStaIfaceHalAidlMock).setPowerSave(eq(IFACE_NAME), eq(ENABLE));
@@ -626,8 +637,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testInitiateTdlsDiscover() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.initiateTdlsDiscover(anyString(), anyString())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.initiateTdlsDiscover(anyString(), anyString()))
+                .thenReturn(true);
         assertTrue(mDut.initiateTdlsDiscover(IFACE_NAME, BSSID));
         verify(mStaIfaceHalAidlMock).initiateTdlsDiscover(eq(IFACE_NAME), eq(BSSID));
     }
@@ -637,8 +649,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testInitiateTdlsSetup() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.initiateTdlsSetup(anyString(), anyString())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.initiateTdlsSetup(anyString(), anyString()))
+                .thenReturn(true);
         assertTrue(mDut.initiateTdlsSetup(IFACE_NAME, BSSID));
         verify(mStaIfaceHalAidlMock).initiateTdlsSetup(eq(IFACE_NAME), eq(BSSID));
     }
@@ -648,8 +661,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testInitiateTdlsTeardown() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.initiateTdlsTeardown(anyString(), anyString())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.initiateTdlsTeardown(anyString(), anyString()))
+                .thenReturn(true);
         assertTrue(mDut.initiateTdlsTeardown(IFACE_NAME, BSSID));
         verify(mStaIfaceHalAidlMock).initiateTdlsTeardown(eq(IFACE_NAME), eq(BSSID));
     }
@@ -659,7 +673,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testInitiateAnqpQuery() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         ArrayList<Short> infoElements = new ArrayList<>();
         ArrayList<Integer> hs20SubTypes = new ArrayList<>();
         when(mStaIfaceHalAidlMock.initiateAnqpQuery(anyString(), anyString(),
@@ -674,7 +688,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testInitiateVenueUrlAnqpQuery() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.initiateVenueUrlAnqpQuery(anyString(), anyString()))
                 .thenReturn(true);
         assertTrue(mDut.initiateVenueUrlAnqpQuery(IFACE_NAME, BSSID));
@@ -686,11 +700,13 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testInitiateHs20IconQuery() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.initiateHs20IconQuery(anyString(), anyString(), anyString()))
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock
+                .initiateHs20IconQuery(anyString(), anyString(), anyString()))
                 .thenReturn(true);
         assertTrue(mDut.initiateHs20IconQuery(IFACE_NAME, BSSID, PARAMS));
-        verify(mStaIfaceHalAidlMock).initiateHs20IconQuery(eq(IFACE_NAME), eq(BSSID), eq(PARAMS));
+        verify(mStaIfaceHalAidlMock)
+                .initiateHs20IconQuery(eq(IFACE_NAME), eq(BSSID), eq(PARAMS));
     }
 
     /**
@@ -698,7 +714,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testGetMacAddress() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.getMacAddress(anyString())).thenReturn(BSSID);
         assertEquals(BSSID, mDut.getMacAddress(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).getMacAddress(eq(IFACE_NAME));
@@ -709,7 +725,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStartRxFilter() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.startRxFilter(anyString())).thenReturn(true);
         assertTrue(mDut.startRxFilter(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).startRxFilter(eq(IFACE_NAME));
@@ -720,7 +736,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStopRxFilter() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.stopRxFilter(anyString())).thenReturn(true);
         assertTrue(mDut.stopRxFilter(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).stopRxFilter(eq(IFACE_NAME));
@@ -731,7 +747,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testAddRxFilter() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.addRxFilter(anyString(), anyInt())).thenReturn(true);
         assertTrue(mDut.addRxFilter(IFACE_NAME, MODE));
         verify(mStaIfaceHalAidlMock).addRxFilter(eq(IFACE_NAME), eq(MODE));
@@ -742,7 +758,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveRxFilter() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.removeRxFilter(anyString(), anyInt())).thenReturn(true);
         assertTrue(mDut.removeRxFilter(IFACE_NAME, MODE));
         verify(mStaIfaceHalAidlMock).removeRxFilter(eq(IFACE_NAME), eq(MODE));
@@ -753,8 +769,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetBtCoexistenceMode() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.setBtCoexistenceMode(anyString(), anyInt())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.setBtCoexistenceMode(anyString(), anyInt()))
+                .thenReturn(true);
         assertTrue(mDut.setBtCoexistenceMode(IFACE_NAME, MODE));
         verify(mStaIfaceHalAidlMock).setBtCoexistenceMode(eq(IFACE_NAME), eq(MODE));
     }
@@ -764,11 +781,12 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetBtCoexistenceScanModeEnabled() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.setBtCoexistenceScanModeEnabled(anyString(), anyBoolean()))
                 .thenReturn(true);
         assertTrue(mDut.setBtCoexistenceScanModeEnabled(IFACE_NAME, ENABLE));
-        verify(mStaIfaceHalAidlMock).setBtCoexistenceScanModeEnabled(eq(IFACE_NAME), eq(ENABLE));
+        verify(mStaIfaceHalAidlMock)
+                .setBtCoexistenceScanModeEnabled(eq(IFACE_NAME), eq(ENABLE));
     }
 
     /**
@@ -776,7 +794,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetSuspendModeEnabled() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.setSuspendModeEnabled(anyString(), anyBoolean()))
                 .thenReturn(true);
         assertTrue(mDut.setSuspendModeEnabled(IFACE_NAME, ENABLE));
@@ -788,7 +806,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetCountryCode() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         String countryCode = "MX";
         when(mStaIfaceHalAidlMock.setCountryCode(anyString(), anyString()))
                 .thenReturn(true);
@@ -801,7 +819,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testFlushAllHlp() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.flushAllHlp(anyString())).thenReturn(true);
         assertTrue(mDut.flushAllHlp(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).flushAllHlp(eq(IFACE_NAME));
@@ -812,12 +830,12 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void addHlpReq() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         byte[] dstAddr = {0x45, 0x23, 0x12, 0x12, 0x12, 0x45};
         byte[] hlpPacket = {0x00, 0x01, 0x02, 0x03, 0x04, 0x12, 0x15, 0x34, 0x55, 0x12,
                 0x12, 0x45, 0x23, 0x52, 0x32, 0x16, 0x15, 0x53, 0x62, 0x32, 0x32, 0x10};
-        when(mStaIfaceHalAidlMock.addHlpReq(anyString(), any(byte[].class), any(byte[].class)))
-                .thenReturn(true);
+        when(mStaIfaceHalAidlMock.addHlpReq(anyString(), any(byte[].class),
+                any(byte[].class))).thenReturn(true);
         assertTrue(mDut.addHlpReq(IFACE_NAME, dstAddr, hlpPacket));
         verify(mStaIfaceHalAidlMock).addHlpReq(eq(IFACE_NAME), eq(dstAddr), eq(hlpPacket));
     }
@@ -827,7 +845,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStartWpsRegistrar() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         String pin = "5678";
         when(mStaIfaceHalAidlMock.startWpsRegistrar(anyString(), anyString(), anyString()))
                 .thenReturn(true);
@@ -840,7 +858,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStartWpsPbc() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.startWpsPbc(anyString(), anyString())).thenReturn(true);
         assertTrue(mDut.startWpsPbc(IFACE_NAME, BSSID));
         verify(mStaIfaceHalAidlMock).startWpsPbc(eq(IFACE_NAME), eq(BSSID));
@@ -851,8 +869,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStartWpsPinKeypad() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.startWpsPinKeypad(anyString(), anyString())).thenReturn(true);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.startWpsPinKeypad(anyString(), anyString()))
+                .thenReturn(true);
         assertTrue(mDut.startWpsPinKeypad(IFACE_NAME, PIN));
         verify(mStaIfaceHalAidlMock).startWpsPinKeypad(eq(IFACE_NAME), eq(PIN));
     }
@@ -862,8 +881,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStartWpsPinDisplay() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.startWpsPinDisplay(anyString(), anyString())).thenReturn(PIN);
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock.startWpsPinDisplay(anyString(), anyString()))
+                .thenReturn(PIN);
         assertEquals(PIN, mDut.startWpsPinDisplay(IFACE_NAME, BSSID));
         verify(mStaIfaceHalAidlMock).startWpsPinDisplay(eq(IFACE_NAME), eq(BSSID));
     }
@@ -873,7 +893,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testCancelWps() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.cancelWps(anyString())).thenReturn(true);
         assertTrue(mDut.cancelWps(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).cancelWps(eq(IFACE_NAME));
@@ -884,7 +904,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetExternalSim() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.setExternalSim(anyString(), anyBoolean())).thenReturn(true);
         assertTrue(mDut.setExternalSim(IFACE_NAME, ENABLE));
         verify(mStaIfaceHalAidlMock).setExternalSim(eq(IFACE_NAME), eq(ENABLE));
@@ -895,7 +915,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testEnableAutoReconnect() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.enableAutoReconnect(anyString(), anyBoolean()))
                 .thenReturn(true);
         assertTrue(mDut.enableAutoReconnect(IFACE_NAME, ENABLE));
@@ -907,7 +927,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetLogLevel() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.setLogLevel(anyBoolean())).thenReturn(true);
         assertTrue(mDut.setLogLevel(ENABLE));
         verify(mStaIfaceHalAidlMock).setLogLevel(eq(ENABLE));
@@ -918,7 +938,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetConcurrencyPriority() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.setConcurrencyPriority(anyBoolean())).thenReturn(true);
         assertTrue(mDut.setConcurrencyPriority(ENABLE));
         verify(mStaIfaceHalAidlMock).setConcurrencyPriority(eq(ENABLE));
@@ -929,9 +949,10 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testGetAdvancedCapabilities() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         BitSet capabilities = createCapabilityBitset(WIFI_FEATURE_OWE);  // arbitrary feature
-        when(mStaIfaceHalAidlMock.getAdvancedCapabilities(anyString())).thenReturn(capabilities);
+        when(mStaIfaceHalAidlMock.getAdvancedCapabilities(anyString()))
+                .thenReturn(capabilities);
         assertTrue(capabilities.equals(mDut.getAdvancedCapabilities(IFACE_NAME)));
         verify(mStaIfaceHalAidlMock).getAdvancedCapabilities(eq(IFACE_NAME));
     }
@@ -941,9 +962,10 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testGetWpaDriverFeatureSet() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         BitSet capabilities = createCapabilityBitset(WIFI_FEATURE_OWE);  // arbitrary feature
-        when(mStaIfaceHalAidlMock.getWpaDriverFeatureSet(anyString())).thenReturn(capabilities);
+        when(mStaIfaceHalAidlMock.getWpaDriverFeatureSet(anyString()))
+                .thenReturn(capabilities);
         assertTrue(capabilities.equals(mDut.getWpaDriverFeatureSet(IFACE_NAME)));
         verify(mStaIfaceHalAidlMock).getWpaDriverFeatureSet(eq(IFACE_NAME));
     }
@@ -953,10 +975,11 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testGetConnectionCapabilities() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         WifiNative.ConnectionCapabilities capabilities =
                 mock(WifiNative.ConnectionCapabilities.class);
-        when(mStaIfaceHalAidlMock.getConnectionCapabilities(anyString())).thenReturn(capabilities);
+        when(mStaIfaceHalAidlMock
+                .getConnectionCapabilities(anyString())).thenReturn(capabilities);
         assertEquals(capabilities, mDut.getConnectionCapabilities(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).getConnectionCapabilities(eq(IFACE_NAME));
     }
@@ -966,9 +989,10 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testAddDppPeerUri() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         String uri = "/blah";
-        when(mStaIfaceHalAidlMock.addDppPeerUri(anyString(), anyString())).thenReturn(NETWORK_ID);
+        when(mStaIfaceHalAidlMock.addDppPeerUri(anyString(), anyString()))
+                .thenReturn(NETWORK_ID);
         assertEquals(NETWORK_ID, mDut.addDppPeerUri(IFACE_NAME, uri));
         verify(mStaIfaceHalAidlMock).addDppPeerUri(eq(IFACE_NAME), eq(uri));
     }
@@ -978,7 +1002,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testRemoveDppUri() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.removeDppUri(anyString(), anyInt())).thenReturn(true);
         assertTrue(mDut.removeDppUri(IFACE_NAME, NETWORK_ID));
         verify(mStaIfaceHalAidlMock).removeDppUri(eq(IFACE_NAME), eq(NETWORK_ID));
@@ -989,7 +1013,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStopDppInitiator() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.stopDppInitiator(anyString())).thenReturn(true);
         assertTrue(mDut.stopDppInitiator(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).stopDppInitiator(eq(IFACE_NAME));
@@ -1000,7 +1024,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStartDppConfiguratorInitiator() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         int netRole = 1;
         int securityAkm = 2;
         String ssid = "someSsid";
@@ -1011,12 +1035,14 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
                 + "76293cb208f203cc92b42976c31e1b51914c5200400b521ef3f608a163875c203b34430ad4aa52d"
                 + "b3e95eacb7481782328d4fb45af";
         byte[] key = HexEncoding.decode(sKey.toCharArray(), false);
-        when(mStaIfaceHalAidlMock.startDppConfiguratorInitiator(anyString(), anyInt(), anyInt(),
+        when(mStaIfaceHalAidlMock
+                .startDppConfiguratorInitiator(anyString(), anyInt(), anyInt(),
                 anyString(), anyString(), anyString(), anyInt(), anyInt(),
                 any(byte[].class))).thenReturn(true);
         assertTrue(mDut.startDppConfiguratorInitiator(IFACE_NAME, PEER_ID, OWN_ID, ssid,
                 password, psk, netRole, securityAkm, key));
-        verify(mStaIfaceHalAidlMock).startDppConfiguratorInitiator(eq(IFACE_NAME), eq(PEER_ID),
+        verify(mStaIfaceHalAidlMock)
+                .startDppConfiguratorInitiator(eq(IFACE_NAME), eq(PEER_ID),
                 eq(OWN_ID), eq(ssid), eq(password), eq(psk), eq(netRole), eq(securityAkm), eq(key));
     }
 
@@ -1025,7 +1051,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStartDppEnrolleeInitiator() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.startDppEnrolleeInitiator(anyString(), anyInt(), anyInt()))
                 .thenReturn(true);
         assertTrue(mDut.startDppEnrolleeInitiator(IFACE_NAME, PEER_ID, OWN_ID));
@@ -1038,9 +1064,10 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testGenerateDppBootstrapInfoForResponder() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         WifiNative.DppBootstrapQrCodeInfo qrCodeInfo = new WifiNative.DppBootstrapQrCodeInfo();
-        when(mStaIfaceHalAidlMock.generateDppBootstrapInfoForResponder(anyString(), anyString(),
+        when(mStaIfaceHalAidlMock
+                .generateDppBootstrapInfoForResponder(anyString(), anyString(),
                 anyString(), anyInt())).thenReturn(qrCodeInfo);
         assertEquals(qrCodeInfo, mDut.generateDppBootstrapInfoForResponder(
                 IFACE_NAME, BSSID, PARAMS, MODE));
@@ -1053,12 +1080,13 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void startDppEnrolleeResponder() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         int listenChannel = 5;
         when(mStaIfaceHalAidlMock.startDppEnrolleeResponder(anyString(), anyInt()))
                 .thenReturn(true);
         assertTrue(mDut.startDppEnrolleeResponder(IFACE_NAME, listenChannel));
-        verify(mStaIfaceHalAidlMock).startDppEnrolleeResponder(eq(IFACE_NAME), eq(listenChannel));
+        verify(mStaIfaceHalAidlMock)
+                .startDppEnrolleeResponder(eq(IFACE_NAME), eq(listenChannel));
     }
 
     /**
@@ -1066,7 +1094,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testStopDppResponder() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.stopDppResponder(anyString(), anyInt())).thenReturn(true);
         assertTrue(mDut.stopDppResponder(IFACE_NAME, NETWORK_ID));
         verify(mStaIfaceHalAidlMock).stopDppResponder(eq(IFACE_NAME), eq(NETWORK_ID));
@@ -1077,7 +1105,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void registerDppCallback() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         WifiNative.DppEventCallback dppCallback = mock(WifiNative.DppEventCallback.class);
         doNothing().when(mStaIfaceHalAidlMock).registerDppCallback(
                 any(WifiNative.DppEventCallback.class));
@@ -1090,7 +1118,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testSetMboCellularDataStatus() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         when(mStaIfaceHalAidlMock.setMboCellularDataStatus(anyString(), anyBoolean()))
                 .thenReturn(true);
         assertTrue(mDut.setMboCellularDataStatus(IFACE_NAME, ENABLE));
@@ -1102,8 +1130,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testUpdateOnLinkedNetworkRoaming() {
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.updateOnLinkedNetworkRoaming(anyString(), anyInt(), anyBoolean()))
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock
+                .updateOnLinkedNetworkRoaming(anyString(), anyInt(), anyBoolean()))
                 .thenReturn(true);
         assertTrue(mDut.updateOnLinkedNetworkRoaming(IFACE_NAME, NETWORK_ID, ENABLE));
         verify(mStaIfaceHalAidlMock).updateOnLinkedNetworkRoaming(
@@ -1115,7 +1144,7 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testUpdateLinkedNetworks() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         Map<String, WifiConfiguration> linkedConfigurations =
                 new HashMap<String, WifiConfiguration>();
         when(mStaIfaceHalAidlMock.updateLinkedNetworks(anyString(), anyInt(), any(Map.class)))
@@ -1130,9 +1159,10 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
      */
     @Test
     public void testGetCurrentNetworkSecurityParams() {
-        initializeWithAidlImpl(true);
+        initializeWithAidlVendorImpl(true);
         SecurityParams params = mock(SecurityParams.class);
-        when(mStaIfaceHalAidlMock.getCurrentNetworkSecurityParams(anyString())).thenReturn(params);
+        when(mStaIfaceHalAidlMock
+                .getCurrentNetworkSecurityParams(anyString())).thenReturn(params);
         assertEquals(params, mDut.getCurrentNetworkSecurityParams(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).getCurrentNetworkSecurityParams(eq(IFACE_NAME));
     }
@@ -1216,12 +1246,14 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
 
     private void verifySetEapAnonymousIdentity(boolean updateToNativeService) {
         final String anonymousIdentity = "abc@realm.net";
-        initializeWithAidlImpl(true);
-        when(mStaIfaceHalAidlMock.setEapAnonymousIdentity(anyString(), anyString(), anyBoolean()))
+        initializeWithAidlVendorImpl(true);
+        when(mStaIfaceHalAidlMock
+                .setEapAnonymousIdentity(anyString(), anyString(), anyBoolean()))
                 .thenReturn(true);
         assertTrue(mDut.setEapAnonymousIdentity(IFACE_NAME, anonymousIdentity,
                 updateToNativeService));
-        verify(mStaIfaceHalAidlMock).setEapAnonymousIdentity(eq(IFACE_NAME), eq(anonymousIdentity),
+        verify(mStaIfaceHalAidlMock)
+                .setEapAnonymousIdentity(eq(IFACE_NAME), eq(anonymousIdentity),
                 eq(updateToNativeService));
     }
 

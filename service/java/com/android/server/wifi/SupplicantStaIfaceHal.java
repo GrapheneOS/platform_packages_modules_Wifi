@@ -852,7 +852,7 @@ public class SupplicantStaIfaceHal {
      * @return true if the AIDL service is being used, false otherwise.
      */
     public boolean isAidlService() {
-        return mStaIfaceHal != null && mStaIfaceHal instanceof SupplicantStaIfaceHalAidlImpl;
+        return mStaIfaceHal != null && mStaIfaceHal instanceof SupplicantStaIfaceHalAidlVendorImpl;
     }
 
     /**
@@ -862,7 +862,7 @@ public class SupplicantStaIfaceHal {
      * @return true if the AIDL service is available and >= the expected version, false otherwise.
      */
     public boolean isAidlServiceVersionAtLeast(int expectedVersion) {
-        return isAidlService() && ((SupplicantStaIfaceHalAidlImpl) mStaIfaceHal)
+        return isAidlService() && ((SupplicantStaIfaceHalAidlVendorImpl) mStaIfaceHal)
                 .isServiceVersionAtLeast(expectedVersion);
     }
 
@@ -904,10 +904,10 @@ public class SupplicantStaIfaceHal {
     @VisibleForTesting
     protected ISupplicantStaIfaceHal createStaIfaceHalMockable() {
         synchronized (mLock) {
-            // Prefer AIDL implementation if service is declared.
-            if (SupplicantStaIfaceHalAidlImpl.serviceDeclared()) {
+            // Prefer AIDL Vendor implementation if service is declared.
+            if (SupplicantStaIfaceHalAidlVendorImpl.serviceDeclared()) {
                 Log.i(TAG, "Initializing SupplicantStaIfaceHal using AIDL implementation.");
-                return new SupplicantStaIfaceHalAidlImpl(mContext, mWifiMonitor,
+                return new SupplicantStaIfaceHalAidlVendorImpl(mContext, mWifiMonitor,
                         mEventHandler, mClock, mWifiMetrics, mWifiGlobals, mSsidTranslator,
                         mWifiInjector);
 
