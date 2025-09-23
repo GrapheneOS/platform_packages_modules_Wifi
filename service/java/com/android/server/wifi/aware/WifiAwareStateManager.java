@@ -5292,7 +5292,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     + ", matchFilter=" + Arrays.toString(matchFilter)
                     + ", rangingIndication=" + rangingIndication + ", rangeMm=" + rangeMm
                     + ", nonce=" + Arrays.toString(nonce)
-                    + ", tag=" + Arrays.toString(tag));
+                    + ", tag=" + Arrays.toString(tag)
+                    + ", pairingConfig=" + pairingConfig);
         }
 
         Pair<WifiAwareClientState, WifiAwareDiscoverySessionState> data =

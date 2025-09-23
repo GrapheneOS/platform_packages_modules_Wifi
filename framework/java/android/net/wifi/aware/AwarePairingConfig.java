@@ -180,6 +180,16 @@ public final class AwarePairingConfig implements Parcelable {
                 mBootstrappingMethods, mCipherSuites);
     }
 
+    @Override
+    public String toString() {
+        return "AwarePairingConfig ["
+                + "mPairingSetup=" + mPairingSetup
+                + ", mPairingCache=" + mPairingCache
+                + ", mPairingVerification=" + mPairingVerification
+                + ", mBootstrappingMethods=" + mBootstrappingMethods
+                + ", mCipherSuites=" + mCipherSuites + "]";
+    }
+
     /** @hide */
     public AwarePairingConfig(boolean setup, boolean cache, boolean verification, int method,
             int cipherSuites) {
