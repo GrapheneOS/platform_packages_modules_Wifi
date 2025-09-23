@@ -1078,6 +1078,14 @@ public class WifiAwareManagerSnippet implements Snippet {
         session.acceptPairingRequest(requestId, handle, alias, cipherSuite, password);
     }
 
+    @Rpc(description = "Reject a Wi-Fi Aware pairing request.")
+    public void wifiAwareRejectPairing(String discoverySessionId, int requestId, int peerId)
+            throws WifiAwareManagerSnippetException {
+        DiscoverySession session = getDiscoverySession(discoverySessionId);
+        PeerHandle handle = getPeerHandler(peerId);
+        session.rejectPairingRequest(requestId, handle);
+    }
+
     @Rpc(description = "Reset the paired devices.")
     public void wifiAwareresetPairedDevices() {
         mWifiAwareManager.resetPairedDevices();

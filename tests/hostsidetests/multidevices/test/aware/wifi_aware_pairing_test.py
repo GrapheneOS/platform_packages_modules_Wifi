@@ -634,6 +634,148 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
 
     @ApiTest(
         apis=[
+
+            'android.net.wifi.aware.DiscoverySession#rejectPairingRequest',
+            'android.net.wifi.aware.DiscoverySessionCallback#onPairingSetupFailed',
+        ]
+    )
+    def test_aware_pairing_rejection(self):
+        """Verifies Wi-Fi Aware pairing rejection.
+
+        This test case covers the end-to-end flow of Wi-Fi Aware pairing,
+        including service discovery, bootstrapping, pairing setup, and
+        establishing a data-path connection over which data is exchanged.
+        The pairing configuration has caching disabled.
+
+        Test Steps:
+        1.  Publisher and Subscriber set up pairing configs with caching
+            disabled and `PIN_CODE_DISPLAY` as the bootstrapping method.
+        2.  Publisher starts an unsolicited publish, and Subscriber starts a
+            passive subscribe.
+        3.  Wait for the service to be discovered.
+        4.  Subscriber initiates bootstrapping with the Publisher.
+        5.  Verify both devices receive the `onBootstrappingSucceeded` callback.
+        6.  Subscriber initiates a pairing request to the Publisher.
+        7.  Publisher receives the request and rejects it.
+        8.  Verify both devices receive the `onPairingSetupFailed` callback.
+        9.  Clean up all sessions and network resources.
+        """
+
+        pairing_config = constants.AwarePairingConfig(
+            pairing_setup_enabled=True,
+            pairing_cache_enabled=True,
+            pairing_verification_enabled=True,
+            bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+        )
+        pub_config = constants.PublishConfig(
+            publish_type=constants.PublishType.UNSOLICITED,
+            service_specific_info=_PUB_SSI,
+            pairing_config=pairing_config
+        )
+        sub_config = constants.SubscribeConfig(
+            subscribe_type=constants.SubscribeType.PASSIVE,
+            service_specific_info=_SUB_SSI,
+            pairing_config=pairing_config
+        )
+
+        # Step 1: Attach Wi-Fi Aware sessions.
+        pub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.publisher, is_ranging_enabled=False
+        )
+        sub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.subscriber, is_ranging_enabled=False
+        )
+
+        # Step 2: Publisher publishes an Wi-Fi Aware service, subscriber
+        # subscribes to it. Wait for service discovery.
+        (
+            pub_session,
+            pub_session_handler,
+            sub_session,
+            sub_session_handler,
+            sub_peer_id,
+        ) = aware_snippet_utils.publish_and_subscribe(
+            publisher=self.publisher,
+            pub_config=pub_config,
+            pub_attach_session=pub_attach_session,
+            subscriber=self.subscriber,
+            sub_config=sub_config,
+            sub_attach_session=sub_attach_session,
+        )
+
+        # Step 3: setup bootstrapping.
+        # Step 3.1: Subscriber initiates bootstrapping.
+        self.subscriber.wifi.wifiAwareInitiateBootstrapping(
+            sub_session,
+            sub_peer_id,
+            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+        )
+
+        # Step 3.2: Both devices get bootstrapping success callback.
+        pub_bootstrapping_success_event = pub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.BOOTSTRAPPING_SUCCEEDED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+        sub_bootstrapping_success_event = sub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.BOOTSTRAPPING_SUCCEEDED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+
+        asserts.assert_equal(
+            pub_bootstrapping_success_event.data['bootstrappingMethod'],
+            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            'Publisher received wrong bootstrapping method.',
+        )
+        asserts.assert_equal(
+            sub_bootstrapping_success_event.data['bootstrappingMethod'],
+            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            'Subscriber received wrong bootstrapping method.',
+        )
+        self.publisher.log.info('Publisher bootstrapping succeeded.')
+        self.subscriber.log.info('Subscriber bootstrapping succeeded.')
+
+        # Step 4: setup pairing.
+        # Step 4.1: Subscriber initiates pairing request.
+        self.subscriber.log.info('Subscriber initiates pairing request.')
+        self.subscriber.wifi.wifiAwareInitiatePairing(
+            sub_session,
+            sub_peer_id,
+            'publisher_alias',
+            _CIPHER_SUITE.value,
+            _PASSWORD,
+        )
+
+        # Step 4.2: Publisher receives and rejects pairing request.
+        pairing_request_event = pub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_REQUEST_RECEIVED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+        request_id = pairing_request_event.data['pairingRequestId']
+        pub_peer_id = pairing_request_event.data['peerId']
+        self.publisher.log.info('Publisher received pairing request.')
+        self.publisher.wifi.wifiAwareRejectPairing(
+            pub_session,
+            request_id,
+            pub_peer_id,
+        )
+        # Step 4.3: Both devices get pairing failure callback.
+        pub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_SETUP_FAILED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+        sub_session_handler.waitAndGet(
+            event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_SETUP_FAILED,
+            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
+        )
+
+        # Clean up Wi-Fi Aware resources.
+        self.publisher.wifi.wifiAwareCloseDiscoverSession(pub_session)
+        self.subscriber.wifi.wifiAwareCloseDiscoverSession(sub_session)
+        self.publisher.wifi.wifiAwareDetach(pub_attach_session)
+        self.subscriber.wifi.wifiAwareDetach(sub_attach_session)
+
+    @ApiTest(
+        apis=[
             'android.net.wifi.aware.AwarePairingConfig',
             'android.net.wifi.aware.DiscoverySession#initiateBootstrapping',
             (
