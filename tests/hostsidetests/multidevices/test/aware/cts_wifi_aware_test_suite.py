@@ -17,6 +17,7 @@ import sys
 
 from aware import wifi_aware_discovery_ranging_test
 from aware import wifi_aware_network_test
+from aware import wifi_aware_pairing_test
 from mobly import base_suite
 from mobly import suite_runner
 
@@ -30,6 +31,7 @@ class CtsWifiAwareTestSuite(base_suite.BaseSuite):
         self.add_test_class(
             wifi_aware_discovery_ranging_test.WifiAwareDiscoveryRangingTest
         )
+        self.add_test_class(wifi_aware_pairing_test.WifiAwarePairingTest)
 
 
 if __name__ == '__main__':

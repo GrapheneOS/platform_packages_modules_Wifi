@@ -68,6 +68,7 @@ python_test_host {
         "aware/wifi_aware_network_test.py",
         "aware/wifi_aware_discovery_ranging_test.py",
         "aware/aware_snippet_utils.py",
+        "aware/wifi_aware_pairing_test.py",
     ],
     libs: [
         "aware_lib_utils",
@@ -130,7 +131,6 @@ genrule {
         "$(location soong_zip) -o $(out) -C $(genDir)/dist -D $(genDir)/dist",
     out: ["CtsWifiConnectionTests_py.zip"],
 }
-
 
 python_library_host {
     name: "wifi_direct_constants",
@@ -313,30 +313,4 @@ python_test_host {
     test_suites: [
         "general-tests",
     ],
-}
-
-python_test_host {
-    name: "WifiAwarePairingTests",
-    main: "aware/wifi_aware_pairing_test.py",
-    test_config: "aware/AndroidTestNew.xml",
-    srcs: [
-        "aware/wifi_aware_pairing_test.py",
-        "aware/aware_snippet_utils.py",
-    ],
-    libs: [
-        "aware_lib_utils",
-        "mobly",
-        "wifi_aware_constants",
-        "wifi_test_utils",
-        "platform-test-py-annotations",
-    ],
-    device_common_data: [":wifi_mobly_snippet"],
-    test_options: {
-        unit_test: false,
-        runner: "mobly",
-    },
-    test_suites: [
-        "general-tests",
-    ],
-
 }
