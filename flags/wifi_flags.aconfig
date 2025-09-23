@@ -446,6 +446,14 @@ flag {
 }
 
 flag {
+    name: "aware_periodic_ranging_intervals"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to get supported periodic ranging intervals"
+    bug: "391159870"
+}
+
+flag {
     name: "ml_scorer_in_wifi_fw"
     namespace: "wifi"
     description: "Add ML scorer into Wi-Fi framework"

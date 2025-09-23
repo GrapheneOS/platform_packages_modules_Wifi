@@ -33,6 +33,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -50,6 +51,7 @@ import android.hardware.wifi.NanPairingAkm;
 import android.hardware.wifi.NanPairingRequest;
 import android.hardware.wifi.NanPairingRequestType;
 import android.hardware.wifi.NanPairingSecurityType;
+import android.hardware.wifi.NanPeriodicRangingInterval;
 import android.hardware.wifi.NanPublishRequest;
 import android.hardware.wifi.NanRangingIndication;
 import android.hardware.wifi.NanRespondToPairingIndicationRequest;
@@ -723,6 +725,42 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assertEquals(1, request.bootstrappingInstanceId);
         assertTrue(request.acceptRequest);
         assertEquals(pid, request.discoverySessionId);
+    }
+
+    @Test
+    public void testNotifyCapabilitiesResponse() throws RemoteException {
+
+        // 1. mock the callback
+        WifiNanIface.Callback callbackMock = mock(WifiNanIface.Callback.class);
+        mDut.registerFrameworkCallback(callbackMock);
+        ArgumentCaptor<android.hardware.wifi.IWifiNanIfaceEventCallback> halCallbackCaptor =
+                ArgumentCaptor.forClass(
+                        android.hardware.wifi.IWifiNanIfaceEventCallback.class);
+        verify(mIWifiNanIfaceMock).registerEventCallback(halCallbackCaptor.capture());
+        android.hardware.wifi.IWifiNanIfaceEventCallback halCallback =
+                halCallbackCaptor.getValue();
+        // 2. create NanCapabilities
+        android.hardware.wifi.NanCapabilities capabilitiesIn =
+                new android.hardware.wifi.NanCapabilities();
+        capabilitiesIn.supportedPeriodicRangingIntervals =
+                NanPeriodicRangingInterval.INTERVAL_128TU
+                        | NanPeriodicRangingInterval.INTERVAL_512TU;
+        android.hardware.wifi.NanStatus status =
+                new android.hardware.wifi.NanStatus();
+        status.status = android.hardware.wifi.NanStatusCode.SUCCESS;
+        status.description = "Success";
+        // 3. call notifyCapabilitiesResponse
+        halCallback.notifyCapabilitiesResponse((char) 0, status, capabilitiesIn);
+        // 4. verify the onCapabilitiesUpdate is called with the correct capabilities
+        ArgumentCaptor<Capabilities> capabilitiesOutCaptor =
+                ArgumentCaptor.forClass(Capabilities.class);
+        verify(callbackMock).notifyCapabilitiesResponse(eq((short) 0),
+                capabilitiesOutCaptor.capture());
+        assertEquals(
+                android.net.wifi.aware.Characteristics.SUPPORTED_PERIODIC_RANGING_INTERVAL_128TU
+                        | android.net.wifi.aware.Characteristics
+                        .SUPPORTED_PERIODIC_RANGING_INTERVAL_512TU,
+                capabilitiesOutCaptor.getValue().supportedPeriodicRangingIntervals);
     }
 
     // utilities
