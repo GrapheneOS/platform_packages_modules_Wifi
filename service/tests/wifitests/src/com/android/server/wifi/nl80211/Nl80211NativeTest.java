@@ -402,6 +402,7 @@ public class Nl80211NativeTest {
 
     @Test
     public void testGetMaxSsidsPerScan_useWificondEnabled_callsWificond() {
+        assumeTrue(SdkLevel.isAtLeastT());
         mDut = initNl80211Native(true);
         when(mWificondManager.getMaxSsidsPerScan(IFACE_NAME)).thenReturn(16);
         assertEquals(16, mDut.getMaxSsidsPerScan(IFACE_NAME));
@@ -469,6 +470,7 @@ public class Nl80211NativeTest {
 
     @Test
     public void testNotifyCountryCodeChanged_useWificondEnabled_callsWificond() {
+        assumeTrue(SdkLevel.isAtLeastT());
         mDut = initNl80211Native(true);
         mDut.notifyCountryCodeChanged(COUNTRY_CODE);
         verify(mWificondManager).notifyCountryCodeChanged(COUNTRY_CODE);
