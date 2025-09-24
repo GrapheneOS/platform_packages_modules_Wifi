@@ -810,10 +810,11 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
      * @param method        proposed bootstrapping method
      * @param pubSubId      ID of the publish/subscribe session - obtained when creating a session.
      * @param isComeBack    If the request is for a previous comeback response
+     * @param ssi           Service specific information
      * @return True if the request send success
      */
     public boolean initiateBootstrapping(short transactionId, int peerId, byte[] peer, int method,
-            byte[] cookie, byte pubSubId, boolean isComeBack) {
+            byte[] cookie, byte pubSubId, boolean isComeBack, byte[] ssi) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "initiateBootstrapping: transactionId=" + transactionId
                     + ", peerId=" + peerId + ", method=" + method
@@ -830,7 +831,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         try {
             MacAddress peerMac = MacAddress.fromBytes(peer);
             return iface.initiateBootstrapping(transactionId, peerId, peerMac, method, cookie,
-                    pubSubId, isComeBack);
+                    pubSubId, isComeBack, ssi);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
             return false;

@@ -454,3 +454,11 @@ flag {
     description: "Add ML scorer into Wi-Fi framework"
     bug: "412641160"
 }
+
+flag {
+    name: "send_service_specific_info_in_bootstrapping_request"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to send a service specific info in bootstrapping request"
+    bug: "440620121"
+}

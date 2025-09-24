@@ -694,10 +694,11 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
     public void testInitiateNanBootstrappingRequest() throws Exception {
         short tid = 251;
         byte pid = 34;
+        byte[] ssi = "some service specific info".getBytes();
         MacAddress peer = MacAddress.fromString("00:01:02:03:04:05");
         ArgumentCaptor<NanBootstrappingRequest> reqCaptor = ArgumentCaptor.forClass(
                 NanBootstrappingRequest.class);
-        assertTrue(mDut.initiateNanBootstrappingRequest(tid, 1, peer, 2, null, pid, false));
+        assertTrue(mDut.initiateNanBootstrappingRequest(tid, 1, peer, 2, null, pid, false, ssi));
         verify(mIWifiNanIfaceMock).initiateBootstrappingRequest(eq((char) tid),
                 reqCaptor.capture());
         NanBootstrappingRequest request = reqCaptor.getValue();
@@ -706,6 +707,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assertArrayEquals(peer.toByteArray(), request.peerDiscMacAddr);
         assertArrayEquals(new byte[0], request.cookie);
         assertEquals(pid, request.discoverySessionId);
+        assertArrayEquals(ssi, request.serviceSpecificInfo);
     }
 
     @Test

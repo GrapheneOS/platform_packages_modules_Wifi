@@ -520,10 +520,10 @@ public class WifiNanIface implements WifiHal.WifiInterface {
      * {@link IWifiNanIface#initiateNanBootstrappingRequest(short, int, MacAddress, int, byte[], byte, boolean)}
      */
     public boolean initiateBootstrapping(short transactionId, int peerId, MacAddress peer,
-            int method, byte[] cookie, byte pubSubId, boolean isComeBack) {
+            int method, byte[] cookie, byte pubSubId, boolean isComeBack, byte[] ssi) {
         return validateAndCall("initiateBootstrapping", false,
                 () -> mWifiNanIface.initiateNanBootstrappingRequest(transactionId, peerId, peer,
-                        method, cookie, pubSubId, isComeBack));
+                        method, cookie, pubSubId, isComeBack, ssi));
     }
     /**
      * {@link IWifiNanIface#respondToNanBootstrappingRequest(short, int, boolean, byte, int)}

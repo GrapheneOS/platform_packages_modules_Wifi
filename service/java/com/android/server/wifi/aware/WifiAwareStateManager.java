@@ -442,14 +442,16 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         public final int mPeerId;
         public final int mMethod;
         public final boolean mIsComeBackFollowUp;
+        public final byte[] mSsi;
 
         BootStrppingInfo(int clientId, int sessionId, int peerId, int method,
-                boolean isComeBackFollowUp) {
+                boolean isComeBackFollowUp, byte[] ssi) {
             mClientId = clientId;
             mSessionId = sessionId;
             mPeerId = peerId;
             mMethod = method;
             mIsComeBackFollowUp = isComeBackFollowUp;
+            mSsi = ssi;
         }
     }
 
@@ -1430,7 +1432,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      * Initiate a bootstrapping request
      */
     public void initiateBootStrappingSetupRequest(int clientId, int sessionId, int peerId, int
-            method, long comeBackDelayMills, byte[] cookie) {
+            method, long comeBackDelayMills, byte[] cookie, byte[] serviceSpecificInfo) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_INITIATE_BOOTSTRAPPING_REQUEST;
         msg.arg2 = clientId;
@@ -1440,6 +1442,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_COME_BACK_COOKIE, cookie);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_IS_COME_BACK_REQUEST,
                 comeBackDelayMills > 0);
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_SSI_DATA, serviceSpecificInfo);
         mSm.sendMessageDelayed(msg, comeBackDelayMills);
     }
 
@@ -3098,8 +3101,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_COME_BACK_COOKIE);
                     boolean isComeBack = data
                             .getBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_IS_COME_BACK_REQUEST);
+                    byte[] ssi = data.getByteArray(MESSAGE_BUNDLE_KEY_SSI_DATA);
                     waitForResponse = initiateBootstrappingRequestLocal(mCurrentTransactionId,
-                            clientId, sessionId, peerId, method, cookie, isComeBack);
+                            clientId, sessionId, peerId, method, cookie, isComeBack, ssi);
                     break;
                 }
                 case COMMAND_TYPE_RESPONSE_BOOTSTRAPPING_REQUEST: {
@@ -4264,7 +4268,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private boolean initiateBootstrappingRequestLocal(short transactionId, int clientId,
-            int sessionId, int peerId, int method, byte[] cookie, boolean isComeBack) {
+            int sessionId, int peerId, int method, byte[] cookie, boolean isComeBack, byte[] ssi) {
         String methodString = "initiateBootstrappingRequestLocal";
         if (mVdbg) {
             Log.v(TAG, methodString + ": transactionId=" + transactionId
@@ -4275,7 +4279,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (session == null) {
             return false;
         }
-        return session.initiateBootstrapping(transactionId, peerId, method, cookie, isComeBack);
+        return session.initiateBootstrapping(transactionId, peerId, method, cookie, isComeBack,
+                ssi);
     }
 
     private boolean respondToBootstrappingRequestLocal(short transactionId, int clientId,
@@ -5023,7 +5028,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD),
-                data.getBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_IS_COME_BACK_REQUEST));
+                data.getBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_IS_COME_BACK_REQUEST),
+                data.getByteArray(MESSAGE_BUNDLE_KEY_SSI_DATA));
         WifiAwareDiscoverySessionState session = getClientSession(info.mClientId, info.mSessionId,
                 methodString);
         if (session == null) {
@@ -5045,7 +5051,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD),
-                data.getBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_IS_COME_BACK_REQUEST));
+                data.getBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_IS_COME_BACK_REQUEST),
+                data.getByteArray(MESSAGE_BUNDLE_KEY_SSI_DATA));
 
         WifiAwareDiscoverySessionState session = getClientSession(info.mClientId, info.mSessionId,
                 methodString);
@@ -5066,7 +5073,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD),
-                data.getBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_IS_COME_BACK_REQUEST));
+                data.getBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_IS_COME_BACK_REQUEST),
+                data.getByteArray(MESSAGE_BUNDLE_KEY_SSI_DATA));
 
         WifiAwareDiscoverySessionState session = getClientSession(info.mClientId, info.mSessionId,
                 methodString);
@@ -5524,7 +5532,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (responseCode == NAN_BOOTSTRAPPING_COMEBACK && comeBackDelay > 0) {
             if (!info.mIsComeBackFollowUp) {
                 initiateBootStrappingSetupRequest(info.mClientId, info.mSessionId, info.mPeerId,
-                        info.mMethod, comeBackDelay * 1000L, cookie);
+                        info.mMethod, comeBackDelay * 1000L, cookie, info.mSsi);
                 return true;
             }
             Log.e(TAG, "onBootStrappingConfirmReceivedLocal come back event on a"

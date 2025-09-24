@@ -45,6 +45,7 @@ import android.net.wifi.OuiKeyedData;
 import android.net.wifi.OuiKeyedDataUtil;
 import android.net.wifi.RttManager;
 import android.net.wifi.SynchronousExecutor;
+import android.net.wifi.util.Environment;
 import android.net.wifi.util.HexEncoding;
 import android.os.Build;
 import android.os.Handler;
@@ -2022,7 +2023,85 @@ public class WifiAwareManagerTest {
                 AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
         inOrder.verify(mockAwareService).initiateBootStrappingSetupRequest(eq(clientId),
                 eq(sessionId), eq(peerId),
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC), isNull());
+
+        // (4) Bootstrapping confirmed
+        sessionProxyCallback.getValue().onBootstrappingVerificationConfirmed(peerId, true,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onBootstrappingSucceeded(eq(peerHandle),
                 eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
+
+        // (5) initiate pairing request
+        subscribeSession.getValue().initiatePairingRequest(peerHandle, alias,
+                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128 , password);
+        inOrder.verify(mockAwareService).initiateNanPairingSetupRequest(eq(clientId), eq(sessionId),
+                eq(peerId), eq(password), eq(alias), eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+
+        // (6) Received confirm event
+        sessionProxyCallback.getValue().onPairingSetupConfirmed(peerHandle.peerId, true, alias);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onPairingSetupSucceeded(eq(peerHandle),
+                eq(alias));
+
+        // (7) terminate
+        subscribeSession.getValue().close();
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockAwareService).terminateSession(clientId, sessionId);
+
+        verifyNoMoreInteractions(mockCallback, mockSessionCallback, mockAwareService,
+                mockSubscribeSession);
+    }
+
+    @Test
+    public void testInitiatePairingFlowWithSsi() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        final int clientId = 4565;
+        final int sessionId = 123;
+        final ConfigRequest configRequest = new ConfigRequest.Builder().build();
+        final SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().build();
+        final int peerId = 873;
+        final PeerHandle peerHandle = new PeerHandle(peerId);
+        final String password = "password";
+        final String alias = "alias";
+        final byte[] ssi = "some service specific info".getBytes();
+
+        InOrder inOrder = inOrder(mockCallback, mockSessionCallback, mockAwareService,
+                mockSubscribeSession);
+        ArgumentCaptor<WifiAwareSession> sessionCaptor = ArgumentCaptor.forClass(
+                WifiAwareSession.class);
+        ArgumentCaptor<IWifiAwareEventCallback> clientProxyCallback = ArgumentCaptor
+                .forClass(IWifiAwareEventCallback.class);
+        ArgumentCaptor<IWifiAwareDiscoverySessionCallback> sessionProxyCallback = ArgumentCaptor
+                .forClass(IWifiAwareDiscoverySessionCallback.class);
+        ArgumentCaptor<SubscribeDiscoverySession> subscribeSession = ArgumentCaptor
+                .forClass(SubscribeDiscoverySession.class);
+
+        // (0) connect + success
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
+        inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
+                eq(configRequest), eq(false), any(), eq(false));
+        clientProxyCallback.getValue().onConnectSuccess(clientId);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockCallback).onAttached(sessionCaptor.capture());
+        WifiAwareSession session = sessionCaptor.getValue();
+
+        // (1) subscribe
+        session.subscribe(subscribeConfig, mockSessionCallback, mMockLooperHandler);
+        inOrder.verify(mockAwareService).subscribe(any(), any(), eq(clientId), eq(subscribeConfig),
+                sessionProxyCallback.capture(), any());
+
+        // (2) subscribe session created
+        sessionProxyCallback.getValue().onSessionStarted(sessionId);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSubscribeStarted(subscribeSession.capture());
+
+        // (3) Initiate bootstrapping
+        subscribeSession.getValue().initiateBootstrappingRequest(peerHandle,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC, ssi);
+        inOrder.verify(mockAwareService).initiateBootStrappingSetupRequest(eq(clientId),
+                eq(sessionId), eq(peerId),
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC), eq(ssi));
 
         // (4) Bootstrapping confirmed
         sessionProxyCallback.getValue().onBootstrappingVerificationConfirmed(peerId, true,

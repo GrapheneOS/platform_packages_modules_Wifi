@@ -518,10 +518,10 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
 
     @Override
     public boolean initiateNanBootstrappingRequest(short transactionId, int peerId, MacAddress peer,
-            int method, byte[] cookie, byte pubSubId, boolean isComeBack) {
+            int method, byte[] cookie, byte pubSubId, boolean isComeBack, byte[] ssi) {
         String methodStr = "initiateNanBootstrappingRequest";
         NanBootstrappingRequest request = createNanBootstrappingRequest(peerId, peer, method,
-                cookie, pubSubId, isComeBack);
+                cookie, pubSubId, isComeBack, ssi);
         synchronized (mLock) {
             try {
                 if (!checkIfaceAndLogFailure(methodStr)) return false;
@@ -604,7 +604,8 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     }
 
     private static NanBootstrappingRequest createNanBootstrappingRequest(int peerId,
-            MacAddress peer, int method, byte[] cookie, byte pubSubId, boolean isComeBack) {
+            MacAddress peer, int method, byte[] cookie, byte pubSubId, boolean isComeBack,
+            byte[] ssi) {
         NanBootstrappingRequest request = new NanBootstrappingRequest();
         request.peerId = peerId;
         request.peerDiscMacAddr = peer.toByteArray();
@@ -612,6 +613,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
         request.cookie = copyArray(cookie);
         request.discoverySessionId = pubSubId;
         request.isComeback = isComeBack;
+        request.serviceSpecificInfo = copyArray(ssi);
         return request;
     }
 

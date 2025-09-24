@@ -18,7 +18,11 @@ package android.net.wifi.aware;
 
 import static android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
+import static android.net.wifi.util.Environment.isSdkNewerThanB;
 
+import static com.android.wifi.flags.Flags.FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.RequiresPermission;
@@ -394,10 +398,48 @@ public class DiscoverySession implements AutoCloseable {
         }
         WifiAwareManager mgr = mMgr.get();
         if (mgr == null) {
-            Log.w(TAG, "initiatePairingRequest: called post GC on WifiAwareManager");
+            Log.w(TAG, "initiateBootstrappingRequest: called post GC on WifiAwareManager");
             return;
         }
-        mgr.initiateBootStrappingSetupRequest(mClientId, mSessionId, peerHandle, method);
+        mgr.initiateBootStrappingSetupRequest(mClientId, mSessionId, peerHandle, method,
+                null);
+    }
+
+    /**
+     * Initiate a Wi-Fi Aware bootstrapping setup request to create a pairing with the target peer.
+     * The Aware bootstrapping request should be done in the context of a discovery session -
+     * after a publish/subscribe
+     * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} event is received.
+     * The peer will check if the method can be fulfilled by
+     * {@link AwarePairingConfig.Builder#setBootstrappingMethods(int)}
+     * When the Aware Bootstrapping setup finished, both side will receive
+     * {@link DiscoverySessionCallback#onBootstrappingSucceeded(PeerHandle, int)}
+     * @param peerHandle The peer's handle for the pairing request. Must be a result of an
+     * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} or
+     * {@link DiscoverySessionCallback#onMessageReceived(PeerHandle, byte[])} events.
+     * @param method one of the AwarePairingConfig#PAIRING_BOOTSTRAPPING_ values, should match one
+     *               of the methods received from {@link ServiceDiscoveryInfo#getPairingConfig()}
+     *               {@link AwarePairingConfig#getBootstrappingMethods()}
+     * @param serviceSpecificInfo A byte-array for the service-specific information field.
+     */
+    @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
+    @RequiresApi(37)
+    public void initiateBootstrappingRequest(@NonNull PeerHandle peerHandle,
+            @AwarePairingConfig.BootstrappingMethod int method,
+            @NonNull byte[] serviceSpecificInfo) {
+        if (!isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        if (serviceSpecificInfo == null) {
+            throw new IllegalArgumentException("serviceSpecificInfo must not be null");
+        }
+        WifiAwareManager mgr = mMgr.get();
+        if (mgr == null) {
+            Log.w(TAG, "initiateBootstrappingRequest: called post GC on WifiAwareManager");
+            return;
+        }
+        mgr.initiateBootStrappingSetupRequest(mClientId, mSessionId, peerHandle, method,
+                serviceSpecificInfo);
     }
 
     /**
