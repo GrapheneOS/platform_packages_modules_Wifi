@@ -777,6 +777,18 @@ class WifiAwareNetworkTest(base_test.BaseTestClass):
         finally:
             ad.services.create_output_excerpts_all(self.current_test_info)
 
+    def teardown_class(self):
+        wifi_test_utils.record_wifi_mainline_version(self.publisher)
+        wifi_test_utils.record_wifi_mainline_version(self.subscriber)
+        brand = (
+            wifi_test_utils.get_device_brand(self.publisher)
+            or wifi_test_utils.get_device_brand(self.subscriber)
+        )
+        self.record_data({
+            'Test Class': self.TAG,
+            'properties': {'brand': brand},
+        })
+
     def on_fail(self, record: records.TestResult) -> None:
         logging.info('Collecting bugreports...')
         android_device.take_bug_reports(
