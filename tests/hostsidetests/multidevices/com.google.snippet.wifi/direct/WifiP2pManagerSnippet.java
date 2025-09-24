@@ -165,8 +165,11 @@ public class WifiP2pManagerSnippet implements Snippet {
         // Initialize the first channel. This channel will be used by default if an Wi-Fi P2P RPC
         // method is called without a channel ID.
         mStateChangedReceiver = new WifiP2pStateChangedReceiver(callbackId);
-        mContext.registerReceiver(mStateChangedReceiver, mIntentFilter,
-                Context.RECEIVER_NOT_EXPORTED);
+        int flag = Context.RECEIVER_NOT_EXPORTED;
+        if (Build.VERSION.SDK_INT == 33) {
+            flag = Context.RECEIVER_EXPORTED;
+        }
+        mContext.registerReceiver(mStateChangedReceiver, mIntentFilter, flag);
         WifiP2pManager.Channel channel =
                 mP2pManager.initialize(mContext, mContext.getMainLooper(), null);
         mChannelCnt += 1;
