@@ -69,6 +69,10 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
                 f'{device} does not support Wi-Fi Aware.',
             )
             asserts.abort_class_if(
+                not device.wifi.wifiAwareIsAwarePairingSupported(),
+                f'{device} does not support Wi-Fi Aware Pairing.',
+            )
+            asserts.abort_class_if(
                 not device.wifi.wifiAwareIsAvailable(),
                 f'Wi-Fi Aware is not available on {device}.',
             )
