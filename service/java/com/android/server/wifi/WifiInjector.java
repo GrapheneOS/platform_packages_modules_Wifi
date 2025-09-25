@@ -727,6 +727,7 @@ public class WifiInjector {
         mMultiInternetWifiNetworkFactory.enableVerboseLogging(verboseEnabled);
         mWifiRoamingModeManager.enableVerboseLogging(verboseEnabled);
         mWifiHandler.enableVerboseLogging(verboseEnabled);
+        mWifiApConfigStore.enableVerboseLogging(verboseEnabled);
     }
 
     public UserManager getUserManager() {

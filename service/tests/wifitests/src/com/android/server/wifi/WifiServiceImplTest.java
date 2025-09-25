@@ -13956,6 +13956,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mWifiConfigManager).handleUserSwitch(userId);
         verify(mActiveModeWarden).handleUserSwitch(userId);
+        verify(mWifiApConfigStore).handleUserSwitch(userId);
         verify(mWifiNotificationManager).createNotificationChannels();
         verify(mWifiNetworkSuggestionsManager).resetNotification();
         verify(mWifiCarrierInfoManager).resetNotification();
@@ -13971,5 +13972,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mWifiConfigManager).handleUserStop(userId);
         verify(mActiveModeWarden).handleUserStop(userId);
+        verify(mWifiApConfigStore).handleUserStop(userId);
     }
 }
