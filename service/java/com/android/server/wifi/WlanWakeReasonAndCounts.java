@@ -55,12 +55,12 @@ public class WlanWakeReasonAndCounts implements Parcelable {
     public int[] cmdEventWakeCntArray;
     public int[] driverFWLocalWakeCntArray;
 
-    /* {@hide} */
+    /* @hide */
     public WlanWakeReasonAndCounts() {
     }
 
     @Override
-    /* {@hide} */
+    /* @hide */
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append(" totalCmdEventWake ").append(totalCmdEventWake);
