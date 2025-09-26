@@ -478,3 +478,10 @@ flag {
     description: "Add new reason codes for last caller tracking"
     bug: "448479152"
 }
+
+flag {
+    name: "wificond_to_nl80211_migration"
+    namespace: "wifi"
+    description: "Migrate wificond functionality to direct nl80211 commands"
+    bug: "394409845"
+}
