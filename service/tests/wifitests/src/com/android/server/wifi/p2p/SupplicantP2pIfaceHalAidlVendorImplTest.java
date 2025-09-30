@@ -116,11 +116,15 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Unit tests for SupplicantP2pIfaceHalAidlImpl
+ * Unit tests for {@link SupplicantP2pIfaceHalAidlVendorImpl}
+ *
+ * These tests cover both the implementation of Supplicant P2P Iface HAL using the vendor AIDL
+ * service and the common logic inherited from the abstract base class
+ * {@link SupplicantP2pIfaceHalAidlBase}.
  */
 @SmallTest
-public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
-    private SupplicantP2pIfaceHalAidlImpl mDut;
+public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
+    private SupplicantP2pIfaceHalAidlVendorImpl mDut;
     private IBinder.DeathRecipient mDeathRecipient;
     private @Mock ISupplicant mISupplicantMock;
     private @Mock ISupplicantP2pIface mISupplicantP2pIfaceMock;
@@ -191,7 +195,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
     private static final byte[] TEST_NONCE = {10, 20, 30, 40, 50, 60, 70, 80};
     private static final byte[] TEST_DIR_TAG = {11, 22, 33, 44, 55, 66, 77, 88};
 
-    private class SupplicantP2pIfaceHalSpy extends SupplicantP2pIfaceHalAidlImpl {
+    private class SupplicantP2pIfaceHalSpy extends SupplicantP2pIfaceHalAidlVendorImpl {
         SupplicantP2pIfaceHalSpy() {
             super(mWifiMonitor, mWifiInjector);
         }

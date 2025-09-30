@@ -25,12 +25,12 @@ import android.annotation.SuppressLint;
 import android.hardware.wifi.supplicant.BandMask;
 import android.hardware.wifi.supplicant.DebugLevel;
 import android.hardware.wifi.supplicant.FreqRange;
+import android.hardware.wifi.supplicant.IfaceInfo;
+import android.hardware.wifi.supplicant.IfaceType;
 import android.hardware.wifi.supplicant.ISupplicant;
 import android.hardware.wifi.supplicant.ISupplicantP2pIface;
 import android.hardware.wifi.supplicant.ISupplicantP2pIfaceCallback;
 import android.hardware.wifi.supplicant.ISupplicantP2pNetwork;
-import android.hardware.wifi.supplicant.IfaceInfo;
-import android.hardware.wifi.supplicant.IfaceType;
 import android.hardware.wifi.supplicant.KeyMgmtMask;
 import android.hardware.wifi.supplicant.MiracastMode;
 import android.hardware.wifi.supplicant.P2pAddGroupConfigurationParams;
@@ -68,7 +68,6 @@ import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pUsdBasedServiceConfig;
 import android.net.wifi.util.Environment;
 import android.os.IBinder;
-import android.os.IBinder.DeathRecipient;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.ServiceSpecificException;
@@ -92,21 +91,18 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Native calls sending requests to the P2P Hals, and callbacks for receiving P2P events
+ * Native calls sending requests to the P2P Hals, and callbacks for receiving P2P events.
  */
-public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
+public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfaceHal {
     private static final String TAG = "SupplicantP2pIfaceHalAidlImpl";
-    @VisibleForTesting
     private static final String HAL_INSTANCE_NAME = ISupplicant.DESCRIPTOR + "/default";
     private static boolean sVerboseLoggingEnabled = true;
     private static boolean sHalVerboseLoggingEnabled = true;
-    private boolean mInitializationStarted = false;
+    protected boolean mInitializationStarted = false;
     private static final int RESULT_NOT_VALID = -1;
     private static final int DEFAULT_OPERATING_CLASS = 81;
     public static final long WAIT_FOR_DEATH_TIMEOUT_MS = 50L;
@@ -117,32 +113,46 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
     private static final Pattern WPS_DEVICE_TYPE_PATTERN =
             Pattern.compile("^(\\d{1,2})-([0-9a-fA-F]{8})-(\\d{1,2})$");
 
-    private final Object mLock = new Object();
-    private CountDownLatch mWaitForDeathLatch;
+    protected final Object mLock = new Object();
     private WifiNative.SupplicantDeathEventHandler mDeathEventHandler;
 
     // Supplicant HAL AIDL interface objects
-    private ISupplicant mISupplicant = null;
-    private ISupplicantP2pIface mISupplicantP2pIface = null;
-    private final DeathRecipient mSupplicantDeathRecipient =
-            () -> {
-                Log.d(TAG, "ISupplicant/ISupplicantP2pIface died");
-                synchronized (mLock) {
-                    if (mWaitForDeathLatch != null) {
-                        mWaitForDeathLatch.countDown();
-                    }
-                    supplicantServiceDiedHandler();
-                }
-            };
+    protected ISupplicant mISupplicant = null;
+    protected ISupplicantP2pIface mISupplicantP2pIface = null;
     private final WifiP2pMonitor mMonitor;
     private final WifiInjector mWifiInjector;
     private ISupplicantP2pIfaceCallback mCallback = null;
     private int mServiceVersion = -1;
 
-    public SupplicantP2pIfaceHalAidlImpl(WifiP2pMonitor monitor, WifiInjector wifiInjector) {
+    public SupplicantP2pIfaceHalAidlBase(WifiP2pMonitor monitor, WifiInjector wifiInjector) {
         mMonitor = monitor;
         mWifiInjector = wifiInjector;
     }
+
+    /**
+     * Retrieve the ISupplicant service and link to service death.
+     * @return true if successful, false otherwise
+     */
+    @Override
+    public abstract boolean initialize();
+
+    /**
+     * Terminate the supplicant daemon & wait for its death.
+     */
+    @Override
+    public abstract void terminate();
+
+    /**
+     * Signals whether initialization started successfully.
+     */
+    @Override
+    public abstract boolean isInitializationStarted();
+
+    /**
+     * Signals whether initialization completed successfully.
+     */
+    @Override
+    public abstract boolean isInitializationComplete();
 
     /**
      * Enable verbose logging for all sub modules.
@@ -155,7 +165,7 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
     }
 
     /**
-     * Set the debug log level for wpa_supplicant
+     * Set the debug log level for wpa_supplicant.
      *
      * @param turnOnVerbose Whether to turn on verbose logging or not.
      * @param globalShowKeys Whether show keys is true in WifiGlobals.
@@ -187,40 +197,6 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
                 handleServiceSpecificException(e, methodStr);
             }
             return false;
-        }
-    }
-
-    /**
-     * Retrieve the ISupplicant service and link to service death.
-     * @return true if successful, false otherwise
-     */
-    public boolean initialize() {
-        synchronized (mLock) {
-            final String methodStr = "initialize";
-            if (mISupplicant != null) {
-                Log.i(TAG, "Service is already initialized.");
-                return true;
-            }
-            mInitializationStarted = true;
-            mISupplicantP2pIface = null;
-            mISupplicant = getSupplicantMockable();
-            if (mISupplicant == null) {
-                Log.e(TAG, "Unable to obtain ISupplicant binder.");
-                return false;
-            }
-            Log.i(TAG, "Obtained ISupplicant binder.");
-
-            try {
-                IBinder serviceBinder = getServiceBinderMockable();
-                if (serviceBinder == null) {
-                    return false;
-                }
-                serviceBinder.linkToDeath(mSupplicantDeathRecipient, /* flags= */  0);
-                return true;
-            } catch (RemoteException e) {
-                handleRemoteException(e, methodStr);
-                return false;
-            }
         }
     }
 
@@ -306,7 +282,7 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
         }
     }
 
-    private void supplicantServiceDiedHandler() {
+    protected void supplicantServiceDiedHandler() {
         synchronized (mLock) {
             mISupplicant = null;
             mISupplicantP2pIface = null;
@@ -314,24 +290,6 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
             if (mDeathEventHandler != null) {
                 mDeathEventHandler.onDeath();
             }
-        }
-    }
-
-    /**
-     * Signals whether initialization started successfully.
-     */
-    public boolean isInitializationStarted() {
-        synchronized (mLock) {
-            return mInitializationStarted;
-        }
-    }
-
-    /**
-     * Signals whether initialization completed successfully.
-     */
-    public boolean isInitializationComplete() {
-        synchronized (mLock) {
-            return mISupplicant != null;
         }
     }
 
@@ -379,7 +337,7 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
     /**
      * Returns false if mISupplicant is null and logs failure message
      */
-    private boolean checkSupplicantAndLogFailure(String methodStr) {
+    protected boolean checkSupplicantAndLogFailure(String methodStr) {
         synchronized (mLock) {
             if (mISupplicant == null) {
                 Log.e(TAG, "Can't call " + methodStr + ", ISupplicant is null");
@@ -402,7 +360,7 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
         }
     }
 
-    private void handleRemoteException(RemoteException e, String methodStr) {
+    protected void handleRemoteException(RemoteException e, String methodStr) {
         synchronized (mLock) {
             supplicantServiceDiedHandler();
             Log.e(TAG,
@@ -609,7 +567,7 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
                 return false;
             }
 
-            if (!config.getVendorData().isEmpty()) {
+            if (SdkLevel.isAtLeastV() && !config.getVendorData().isEmpty()) {
                 halInfo.vendorData =
                         HalAidlUtil.frameworkToHalOuiKeyedDataList(config.getVendorData());
             }
@@ -3255,40 +3213,10 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
     }
 
     /**
-     * Terminate the supplicant daemon & wait for its death.
-     */
-    public void terminate() {
-        synchronized (mLock) {
-            final String methodStr = "terminate";
-            if (!checkSupplicantAndLogFailure(methodStr)) {
-                return;
-            }
-            Log.i(TAG, "Terminate supplicant service");
-            try {
-                mWaitForDeathLatch = new CountDownLatch(1);
-                mISupplicant.terminate();
-            } catch (RemoteException e) {
-                handleRemoteException(e, methodStr);
-            }
-        }
-
-        // Wait for death recipient to confirm the service death.
-        try {
-            if (!mWaitForDeathLatch.await(WAIT_FOR_DEATH_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                Log.w(TAG, "Timed out waiting for confirmation of supplicant death");
-                supplicantServiceDiedHandler();
-            } else {
-                Log.d(TAG, "Got service death confirmation");
-            }
-        } catch (InterruptedException e) {
-            Log.w(TAG, "Failed to wait for supplicant death");
-        }
-    }
-
-    /**
      * Registers a death notification for supplicant.
      * @return Returns true on success.
      */
+    @Override
     public boolean registerDeathHandler(@NonNull WifiNative.SupplicantDeathEventHandler handler) {
         synchronized (mLock) {
             if (mDeathEventHandler != null) {
@@ -3303,6 +3231,7 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
      * Deregisters a death notification for supplicant.
      * @return Returns true on success.
      */
+    @Override
     public boolean deregisterDeathHandler() {
         synchronized (mLock) {
             if (mDeathEventHandler == null) {
@@ -3312,5 +3241,4 @@ public class SupplicantP2pIfaceHalAidlImpl implements ISupplicantP2pIfaceHal {
             return true;
         }
     }
-
 }
