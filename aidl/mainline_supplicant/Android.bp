@@ -15,7 +15,10 @@
 aidl_interface {
     name: "android.system.wifi.mainline_supplicant",
     unstable: true,
-    imports: ["android.hardware.wifi.supplicant-V5"],
+    imports: [
+        "android.hardware.wifi.supplicant-V5",
+        "android.hardware.wifi.common-V2",
+    ],
     srcs: ["android/system/wifi/mainline_supplicant/*.aidl"],
     backend: {
         java: {
