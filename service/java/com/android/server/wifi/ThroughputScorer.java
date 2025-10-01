@@ -21,10 +21,12 @@ import static com.android.server.wifi.WifiNetworkSelector.NetworkNominator.NOMIN
 import android.annotation.NonNull;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiContext;
+import android.net.wifi.util.Environment;
 import android.util.Log;
 
 import com.android.server.wifi.WifiCandidates.Candidate;
 import com.android.server.wifi.WifiCandidates.ScoredCandidate;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import java.util.Collection;
@@ -125,6 +127,8 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
 
         int savedNetworkAward = candidate.isEphemeral() ? 0 : mScoringParams.getSavedNetworkBonus();
 
+        int privateConfigAward = (candidate.isPrivateConfig() && Environment.isSdkNewerThanB()
+                && Flags.multiUserWifiEnhancement()) ? mScoringParams.getPrivateConfigBonus() : 0;
         int trustedAward = TRUSTED_AWARD;
         if (!candidate.isTrusted() || candidate.isRestricted()) {
             // Saved networks are not untrusted or restricted, but clear anyway
@@ -169,7 +173,7 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
         // Note: securityAward can be configured per carrier requirement to adjust the priority
         // bucket of non-open network.
         int scoreToDetermineBucket = unmeteredAward + savedNetworkAward + trustedAward
-                + notOemPaidAward + notOemPrivateAward + securityAward;
+                + notOemPaidAward + notOemPrivateAward + securityAward + privateConfigAward;
         // Within the same scoring bucket, ties are broken by the following bonus scores. The sum
         // of these scores should be capped to the buket step size to prevent overlapping bucket.
         int scoreWithinBucket = rssiBoost + throughputBoost + currentNetworkBoost
@@ -208,6 +212,7 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
                     + " trustedAward: " + trustedAward
                     + " notOemPaidAward: " + notOemPaidAward
                     + " notOemPrivateAward: " + notOemPrivateAward
+                    + " privateConfigAward: " + privateConfigAward
                     + " final score: " + score);
         }
 

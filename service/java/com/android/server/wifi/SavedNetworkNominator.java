@@ -20,11 +20,13 @@ import android.annotation.NonNull;
 import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.util.Environment;
 import android.telephony.TelephonyManager;
 import android.util.LocalLog;
 import android.util.Pair;
 
 import com.android.server.wifi.util.WifiPermissionsUtil;
+import com.android.wifi.flags.Flags;
 
 import java.util.List;
 import java.util.Set;
@@ -106,101 +108,106 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
 
     private void findMatchedSavedNetworks(List<ScanDetail> scanDetails,
             OnConnectableListener onConnectableListener) {
+        List<WifiConfiguration> matchedNetworkCandidates = null;
         for (ScanDetail scanDetail : scanDetails) {
             ScanResult scanResult = scanDetail.getScanResult();
 
             // One ScanResult can be associated with more than one network, hence we calculate all
             // the scores and use the highest one as the ScanResult's score.
-            WifiConfiguration network =
-                    mWifiConfigManager.getSavedNetworkForScanDetailAndCache(scanDetail);
-
-            if (network == null) {
-                continue;
-            }
-
-            /**
-             * Ignore Passpoint and Ephemeral networks. They are configured networks,
-             * but without being persisted to the storage.
-             */
-            if (network.isPasspoint() || network.isEphemeral()) {
-                continue;
-            }
-
-            // Ignore networks that the user has disallowed auto-join for.
-            if (!network.allowAutojoin) {
-                localLog("Ignoring auto join disabled SSID: " + network.SSID);
-                continue;
-            }
-
-            WifiConfiguration.NetworkSelectionStatus status =
-                    network.getNetworkSelectionStatus();
-            status.setSeenInLastQualifiedNetworkSelection(true);
-
-            if (mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(network)) {
-                localLog("Ignoring non-carrier-merged SSID: " + network.SSID);
-                continue;
-            }
-            if (mWifiConfigManager.isNetworkTemporarilyDisabledByUser(network.SSID)) {
-                localLog("Ignoring user disabled SSID: " + network.SSID);
-                continue;
-            }
-
-            if (!status.isNetworkEnabled()) {
-                localLog("Ignoring network selection disabled SSID: " + network.SSID);
-                continue;
-            }
-            if (network.BSSID != null &&  !network.BSSID.equals("any")
-                    && !network.BSSID.equals(scanResult.BSSID)) {
-                // App has specified the only BSSID to connect for this
-                // configuration. So only the matching ScanResult can be a candidate.
-                localLog("Network " + WifiNetworkSelector.toNetworkString(network)
-                        + " has specified BSSID " + network.BSSID + ". Skip "
-                        + scanResult.BSSID);
-                continue;
-            }
-            List<MacAddress> bssidList = network.getBssidAllowlistInternal();
-            if (bssidList != null) {
-                if (bssidList.isEmpty()) {
-                    localLog("Network " + WifiNetworkSelector.toNetworkString(network)
-                            + " has specified BSSID list " + bssidList + ". Skip "
-                            + scanResult.BSSID);
-                    continue;
-                }
-                Set<String> bssidSet = bssidList.stream().map(MacAddress::toString)
-                        .collect(Collectors.toSet());
-                if (!bssidSet.contains(scanResult.BSSID)) {
-                    localLog("Network " + WifiNetworkSelector.toNetworkString(network)
-                            + " has specified BSSID list " + bssidList + ". Skip "
-                            + scanResult.BSSID);
-                    continue;
-                }
-            }
-            if (isNetworkSimBasedCredential(network) && !isSimBasedNetworkAbleToAutoJoin(network)) {
-                localLog("Ignoring SIM auto join disabled SSID: " + network.SSID);
-                mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(network);
-                continue;
+            if (Environment.isSdkNewerThanB() && Flags.multiUserWifiEnhancement()) {
+                matchedNetworkCandidates =
+                        mWifiConfigManager.getSavedNetworksForScanDetail(scanDetail);
             } else {
-                mWifiPseudonymManager.updateWifiConfiguration(network);
+                WifiConfiguration candidate =
+                        mWifiConfigManager.getSavedNetworkForScanDetailAndCache(scanDetail);
+                if (candidate == null) {
+                    continue;
+                }
+                matchedNetworkCandidates = List.of(candidate);
             }
+            for (WifiConfiguration network : matchedNetworkCandidates) {
+                if (network == null) {
+                    continue;
+                }
 
-            // If the network is marked to use external scores, or is an open network with
-            // curate saved open networks enabled, do not consider it for network selection.
-            if (network.useExternalScores) {
-                localLog("Network " + WifiNetworkSelector.toNetworkString(network)
-                        + " has external score.");
-                continue;
+                // Ignore Passpoint and Ephemeral networks. They are configured networks,
+                // but without being persisted to the storage.
+                if (network.isPasspoint() || network.isEphemeral()) {
+                    continue;
+                }
+
+                // Ignore networks that the user has disallowed auto-join for.
+                if (!network.allowAutojoin) {
+                    localLog("Ignoring auto join disabled SSID: " + network.SSID);
+                    continue;
+                }
+
+                WifiConfiguration.NetworkSelectionStatus status =
+                        network.getNetworkSelectionStatus();
+                status.setSeenInLastQualifiedNetworkSelection(true);
+                if (mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(network)) {
+                    localLog("Ignoring non-carrier-merged SSID: " + network.SSID);
+                    continue;
+                }
+                if (mWifiConfigManager.isNetworkTemporarilyDisabledByUser(network.SSID)) {
+                    localLog("Ignoring user disabled SSID: " + network.SSID);
+                    continue;
+                }
+                if (!status.isNetworkEnabled()) {
+                    localLog("Ignoring network selection disabled SSID: " + network.SSID);
+                    continue;
+                }
+                if (network.BSSID != null &&  !network.BSSID.equals("any")
+                        && !network.BSSID.equals(scanResult.BSSID)) {
+                    // App has specified the only BSSID to connect for this
+                    // configuration. So only the matching ScanResult can be a candidate.
+                    localLog("Network " + WifiNetworkSelector.toNetworkString(network)
+                            + " has specified BSSID " + network.BSSID + ". Skip "
+                            + scanResult.BSSID);
+                    continue;
+                }
+                List<MacAddress> bssidList = network.getBssidAllowlistInternal();
+                if (bssidList != null) {
+                    if (bssidList.isEmpty()) {
+                        localLog("Network " + WifiNetworkSelector.toNetworkString(network)
+                                + " has specified BSSID list " + bssidList + ". Skip "
+                                + scanResult.BSSID);
+                        continue;
+                    }
+                    Set<String> bssidSet = bssidList.stream().map(MacAddress::toString)
+                            .collect(Collectors.toSet());
+                    if (!bssidSet.contains(scanResult.BSSID)) {
+                        localLog("Network " + WifiNetworkSelector.toNetworkString(network)
+                                + " has specified BSSID list " + bssidList + ". Skip "
+                                + scanResult.BSSID);
+                        continue;
+                    }
+                }
+                if (isNetworkSimBasedCredential(network)
+                        && !isSimBasedNetworkAbleToAutoJoin(network)) {
+                    localLog("Ignoring SIM auto join disabled SSID: " + network.SSID);
+                    mWifiPseudonymManager.retrievePseudonymOnFailureTimeoutExpired(network);
+                    continue;
+                } else {
+                    mWifiPseudonymManager.updateWifiConfiguration(network);
+                }
+                // If the network is marked to use external scores, or is an open network with
+                // curate saved open networks enabled, do not consider it for network selection.
+                if (network.useExternalScores) {
+                    localLog("Network " + WifiNetworkSelector.toNetworkString(network)
+                            + " has external score.");
+                    continue;
+                }
+                if (mWifiNetworkSuggestionsManager
+                        .shouldBeIgnoredBySecureSuggestionFromSameCarrier(network,
+                                scanDetails)) {
+                    localLog("Open Network " + WifiNetworkSelector.toNetworkString(network)
+                            + " has a secure network suggestion from same carrier.");
+                    continue;
+                }
+                onConnectableListener.onConnectable(scanDetail,
+                        mWifiConfigManager.getConfiguredNetwork(network.networkId));
             }
-
-            if (mWifiNetworkSuggestionsManager
-                    .shouldBeIgnoredBySecureSuggestionFromSameCarrier(network,
-                            scanDetails)) {
-                localLog("Open Network " + WifiNetworkSelector.toNetworkString(network)
-                        + " has a secure network suggestion from same carrier.");
-                continue;
-            }
-
-            onConnectableListener.onConnectable(scanDetail,
-                    mWifiConfigManager.getConfiguredNetwork(network.networkId));
         }
     }
 

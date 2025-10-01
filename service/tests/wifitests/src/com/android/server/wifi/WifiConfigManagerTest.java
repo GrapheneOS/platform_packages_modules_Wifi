@@ -8685,4 +8685,70 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertTrue(mWifiConfigManager.removeNetwork(
                 openNetwork.networkId, TEST_UPDATE_UID, TEST_CREATOR_NAME));
     }
+
+
+    /**
+     * Verifies that getSavedNetworksForScanDetail returns null when the ScanDetail has no
+     * ScanResult.
+     */
+    @Test
+    public void testGetSavedNetworksForScanDetailWithNullScanResult() {
+        ScanDetail scanDetail = mock(ScanDetail.class);
+        when(scanDetail.getScanResult()).thenReturn(null);
+        assertNull(mWifiConfigManager.getSavedNetworksForScanDetail(scanDetail));
+    }
+
+    /**
+     * Verifies that getSavedNetworksForScanDetail returns an empty list when no network matches
+     * the ScanDetail.
+     */
+    @Test
+    public void testGetSavedNetworksForScanDetailWithNoMatchingNetwork() {
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        verifyAddNetworkToWifiConfigManager(openNetwork);
+        ScanDetail scanDetail = createScanDetailForNetwork(
+                WifiConfigurationTestUtil.createPskNetwork());
+        assertTrue(mWifiConfigManager.getSavedNetworksForScanDetail(scanDetail).isEmpty());
+    }
+
+    /**
+     * Verifies that getSavedNetworksForScanDetail returns a list with a single matching network.
+     */
+    @Test
+    public void testGetSavedNetworksForScanDetailWithSingleMatchingNetwork() {
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        verifyAddNetworkToWifiConfigManager(openNetwork);
+        ScanDetail scanDetail = createScanDetailForNetwork(openNetwork);
+        List<WifiConfiguration> matchedNetworks =
+                mWifiConfigManager.getSavedNetworksForScanDetail(scanDetail);
+        assertEquals(1, matchedNetworks.size());
+        assertEquals(openNetwork.networkId, matchedNetworks.get(0).networkId);
+    }
+
+    /**
+     * Verifies that getSavedNetworksForScanDetail returns a list with multiple matching networks.
+     */
+    @Test
+    public void testGetSavedNetworksForScanDetailWithMultipleMatchingNetworks() {
+        WifiConfiguration openNetwork1 = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork1.networkId = 0;
+        verifyAddNetworkToWifiConfigManager(openNetwork1);
+
+        WifiConfiguration openNetwork2 = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork2.SSID = openNetwork1.SSID;
+        openNetwork2.networkId = 1;
+        openNetwork2.shared = false;
+        verifyAddNetworkToWifiConfigManager(openNetwork2);
+
+        ScanDetail scanDetail = createScanDetailForNetwork(openNetwork1);
+        List<WifiConfiguration> matchedNetworks =
+                mWifiConfigManager.getSavedNetworksForScanDetail(scanDetail);
+        assertEquals(2, matchedNetworks.size());
+        Set<Integer> networkIds = new HashSet<>();
+        for (WifiConfiguration config : matchedNetworks) {
+            networkIds.add(config.networkId);
+        }
+        assertTrue(networkIds.contains(openNetwork1.networkId));
+        assertTrue(networkIds.contains(openNetwork2.networkId));
+    }
 }
