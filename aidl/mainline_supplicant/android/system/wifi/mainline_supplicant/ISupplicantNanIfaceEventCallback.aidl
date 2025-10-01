@@ -18,6 +18,7 @@ package android.system.wifi.mainline_supplicant;
 
 import android.system.wifi.mainline_supplicant.NanCapabilities;
 import android.system.wifi.mainline_supplicant.NanClusterEventInd;
+import android.system.wifi.mainline_supplicant.NanMatchInd;
 import android.system.wifi.mainline_supplicant.NanStatus;
 
 /**
@@ -33,6 +34,21 @@ oneway interface ISupplicantNanIfaceEventCallback {
      * @param event NanClusterEventInd containing event details.
      */
     void eventClusterEvent(in NanClusterEventInd event);
+
+    /**
+     * Callback indicating that a match has occurred: i.e. a service has been discovered.
+     *
+     * @param event NanMatchInd containing event details.
+     */
+    void eventMatch(in NanMatchInd event);
+
+    /**
+     * Callback indicating that a previously discovered match (service) has expired.
+     *
+     * @param discoverySessionId Discovery session ID of the expired match.
+     * @param peerId Peer ID of the expired match.
+     */
+    void eventMatchExpired(in byte discoverySessionId, in int peerId);
 
     /**
      * Callback invoked in response to a capability request
@@ -105,4 +121,58 @@ oneway interface ISupplicantNanIfaceEventCallback {
      *        |NanStatusCode.PROTOCOL_FAILURE|
      */
     void notifyDisableResponse(in char id, in NanStatus status);
+
+    /**
+     * Callback invoked to notify the status of the start publish request from
+     * |ISupplicantNanIface.startPublishRequest|.
+     *
+     * @param id Command ID corresponding to the original request.
+     * @param status NanStatus of the operation. Possible status codes are:
+     *        |NanStatusCode.SUCCESS|
+     *        |NanStatusCode.INVALID_ARGS|
+     *        |NanStatusCode.PROTOCOL_FAILURE|
+     *        |NanStatusCode.NO_RESOURCES_AVAILABLE|
+     *        |NanStatusCode.INVALID_SESSION_ID|
+     * @param sessionId ID of the new publish session (if successfully created).
+     */
+    void notifyStartPublishResponse(in char id, in NanStatus status, in byte sessionId);
+
+    /**
+     * Callback invoked to notify the status of the start subscribe request from
+     * |ISupplicantNanIface.startSubscribeRequest|.
+     *
+     * @param id Command ID corresponding to the original request.
+     * @param status NanStatus of the operation. Possible status codes are:
+     *        |NanStatusCode.SUCCESS|
+     *        |NanStatusCode.INVALID_ARGS|
+     *        |NanStatusCode.PROTOCOL_FAILURE|
+     *        |NanStatusCode.NO_RESOURCES_AVAILABLE|
+     *        |NanStatusCode.INVALID_SESSION_ID|
+     * @param sessionId ID of the new subscribe session (if successfully created).
+     */
+    void notifyStartSubscribeResponse(in char id, in NanStatus status, in byte sessionId);
+
+    /**
+      * Callback invoked to notify the status of the stop publish request from
+      * |ISupplicantNanIface.stopPublishRequest|.
+      *
+      * @param id Command ID corresponding to the original request.
+      * @param status NanStatus of the operation. Possible status codes are:
+      *         |NanStatusCode.SUCCESS|
+      *         |NanStatusCode.INVALID_SESSION_ID|
+      *         |NanStatusCode.INTERNAL_FAILURE|
+      */
+    void notifyStopPublishResponse(in char id, in NanStatus status);
+
+    /**
+     * Callback invoked to notify the status of the stop subscribe request from
+     * |ISupplicantNanIface.stopSubscribeRequest|.
+     *
+     * @param id Command ID corresponding to the original request.
+     * @param status NanStatus of the operation. Possible status codes are:
+     *         |NanStatusCode.SUCCESS|
+     *         |NanStatusCode.INVALID_SESSION_ID|
+     *         |NanStatusCode.INTERNAL_FAILURE|
+     */
+    void notifyStopSubscribeResponse(in char id, in NanStatus status);
 }

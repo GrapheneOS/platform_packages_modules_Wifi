@@ -19,6 +19,8 @@ package android.system.wifi.mainline_supplicant;
 import android.system.wifi.mainline_supplicant.ISupplicantNanIfaceEventCallback;
 import android.system.wifi.mainline_supplicant.NanConfigRequest;
 import android.system.wifi.mainline_supplicant.NanEnableRequest;
+import android.system.wifi.mainline_supplicant.NanPublishRequest;
+import android.system.wifi.mainline_supplicant.NanSubscribeRequest;
 
 /**
  * Interface used to represent a single NAN (Neighbour Aware Network) iface.
@@ -128,4 +130,58 @@ interface ISupplicantNanIface {
      *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|
      */
     String getName();
+
+    /**
+     * Publish request to start advertising a discovery service.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyStartPublishResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param msg Instance of |NanPublishRequest|.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void startPublishRequest(in char cmdId, in NanPublishRequest msg);
+
+    /**
+     * Subscribe request to start searching for a discovery service.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyStartSubscribeResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param msg Instance of |NanSubscribeRequest|.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void startSubscribeRequest(in char cmdId, in NanSubscribeRequest msg);
+
+    /**
+     * Stop publishing a discovery service.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyStopPublishResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param sessionId ID of the publish discovery session to be stopped.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void stopPublishRequest(in char cmdId, in byte sessionId);
+
+    /**
+     * Stop subscribing to a discovery service.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyStopSubscribeResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param sessionId ID of the subscribe discovery session to be stopped.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void stopSubscribeRequest(in char cmdId, in byte sessionId);
 }
