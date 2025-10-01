@@ -918,6 +918,7 @@ package android.net.wifi {
     field public static final int API_CONNECT_CONFIG = 13; // 0xd
     field public static final int API_CONNECT_NETWORK_ID = 14; // 0xe
     field public static final int API_DISABLE_NETWORK = 15; // 0xf
+    field @FlaggedApi("com.android.wifi.flags.last_caller_26q2") public static final int API_DISCONNECT = 39; // 0x27
     field public static final int API_ENABLE_NETWORK = 16; // 0x10
     field public static final int API_FORGET = 17; // 0x11
     field public static final int API_P2P_CANCEL_CONNECT = 26; // 0x1a
