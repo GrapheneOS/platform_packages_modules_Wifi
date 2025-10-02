@@ -166,6 +166,7 @@ public class ActiveModeWarden {
      */
     private int mCurrentUserId = UserHandle.SYSTEM.getIdentifier();
     private boolean mIsHandlingUserSwitchOrStop = false;
+    private boolean mIsPendingUserUnlock = false;
     private boolean mIsMultiplePrimaryBugreportTaken = false;
     private boolean mIsShuttingdown = false;
     private boolean mVerboseLoggingEnabled = false;
@@ -919,7 +920,14 @@ public class ActiveModeWarden {
             return;
         }
         mCurrentUserId = userId;
+        mIsPendingUserUnlock = true;
         mWifiController.sendMessage(WifiController.CMD_USER_SWITCH);
+        // When switch to HSU, the system won't sent unlock since it is always in unlock status.
+        // Send UNLOCK to make sure wifi can be restored.
+        if (mUserManager.isUserUnlockingOrUnlocked(UserHandle.of(mCurrentUserId))) {
+            mIsPendingUserUnlock = false;
+            mWifiController.sendMessage(WifiController.CMD_USER_UNLOCK);
+        }
     }
 
     /** User is stop. */
@@ -937,7 +945,10 @@ public class ActiveModeWarden {
             Log.e(TAG, "Ignore user unlock for non current user " + userId);
             return;
         }
-        mWifiController.sendMessage(WifiController.CMD_USER_UNLOCK);
+        if (mIsPendingUserUnlock) {
+            mIsPendingUserUnlock = false;
+            mWifiController.sendMessage(WifiController.CMD_USER_UNLOCK);
+        }
     }
 
     /**

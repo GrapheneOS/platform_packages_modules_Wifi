@@ -6086,5 +6086,23 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         mLooper.dispatchAll();
         assertInEnabledState();
     }
+
+    @Test
+    public void testUserSwitchWithUserUnlocked() throws Exception {
+        enterClientModeActiveState();
+        assertInEnabledState();
+        when(mUserManager.isUserUnlockingOrUnlocked(any())).thenReturn(true);
+        assertWifiShutDown(
+                () -> {
+                    // Switch user
+                    mActiveModeWarden.handleUserSwitch(10);
+                    mActiveModeWarden.handleUserUnlock(10);
+                    mLooper.dispatchAll();
+                });
+        // Trigger client mode stop succeeded.
+        mClientListener.onStopped(mClientModeManager);
+        mLooper.dispatchAll();
+        assertInEnabledState();
+    }
 }
 
