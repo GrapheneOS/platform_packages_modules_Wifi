@@ -48,6 +48,7 @@ import android.net.wifi.WifiScanner.ScanSettings;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.util.ScanResultUtil;
+import android.net.wifi.util.WifiResourceCache;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
@@ -189,6 +190,7 @@ public class WifiConnectivityManager {
     private final WifiPermissionsUtil mWifiPermissionsUtil;
     private final WifiDialogManager mWifiDialogManager;
     private final WifiThreadRunner mWifiThreadRunner;
+    private final WifiResourceCache mResourceCache;
 
     private WifiScannerInternal mScanner;
     private final MultiInternetManager mMultiInternetManager;
@@ -275,6 +277,7 @@ public class WifiConnectivityManager {
     private CachedWifiCandidates mCachedWifiCandidates = null;
     private @DeviceMobilityState int mDeviceMobilityState =
             WifiManager.DEVICE_MOBILITY_STATE_UNKNOWN;
+    private Set<Integer> mMobilityFilterCarrierIdBlocklist = new HashSet<>();
 
     // Cached WifiCandidate timestamps for delayed carrier network selection
     private Map<WifiCandidates.Key, Long> mDelayedCarrierCandidateTimestamps = new HashMap<>();
@@ -953,7 +956,8 @@ public class WifiConnectivityManager {
             WifiConfiguration configuration =
                     mConfigManager.getConfiguredNetwork(candidate.getNetworkConfigId());
             if (configuration != null && !configuration.carrierMerged
-                    && configuration.carrierId != TelephonyManager.UNKNOWN_CARRIER_ID) {
+                    && configuration.carrierId != TelephonyManager.UNKNOWN_CARRIER_ID
+                    && !mMobilityFilterCarrierIdBlocklist.contains(configuration.carrierId)) {
                 numCarrierCandidates++;
             } else {
                 filteredCandidates.add(candidate);
@@ -1559,6 +1563,7 @@ public class WifiConnectivityManager {
         mWifiCarrierInfoManager = wifiCarrierInfoManager;
         mWifiCountryCode = wifiCountryCode;
         mWifiDialogManager = wifiDialogManager;
+        mResourceCache = mContext.getResourceCache();
 
         mDelayedCarrierSelectionTimeMs = mContext.getResources().getInteger(
                 R.integer.config_wifiDelayedCarrierSelectionTimeMs);
@@ -1567,6 +1572,15 @@ public class WifiConnectivityManager {
         if (delayedSelectionCarrierIds != null && delayedSelectionCarrierIds.length != 0) {
             for (Integer carrierId : delayedSelectionCarrierIds) {
                 mDelayedSelectionCarrierIds.add(carrierId);
+            }
+        }
+
+        int[] mobilityFilterCarrierIdBlocklist = mResourceCache.getIntArray(
+            R.array.config_wifiMobilityFilterCarrierIdBlocklist);
+        if (mobilityFilterCarrierIdBlocklist != null
+                && mobilityFilterCarrierIdBlocklist.length != 0) {
+            for (Integer carrierId : mobilityFilterCarrierIdBlocklist) {
+                mMobilityFilterCarrierIdBlocklist.add(carrierId);
             }
         }
 
