@@ -23,7 +23,6 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiScanner;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.net.wifi.nl80211.NativeScanResult;
 import android.net.wifi.nl80211.PnoSettings;
 import android.net.wifi.nl80211.WifiNl80211Manager;
@@ -606,7 +605,10 @@ public class Nl80211Native {
     @Nullable
     public DeviceWiphyCapabilities getDeviceWiphyCapabilities(@NonNull String ifaceName) {
         if (mUseWificond) {
-            return mWificondManager.getDeviceWiphyCapabilities(ifaceName);
+            android.net.wifi.nl80211.DeviceWiphyCapabilities wificondCaps =
+                    mWificondManager.getDeviceWiphyCapabilities(ifaceName);
+            if (wificondCaps == null) return null;
+            return new DeviceWiphyCapabilities(wificondCaps);
         }
 
         if (ifaceName == null) {

@@ -78,7 +78,6 @@ import android.net.wifi.WifiContext;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.net.wifi.nl80211.NativeWifiClient;
 import android.net.wifi.util.WifiResourceCache;
 import android.os.BatteryManager;
@@ -99,6 +98,7 @@ import com.android.internal.util.StateMachine;
 import com.android.internal.util.WakeupMessage;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.coex.CoexManager;
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 

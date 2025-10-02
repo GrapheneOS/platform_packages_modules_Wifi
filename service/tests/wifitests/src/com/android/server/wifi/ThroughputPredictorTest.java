@@ -27,10 +27,10 @@ import static org.mockito.Mockito.when;
 
 import android.content.Context;
 import android.net.wifi.ScanResult;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
