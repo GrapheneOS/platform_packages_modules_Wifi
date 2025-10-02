@@ -1643,7 +1643,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
             verify(mContext).registerReceiverForAllUsers(
                     bcastRxCaptor.capture(),
                     argThat(filter -> filter.hasAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)),
-                    eq(null), any(Handler.class));
+                    eq(null), eq(null));
         } else {
             verify(mContext).registerReceiver(
                     bcastRxCaptor.capture(),
@@ -1934,7 +1934,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 bcastRxCaptor.capture(),
                 argThat(filter ->
                         filter.hasAction(TelephonyManager.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED)),
-                        eq(null), any(Handler.class));
+                        eq(null), eq(null));
         mEmergencyCallbackModeChangedBr = bcastRxCaptor.getValue();
         when(mSettingsStore.isScanAlwaysAvailable()).thenReturn(false);
         enableWifi();
@@ -2194,7 +2194,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
                 bcastRxCaptor.capture(),
                 argThat(filter ->
                         filter.hasAction(TelephonyManager.ACTION_EMERGENCY_CALL_STATE_CHANGED)),
-                        eq(null), any(Handler.class));
+                        eq(null), eq(null));
         mEmergencyCallStateChangedBr = bcastRxCaptor.getValue();
         assertInDisabledState();
 

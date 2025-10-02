@@ -147,10 +147,10 @@ public class WifiDialogManager {
         if (Flags.monitorIntentForAllUsers()) {
             if (SdkLevel.isAtLeastT()) {
                 mContext.registerReceiverForAllUsers(mBroadcastReceiver, intentFilter,
-                        null, wifiThreadRunner.getHandler(), flags);
+                        null, null, flags);
             } else {
                 mContext.registerReceiverForAllUsers(mBroadcastReceiver, intentFilter,
-                        null, wifiThreadRunner.getHandler());
+                        null, null);
             }
         } else {
             mContext.registerReceiver(mBroadcastReceiver, intentFilter, flags);

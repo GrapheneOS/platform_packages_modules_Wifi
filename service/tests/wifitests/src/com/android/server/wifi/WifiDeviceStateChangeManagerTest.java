@@ -226,7 +226,7 @@ public class WifiDeviceStateChangeManagerTest extends WifiBaseTest {
         verify(mContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
                 argThat(filter -> filter.hasAction(Intent.ACTION_SCREEN_ON)
                         && filter.hasAction(Intent.ACTION_SCREEN_OFF)),
-                eq(null), any(Handler.class));
+                eq(null), eq(null));
         verify(mContext, never()).registerReceiver(any(), any());
     }
 }

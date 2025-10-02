@@ -818,6 +818,6 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
         verify(mWifiContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
                 argThat(filter -> filter.hasAction(
                         WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)),
-                eq(null), any());
+                eq(null), eq(null));
     }
 }

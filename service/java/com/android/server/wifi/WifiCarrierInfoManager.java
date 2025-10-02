@@ -673,7 +673,7 @@ public class WifiCarrierInfoManager {
 
         if (Flags.monitorIntentForAllUsers()) {
             mContext.registerReceiverForAllUsers(carrierEventReceiver,
-                    filter, null, handler);
+                    filter, null, null);
         } else {
             mContext.registerReceiver(carrierEventReceiver,
                     filter);

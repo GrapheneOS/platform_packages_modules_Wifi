@@ -1074,10 +1074,10 @@ public class WifiDialogManagerTest extends WifiBaseTest {
         if (SdkLevel.isAtLeastT()) {
             verify(mWifiContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
                     any(IntentFilter.class),
-                    eq(null), any(), eq(Context.RECEIVER_EXPORTED));
+                    eq(null), eq(null), eq(Context.RECEIVER_EXPORTED));
         } else {
             verify(mWifiContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
-                    any(IntentFilter.class), eq(null), any());
+                    any(IntentFilter.class), eq(null), eq(null));
         }
     }
 }

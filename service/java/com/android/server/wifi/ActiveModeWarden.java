@@ -779,14 +779,14 @@ public class ActiveModeWarden {
                 R.bool.config_wifi_turn_off_during_emergency_call);
         if (mFeatureFlags.monitorIntentForAllUsers()) {
             mContext.registerReceiverForAllUsers(airplaneChangedReceiver,
-                    new IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED), null, mHandler);
+                    new IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED), null, null);
             mContext.registerReceiverForAllUsers(emergencyCallbackModeChangedReceiver,
                     new IntentFilter(TelephonyManager.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED),
-                    null, mHandler);
+                    null, null);
             if (trackEmergencyCallState) {
                 mContext.registerReceiverForAllUsers(emergencyCallStateChangedReceiver,
                         new IntentFilter(TelephonyManager.ACTION_EMERGENCY_CALL_STATE_CHANGED),
-                        null, mHandler);
+                        null, null);
             }
         } else {
             mContext.registerReceiver(airplaneChangedReceiver,

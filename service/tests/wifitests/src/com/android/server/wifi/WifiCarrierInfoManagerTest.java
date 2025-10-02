@@ -2626,7 +2626,7 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
                         CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED)
                         && filter.hasAction(
                                 TelephonyManager.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED)),
-                eq(null), any(Handler.class));
+                eq(null), eq(null));
     }
 
 }
