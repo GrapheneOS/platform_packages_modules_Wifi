@@ -5967,6 +5967,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return;
         }
         mCurrentUserId = userId;
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         if (mFeatureFlags.multiUserWifiEnhancement()) {
             mPairingConfigManager.reset();
         }
@@ -5997,6 +5998,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Log.e(TAG, "Ignore user stop for non current user " + userId);
             return;
         }
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         if (mFeatureFlags.multiUserWifiEnhancement()) {
             mPairingConfigManager.reset();
         }

@@ -334,7 +334,8 @@ public class WifiConfigStore {
         UserHandle userHandle = UserHandle.of(userId);
         List<Integer> userFiles = new ArrayList<>(
                 List.of(STORE_FILE_USER_GENERAL, STORE_FILE_USER_NETWORK_SUGGESTIONS));
-        if (Flags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()) {
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (Flags.multiUserWifiEnhancement()) {
             userFiles.add(STORE_FILE_USER_SOFTAP);
         }
         return createFiles(

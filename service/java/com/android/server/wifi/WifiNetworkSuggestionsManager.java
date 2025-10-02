@@ -48,7 +48,6 @@ import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.PasspointConfiguration;
-import android.net.wifi.util.Environment;
 import android.os.Process;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -242,10 +241,15 @@ public class WifiNetworkSuggestionsManager {
         /** Stores the max size of the {@link #extNetworkSuggestions} list ever for this app */
         public int maxSize = 0;
 
+        public int userId;
+
         public PerAppInfo(int uid, @NonNull String packageName, @Nullable String featureId) {
             this.uid = uid;
             this.packageName = packageName;
             this.featureId = featureId;
+            if (Flags.multiUserWifiEnhancement()) {
+                this.userId = ActivityManager.getCurrentUser();
+            }
         }
 
         /**
@@ -329,8 +333,9 @@ public class WifiNetworkSuggestionsManager {
             this.wns.wifiConfiguration.ephemeral = true;
             this.wns.wifiConfiguration.creatorName = perAppInfo.packageName;
             this.wns.wifiConfiguration.creatorUid = perAppInfo.uid;
-            if (Environment.isSdkNewerThanB() && Flags.multiUserWifiEnhancement()) {
-                this.wns.wifiConfiguration.setCreatorUserId(ActivityManager.getCurrentUser());
+            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+            if (Flags.multiUserWifiEnhancement()) {
+                this.wns.wifiConfiguration.setCreatorUserId(perAppInfo.userId);
             }
             if (perAppInfo.carrierId == TelephonyManager.UNKNOWN_CARRIER_ID) {
                 return;

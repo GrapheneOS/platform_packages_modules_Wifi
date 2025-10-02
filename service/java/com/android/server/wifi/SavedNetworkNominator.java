@@ -20,7 +20,6 @@ import android.annotation.NonNull;
 import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
-import android.net.wifi.util.Environment;
 import android.telephony.TelephonyManager;
 import android.util.LocalLog;
 import android.util.Pair;
@@ -114,7 +113,8 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
 
             // One ScanResult can be associated with more than one network, hence we calculate all
             // the scores and use the highest one as the ScanResult's score.
-            if (Environment.isSdkNewerThanB() && Flags.multiUserWifiEnhancement()) {
+            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+            if (Flags.multiUserWifiEnhancement()) {
                 matchedNetworkCandidates =
                         mWifiConfigManager.getSavedNetworksForScanDetail(scanDetail);
             } else {

@@ -1215,7 +1215,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         mWifiThreadRunner.post(() -> {
             mWifiConfigManager.handleUserSwitch(userId);
             resetNotificationManager();
-            if (Environment.isSdkNewerThanB() && mFeatureFlags.multiUserWifiEnhancement()) {
+            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+            if (mFeatureFlags.multiUserWifiEnhancement()) {
                 mActiveModeWarden.handleUserSwitch(userId);
                 mWifiApConfigStore.handleUserSwitch(userId);
             }
@@ -1226,7 +1227,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         Log.d(TAG, "Handle user unlock " + userId);
         mWifiThreadRunner.post(() -> {
             mWifiConfigManager.handleUserUnlock(userId);
-            if (Environment.isSdkNewerThanB() && mFeatureFlags.multiUserWifiEnhancement()) {
+            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+            if (mFeatureFlags.multiUserWifiEnhancement()) {
                 mActiveModeWarden.handleUserUnlock(userId);
             }
         }, TAG + "#handleUserUnlock");
@@ -1236,7 +1238,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         Log.d(TAG, "Handle user stop " + userId);
         mWifiThreadRunner.post(() -> {
             mWifiConfigManager.handleUserStop(userId);
-            if (Environment.isSdkNewerThanB() && mFeatureFlags.multiUserWifiEnhancement()) {
+            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+            if (mFeatureFlags.multiUserWifiEnhancement()) {
                 mActiveModeWarden.handleUserStop(userId);
                 mWifiApConfigStore.handleUserStop(userId);
             }

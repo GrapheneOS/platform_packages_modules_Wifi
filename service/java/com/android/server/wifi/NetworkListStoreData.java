@@ -25,7 +25,6 @@ import android.net.IpConfiguration;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConfiguration.NetworkSelectionStatus;
 import android.net.wifi.WifiEnterpriseConfig;
-import android.net.wifi.util.Environment;
 import android.os.Process;
 import android.text.TextUtils;
 import android.util.Log;
@@ -314,7 +313,8 @@ public abstract class NetworkListStoreData implements WifiConfigStore.StoreData 
             configuration.creatorUid = Process.SYSTEM_UID;
             configuration.creatorName =
                     mContext.getPackageManager().getNameForUid(Process.SYSTEM_UID);
-            if (Environment.isSdkNewerThanB() && Flags.multiUserWifiEnhancement()) {
+            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+            if (Flags.multiUserWifiEnhancement()) {
                 configuration.setCreatorUserId(ActivityManager.getCurrentUser());
             }
         } else if (!TextUtils.equals(creatorName, configuration.creatorName)) {

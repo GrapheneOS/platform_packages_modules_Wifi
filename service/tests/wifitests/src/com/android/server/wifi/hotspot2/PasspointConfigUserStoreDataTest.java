@@ -18,23 +18,30 @@ package com.android.server.wifi.hotspot2;
 
 import static android.net.wifi.WifiConfiguration.METERED_OVERRIDE_METERED;
 
+import static com.android.server.wifi.WifiConfigurationTestUtil.TEST_UID;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
+import android.app.ActivityManager;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.pps.Credential;
 import android.net.wifi.hotspot2.pps.HomeSp;
 import android.net.wifi.hotspot2.pps.Policy;
 import android.net.wifi.hotspot2.pps.UpdateParameter;
+import android.os.UserHandle;
 import android.util.Xml;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.WifiBaseTest;
@@ -43,11 +50,13 @@ import com.android.server.wifi.WifiConfigStore;
 import com.android.server.wifi.WifiKeyStore;
 import com.android.server.wifi.util.WifiConfigStoreEncryptionUtil;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
 
@@ -84,13 +93,30 @@ public class PasspointConfigUserStoreDataTest extends WifiBaseTest {
     @Mock PasspointConfigUserStoreData.DataSource mDataSource;
     @Mock Clock mClock;
     PasspointConfigUserStoreData mConfigStoreData;
+    private MockitoSession mSession;
+
 
     /** Sets up test. */
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(ActivityManager.class, withSettings().lenient())
+                .startMocking();
+        when(ActivityManager.getCurrentUser()).thenReturn(UserHandle.getUserId(TEST_UID));
         mConfigStoreData = new PasspointConfigUserStoreData(mKeyStore, mWifiCarrierInfoManager,
                 mDataSource, mClock);
+    }
+
+    /**
+     * Called after each test
+     */
+    @After
+    public void cleanup() {
+        validateMockitoUsage();
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
     }
 
     /**

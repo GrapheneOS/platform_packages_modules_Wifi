@@ -446,8 +446,8 @@ class WifiBackupDataV1Parser implements WifiBackupDataParser {
                     break;
                 // V5
                 case WifiConfigurationXmlUtil.XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS:
-                    if (Flags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()
-                            && configuration.shared) {
+                    // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+                    if (Flags.multiUserWifiEnhancement() && configuration.shared) {
                         configuration.setAllowedToUpdateByOtherUsers((boolean) value);
                     }
                     break;

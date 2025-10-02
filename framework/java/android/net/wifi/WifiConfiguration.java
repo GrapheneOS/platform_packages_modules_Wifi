@@ -33,7 +33,6 @@ import android.net.NetworkSpecifier;
 import android.net.ProxyInfo;
 import android.net.StaticIpConfiguration;
 import android.net.Uri;
-import android.net.wifi.util.Environment;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.ParcelUuid;
@@ -4835,9 +4834,7 @@ public class WifiConfiguration implements Parcelable {
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public void setAllowedToUpdateByOtherUsers(boolean isAllowed) {
-        if (!Environment.isSdkNewerThanB()) {
-            throw new UnsupportedOperationException();
-        }
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         if (!shared && isAllowed) {
             throw new IllegalArgumentException("private network can't update by other user");
         }
@@ -4854,9 +4851,7 @@ public class WifiConfiguration implements Parcelable {
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public boolean isAllowedToUpdateByOtherUsers() {
-        if (!Environment.isSdkNewerThanB()) {
-            throw new UnsupportedOperationException();
-        }
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         return shared && mIsAllowedToUpdateByOtherUsers;
     }
 
@@ -4900,9 +4895,7 @@ public class WifiConfiguration implements Parcelable {
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public @UserIdInt int getCreatorUserId() {
-        if (!Environment.isSdkNewerThanB()) {
-            throw new UnsupportedOperationException();
-        }
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         return getCreatorUserIdInternal();
     }
 }

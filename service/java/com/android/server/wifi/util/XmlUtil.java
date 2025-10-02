@@ -626,7 +626,8 @@ public class XmlUtil {
             XmlUtil.writeNextValue(out, XML_TAG_IS_REPEATER_ENABLED,
                     configuration.isRepeaterEnabled());
             XmlUtil.writeNextValue(out, XML_TAG_ENABLE_WIFI7, configuration.isWifi7Enabled());
-            if (Environment.isSdkNewerThanB()) {
+            // TODO: b/449013275 Replace by Environment.isSdkNewerThanB())
+            if (Flags.multiUserWifiEnhancement()) {
                 XmlUtil.writeNextValue(out, XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS,
                         Flags.multiUserWifiEnhancement()
                         ? configuration.isAllowedToUpdateByOtherUsers() : true /* default */);
@@ -720,10 +721,12 @@ public class XmlUtil {
             }
             XmlUtil.writeNextValue(out, XML_TAG_PERSISTENT_MAC_RANDOMIZATION_SEED,
                     configuration.persistentMacRandomizationSeed);
-
-            if (Flags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()) {
+            // TODO: b/449013275 Replace by Environment.isSdkNewerThanB()
+            if (Flags.multiUserWifiEnhancement()) {
                 XmlUtil.writeNextValue(out, XML_TAG_CREATOR_USER_ID,
-                        configuration.getStoredCreatorUserId());
+                        configuration.getStoredCreatorUserId() >= 0
+                                ? configuration.getStoredCreatorUserId() :
+                                ActivityManager.getCurrentUser());
             }
         }
 
@@ -1109,13 +1112,15 @@ public class XmlUtil {
                             configuration.setWifi7Enabled((boolean) value);
                             break;
                         case XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS:
-                            if (Flags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()
+                            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+                            if (Flags.multiUserWifiEnhancement()
                                     && configuration.shared) {
                                 configuration.setAllowedToUpdateByOtherUsers((boolean) value);
                             }
                             break;
                         case XML_TAG_CREATOR_USER_ID:
-                            if (Flags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()) {
+                            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+                            if (Flags.multiUserWifiEnhancement()) {
                                 isCreatorUserIdExists = true;
                                 // Setup current user
                                 configuration.setCreatorUserId((int) value);
@@ -1200,7 +1205,8 @@ public class XmlUtil {
                         !configuration.isSecurityType(WifiConfiguration.SECURITY_TYPE_OPEN)
                         && !configuration.isSecurityType(WifiConfiguration.SECURITY_TYPE_OWE));
             }
-            if (Flags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()
+            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+            if (Flags.multiUserWifiEnhancement()
                     && !isCreatorUserIdExists) {
                 int userId = UserHandle.getUserHandleForUid(configuration.creatorUid)
                         .getIdentifier();

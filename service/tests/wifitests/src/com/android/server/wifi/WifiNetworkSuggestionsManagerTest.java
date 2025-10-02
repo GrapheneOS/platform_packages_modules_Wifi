@@ -52,14 +52,15 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.isNull;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.nullable;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.withSettings;
 
 import android.app.ActivityManager;
 import android.app.AppOpsManager;
@@ -223,14 +224,14 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
         mStaticMockSession = mockitoSession()
-                .mockStatic(WifiInjector.class)
-                .mockStatic(ActivityManager.class)
-                .mockStatic(Flags.class)
+                .mockStatic(ActivityManager.class, withSettings().lenient())
+                .mockStatic(Flags.class, withSettings().lenient())
+                .mockStatic(WifiInjector.class, withSettings().lenient())
                 .startMocking();
-        lenient().when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
+        when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
         // Mock necessary method and enable flag by default to make sure test won't be broken.
-        lenient().when(ActivityManager.getCurrentUser()).thenReturn(0);
-        lenient().when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        when(ActivityManager.getCurrentUser()).thenReturn(0);
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
         mLooper = new TestLooper();
 
         mInorder = inOrder(mContext, mWifiPermissionsUtil);
@@ -356,6 +357,7 @@ public class WifiNetworkSuggestionsManagerTest extends WifiBaseTest {
 
     @After
     public void cleanUp() throws Exception {
+        validateMockitoUsage();
         if (null != mStaticMockSession) {
             mStaticMockSession.finishMocking();
         }

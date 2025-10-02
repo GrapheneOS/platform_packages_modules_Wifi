@@ -52,7 +52,6 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
-import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.Process;
 import android.os.UserHandle;
@@ -1144,8 +1143,8 @@ public class WifiConfigManager {
         }
 
         // The configuration is disallowed to be updated by other user.
-        if (Environment.isSdkNewerThanB()
-                && mFeatureFlags.multiUserWifiEnhancement()
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (mFeatureFlags.multiUserWifiEnhancement()
                 && requireUserCheck && !config.isAllowedToUpdateByOtherUsers()
                 && !mWifiPermissionsUtil.areTwoAppsFromSameUser(config.creatorUid, uid)) {
             return false;
@@ -1396,8 +1395,8 @@ public class WifiConfigManager {
         internalConfig.setRepeaterEnabled(externalConfig.isRepeaterEnabled());
         internalConfig.setSendDhcpHostnameEnabled(externalConfig.isSendDhcpHostnameEnabled());
         internalConfig.setWifi7Enabled(externalConfig.isWifi7Enabled());
-        if (Environment.isSdkNewerThanB()
-                && mFeatureFlags.multiUserWifiEnhancement()
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (mFeatureFlags.multiUserWifiEnhancement()
                 && externalConfig.shared) {
             internalConfig.setAllowedToUpdateByOtherUsers(
                     externalConfig.isAllowedToUpdateByOtherUsers());
@@ -1460,8 +1459,8 @@ public class WifiConfigManager {
         newInternalConfig.shared = externalConfig.shared;
         newInternalConfig.updateIdentifier = externalConfig.updateIdentifier;
         newInternalConfig.setPasspointUniqueId(externalConfig.getPasspointUniqueId());
-        if (Environment.isSdkNewerThanB()
-                && mFeatureFlags.multiUserWifiEnhancement()
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (mFeatureFlags.multiUserWifiEnhancement()
                 && externalConfig.shared) {
             newInternalConfig.setAllowedToUpdateByOtherUsers(
                     externalConfig.isAllowedToUpdateByOtherUsers());
@@ -1469,8 +1468,8 @@ public class WifiConfigManager {
 
         // Add debug information for network addition.
         newInternalConfig.creatorUid = newInternalConfig.lastUpdateUid = uid;
-        if (Environment.isSdkNewerThanB()
-                && mFeatureFlags.multiUserWifiEnhancement()) {
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (mFeatureFlags.multiUserWifiEnhancement()) {
             newInternalConfig.setCreatorUserId(mCurrentUserId);
         }
         newInternalConfig.creatorName = newInternalConfig.lastUpdateName =
@@ -1509,8 +1508,8 @@ public class WifiConfigManager {
         if (overrideCreator) {
             newInternalConfig.creatorName = newInternalConfig.lastUpdateName;
             newInternalConfig.creatorUid = uid;
-            if (Environment.isSdkNewerThanB()
-                    && mFeatureFlags.multiUserWifiEnhancement()) {
+            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+            if (mFeatureFlags.multiUserWifiEnhancement()) {
                 newInternalConfig.setCreatorUserId(mCurrentUserId);
             }
         }
@@ -3612,7 +3611,8 @@ public class WifiConfigManager {
         Set<Integer> removedNetworkIds = clearInternalDataForUser(mCurrentUserId);
         mConfiguredNetworks.setNewUser(userId);
         mCurrentUserId = userId;
-        if (Environment.isSdkNewerThanB() && mFeatureFlags.multiUserWifiEnhancement()) {
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (mFeatureFlags.multiUserWifiEnhancement()) {
             Context userContext = mContext.createContextAsUser(UserHandle.of(userId), 0);
             UserManager userManager = userContext.getSystemService(UserManager.class);
             mIsCurrentUserAdmin = userManager.isAdminUser();
@@ -3645,7 +3645,8 @@ public class WifiConfigManager {
             Log.e(TAG, "Ignore user unlock for non current user " + userId);
             return;
         }
-        if (Environment.isSdkNewerThanB() && mFeatureFlags.multiUserWifiEnhancement()) {
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (mFeatureFlags.multiUserWifiEnhancement()) {
             Context userContext = mContext.createContextAsUser(UserHandle.of(userId), 0);
             UserManager userManager = userContext.getSystemService(UserManager.class);
             mIsCurrentUserAdmin = userManager.isAdminUser();

@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.util;
 
+import static com.android.server.wifi.WifiConfigurationTestUtil.TEST_UID;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -28,12 +30,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import android.app.ActivityManager;
 import android.net.IpConfiguration;
 import android.net.MacAddress;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConfiguration.NetworkSelectionStatus;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.util.Environment;
+import android.os.UserHandle;
 import android.util.Pair;
 import android.util.Xml;
 
@@ -107,7 +111,9 @@ public class XmlUtilTest extends WifiBaseTest {
         MockitoAnnotations.initMocks(this);
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(Flags.class, withSettings().lenient())
+                .mockStatic(ActivityManager.class, withSettings().lenient())
                 .startMocking();
+        when(ActivityManager.getCurrentUser()).thenReturn(UserHandle.getUserId(TEST_UID));
     }
 
     /**

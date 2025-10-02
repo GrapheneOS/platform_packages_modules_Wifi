@@ -167,6 +167,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<byte-array name=\"DppCSignKey\" num=\"0\"></byte-array>\n"
                     + "<byte-array name=\"DppNetAccessKey\" num=\"0\"></byte-array>\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
+                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -260,6 +261,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<byte-array name=\"DppCSignKey\" num=\"0\"></byte-array>\n"
                     + "<byte-array name=\"DppNetAccessKey\" num=\"0\"></byte-array>\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
+                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -379,6 +381,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<byte-array name=\"DppCSignKey\" num=\"0\"></byte-array>\n"
                     + "<byte-array name=\"DppNetAccessKey\" num=\"0\"></byte-array>\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
+                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -471,6 +474,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<byte-array name=\"DppCSignKey\" num=\"0\"></byte-array>\n"
                     + "<byte-array name=\"DppNetAccessKey\" num=\"0\"></byte-array>\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
+                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -573,6 +577,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<int name=\"CarrierId\" value=\"-1\" />\n"
                     + "<boolean name=\"IsMostRecentlyConnected\" value=\"false\" />\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
+                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -681,6 +686,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
         openNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
         openNetwork.meteredOverride = WifiConfiguration.METERED_OVERRIDE_NOT_METERED;
+        openNetwork.setCreatorUserId(0);
         WifiConfiguration eapNetwork = WifiConfigurationTestUtil.createWpa2Wpa3EnterpriseNetwork();
         eapNetwork.shared = shared;
         eapNetwork.creatorName = TEST_CREATOR_NAME;
@@ -688,6 +694,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
         eapNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
         eapNetwork.enterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_V1_3);
+        eapNetwork.setCreatorUserId(0);
         WifiConfiguration saeNetwork = WifiConfigurationTestUtil.createSaeNetwork();
         saeNetwork.shared = shared;
         saeNetwork.creatorName = TEST_CREATOR_NAME;
@@ -695,6 +702,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
         saeNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
         saeNetwork.setSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE);
+        saeNetwork.setCreatorUserId(0);
         List<WifiConfiguration> networkList = new ArrayList<>();
         networkList.add(openNetwork);
         networkList.add(eapNetwork);
@@ -719,7 +727,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 openNetwork.shared, Environment.isSdkNewerThanB()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 openNetwork.creatorUid,
-                openNetwork.creatorName, openNetwork.getRandomizedMacAddress());
+                openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "");
         String eapNetworkXml = String.format(SINGLE_EAP_NETWORK_DATA_XML_STRING_FORMAT,
                 eapNetwork.getKey().replaceAll("\"", "&quot;"),
                 eapNetwork.SSID.replaceAll("\"", "&quot;"),
@@ -727,6 +737,8 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 eapNetwork.creatorUid,
                 eapNetwork.creatorName, eapNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "",
                 eapNetwork.enterpriseConfig.getDomainSuffixMatch(),
                 eapNetwork.enterpriseConfig.getCaPath());
         String saeNetworkXml = String.format(SINGLE_SAE_NETWORK_DATA_XML_STRING_FORMAT,
@@ -735,7 +747,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 saeNetwork.shared, Environment.isSdkNewerThanB()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 saeNetwork.creatorUid,
-                saeNetwork.creatorName, saeNetwork.getRandomizedMacAddress());
+                saeNetwork.creatorName, saeNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "");
         return (openNetworkXml + eapNetworkXml + saeNetworkXml).getBytes(StandardCharsets.UTF_8);
     }
 
@@ -897,7 +911,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 openNetwork.shared, Environment.isSdkNewerThanB()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 openNetwork.creatorUid,
-                openNetwork.creatorName, openNetwork.getRandomizedMacAddress())
+                openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
             .getBytes(StandardCharsets.UTF_8);
         deserializeData(xmlData);
     }
@@ -948,14 +964,17 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 openNetwork.shared, Environment.isSdkNewerThanB()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 openNetwork.creatorUid,
-                openNetwork.creatorName, openNetwork.getRandomizedMacAddress())
+                openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
             .getBytes(StandardCharsets.UTF_8);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(1, deserializedNetworks.size());
         assertEquals(openNetwork.getKey(), deserializedNetworks.get(0).getKey());
         assertEquals(SYSTEM_UID, deserializedNetworks.get(0).creatorUid);
         // The creatorUid is system uid, so using TEST_CREATOR_USER_ID as creatorUserId
-        assertEquals(Environment.isSdkNewerThanB() ? TEST_CREATOR_USER_ID : -2,
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        assertEquals(TEST_CREATOR_USER_ID,
                 deserializedNetworks.get(0).getCreatorUserIdInternal());
         assertEquals(TEST_CREATOR_NAME, deserializedNetworks.get(0).creatorName);
     }
@@ -981,7 +1000,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 openNetwork.shared, Environment.isSdkNewerThanB()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 openNetwork.creatorUid,
-                openNetwork.creatorName, openNetwork.getRandomizedMacAddress())
+                openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
             .getBytes(StandardCharsets.UTF_8);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(1, deserializedNetworks.size());
@@ -1010,7 +1031,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 openNetwork.shared, Environment.isSdkNewerThanB()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 openNetwork.creatorUid,
-                openNetwork.creatorName, openNetwork.getRandomizedMacAddress())
+                openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
             .getBytes(StandardCharsets.UTF_8);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(1, deserializedNetworks.size());
@@ -1033,7 +1056,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 openNetwork.shared, Environment.isSdkNewerThanB()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 openNetwork.creatorUid,
-                openNetwork.creatorName, openNetwork.getRandomizedMacAddress())
+                openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
             .getBytes(StandardCharsets.UTF_8);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(1, deserializedNetworks.size());
@@ -1061,7 +1086,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 saeNetwork.shared, Environment.isSdkNewerThanB()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 saeNetwork.creatorUid,
-                saeNetwork.creatorName, saeNetwork.getRandomizedMacAddress());
+                saeNetwork.creatorName, saeNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "");
 
         List<WifiConfiguration> retrievedNetworkList =
                 deserializeData(saeNetworkWithOpenAuthXml.getBytes(StandardCharsets.UTF_8));
@@ -1123,7 +1150,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 pskNetwork.shared, Environment.isSdkNewerThanB()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 pskNetwork.creatorUid,
-                pskNetwork.creatorName, pskNetwork.getRandomizedMacAddress())
+                pskNetwork.creatorName, pskNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
                 .getBytes(StandardCharsets.UTF_8);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(1, deserializedNetworks.size());
@@ -1147,6 +1176,8 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 wpa3EapNetwork.creatorUid,
                 wpa3EapNetwork.creatorName, wpa3EapNetwork.getRandomizedMacAddress(),
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "",
                 wpa3EapNetwork.enterpriseConfig.getDomainSuffixMatch(),
                 wpa3EapNetwork.enterpriseConfig.getCaPath())
                 .getBytes(StandardCharsets.UTF_8);
