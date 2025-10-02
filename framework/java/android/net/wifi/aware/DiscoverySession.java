@@ -427,9 +427,10 @@ public class DiscoverySession implements AutoCloseable {
     public void initiateBootstrappingRequest(@NonNull PeerHandle peerHandle,
             @AwarePairingConfig.BootstrappingMethod int method,
             @NonNull byte[] serviceSpecificInfo) {
-        if (!isSdkNewerThanB()) {
-            throw new UnsupportedOperationException();
-        }
+        // TODO(448750335): Remove this for local testing, will add back after new SDK finilized.
+        // if (!isSdkNewerThanB()) {
+        //    throw new UnsupportedOperationException();
+        // }
         if (serviceSpecificInfo == null) {
             throw new IllegalArgumentException("serviceSpecificInfo must not be null");
         }
