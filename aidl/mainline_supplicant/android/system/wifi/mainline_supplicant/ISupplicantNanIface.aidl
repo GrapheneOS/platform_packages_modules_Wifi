@@ -21,6 +21,7 @@ import android.system.wifi.mainline_supplicant.NanConfigRequest;
 import android.system.wifi.mainline_supplicant.NanEnableRequest;
 import android.system.wifi.mainline_supplicant.NanPublishRequest;
 import android.system.wifi.mainline_supplicant.NanSubscribeRequest;
+import android.system.wifi.mainline_supplicant.NanTransmitFollowupRequest;
 
 /**
  * Interface used to represent a single NAN (Neighbour Aware Network) iface.
@@ -184,4 +185,18 @@ interface ISupplicantNanIface {
      *         |SupplicantStatusCode.FAILURE_UNKNOWN|
      */
     void stopSubscribeRequest(in char cmdId, in byte sessionId);
+
+    /**
+     * NAN transmit follow up message request.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyTransmitFollowupResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param msg Instance of |NanTransmitFollowupRequest|.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void transmitFollowupRequest(in char cmdId, in NanTransmitFollowupRequest msg);
 }

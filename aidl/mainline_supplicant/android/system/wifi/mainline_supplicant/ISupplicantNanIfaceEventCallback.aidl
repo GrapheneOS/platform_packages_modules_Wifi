@@ -18,6 +18,7 @@ package android.system.wifi.mainline_supplicant;
 
 import android.system.wifi.mainline_supplicant.NanCapabilities;
 import android.system.wifi.mainline_supplicant.NanClusterEventInd;
+import android.system.wifi.mainline_supplicant.NanFollowupReceivedInd;
 import android.system.wifi.mainline_supplicant.NanMatchInd;
 import android.system.wifi.mainline_supplicant.NanStatus;
 
@@ -49,6 +50,25 @@ oneway interface ISupplicantNanIfaceEventCallback {
      * @param peerId Peer ID of the expired match.
      */
     void eventMatchExpired(in byte discoverySessionId, in int peerId);
+
+    /**
+     * Callback providing status of a completed followup message transmit operation. Indicates the
+     * response after the supplicant has attempted to send the followup message over-the-air.
+     *
+     * @param id Command ID corresponding to the original |transmitFollowupRequest| request.
+     * @param status NanStatus of the operation. Possible status codes are:
+     *               |NanStatusCode.SUCCESS|
+     *               |NanStatusCode.NO_OTA_ACK|
+     *               |NanStatusCode.PROTOCOL_FAILURE|
+     */
+    void eventTransmitFollowup(in char id, in NanStatus status);
+
+    /**
+     * Callback indicating that a followup message has been received from a peer.
+     *
+     * @param event NanFollowupReceivedInd containing event details.
+     */
+    void eventFollowupReceived(in NanFollowupReceivedInd event);
 
     /**
      * Callback invoked in response to a capability request
@@ -175,4 +195,21 @@ oneway interface ISupplicantNanIfaceEventCallback {
      *         |NanStatusCode.INTERNAL_FAILURE|
      */
     void notifyStopSubscribeResponse(in char id, in NanStatus status);
+
+    /**
+     * Callback invoked in response to a transmit followup request
+     * |ISupplicantNanIface.transmitFollowupRequest|. Indicates the response from the local
+     * firmware/hardware. The result of the over-the-air transmission is reported via
+     * |eventTransmitFollowup|.
+     *
+     * @param id Command ID corresponding to the original request.
+     * @param status NanStatus of the operation. Possible status codes are:
+     *        |NanStatusCode.SUCCESS|
+     *        |NanStatusCode.INVALID_ARGS|
+     *        |NanStatusCode.INTERNAL_FAILURE|
+     *        |NanStatusCode.INVALID_SESSION_ID|
+     *        |NanStatusCode.INVALID_PEER_ID|
+     *        |NanStatusCode.FOLLOWUP_TX_QUEUE_FULL|
+     */
+    void notifyTransmitFollowupResponse(in char id, in NanStatus status);
 }
