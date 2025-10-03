@@ -80,6 +80,7 @@ import android.net.wifi.WifiScanner.ScanSettings;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.util.ScanResultUtil;
+import android.net.wifi.util.WifiResourceCache;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.IPowerManager;
@@ -181,6 +182,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mPrimaryClientModeManager);
         when(mWifiCarrierInfoManager.isCarrierNetworkOffloadEnabled(anyInt(), anyBoolean()))
                 .thenReturn(true);
+        when(mContext.getResourceCache()).thenReturn(mResourceCache);
         doAnswer(new AnswerWithArguments() {
             public void answer(ExternalClientModeManagerRequestListener listener,
                     WorkSource requestorWs, String ssid, String bssid) {
@@ -339,6 +341,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Mock private WifiDialogManager.DialogHandle mDialogHandle;
     @Mock private WifiInjector mWifiInjector;
     @Mock private HalDeviceManager mHalDeviceManager;
+    @Mock private WifiResourceCache mResourceCache;
     @Mock WifiCandidates.Candidate mCandidate1;
     @Mock WifiCandidates.Candidate mCandidate2;
     @Mock WifiCandidates.Candidate mCandidate3;
@@ -421,7 +424,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     private static final int EXPECTED_PNO_MULTIPLIER = 4;
     private static final int TEST_FREQUENCY_2G = 2412;
     private static final int TEST_FREQUENCY_5G = 5262;
-    private static final int[] DELAYED_SELECTION_CARRIER_IDS = new int[]{123};
+    private static final int TEST_CARRIER_ID = 123;
+    private static final int[] DELAYED_SELECTION_CARRIER_IDS = new int[]{TEST_CARRIER_ID};
     private static final int DELAYED_CARRIER_SELECTION_TIME_MS = 100_000;
 
     /**
@@ -2330,7 +2334,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                 getTestWifiConfig(CANDIDATE_NETWORK_ID, "CarrierNetwork");
         // Any non-default carrier ID indicates that this is a carrier network. Use a delayed
         // selection carrier ID for compatibility with the delay-based unit tests.
-        carrierNetworkConfig.carrierId = DELAYED_SELECTION_CARRIER_IDS[0];
+        carrierNetworkConfig.carrierId = TEST_CARRIER_ID;
         when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(carrierNetworkConfig);
     }
 
@@ -2472,7 +2476,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
 
     /**
      * Test that carrier network candidates are filtered from the list of connection candidates
-     * when the device is in the High or Low Mobility states.
+     * when the device is in the High or Low Mobility states. Since no carrier ID blocklist is
+     * provided, the mobility filter will apply to all carrier networks.
      */
     @Test
     public void testCarrierCandidatesFilteredWhileDeviceInMotion() {
@@ -2493,6 +2498,34 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
 
         mWifiConnectivityManager.setDeviceMobilityState(
                 WifiManager.DEVICE_MOBILITY_STATE_STATIONARY);
+        mAllSingleScanListenerCaptor.getValue().getWifiScannerListener().onResults(scanDatas);
+        verify(mPrimaryClientModeManager).startConnectToNetwork(
+                CANDIDATE_NETWORK_ID, Process.WIFI_UID, CANDIDATE_BSSID);
+    }
+
+    /**
+     * Test that carrier networks with a carrier ID in the mobility blocklist are excluded from
+     * the mobility filter. This means that they are allowed to auto-connect while the
+     * device is in motion.
+     */
+    @Test
+    public void testMobilityFilterCarrierIdBlocklist() {
+        // Add the default carrier ID to the mobility blocklist.
+        when(mResourceCache.getIntArray(R.array.config_wifiMobilityFilterCarrierIdBlocklist))
+                .thenReturn(new int[]{TEST_CARRIER_ID});
+
+        // Reinitialize the test instance since the overlay values are retrieved during construction
+        mWifiConnectivityManager = createConnectivityManager();
+        mWifiConnectivityManager.setTrustedConnectionAllowed(true);
+        setWifiEnabled(true);
+
+        ScanData[] scanDatas = new ScanData[]{mScanData};
+        setAllScanCandidatesToCarrierCandidates();
+
+        // Expect the carrier network to connect at high mobility,
+        // since it is excluded from the mobility filter.
+        mWifiConnectivityManager.setDeviceMobilityState(
+                WifiManager.DEVICE_MOBILITY_STATE_HIGH_MVMT);
         mAllSingleScanListenerCaptor.getValue().getWifiScannerListener().onResults(scanDatas);
         verify(mPrimaryClientModeManager).startConnectToNetwork(
                 CANDIDATE_NETWORK_ID, Process.WIFI_UID, CANDIDATE_BSSID);

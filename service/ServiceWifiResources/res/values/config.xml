@@ -1383,7 +1383,7 @@
     <!-- Boolean indicating whether the WiFi framework network selection should set the target BSSID. -->
     <bool translatable="false" name="config_wifiNetworkSelectionSetTargetBssid">false</bool>
 
-    <!-- Array containing carrier IDs whose networks should not auto-connect upon initial discovery.
+    <!-- (Deprecated) Array containing carrier IDs whose networks should not auto-connect upon initial discovery.
          These networks are eligible to become network selection candidates if they still appear in
          the scan results after the delay period has passed. Carriers who have requested this
          feature are included in the array by default.
@@ -1396,10 +1396,21 @@
         -->
     </integer-array>
 
-    <!-- Delay time in milliseconds for delayed carrier network selection.
+    <!-- (Deprecated) Delay time in milliseconds for delayed carrier network selection.
          See also config_wifiDelayedSelectionCarrierIds.
      -->
     <integer translatable="false" name="config_wifiDelayedCarrierSelectionTimeMs">90000</integer>
+
+    <!-- Array containing carrier IDs whose networks should not be affected by the carrier mobility
+         filter. For any carrier whose ID is not in this blocklist, their networks will be prevented
+         from auto-connecting while the device is in motion (ex. while driving, biking, etc).
+     -->
+    <integer-array translatable="false" name="config_wifiMobilityFilterCarrierIdBlocklist">
+        <!-- Below is a sample configuration for this list:
+        <item>1234</item>
+        <item>5678</item>
+        -->
+    </integer-array>
 
     <!-- Boolean indicating whether the device supports Wi-Fi Alliance WPA3 Specification
          version 3.3 Section 14 - RSN Overriding.
