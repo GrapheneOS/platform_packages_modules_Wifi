@@ -1222,10 +1222,11 @@ public class WifiAwareManager {
             }
         }
         @Override
-        public void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method) {
+        public void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method,
+        byte[] serviceSpecificInfo) {
             if (accept) {
                 mHandler.post(() -> mOriginalCallback.onBootstrappingSucceeded(
-                        new PeerHandle(peerId), method));
+                        new PeerHandle(peerId), method, serviceSpecificInfo));
             } else {
                 mHandler.post(() -> mOriginalCallback.onBootstrappingFailed(
                         new PeerHandle(peerId)));

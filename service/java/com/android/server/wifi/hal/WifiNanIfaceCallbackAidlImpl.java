@@ -688,8 +688,8 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
             Log.v(TAG, "eventBootstrappingRequest:");
         }
         mWifiNanIface.getFrameworkCallback().eventBootstrappingRequest(event.discoverySessionId,
-                event.peerId, event.peerDiscMacAddr,
-                event.bootstrappingInstanceId, event.requestBootstrappingMethod);
+                event.peerId, event.peerDiscMacAddr, event.bootstrappingInstanceId,
+                event.requestBootstrappingMethod, event.serviceSpecificInfo);
     }
 
     @Override

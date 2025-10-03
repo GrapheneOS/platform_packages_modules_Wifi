@@ -432,9 +432,10 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
 
     @Override
     public void eventBootstrappingRequest(int discoverySessionId, int peerId,
-            byte[] peerDiscMacAddr, int bootstrappingInstanceId, int method) {
+            byte[] peerDiscMacAddr, int bootstrappingInstanceId, int method,
+            byte[] serviceSpecificInfo) {
         mWifiAwareStateManager.onBootstrappingRequestNotification(discoverySessionId, peerId,
-                peerDiscMacAddr, bootstrappingInstanceId, method);
+                peerDiscMacAddr, bootstrappingInstanceId, method, serviceSpecificInfo);
     }
 
     @Override

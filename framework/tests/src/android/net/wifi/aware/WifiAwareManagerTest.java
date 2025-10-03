@@ -2027,10 +2027,10 @@ public class WifiAwareManagerTest {
 
         // (4) Bootstrapping confirmed
         sessionProxyCallback.getValue().onBootstrappingVerificationConfirmed(peerId, true,
-                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC, null);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingSucceeded(eq(peerHandle),
-                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC), isNull());
 
         // (5) initiate pairing request
         subscribeSession.getValue().initiatePairingRequest(peerHandle, alias,
@@ -2105,10 +2105,10 @@ public class WifiAwareManagerTest {
 
         // (4) Bootstrapping confirmed
         sessionProxyCallback.getValue().onBootstrappingVerificationConfirmed(peerId, true,
-                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC, ssi);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingSucceeded(eq(peerHandle),
-                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC), eq(ssi));
 
         // (5) initiate pairing request
         subscribeSession.getValue().initiatePairingRequest(peerHandle, alias,
