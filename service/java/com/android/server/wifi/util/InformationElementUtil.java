@@ -24,7 +24,6 @@ import android.net.wifi.WifiAnnotations.Cipher;
 import android.net.wifi.WifiAnnotations.KeyMgmt;
 import android.net.wifi.WifiAnnotations.Protocol;
 import android.net.wifi.WifiScanner;
-import android.net.wifi.nl80211.NativeScanResult;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.util.HexEncoding;
 import android.util.Log;
@@ -34,6 +33,7 @@ import com.android.server.wifi.ByteBufferReader;
 import com.android.server.wifi.MboOceConstants;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.hotspot2.anqp.Constants;
+import com.android.server.wifi.nl80211.NativeScanResult;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

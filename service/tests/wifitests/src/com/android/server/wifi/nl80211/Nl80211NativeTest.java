@@ -34,8 +34,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.net.wifi.WifiScanner;
-import android.net.wifi.nl80211.NativeScanResult;
-import android.net.wifi.nl80211.PnoSettings;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
 
@@ -47,6 +45,7 @@ import com.android.net.module.util.netlink.StructNlMsgHdr;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -267,13 +266,19 @@ public class Nl80211NativeTest {
     @Test
     public void testGetScanResults_useWificondEnabled_callsWificond() {
         mDut = initNl80211Native(true);
-        List<NativeScanResult> expectedResults =
-                Collections.singletonList(new NativeScanResult());
-        when(mWificondManager.getScanResults(IFACE_NAME, 0)).thenReturn(expectedResults);
+        android.net.wifi.nl80211.NativeScanResult expectedScanResult =
+                new android.net.wifi.nl80211.NativeScanResult();
+        expectedScanResult.ssid = new byte[] {'a', 's', 'd', 'f'};
+        expectedScanResult.bssid = new byte[] {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+        when(mWificondManager.getScanResults(IFACE_NAME, 0))
+                .thenReturn(Collections.singletonList(expectedScanResult));
+
         List<NativeScanResult> results = mDut.getScanResults(IFACE_NAME, 0);
+
         assertNotNull(results);
-        assertEquals(expectedResults, results);
         verify(mWificondManager).getScanResults(IFACE_NAME, 0);
+        assertEquals(1, results.size());
+        assertArrayEquals(expectedScanResult.getSsid(), results.get(0).getSsid());
     }
 
     @Test
@@ -286,13 +291,77 @@ public class Nl80211NativeTest {
     @Test
     public void testStartPnoScan_useWificondEnabled_callsWificond() {
         mDut = initNl80211Native(true);
+
+        // 1. Setup the input PnoSettings (the NEW server-side class)
+        // Setup test PnoNetwork
+        com.android.server.wifi.nl80211.PnoNetwork pnoNetwork =
+                new com.android.server.wifi.nl80211.PnoNetwork();
+        byte[] ssidBytes = "test-ssid".getBytes();
+        int[] freqs = new int[]{2412, 5180, 5745};
+        pnoNetwork.setHidden(true);
+        pnoNetwork.setSsid(ssidBytes);
+        pnoNetwork.setFrequenciesMhz(freqs);
+        List<com.android.server.wifi.nl80211.PnoNetwork> pnoNetworkList = List.of(pnoNetwork);
+
+        // Setup test PnoSettings
+        com.android.server.wifi.nl80211.PnoSettings serverPnoSettings =
+                new com.android.server.wifi.nl80211.PnoSettings();
+        serverPnoSettings.setIntervalMillis(15000L);
+        serverPnoSettings.setMin2gRssiDbm(-70);
+        serverPnoSettings.setMin5gRssiDbm(-75);
+        serverPnoSettings.setMin6gRssiDbm(-80);
+        serverPnoSettings.setScanIterations(5);
+        serverPnoSettings.setScanIntervalMultiplier(3);
+        serverPnoSettings.setPnoNetworks(pnoNetworkList);
+
+        // 2. Set the mock behavior for wificond
         when(mWificondManager.startPnoScan(
-                IFACE_NAME, mPnoSettings, mExecutor, mPnoScanRequestCallback))
+                eq(IFACE_NAME), any(), eq(mExecutor), eq(mPnoScanRequestCallback)))
                 .thenReturn(true);
+
+        // 3. Call the method under test
         assertTrue(mDut.startPnoScan(
-                IFACE_NAME, mPnoSettings, mExecutor, mPnoScanRequestCallback));
-        verify(mWificondManager).startPnoScan(
-                IFACE_NAME, mPnoSettings, mExecutor, mPnoScanRequestCallback);
+                IFACE_NAME, serverPnoSettings, mExecutor, mPnoScanRequestCallback));
+
+        // 4. Capture the argument passed to wificond
+        ArgumentCaptor<android.net.wifi.nl80211.PnoSettings> wificondPnoSettingsCaptor =
+                ArgumentCaptor.forClass(android.net.wifi.nl80211.PnoSettings.class);
+        verify(mWificondManager).startPnoScan(eq(IFACE_NAME), wificondPnoSettingsCaptor.capture(),
+                eq(mExecutor), eq(mPnoScanRequestCallback));
+
+        // 5. Verify the captured (OLD/wificond) PnoSettings
+        android.net.wifi.nl80211.PnoSettings capturedWificondSettings =
+                wificondPnoSettingsCaptor.getValue();
+        assertNotNull(capturedWificondSettings);
+
+        // Verify all primitive fields were copied correctly
+        assertEquals(serverPnoSettings.getIntervalMillis(),
+                capturedWificondSettings.getIntervalMillis());
+        assertEquals(serverPnoSettings.getMin2gRssiDbm(),
+                capturedWificondSettings.getMin2gRssiDbm());
+        assertEquals(serverPnoSettings.getMin5gRssiDbm(),
+                capturedWificondSettings.getMin5gRssiDbm());
+        assertEquals(serverPnoSettings.getMin6gRssiDbm(),
+                capturedWificondSettings.getMin6gRssiDbm());
+        if (SdkLevel.isAtLeastU()) {
+            assertEquals(serverPnoSettings.getScanIterations(),
+                    capturedWificondSettings.getScanIterations());
+            assertEquals(serverPnoSettings.getScanIntervalMultiplier(),
+                    capturedWificondSettings.getScanIntervalMultiplier());
+        }
+
+        // Verify the list of networks was converted
+        assertNotNull(capturedWificondSettings.getPnoNetworks());
+        assertEquals(1, capturedWificondSettings.getPnoNetworks().size());
+
+        // Verify the contents of the (old/wificond) PnoNetwork
+        android.net.wifi.nl80211.PnoNetwork capturedWificondNetwork =
+                capturedWificondSettings.getPnoNetworks().get(0);
+        assertNotNull(capturedWificondNetwork);
+        assertEquals(pnoNetwork.isHidden(), capturedWificondNetwork.isHidden());
+        assertArrayEquals(pnoNetwork.getSsid(), capturedWificondNetwork.getSsid());
+        assertArrayEquals(pnoNetwork.getFrequenciesMhz(),
+                capturedWificondNetwork.getFrequenciesMhz());
     }
 
     @Test

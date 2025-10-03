@@ -23,8 +23,6 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiScanner;
-import android.net.wifi.nl80211.NativeScanResult;
-import android.net.wifi.nl80211.PnoSettings;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
 import android.util.Log;
@@ -415,6 +413,19 @@ public class Nl80211Native {
     }
 
     /**
+     * Converts a list of android.net.wifi.nl80211.NativeScanResult to
+     * com.android.server.wifi.nl80211.NativeScanResult
+     */
+    public static List<NativeScanResult> wificondScansToNl80211NativeScans(
+            @NonNull List<android.net.wifi.nl80211.NativeScanResult> wificondScans) {
+        List<NativeScanResult> nl80211Scans = new ArrayList<>();
+        for (android.net.wifi.nl80211.NativeScanResult wificondScan : wificondScans) {
+            nl80211Scans.add(new NativeScanResult(wificondScan));
+        }
+        return nl80211Scans;
+    }
+
+    /**
      * Fetch the latest scan results of the indicated type for the specified interface. Note that
      * this method fetches the latest results - it does not initiate a scan. Initiating a scan can
      * be done using {@link #startScan(String, int, Set, List, Bundle)} or
@@ -445,7 +456,8 @@ public class Nl80211Native {
             @NonNull String ifaceName,
             int scanType) {
         if (mUseWificond) {
-            return mWificondManager.getScanResults(ifaceName, scanType);
+            return wificondScansToNl80211NativeScans(
+                    mWificondManager.getScanResults(ifaceName, scanType));
         }
 
         if (ifaceName == null) {
@@ -484,7 +496,8 @@ public class Nl80211Native {
             @NonNull Executor executor,
             @NonNull PnoScanRequestCallback callback) {
         if (mUseWificond) {
-            return mWificondManager.startPnoScan(ifaceName, pnoSettings, executor, callback);
+            return mWificondManager.startPnoScan(
+                    ifaceName, pnoSettings.toWificondPnoSettings(), executor, callback);
         }
 
         if (ifaceName == null) {
