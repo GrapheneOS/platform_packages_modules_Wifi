@@ -16,8 +16,8 @@
 
 package com.android.server.wifi.nl80211;
 
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFNAME;
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.Nl80211Attrs.NL80211_ATTR_IFNAME;
+import static com.android.server.wifi.nl80211.NetlinkConstants.Nl80211Commands.NL80211_CMD_GET_INTERFACE;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -200,7 +200,7 @@ public class Nl80211Native {
         if (!mIsInitialized) return null;
         GenericNetlinkMsg request =
                 mNl80211Proxy.createNl80211Request(
-                        NL80211_CMD_GET_INTERFACE, StructNlMsgHdr.NLM_F_DUMP);
+                        NL80211_CMD_GET_INTERFACE.toShort(), StructNlMsgHdr.NLM_F_DUMP);
         if (request == null) {
             Log.e(TAG, "Failed to create Nl80211 request");
             return null;
@@ -212,8 +212,9 @@ public class Nl80211Native {
         }
         List<String> interfaceNames = new ArrayList<>();
         for (GenericNetlinkMsg response : responses) {
-            if (response.getAttribute(NL80211_ATTR_IFNAME) != null) {
-                interfaceNames.add(response.getAttribute(NL80211_ATTR_IFNAME).getValueAsString());
+            if (response.getAttribute(NL80211_ATTR_IFNAME.toShort()) != null) {
+                interfaceNames.add(response.getAttribute(NL80211_ATTR_IFNAME.toShort())
+                        .getValueAsString());
             }
         }
         return interfaceNames;
