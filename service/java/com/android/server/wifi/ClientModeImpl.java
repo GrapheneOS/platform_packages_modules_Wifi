@@ -1982,6 +1982,26 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     /**
+     * Special version of disconnect for handling API call of {@link WifiManager#disconnect()}
+     * @param uid calling app uid
+     */
+    public void disconnect(int uid) {
+        if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
+            boolean isUserTriggered = mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                    || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid);
+            WifiConfiguration config = getConnectedWifiConfigurationInternal();
+            if (mNetworkFactory.isConnectedToConfig(config)) {
+                // TODO (b/449257685): Add dialog to ask for user confirmation if this is user
+                // triggered.
+                mNetworkFactory.onDisconnectionExpected(
+                        WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API,
+                        isUserTriggered);
+            }
+        }
+        disconnect();
+    }
+
+    /**
      * Initiate a reconnection to AP
      */
     public void reconnect(WorkSource workSource) {

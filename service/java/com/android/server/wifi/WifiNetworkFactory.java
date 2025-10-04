@@ -2136,6 +2136,60 @@ public class WifiNetworkFactory extends NetworkFactory {
     }
 
     /**
+     * Check whether the input config matches with the currently connected network specifier
+     * @param config WifiConfiguration to check
+     * @return true if match
+     */
+    public boolean isConnectedToConfig(@Nullable WifiConfiguration config) {
+        if (config == null
+                || mConnectedSpecificNetworkRequest == null
+                || mConnectedSpecificNetworkRequestSpecifier == null
+                || mConnectedSpecificNetworkRequestSpecifier.wifiConfiguration == null
+                || !config.fromWifiNetworkSpecifier) {
+            return false;
+        }
+        return config.getProfileKey().equals(
+                mConnectedSpecificNetworkRequestSpecifier.wifiConfiguration.getProfileKey());
+    }
+
+    /**
+     * Called by the framework when disconnection is imminent due to the given reason.
+     * @param reason reason for disconnection
+     * @param isUserTriggered true if the disconnection is user triggered
+     */
+    public void onDisconnectionExpected(
+            @WifiManager.LocalOnlyDisconnectionStatusCode int reason, boolean isUserTriggered) {
+        if (mConnectedSpecificNetworkRequest != null
+                && mConnectedSpecificNetworkRequestSpecifier != null) {
+            sendDisconnectionFailureIfAllowed(
+                    mConnectedSpecificNetworkRequest.getRequestorPackageName(),
+                    mConnectedSpecificNetworkRequestSpecifier, reason, isUserTriggered);
+        }
+    }
+
+    private void sendDisconnectionFailureIfAllowed(String packageName,
+            WifiNetworkSpecifier networkSpecifier, int disconnectReason, boolean isUserTriggered) {
+        RemoteCallbackList<ILocalOnlyDisconnectionStatusListener> listenersTracker =
+                mLocalOnlyDisconnectionStatusListenerPerApp.get(packageName);
+        if (listenersTracker == null || listenersTracker.getRegisteredCallbackCount() == 0) {
+            return;
+        }
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "Sending disconnection reason event to " + packageName);
+        }
+        final int n = listenersTracker.beginBroadcast();
+        for (int i = 0; i < n; i++) {
+            try {
+                listenersTracker.getBroadcastItem(i).onDisconnectionStatus(networkSpecifier,
+                        isUserTriggered, disconnectReason);
+            } catch (RemoteException e) {
+                Log.e(TAG, "sendDisconnectionFailureIfAllowed: remote exception -- " + e);
+            }
+        }
+        listenersTracker.finishBroadcast();
+    }
+
+    /**
      * Add a listener to get the disconnection of the local-only conncetion
      */
     public void addLocalOnlyDisconnectionStatusListener(

@@ -1410,6 +1410,11 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     @Override
+    public void disconnect(int uid) {
+        getClientMode().disconnect(uid);
+    }
+
+    @Override
     public void reconnect(WorkSource ws) {
         getClientMode().reconnect(ws);
     }
