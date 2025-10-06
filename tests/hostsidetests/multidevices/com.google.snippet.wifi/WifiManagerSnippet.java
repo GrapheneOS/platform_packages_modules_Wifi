@@ -126,6 +126,22 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         }
 
         @Override
+        public void onConnectedClientsChanged(@NonNull List<WifiClient> clients) {
+            Log.d(TAG, "onConnectedClientsChanged, clients=" + clients);
+            SnippetEvent event = new SnippetEvent(mCallbackId, "onConnectedClientsChanged");
+            mConnectedClientsCount = clients.size();
+            event.getData().putInt("connectedClientsCount", mConnectedClientsCount);
+            String macAddress = null;
+            if (!clients.isEmpty()) {
+                // In our Mobly test cases, there is only ever one other device.
+                WifiClient client = clients.get(0);
+                macAddress = client.getMacAddress().toString();
+            }
+            event.getData().putString("clientMacAddress", macAddress);
+            EventCache.getInstance().postEvent(event);
+        }
+
+        @Override
         public void onConnectedClientsChanged(@NonNull SoftApInfo info,
                 @NonNull List<WifiClient> clients) {
             Log.d(TAG, "onConnectedClientsChanged, info=" + info + ", clients=" + clients);
