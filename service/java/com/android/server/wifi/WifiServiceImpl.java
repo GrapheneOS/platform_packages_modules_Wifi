@@ -44,6 +44,7 @@ import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_DIRECT;
 import static android.net.wifi.WifiManager.WIFI_INTERFACE_TYPE_STA;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.net.wifi.WifiManager.WifiStateChangedListener;
+import static android.os.Process.INVALID_UID;
 import static android.os.Process.WIFI_UID;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
@@ -398,6 +399,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     private final WifiResourceCache mResourceCache;
     private boolean mIsUsdSupported = false;
     private int mDeviceMobilityState = WifiManager.DEVICE_MOBILITY_STATE_UNKNOWN;
+    @VisibleForTesting
+    int mMobilityDetectionAppUid = INVALID_UID;
 
     /**
      * Callback for use with LocalOnlyHotspot to unregister requesting applications upon death.
@@ -7143,14 +7146,30 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.WIFI_SET_DEVICE_MOBILITY_STATE, "WifiService");
 
+        int uid = Binder.getCallingUid();
         if (mVerboseLoggingEnabled) {
             mLog.info("setDeviceMobilityState uid=% state=%")
-                    .c(Binder.getCallingUid())
+                    .c(uid)
                     .c(state)
                     .flush();
         }
         // Post operation to handler thread
         mWifiThreadRunner.post(() -> {
+            if (mMobilityDetectionAppUid == INVALID_UID) {
+                if (mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(uid)) {
+                    mMobilityDetectionAppUid = uid; // prioritize the first app that has
+                                                    // MANAGE_WIFI_NETWORK_SELECTION permission
+                }
+            } else if (mMobilityDetectionAppUid != uid) {
+                if (mVerboseLoggingEnabled) {
+                    mLog.info("setDeviceMobilityState: uid=% is ignored, % is the expected UID.")
+                            .c(uid)
+                            .c(mMobilityDetectionAppUid)
+                            .flush();
+                }
+                return;
+            }
+
             if (state == mDeviceMobilityState) {
                 // Ignore repeated mobility state updates
                 return;

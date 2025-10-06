@@ -57,6 +57,7 @@ import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
+import static android.os.Process.INVALID_UID;
 import static android.os.Process.WIFI_UID;
 import static android.os.Process.myUid;
 
@@ -7936,6 +7937,54 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConnectivityManager, times(1))
                 .setDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
         verifyNoMoreInteractions(mWifiConnectivityManager);
+    }
+
+    @Test
+    public void setDeviceMobilityStateMobilityDetectionAppUidIsInvalid() {
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(INVALID_UID);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
+
+        mWifiServiceImpl.setDeviceMobilityState(DEVICE_MOBILITY_STATE_STATIONARY);
+        mLooper.dispatchAll();
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(INVALID_UID);
+    }
+
+    @Test
+    public void setDeviceMobilityStateMobilityDetectionAppUidIsValid() {
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(INVALID_UID);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+
+        mWifiServiceImpl.setDeviceMobilityState(DEVICE_MOBILITY_STATE_STATIONARY);
+        mLooper.dispatchAll();
+
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(Binder.getCallingUid());
+        verify(mWifiConnectivityManager).setDeviceMobilityState(DEVICE_MOBILITY_STATE_STATIONARY);
+        mWifiServiceImpl.setDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
+        mLooper.dispatchAll();
+        verify(mWifiConnectivityManager).setDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
+    }
+
+    @Test
+    public void setDeviceMobilityStateIgnoredWhenAppUidDoesNotMatch() {
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(INVALID_UID);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+        mWifiServiceImpl.setDeviceMobilityState(DEVICE_MOBILITY_STATE_STATIONARY);
+        mLooper.dispatchAll();
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(Binder.getCallingUid());
+        verify(mWifiConnectivityManager)
+                .setDeviceMobilityState(DEVICE_MOBILITY_STATE_STATIONARY);
+
+        // Set the uid to a different value to simulate a different app setting the state.
+        mWifiServiceImpl.mMobilityDetectionAppUid++;
+        mWifiServiceImpl.setDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
+        mLooper.dispatchAll();
+
+        verify(mWifiConnectivityManager, never())
+                .setDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(Binder.getCallingUid() + 1);
     }
 
     /**
