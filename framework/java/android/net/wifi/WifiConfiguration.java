@@ -4874,7 +4874,8 @@ public class WifiConfiguration implements Parcelable {
         // when we can't identify it from creator uid
         int userIdFromUid = UserHandle.getUserHandleForUid(creatorUid).getIdentifier();
         if (Flags.multiUserWifiEnhancement()) {
-            return userIdFromUid == UserHandle.SYSTEM.getIdentifier()
+            return (userIdFromUid == UserHandle.SYSTEM.getIdentifier()
+                    && mCreatorUserId != -2 /* UserHandle.USER_CURRENT */)
                     ? mCreatorUserId : userIdFromUid;
         }
         return userIdFromUid;
