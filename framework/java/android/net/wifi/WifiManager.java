@@ -555,7 +555,9 @@ public class WifiManager {
             API_WIFI_SCANNER_START_SCAN,
             API_SET_TDLS_ENABLED,
             API_SET_TDLS_ENABLED_WITH_MAC_ADDRESS,
-            API_P2P_DISCOVER_PEERS_WITH_CONFIG_PARAMS
+            API_P2P_DISCOVER_PEERS_WITH_CONFIG_PARAMS,
+            API_SET_PNO_SCAN_SCHEDULE,
+            API_DISCONNECT
     })
     public @interface ApiType {}
 
@@ -938,10 +940,20 @@ public class WifiManager {
     public static final int API_SET_PNO_SCAN_SCHEDULE = 38;
 
     /**
+     * A constant used in
+     * {@link WifiManager#getLastCallerInfoForApi(int, Executor, BiConsumer)}
+     * Tracks usage of {@link WifiManager#disconnect()}
+     * @hide
+     */
+    @FlaggedApi(Flags.FLAG_LAST_CALLER_26Q2)
+    @SystemApi
+    public static final int API_DISCONNECT = 39;
+
+    /**
      * Used internally to keep track of boundary.
      * @hide
      */
-    public static final int API_MAX = 39;
+    public static final int API_MAX = 40;
 
     /**
      * Broadcast intent action indicating that a Passpoint provider icon has been received.
