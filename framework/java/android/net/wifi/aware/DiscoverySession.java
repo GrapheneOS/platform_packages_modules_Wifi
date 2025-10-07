@@ -420,27 +420,26 @@ public class DiscoverySession implements AutoCloseable {
      * @param method one of the AwarePairingConfig#PAIRING_BOOTSTRAPPING_ values, should match one
      *               of the methods received from {@link ServiceDiscoveryInfo#getPairingConfig()}
      *               {@link AwarePairingConfig#getBootstrappingMethods()}
-     * @param serviceSpecificInfo A byte-array for the service-specific information field.
+     * @param message The message to be transmitted.
      */
     @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
     @RequiresApi(37)
     public void initiateBootstrappingRequest(@NonNull PeerHandle peerHandle,
             @AwarePairingConfig.BootstrappingMethod int method,
-            @NonNull byte[] serviceSpecificInfo) {
+            @NonNull byte[] message) {
         // TODO(448750335): Remove this for local testing, will add back after new SDK finilized.
         // if (!isSdkNewerThanB()) {
         //    throw new UnsupportedOperationException();
         // }
-        if (serviceSpecificInfo == null) {
-            throw new IllegalArgumentException("serviceSpecificInfo must not be null");
+        if (message == null) {
+            throw new IllegalArgumentException("message must not be null");
         }
         WifiAwareManager mgr = mMgr.get();
         if (mgr == null) {
             Log.w(TAG, "initiateBootstrappingRequest: called post GC on WifiAwareManager");
             return;
         }
-        mgr.initiateBootStrappingSetupRequest(mClientId, mSessionId, peerHandle, method,
-                serviceSpecificInfo);
+        mgr.initiateBootStrappingSetupRequest(mClientId, mSessionId, peerHandle, method, message);
     }
 
     /**

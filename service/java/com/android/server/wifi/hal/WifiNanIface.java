@@ -847,7 +847,7 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          * Indicates that the bootstrapping request is from the peer device.
          */
         void eventBootstrappingRequest(int discoverySessionId, int peerId, byte[] peerDiscMacAddr,
-                int bootstrappingInstanceId, int method);
+                int bootstrappingInstanceId, int method, byte[] serviceSpecificInfo);
 
         /**
          * Indicates that the bootstrapping is finished

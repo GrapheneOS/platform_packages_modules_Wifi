@@ -1450,7 +1450,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      * Respond to a bootstrapping request
      */
     private void respondToBootstrappingRequest(int clientId, int sessionId, int peerId,
-            int bootstrappingId, boolean accept, int method) {
+            int bootstrappingId, boolean accept, int method, byte[] serviceSpecificInfo) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_RESPONSE_BOOTSTRAPPING_REQUEST;
         msg.arg2 = clientId;
@@ -1459,6 +1459,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_ACCEPT, accept);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD, method);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_REQUEST_ID, bootstrappingId);
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_SSI_DATA, serviceSpecificInfo);
         mSm.sendMessage(msg);
     }
 
@@ -2196,7 +2197,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      * received.
      */
     public void onBootstrappingRequestNotification(int pubSubId, int requestorInstanceId,
-            byte[] mac, int bootstrappingInstanceId, int method) {
+            byte[] mac, int bootstrappingInstanceId, int method, byte[] serviceSpecificInfo) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_NOTIFICATION);
         msg.arg1 = NOTIFICATION_TYPE_ON_BOOTSTRAPPING_REQUEST;
         msg.arg2 = pubSubId;
@@ -2204,6 +2205,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_REQUEST_ID, bootstrappingInstanceId);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_REQ_INSTANCE_ID, requestorInstanceId);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD, method);
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_SSI_DATA, serviceSpecificInfo);
         mSm.sendMessage(msg);
     }
 
@@ -2816,8 +2818,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     int requestorInstanceId = data.getInt(MESSAGE_BUNDLE_KEY_REQ_INSTANCE_ID);
                     byte[] mac = data.getByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS);
                     int method = data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD);
+                    byte[] serviceSpecificInfo = data.getByteArray(
+                            MESSAGE_BUNDLE_KEY_SSI_DATA);
                     onBootstrappingRequestReceivedLocal(pubSubId, requestorInstanceId, mac,
-                            bootStrappingId, method);
+                            bootStrappingId, method, serviceSpecificInfo);
                     break;
                 }
                 case NOTIFICATION_TYPE_ON_PAIRING_CONFIRM: {
@@ -5082,7 +5086,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return;
         }
         if (data.getBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_ACCEPT)) {
-            session.onBootstrappingResponseConfirmed(info.mPeerId, info.mMethod);
+            session.onBootstrappingResponseConfirmed(info.mPeerId, info.mMethod, info.mSsi);
         }
     }
 
@@ -5503,7 +5507,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private void onBootstrappingRequestReceivedLocal(int discoverySessionId, int peerId,
-            byte[] peerDiscMacAddr, int bootstrappingId, int method) {
+            byte[] peerDiscMacAddr, int bootstrappingId, int method, byte[] serviceSpecificInfo) {
         Pair<WifiAwareClientState, WifiAwareDiscoverySessionState> data =
                 getClientSessionForPubSubId(discoverySessionId);
         if (data == null) {
@@ -5514,11 +5518,11 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (data.second.getMatchedBootstrappingMethod(method) != 0) {
             respondToBootstrappingRequest(data.first.getClientId(), data.second.getSessionId(),
                     data.second.getPeerIdOrAddIfNew(peerId, peerDiscMacAddr), bootstrappingId,
-                    true, method);
+                    true, method, serviceSpecificInfo);
         } else {
             respondToBootstrappingRequest(data.first.getClientId(), data.second.getSessionId(),
                     data.second.getPeerIdOrAddIfNew(peerId, peerDiscMacAddr), bootstrappingId,
-                    false, method);
+                    false, method, serviceSpecificInfo);
         }
     }
 

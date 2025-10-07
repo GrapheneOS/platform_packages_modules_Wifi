@@ -17,9 +17,11 @@
 package android.net.wifi.aware;
 
 import static com.android.ranging.flags.Flags.FLAG_RANGING_RTT_ENABLED;
+import static com.android.wifi.flags.Flags.FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST;
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.annotation.SystemApi;
 import android.net.wifi.rtt.RangingResult;
 
@@ -371,11 +373,34 @@ public class DiscoverySessionCallback {
      * The follow-up out-of-band bootstrapping can start
      *
      * @param peerHandle The bootstrapping peer handle
-     * @param method     The bootstrapping method accept by the peer
+     * @param method     The bootstrapping method accepted by the peer
+     *
+     * @deprecated Use {@link #onBootstrappingSucceeded(PeerHandle, int, byte[])} instead. 
+     *             Once the new callback is overrided, this callback will not be triggered.
      */
+    @Deprecated
+    @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
     public void onBootstrappingSucceeded(@NonNull PeerHandle peerHandle,
             @AwarePairingConfig.BootstrappingMethod int method){
 
+    }
+
+    /**
+     * Callback indicating that a Bootstrapping method negotiation succeeded.
+     * The follow-up out-of-band bootstrapping can start
+     *
+     * @param peerHandle The bootstrapping peer handle
+     * @param method     The bootstrapping method accepted by the peer
+     * @param message    An arbitrary byte array sent by the peer as part of its bootstrapping
+     *                   request {@link DiscoverySession#initiateBootstrappingRequest(PeerHandle, int, byte[])}.
+     *                   It will be non-null only on publisher side when the peer sets a message in
+     *                   its bootstrapping request. It will always be null on subscriber side.
+     */
+    @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
+    public void onBootstrappingSucceeded(@NonNull PeerHandle peerHandle,
+            @AwarePairingConfig.BootstrappingMethod int method,
+            @Nullable byte[] message){
+        onBootstrappingSucceeded(peerHandle, method);
     }
 
     /**
