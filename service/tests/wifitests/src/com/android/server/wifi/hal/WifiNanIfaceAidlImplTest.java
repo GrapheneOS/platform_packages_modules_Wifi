@@ -79,6 +79,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -294,6 +295,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assumeTrue(SdkLevel.isAtLeastU());
         short tid = 250;
         byte pid = 34;
+        byte[] ssi = "some info".getBytes(StandardCharsets.UTF_8);
         AwarePairingConfig awarePairingConfig = new AwarePairingConfig.Builder()
                 .setPairingCacheEnabled(true)
                 .setPairingSetupEnabled(true)
@@ -304,6 +306,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         PublishConfig config = new PublishConfig.Builder()
                 .setServiceName("XXX")
                 .setPairingConfig(awarePairingConfig)
+                .setServiceSpecificInfo(ssi)
                 .build();
         ArgumentCaptor<NanPublishRequest> pubCaptor = ArgumentCaptor.forClass(
                 NanPublishRequest.class);
@@ -325,6 +328,8 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assertTrue(halPubReq.baseConfigs.securityConfig.requiresEnhancedFrameProtection);
         assertTrue(halPubReq.baseConfigs.securityConfig.supportBigtksa);
         assertTrue(halPubReq.baseConfigs.securityConfig.supportGtkAndIgtk);
+        assertArrayEquals(ssi, halPubReq.baseConfigs.extendedServiceSpecificInfo);
+        assertArrayEquals(ssi, halPubReq.baseConfigs.serviceSpecificInfo);
     }
 
     @Test
@@ -332,6 +337,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assumeTrue(SdkLevel.isAtLeastU());
         short tid = 250;
         byte pid = 34;
+        byte[] ssi = "some info".getBytes(StandardCharsets.UTF_8);
         AwarePairingConfig awarePairingConfig = new AwarePairingConfig.Builder()
                 .setPairingCacheEnabled(true)
                 .setPairingSetupEnabled(true)
@@ -342,6 +348,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         SubscribeConfig config = new SubscribeConfig.Builder()
                 .setServiceName("XXX")
                 .setPairingConfig(awarePairingConfig)
+                .setServiceSpecificInfo(ssi)
                 .build();
         ArgumentCaptor<NanSubscribeRequest> subCaptor = ArgumentCaptor.forClass(
                 NanSubscribeRequest.class);
@@ -361,6 +368,8 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assertTrue(halSubReq.baseConfigs.securityConfig.requiresEnhancedFrameProtection);
         assertTrue(halSubReq.baseConfigs.securityConfig.supportBigtksa);
         assertTrue(halSubReq.baseConfigs.securityConfig.supportGtkAndIgtk);
+        assertArrayEquals(ssi, halSubReq.baseConfigs.serviceSpecificInfo);
+        assertArrayEquals(ssi, halSubReq.baseConfigs.extendedServiceSpecificInfo);
     }
 
 
