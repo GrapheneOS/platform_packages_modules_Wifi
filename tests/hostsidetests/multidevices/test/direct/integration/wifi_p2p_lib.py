@@ -237,6 +237,7 @@ def p2p_connection_ping_test(dut: android_device.AndroidDevice, peer_ip: str):
     results = dut.adb.shell(cmd)
 
   dut.log.info(results)
+  return results
 
 
 def gen_test_data(service_category):
