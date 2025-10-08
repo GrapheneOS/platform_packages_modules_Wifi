@@ -129,17 +129,6 @@ flag {
 }
 
 flag {
-    name: "new_uri_parsing_for_escape_character"
-    namespace: "wifi"
-    description: "New parsing logic for Zxing uri format which support escape character"
-    bug: "342706482"
-    is_fixed_read_only: true
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "aware_pairing"
     is_exported: true
     namespace: "wifi"

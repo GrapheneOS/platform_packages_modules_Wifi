@@ -92,15 +92,6 @@ public class WifiUriParserTest {
 
     @Test
     public void testZxParsing() {
-        ExtendedMockito.when(WifiUriParser.mockableIsFlagNewUriParsingForEscapeCharacterEnabled())
-                .thenReturn(false);
-        testZxParsing(false);
-        ExtendedMockito.when(WifiUriParser.mockableIsFlagNewUriParsingForEscapeCharacterEnabled())
-                .thenReturn(true);
-        testZxParsing(true);
-    }
-
-    public void testZxParsing(boolean isNewParserSupported) {
         // Test no password
         List<SecurityParams> expectedSecurityParamsList =
                 ImmutableList.of(
@@ -132,25 +123,23 @@ public class WifiUriParserTest {
                 null,
                 false);
 
-        if (isNewParserSupported) {
-            // The \\ in the end of ssid but it should work.
-            uri = WifiUriParser.parseUri("WIFI:S:testAbC\\\\; T:nopass");
-            verifyZxParsing(
-                    uri,
-                    "\"testAbC\\\"",
-                    expectedSecurityParamsList,
-                    null,
-                    false);
+        // The \\ in the end of ssid but it should work.
+        uri = WifiUriParser.parseUri("WIFI:S:testAbC\\\\; T:nopass");
+        verifyZxParsing(
+                uri,
+                "\"testAbC\\\"",
+                expectedSecurityParamsList,
+                null,
+                false);
 
-            // The \; and \\ in the end of ssid but it should work.
-            uri = WifiUriParser.parseUri("WIFI:S:test 123\\;\\\\\\;; T:nopass");
-            verifyZxParsing(
-                    uri,
-                    "\"test 123;\\;\"",
-                    expectedSecurityParamsList,
-                    null,
-                    false);
-        }
+        // The \; and \\ in the end of ssid but it should work.
+        uri = WifiUriParser.parseUri("WIFI:S:test 123\\;\\\\\\;; T:nopass");
+        verifyZxParsing(
+                uri,
+                "\"test 123;\\;\"",
+                expectedSecurityParamsList,
+                null,
+                false);
         // Test WEP
         expectedSecurityParamsList =
                 ImmutableList.of(
@@ -185,16 +174,14 @@ public class WifiUriParserTest {
                 "\"3#=3j9 asicla\"",
                 false);
 
-        if (isNewParserSupported) {
-            // The " in the start and end of ssid but it should work.
-            uri = WifiUriParser.parseUri("WIFI:S:\"\"\"\"; T:WPA; P:\"\"");
-            verifyZxParsing(
-                    uri,
-                    "\"\"\"\"\"\"",
-                    expectedSecurityParamsList,
-                    "\"\"\"\"",
-                    false);
-        }
+        // The " in the start and end of ssid but it should work.
+        uri = WifiUriParser.parseUri("WIFI:S:\"\"\"\"; T:WPA; P:\"\"");
+        verifyZxParsing(
+                uri,
+                "\"\"\"\"\"\"",
+                expectedSecurityParamsList,
+                "\"\"\"\"",
+                false);
 
         // invalid code but it should work.
         uri = WifiUriParser.parseUri("WIFI: S:anotherone;T:WPA;P:abcdefghihklmn");
