@@ -39,6 +39,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import android.content.Context;
 import android.net.util.SocketUtils;
 import android.net.wifi.SynchronousExecutor;
 import android.os.Handler;
@@ -52,6 +53,11 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.net.module.util.netlink.NetlinkUtils;
 import com.android.net.module.util.netlink.StructNlAttr;
 import com.android.net.module.util.netlink.StructNlMsgHdr;
+import com.android.server.wifi.Clock;
+import com.android.server.wifi.FrameworkFacade;
+import com.android.server.wifi.WifiDeviceStateChangeManager;
+import com.android.server.wifi.WifiMetrics;
+import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.wifi.flags.Flags;
 
 import org.junit.After;
@@ -80,6 +86,7 @@ public class Nl80211ProxyTest {
     private MockitoSession mSession;
     private TestLooper mWifiLooper;
     private Handler mWifiHandler;
+    private WifiMetrics mWifiMetrics;
 
     @Mock FileDescriptor mFileDescriptor;
     @Mock Nl80211Proxy.NetlinkResponseListener mResponseListener;
@@ -87,6 +94,10 @@ public class Nl80211ProxyTest {
     @Mock Looper mBackgroundLooper;
     @Mock MessageQueue mBackgroundMessageQueue;
     @Mock Nl80211BroadcastMonitor.Nl80211BroadcastCallback mBroadcastCallback;
+    @Mock Context mContext;
+    @Mock FrameworkFacade mFacade;
+    @Mock Clock mClock;
+    @Mock WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
 
     @Captor ArgumentCaptor<List<GenericNetlinkMsg>> mMessageListCaptor;
 
@@ -100,6 +111,7 @@ public class Nl80211ProxyTest {
                 .mockStatic(NetlinkUtils.class, withSettings().lenient())
                 .mockStatic(Os.class)
                 .mockStatic(SocketUtils.class)
+                .mockStatic(WifiStatsLog.class)
                 .startMocking();
         when(NetlinkUtils.netlinkSocketForProto(anyInt())).thenReturn(mFileDescriptor);
         when(Flags.nl80211ProxyEnabled()).thenReturn(true);
@@ -107,13 +119,27 @@ public class Nl80211ProxyTest {
         // Use a test looper to dispatch events in the tests.
         mWifiLooper = new TestLooper();
         mWifiHandler = new Handler(mWifiLooper.getLooper());
+        mWifiMetrics =
+                new WifiMetrics(
+                        mContext,
+                        mFacade,
+                        mClock,
+                        mWifiLooper.getLooper(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        mWifiDeviceStateChangeManager,
+                        null);
 
         // Mock the background thread to avoid running the broadcast monitor.
         when(BackgroundThread.getHandler()).thenReturn(mBackgroundHandler);
         when(mBackgroundHandler.getLooper()).thenReturn(mBackgroundLooper);
         when(mBackgroundLooper.getQueue()).thenReturn(mBackgroundMessageQueue);
 
-        mDut = new Nl80211Proxy(mWifiHandler);
+        mDut = new Nl80211Proxy(mWifiHandler, mWifiMetrics);
         initializeDut();
     }
 
@@ -231,6 +257,11 @@ public class Nl80211ProxyTest {
         List<GenericNetlinkMsg> receivedResponses = mDut.sendMessageAndReceiveResponses(requestMsg);
         assertEquals(1, receivedResponses.size());
         assertTrue(errorResponse.equals(receivedResponses.get(0)));
+
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
+                Nl80211TestUtils.TEST_COMMAND + 15,
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_ERROR));
     }
 
     /**
@@ -266,6 +297,11 @@ public class Nl80211ProxyTest {
         assertTrue(response1.equals(receivedResponses.get(0)));
         assertTrue(response2.equals(receivedResponses.get(1)));
         assertTrue(doneResponse.equals(receivedResponses.get(2)));
+
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
+                Nl80211TestUtils.TEST_COMMAND + 17,
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_DONE));
     }
 
     /**
@@ -288,6 +324,11 @@ public class Nl80211ProxyTest {
 
         verify(mResponseListener).onResponse(mMessageListCaptor.capture());
         assertTrue(response.equals(mMessageListCaptor.getValue().get(0)));
+
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
+                Nl80211TestUtils.TEST_COMMAND,
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_DONE_NO_MULTI));
     }
 
     /**
@@ -296,7 +337,7 @@ public class Nl80211ProxyTest {
     @Test
     public void testCreateNl80211Request() throws Exception {
         // Expect failure if the Nl80211Proxy has not been initialized
-        mDut = new Nl80211Proxy(mWifiHandler);
+        mDut = new Nl80211Proxy(mWifiHandler, mWifiMetrics);
         assertNull(mDut.createNl80211Request(Nl80211TestUtils.TEST_COMMAND));
 
         // Expect that the message can be created after initialization,
@@ -328,7 +369,7 @@ public class Nl80211ProxyTest {
     @Test
     public void testRegisterAndUnregisterBroadcastCallback() throws Exception {
         short eventType = 123;
-        mDut = new Nl80211Proxy(mWifiHandler);
+        mDut = new Nl80211Proxy(mWifiHandler, mWifiMetrics);
 
         // Expect failure before initialization
         assertFalse(mDut.registerBroadcastCallback(eventType, mBroadcastCallback));

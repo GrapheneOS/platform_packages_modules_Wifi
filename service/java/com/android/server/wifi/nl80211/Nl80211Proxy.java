@@ -41,6 +41,8 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.net.module.util.netlink.NetlinkUtils;
 import com.android.net.module.util.netlink.StructNlAttr;
 import com.android.net.module.util.netlink.StructNlMsgHdr;
+import com.android.server.wifi.WifiMetrics;
+import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.wifi.flags.Flags;
 
 import java.io.FileDescriptor;
@@ -64,6 +66,7 @@ public class Nl80211Proxy {
             NL80211_MULTICAST_GROUP_REG,
             NL80211_MULTICAST_GROUP_MLME};
 
+    private WifiMetrics mWifiMetrics;
     private boolean mIsInitialized;
     private FileDescriptor mNetlinkFd;
     private short mNl80211FamilyId;
@@ -84,8 +87,9 @@ public class Nl80211Proxy {
         void onResponse(@Nullable List<GenericNetlinkMsg> responses);
     }
 
-    public Nl80211Proxy(Handler wifiHandler) {
+    public Nl80211Proxy(Handler wifiHandler, WifiMetrics wifiMetrics) {
         mWifiHandler = wifiHandler;
+        mWifiMetrics = wifiMetrics;
     }
 
     private int getSequenceNumber() {
@@ -117,26 +121,34 @@ public class Nl80211Proxy {
     }
 
     private static @Nullable List<GenericNetlinkMsg> parseNl80211MessagesFromBuffer(
-            @NonNull ByteBuffer buffer) {
+            @NonNull ByteBuffer buffer, @NonNull WifiMetrics wifiMetrics) {
         if (buffer == null) return null;
         List<GenericNetlinkMsg> messages = new ArrayList<>();
         while (buffer.remaining() > 0) {
             GenericNetlinkMsg message = GenericNetlinkMsg.parse(buffer);
             if (message == null) {
                 Log.e(TAG, "Unable to parse a received message");
+                wifiMetrics.reportNl80211CommandResult(null,
+                        WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_NULL);
                 return null;
             }
             messages.add(message);
             if (message.isDoneMsg()) {
                 Log.i(TAG, "Received NLMSG_DONE");
+                wifiMetrics.reportNl80211CommandResult(message,
+                        WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_DONE);
                 break;
             }
             if (message.isErrorMsg()) {
                 Log.e(TAG, "Received NLMSG_ERROR: " + message);
+                wifiMetrics.reportNl80211CommandResult(message,
+                        WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_ERROR);
                 break;
             }
             if (!message.isFlagEnabled(StructNlMsgHdr.NLM_F_MULTI)) {
                 Log.i(TAG, "Multi flag is not set");
+                wifiMetrics.reportNl80211CommandResult(message,
+                        WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_DONE_NO_MULTI);
                 break;
             }
         }
@@ -156,7 +168,7 @@ public class Nl80211Proxy {
                                 NetlinkUtils.DEFAULT_RECV_BUFSIZE,
                                 NetlinkUtils.IO_TIMEOUT_MS);
                 // Parse the individual messages from the batch.
-                List<GenericNetlinkMsg> parsedMessages = parseNl80211MessagesFromBuffer(recvBuffer);
+                List<GenericNetlinkMsg> parsedMessages = parseNl80211MessagesFromBuffer(recvBuffer, mWifiMetrics);
                 if (parsedMessages == null || parsedMessages.isEmpty()) {
                     return null;
                 }
@@ -169,6 +181,8 @@ public class Nl80211Proxy {
                 }
             }
         } catch (ErrnoException | IllegalArgumentException | InterruptedIOException e) {
+            mWifiMetrics.reportNl80211CommandResult(null,
+                    WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_EXCEPTION);
             Log.i(TAG, "Unable to receive Nl80211 messages. " + e);
             return null;
         }
@@ -220,15 +234,22 @@ public class Nl80211Proxy {
      */
     public @Nullable List<GenericNetlinkMsg> sendMessageAndReceiveResponses(
             @NonNull GenericNetlinkMsg message) {
+
         if (mNetlinkFd == null) {
+            mWifiMetrics.reportNl80211CommandResult(message,
+                    WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__SEND_FD_UNAVAILABLE);
             Log.e(TAG, "Netlink file descriptor is not available");
             return null;
         }
         if (message == null) {
+            mWifiMetrics.reportNl80211CommandResult(message,
+                    WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__SEND_NLMSG_NULL);
             Log.e(TAG, "Unable to send a null message");
             return null;
         }
         if (!sendNl80211Message(message)) {
+            mWifiMetrics.reportNl80211CommandResult(message,
+                    WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__SEND_NLMSG_FAILED);
             return null;
         }
         return receiveNl80211Messages();

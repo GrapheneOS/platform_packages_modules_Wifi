@@ -56,6 +56,7 @@ public class NetlinkConstants {
     public static final String NL80211_MULTICAST_GROUP_MLME = "mlme";
 
     // Nl80211 commands. See kernel/uapi/linux/nl80211.h
+    // Please make sure command is also added into enums/wifi/enums.proto
     public static final short NL80211_CMD_GET_INTERFACE = 5;
 
     // Nl80211 attributes. See kernel/uapi/linux/nl80211.h
