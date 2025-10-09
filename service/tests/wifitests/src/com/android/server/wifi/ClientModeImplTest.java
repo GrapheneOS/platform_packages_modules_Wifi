@@ -6722,6 +6722,7 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void verifyWifiInfoGetNetworkSpecifierPackageName() throws Exception {
+        when(com.android.wifi.flags.Flags.localOnlyDisconnectReason()).thenReturn(true);
         mConnectedNetwork.fromWifiNetworkSpecifier = true;
         mConnectedNetwork.ephemeral = true;
         mConnectedNetwork.trusted = true;
@@ -6738,6 +6739,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiConfigManager, never()).userTemporarilyDisabledNetwork(
                 eq(mConnectedNetwork.SSID), anyInt());
         // Setup new manual connection to another network
+        when(mWifiNetworkFactory.isConnectedToConfig(mConnectedNetwork)).thenReturn(true);
         WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
         config.networkId = TEST_NETWORK_ID;
         when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(config);
@@ -6754,6 +6756,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         // blocklist
         verify(mWifiConfigManager).userTemporarilyDisabledNetwork(eq(mConnectedNetwork.SSID),
                 anyInt());
+        verify(mWifiNetworkFactory).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION, true);
     }
 
     /**

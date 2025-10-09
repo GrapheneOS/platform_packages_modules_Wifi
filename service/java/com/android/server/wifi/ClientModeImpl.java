@@ -1539,6 +1539,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         }
                     }, mWifiThreadRunner).launchDialog();
         } else {
+            boolean isUserSelectedBeforeOverride = mIsUserSelected;
             if (mIsUserSelected && ATTRIBUTION_TAG_DISALLOW_CONNECT_CHOICE.equals(attributionTag)) {
                 mIsUserSelected = false;
                 logd("connectToUserSelectNetwork attributionTag override to disable user selected");
@@ -1557,6 +1558,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     // automatically connecting back to it.
                     mWifiConfigManager.userTemporarilyDisabledNetwork(config.SSID,
                             Process.WIFI_UID);
+                }
+                if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
+                    if (mNetworkFactory.isConnectedToConfig(config)) {
+                        mNetworkFactory.onDisconnectionExpected(
+                                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION,
+                                isUserSelectedBeforeOverride);
+                    }
                 }
             }
             startConnectToNetwork(netId, uid, SUPPLICANT_BSSID_ANY);
