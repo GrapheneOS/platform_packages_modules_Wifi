@@ -928,6 +928,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiEnabledMetricsPrivilegedApp() throws Exception {
+        when(mFeatureFlags.localOnlyDisconnectReason()).thenReturn(true);
         when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
@@ -938,8 +939,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
         InOrder inorder = inOrder(mWifiMetrics);
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         mLooper.dispatchAll();
+        verify(mWifiNetworkFactory, never()).onDisconnectionExpected(anyInt(), anyBoolean());
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, false));
         mLooper.dispatchAll();
+        verify(mWifiNetworkFactory).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISABLE_WIFI, true);
         verify(mWifiConnectivityManager).setAutoJoinEnabledExternal(true, false);
         inorder.verify(mWifiMetrics).logUserActionEvent(UserActionEvent.EVENT_TOGGLE_WIFI_ON);
         inorder.verify(mWifiMetrics).incrementNumWifiToggles(eq(true), eq(true));

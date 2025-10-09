@@ -207,6 +207,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     @Mock WifiConfigManager mWifiConfigManager;
     @Mock WakeupController mWakeupController;
     @Mock DeviceConfigFacade mDeviceConfigFacade;
+    @Mock WifiNetworkFactory mWifiNetworkFactory;
     @Mock FeatureFlags mFeatureFlags;
 
     Listener<ConcreteClientModeManager> mClientListener;
@@ -248,6 +249,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mWifiInjector.getWifiConnectivityManager()).thenReturn(mWifiConnectivityManager);
         when(mWifiInjector.getWifiConfigManager()).thenReturn(mWifiConfigManager);
         when(mWifiInjector.getWakeupController()).thenReturn(mWakeupController);
+        when(mWifiInjector.getWifiNetworkFactory()).thenReturn(mWifiNetworkFactory);
         when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
         when(mClientModeManager.getInterfaceName()).thenReturn(WIFI_IFACE_NAME);
         when(mContext.getResourceCache()).thenReturn(mWifiResourceCache);
@@ -1672,6 +1674,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
      */
     @Test
     public void testWifiRemainsOnAirplaneModeEnhancement() throws Exception {
+        when(mFeatureFlags.localOnlyDisconnectReason()).thenReturn(true);
         enterClientModeActiveState();
         assertInEnabledState();
         when(mSettingsStore.isAirplaneModeOn()).thenReturn(true);
@@ -1684,6 +1687,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         }, 0);
         verify(mLastCallerInfoManager, never()).put(eq(WifiManager.API_WIFI_ENABLED),
                 anyInt(), anyInt(), anyInt(), any(), anyBoolean());
+        verify(mWifiNetworkFactory, never()).onDisconnectionExpected(anyInt(), anyBoolean());
 
         // Wi-Fi shuts down when APM enhancement disabled
         assertWifiShutDown(() -> {
@@ -1693,6 +1697,8 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         });
         verify(mLastCallerInfoManager).put(eq(WifiManager.API_WIFI_ENABLED), anyInt(), anyInt(),
                 anyInt(), eq("android_apm"), eq(false));
+        verify(mWifiNetworkFactory).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_AIRPLANE_MODE_ON, true);
     }
 
     /**

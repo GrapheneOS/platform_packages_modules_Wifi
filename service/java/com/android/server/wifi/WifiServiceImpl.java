@@ -1757,7 +1757,9 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 mWifiEnableRequestDialogHandles.clear();
             }, TAG + "#setWifiEnabledInternal$1");
         }
-        if (mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)) {
+        boolean isUserTriggered = mWifiPermissionsUtil.checkNetworkSettingsPermission(callingUid)
+                || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(callingUid);
+        if (isUserTriggered) {
             if (enable) {
                 mWifiThreadRunner.post(
                         () -> mWifiConnectivityManager.setAutoJoinEnabledExternal(true, false),
@@ -1771,6 +1773,10 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         }
         if (!enable) {
             mWifiInjector.getInterfaceConflictManager().reset();
+            if (mFeatureFlags.localOnlyDisconnectReason()) {
+                mWifiNetworkFactory.onDisconnectionExpected(
+                        WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISABLE_WIFI, isUserTriggered);
+            }
         }
         mWifiMetrics.incrementNumWifiToggles(isPrivileged, enable);
         mWifiMetrics.reportWifiStateChanged(enable, mWifiInjector.getWakeupController().isUsable(),
