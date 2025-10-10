@@ -16,21 +16,25 @@
 
 package com.android.server.wifi;
 
-import static com.android.server.wifi.AdaptiveConnectivityEnabledSettingObserver.ADAPTIVE_CONNECTIVITY_WIFI_ENABLED;
 import static com.android.server.wifi.AdaptiveConnectivityEnabledSettingObserver.ADAPTIVE_CONNECTIVITY_ENABLED;
+import static com.android.server.wifi.AdaptiveConnectivityEnabledSettingObserver.ADAPTIVE_CONNECTIVITY_WIFI_ENABLED;
+
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assume.assumeTrue;
-import static org.mockito.ArgumentMatchers.any;
+
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
 import android.content.Context;
 import android.database.ContentObserver;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.test.TestLooper;
+import android.provider.Settings;
 
 import androidx.test.filters.SmallTest;
 
@@ -52,6 +56,8 @@ public class AdaptiveConnectivityEnabledSettingObserverTest extends WifiBaseTest
     @Mock private WifiMetrics mWifiMetrics;
     @Mock private FrameworkFacade mFrameworkFacade;
     @Mock private Context mContext;
+    private Uri mOldKeyUri;
+    private Uri mNewKeyUri;
 
     @Captor private ArgumentCaptor<ContentObserver> mContentObserverCaptor;
 
@@ -68,6 +74,8 @@ public class AdaptiveConnectivityEnabledSettingObserverTest extends WifiBaseTest
 
         // True pre-initialization
         assertThat(mAdaptiveConnectivityEnabledSettingObserver.get()).isTrue();
+        mOldKeyUri = Settings.Secure.getUriFor(ADAPTIVE_CONNECTIVITY_ENABLED);
+        mNewKeyUri = Settings.Secure.getUriFor(ADAPTIVE_CONNECTIVITY_WIFI_ENABLED);
     }
 
     @Test
@@ -85,7 +93,12 @@ public class AdaptiveConnectivityEnabledSettingObserverTest extends WifiBaseTest
         assertThat(mAdaptiveConnectivityEnabledSettingObserver.get()).isTrue();
         verify(mFrameworkFacade)
                 .registerContentObserver(
-                        eq(mContext), any(), anyBoolean(), mContentObserverCaptor.capture());
+                        eq(mContext), eq(mOldKeyUri), anyBoolean(),
+                        mContentObserverCaptor.capture());
+        verify(mFrameworkFacade)
+                .registerContentObserver(
+                        eq(mContext), eq(mNewKeyUri), anyBoolean(),
+                        mContentObserverCaptor.capture());
         verify(mWifiMetrics).setAdaptiveConnectivityState(true);
 
         // set to false
@@ -115,6 +128,20 @@ public class AdaptiveConnectivityEnabledSettingObserverTest extends WifiBaseTest
         verify(mWifiMetrics)
                 .logUserActionEvent(
                         WifiMetricsProto.UserActionEvent.EVENT_CONFIGURE_ADAPTIVE_CONNECTIVITY_ON);
+
+        // set the new key to false, and verify the mAdaptiveConnectivityEnabledSettingObserver
+        // takes value from the new key
+        when(mFrameworkFacade.getSecureIntegerSetting(
+                eq(mContext), eq(ADAPTIVE_CONNECTIVITY_WIFI_ENABLED), anyInt()))
+                .thenReturn(0);
+        mContentObserverCaptor.getValue().onChange(false);
+        mLooper.dispatchAll();
+
+        assertThat(mAdaptiveConnectivityEnabledSettingObserver.get()).isFalse();
+        verify(mWifiMetrics, times(2)).setAdaptiveConnectivityState(false);
+        verify(mWifiMetrics, times(2))
+                .logUserActionEvent(
+                        WifiMetricsProto.UserActionEvent.EVENT_CONFIGURE_ADAPTIVE_CONNECTIVITY_OFF);
     }
 
     @Test
@@ -132,7 +159,12 @@ public class AdaptiveConnectivityEnabledSettingObserverTest extends WifiBaseTest
         assertThat(mAdaptiveConnectivityEnabledSettingObserver.get()).isFalse();
         verify(mFrameworkFacade)
                 .registerContentObserver(
-                        eq(mContext), any(), anyBoolean(), mContentObserverCaptor.capture());
+                        eq(mContext), eq(mOldKeyUri), anyBoolean(),
+                        mContentObserverCaptor.capture());
+        verify(mFrameworkFacade)
+                .registerContentObserver(
+                        eq(mContext), eq(mNewKeyUri), anyBoolean(),
+                        mContentObserverCaptor.capture());
         verify(mWifiMetrics).setAdaptiveConnectivityState(false);
 
         // set to true
@@ -175,9 +207,14 @@ public class AdaptiveConnectivityEnabledSettingObserverTest extends WifiBaseTest
         mAdaptiveConnectivityEnabledSettingObserver.initialize();
 
         assertThat(mAdaptiveConnectivityEnabledSettingObserver.get()).isTrue();
+        verify(mFrameworkFacade, never())
+                .registerContentObserver(
+                        eq(mContext), eq(mOldKeyUri), anyBoolean(),
+                        mContentObserverCaptor.capture());
         verify(mFrameworkFacade)
                 .registerContentObserver(
-                        eq(mContext), any(), anyBoolean(), mContentObserverCaptor.capture());
+                        eq(mContext), eq(mNewKeyUri), anyBoolean(),
+                        mContentObserverCaptor.capture());
         verify(mWifiMetrics).setAdaptiveConnectivityState(true);
 
         // set to false
@@ -220,9 +257,14 @@ public class AdaptiveConnectivityEnabledSettingObserverTest extends WifiBaseTest
         mAdaptiveConnectivityEnabledSettingObserver.initialize();
 
         assertThat(mAdaptiveConnectivityEnabledSettingObserver.get()).isFalse();
+        verify(mFrameworkFacade, never())
+                .registerContentObserver(
+                        eq(mContext), eq(mOldKeyUri), anyBoolean(),
+                        mContentObserverCaptor.capture());
         verify(mFrameworkFacade)
                 .registerContentObserver(
-                        eq(mContext), any(), anyBoolean(), mContentObserverCaptor.capture());
+                        eq(mContext), eq(mNewKeyUri), anyBoolean(),
+                        mContentObserverCaptor.capture());
         verify(mWifiMetrics).setAdaptiveConnectivityState(false);
 
         // set to true
