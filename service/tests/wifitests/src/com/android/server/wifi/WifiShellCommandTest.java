@@ -22,10 +22,10 @@ import static android.net.NetworkCapabilities.NET_CAPABILITY_OEM_PRIVATE;
 import static android.net.NetworkCapabilities.NET_CAPABILITY_TRUSTED;
 import static android.net.NetworkCapabilities.TRANSPORT_WIFI;
 import static android.net.wifi.WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT;
-import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
+import static android.net.wifi.WifiManager.ROAMING_MODE_AGGRESSIVE;
 import static android.net.wifi.WifiManager.ROAMING_MODE_NONE;
 import static android.net.wifi.WifiManager.ROAMING_MODE_NORMAL;
-import static android.net.wifi.WifiManager.ROAMING_MODE_AGGRESSIVE;
+import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 
 import static com.android.server.wifi.WifiShellCommand.SHELL_PACKAGE_NAME;
 
@@ -48,6 +48,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import android.net.ConnectivityDiagnosticsManager;
 import android.net.ConnectivityManager;
 import android.net.MacAddress;
 import android.net.NetworkRequest;
@@ -109,6 +110,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
     @Mock WifiServiceImpl mWifiService;
     @Mock WifiContext mContext;
     @Mock ConnectivityManager mConnectivityManager;
+    @Mock ConnectivityDiagnosticsManager mConnectivityDiagnosticsManager;
     @Mock TetheringManager mTetheringManager;
     @Mock WifiCarrierInfoManager mWifiCarrierInfoManager;
     @Mock WifiNetworkFactory mWifiNetworkFactory;
@@ -147,6 +149,8 @@ public class WifiShellCommandTest extends WifiBaseTest {
         when(mWifiInjector.getWifiNetworkFactory()).thenReturn(mWifiNetworkFactory);
         when(mWifiInjector.getScanRequestProxy()).thenReturn(mScanRequestProxy);
         when(mContext.getSystemService(ConnectivityManager.class)).thenReturn(mConnectivityManager);
+        when(mContext.getSystemService(ConnectivityDiagnosticsManager.class))
+                .thenReturn(mConnectivityDiagnosticsManager);
         when(mContext.getSystemService(TetheringManager.class)).thenReturn(mTetheringManager);
         when(mWifiInjector.getWifiDiagnostics()).thenReturn(mWifiDiagnostics);
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfig);
@@ -1064,6 +1068,48 @@ public class WifiShellCommandTest extends WifiBaseTest {
                                 .build())
                         .build()),
                 any(ConnectivityManager.NetworkCallback.class));
+    }
+
+    @Test
+    public void testAddConnectivityDiagnosticCallback() {
+        // not allowed for unrooted shell.
+        mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"add-connectivity-diagnostic-callback"});
+        mLooper.dispatchAll();
+        verify(mConnectivityDiagnosticsManager, never())
+                .registerConnectivityDiagnosticsCallback(any(), any(), any());
+        assertFalse(mWifiShellCommand.getErrPrintWriter().toString().isEmpty());
+
+        BinderUtil.setUid(Process.ROOT_UID);
+
+        mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"add-connectivity-diagnostic-callback"});
+        mLooper.dispatchAll();
+        verify(mConnectivityDiagnosticsManager)
+                .registerConnectivityDiagnosticsCallback(any(), any(), any());
+    }
+
+    @Test
+    public void testRemoveConnectivityDiagnosticCallback() {
+        // not allowed for unrooted shell.
+        mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"remove-connectivity-diagnostic-callback"});
+        mLooper.dispatchAll();
+        verify(mConnectivityDiagnosticsManager, never())
+                .unregisterConnectivityDiagnosticsCallback(any());
+        assertFalse(mWifiShellCommand.getErrPrintWriter().toString().isEmpty());
+
+        BinderUtil.setUid(Process.ROOT_UID);
+
+        mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"remove-connectivity-diagnostic-callback"});
+        mLooper.dispatchAll();
+        verify(mConnectivityDiagnosticsManager)
+                .unregisterConnectivityDiagnosticsCallback(any());
     }
 
     @Test
