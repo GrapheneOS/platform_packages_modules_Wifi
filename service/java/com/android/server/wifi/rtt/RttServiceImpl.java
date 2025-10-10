@@ -1444,12 +1444,19 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             for (ResponderConfig peer : request.mRttPeers) {
                 RangingResult resultForRequest = resultEntries.get(peer.macAddress);
                 if (resultForRequest == null || resultForRequest.getStatus()
-                        != WifiRttController.FRAMEWORK_RTT_STATUS_SUCCESS) {
+                        != RangingResult.STATUS_SUCCESS) {
                     if (mVerboseLoggingEnabled) {
                         Log.v(TAG, "postProcessResults: missing=" + peer.macAddress);
                     }
-                    RangingResult.Builder builder = new RangingResult.Builder()
-                            .setStatus(RangingResult.STATUS_FAIL);
+                    RangingResult.Builder builder = new RangingResult.Builder();
+                    if (resultForRequest != null && resultForRequest.getStatus()
+                            == RangingResult.STATUS_BUSY_TRY_LATER) {
+                        builder.setStatus(RangingResult.STATUS_BUSY_TRY_LATER);
+                        builder.setRetryAfterDurationMillis(
+                                resultForRequest.getRetryAfterDurationMillis());
+                    } else {
+                        builder.setStatus(RangingResult.STATUS_FAIL);
+                    }
                     if (peer.peerHandle == null) {
                         builder.setMacAddress(peer.getMacAddress());
                     } else {

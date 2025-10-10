@@ -61,7 +61,8 @@ public final class RangingResult implements Parcelable {
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     /** @hide */
-    @IntDef({STATUS_SUCCESS, STATUS_FAIL, STATUS_RESPONDER_DOES_NOT_SUPPORT_IEEE80211MC})
+    @IntDef({STATUS_SUCCESS, STATUS_FAIL, STATUS_RESPONDER_DOES_NOT_SUPPORT_IEEE80211MC,
+            STATUS_BUSY_TRY_LATER})
     @Retention(RetentionPolicy.SOURCE)
     public @interface RangeResultStatus {
     }
@@ -90,6 +91,15 @@ public final class RangingResult implements Parcelable {
     public static final int STATUS_RESPONDER_DOES_NOT_SUPPORT_IEEE80211MC = 2;
 
     /**
+     * Individual range request status, {@link #getStatus()}. Indicates that the ranging operation
+     * failed because the peer is busy and unable to handle the request at this time. The requester
+     * should try again after a suggested delay, which can be retrieved with
+     * {@link #getRetryAfterDurationMillis()}.
+     */
+    @FlaggedApi(Flags.FLAG_RTT_BUSY_TRY_LATER_API)
+    public static final int STATUS_BUSY_TRY_LATER = 12;
+
+    /**
      * The unspecified value.
      */
     public static final int UNSPECIFIED = -1;
@@ -106,6 +116,7 @@ public final class RangingResult implements Parcelable {
     private final byte[] mLcr;
     private final ResponderLocation mResponderLocation;
     private final long mTimestamp;
+    private final int mRetryAfterDurationMillis;
     private final boolean mIs80211mcMeasurement;
     private final int mFrequencyMHz;
     private final int mPacketBw;
@@ -138,9 +149,10 @@ public final class RangingResult implements Parcelable {
         private int mNumAttemptedMeasurements = 0;
         private int mNumSuccessfulMeasurements = 0;
         private byte[] mLci = null;
-        private  byte[] mLcr = null;
+        private byte[] mLcr = null;
         private ResponderLocation mResponderLocation = null;
         private long mTimestamp = 0;
+        private int mRetryAfterDurationMillis = 0;
         private boolean mIs80211mcMeasurement = false;
         private int mFrequencyMHz = UNSPECIFIED;
         private int mPacketBw = UNSPECIFIED;
@@ -386,6 +398,22 @@ public final class RangingResult implements Parcelable {
         @NonNull
         public Builder setRangingTimestampMillis(@ElapsedRealtimeLong long timestamp) {
             mTimestamp = timestamp;
+            return this;
+        }
+
+        /**
+         * Sets the duration in milliseconds after which the ranging operation may be retried.
+         * A value of 0 means an immediate retry, otherwise retry after that much time in
+         * millisec. The time offset is from the measurement time
+         * {@link #getRangingTimestampMillis()}.
+         *
+         * @param durationMs The duration in milliseconds.
+         * @return The builder to facilitate chaining.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_RTT_BUSY_TRY_LATER_API)
+        public Builder setRetryAfterDurationMillis(@IntRange(from = 0) int durationMs) {
+            mRetryAfterDurationMillis = durationMs;
             return this;
         }
 
@@ -682,6 +710,7 @@ public final class RangingResult implements Parcelable {
         mLcr = (builder.mLcr == null) ? EMPTY_BYTE_ARRAY : builder.mLcr;
         mResponderLocation = builder.mResponderLocation;
         mTimestamp = builder.mTimestamp;
+        mRetryAfterDurationMillis = builder.mRetryAfterDurationMillis;
         mIs80211mcMeasurement = builder.mIs80211mcMeasurement;
         mFrequencyMHz = builder.mFrequencyMHz;
         mPacketBw = builder.mPacketBw;
@@ -895,6 +924,26 @@ public final class RangingResult implements Parcelable {
                             + mStatus);
         }
         return mTimestamp;
+    }
+
+    /**
+     * @return The duration in milliseconds after which the ranging operation may be retried.
+     * A value of 0 means an immediate retry, otherwise retry after that much time in
+     * millisec. The time offset is from the measurement time
+     * {@link #getRangingTimestampMillis()}.
+     * <p>
+     * @throws IllegalStateException if {@link #getStatus()} does not return
+     * {@link #STATUS_BUSY_TRY_LATER}.
+     */
+    @FlaggedApi(Flags.FLAG_RTT_BUSY_TRY_LATER_API)
+    @IntRange(from = 0)
+    public int getRetryAfterDurationMillis() {
+        if (mStatus != STATUS_BUSY_TRY_LATER) {
+            throw new IllegalStateException(
+                    "getRetryAfterDurationMillis(): invoked on an invalid result: getStatus()="
+                            + mStatus);
+        }
+        return mRetryAfterDurationMillis;
     }
 
     /**
@@ -1163,6 +1212,7 @@ public final class RangingResult implements Parcelable {
         dest.writeByteArray(mLcr);
         dest.writeParcelable(mResponderLocation, flags);
         dest.writeLong(mTimestamp);
+        dest.writeInt(mRetryAfterDurationMillis);
         dest.writeBoolean(mIs80211mcMeasurement);
         dest.writeInt(mFrequencyMHz);
         dest.writeInt(mPacketBw);
@@ -1209,6 +1259,7 @@ public final class RangingResult implements Parcelable {
                             .setUnverifiedResponderLocation(
                                     in.readParcelable(this.getClass().getClassLoader()))
                             .setRangingTimestampMillis(in.readLong())
+                            .setRetryAfterDurationMillis(in.readInt())
                             .set80211mcMeasurement(in.readBoolean())
                             .setMeasurementChannelFrequencyMHz(in.readInt())
                             .setMeasurementBandwidth(in.readInt())
@@ -1247,7 +1298,9 @@ public final class RangingResult implements Parcelable {
                 .append(", lci=").append(Arrays.toString(mLci))
                 .append(", lcr=").append(Arrays.toString(mLcr))
                 .append(", responderLocation=").append(mResponderLocation)
-                .append(", timestamp=").append(mTimestamp).append(", is80211mcMeasurement=")
+                .append(", timestamp=").append(mTimestamp)
+                .append(", retryAfterDurationMillis=").append(mRetryAfterDurationMillis)
+                .append(", is80211mcMeasurement=")
                 .append(mIs80211mcMeasurement)
                 .append(", frequencyMHz=").append(mFrequencyMHz)
                 .append(", packetBw=").append(mPacketBw)
@@ -1286,6 +1339,7 @@ public final class RangingResult implements Parcelable {
                 && mNumSuccessfulMeasurements == lhs.mNumSuccessfulMeasurements
                 && Arrays.equals(mLci, lhs.mLci) && Arrays.equals(mLcr, lhs.mLcr)
                 && mTimestamp == lhs.mTimestamp
+                && mRetryAfterDurationMillis == lhs.mRetryAfterDurationMillis
                 && mIs80211mcMeasurement == lhs.mIs80211mcMeasurement
                 && Objects.equals(mResponderLocation, lhs.mResponderLocation)
                 && mFrequencyMHz == lhs.mFrequencyMHz
@@ -1310,11 +1364,11 @@ public final class RangingResult implements Parcelable {
     public int hashCode() {
         return Objects.hash(mStatus, mMac, mPeerHandle, mDistanceMm, mDistanceStdDevMm, mRssi,
                 mNumAttemptedMeasurements, mNumSuccessfulMeasurements, Arrays.hashCode(mLci),
-                Arrays.hashCode(mLcr), mResponderLocation, mTimestamp, mIs80211mcMeasurement,
-                mFrequencyMHz, mPacketBw, mIs80211azNtbMeasurement, mNtbMinMeasurementTime,
-                mNtbMaxMeasurementTime, mI2rTxLtfRepetitions, mR2iTxLtfRepetitions,
-                mNumTxSpatialStreams, mR2iTxLtfRepetitions, mVendorData, mIsRangingAuthenticated,
-                mIsRangingFrameProtected, mIsSecureHeLtfEnabled, mPasnComebackAfterMillis,
-                Arrays.hashCode(mPasnComebackCookie));
+                Arrays.hashCode(mLcr), mResponderLocation, mTimestamp, mRetryAfterDurationMillis,
+                mIs80211mcMeasurement, mFrequencyMHz, mPacketBw, mIs80211azNtbMeasurement,
+                mNtbMinMeasurementTime, mNtbMaxMeasurementTime, mI2rTxLtfRepetitions,
+                mR2iTxLtfRepetitions, mNumTxSpatialStreams, mNumRxSpatialStreams, mVendorData,
+                mIsRangingAuthenticated, mIsRangingFrameProtected, mIsSecureHeLtfEnabled,
+                mPasnComebackAfterMillis, Arrays.hashCode(mPasnComebackCookie));
     }
 }

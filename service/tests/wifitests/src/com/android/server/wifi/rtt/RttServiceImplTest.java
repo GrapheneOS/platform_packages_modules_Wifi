@@ -1996,4 +1996,70 @@ public class RttServiceImplTest extends WifiBaseTest {
                 null); // Pass null capabilities
         Assert.assertEquals(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, timeoutWithAware);
     }
+
+    /**
+     * Validate that when the HAL returns results with "busy" entries (i.e. some requests
+     * failed because the peer is busy) they are filled-in with FAILED_BUSY results.
+     */
+    @Test
+    public void testBusyResults() throws Exception {
+        RangingRequest request = RttTestUtils.getDummyRangingRequest((byte) 0);
+        List<RangingResult> halResults = new ArrayList<>();
+        List<RangingResult> expectedResults = new ArrayList<>();
+        final int retryAfterDurationMillis = 1234;
+
+        // result 0: success
+        halResults.add(new RangingResult.Builder()
+                .setStatus(WifiRttController.FRAMEWORK_RTT_STATUS_SUCCESS)
+                .setMacAddress(request.mRttPeers.get(0).macAddress).build());
+        expectedResults.add(new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setMacAddress(request.mRttPeers.get(0).macAddress).build());
+
+        // result 1: busy
+        halResults.add(new RangingResult.Builder()
+                .setStatus(WifiRttController.FRAMEWORK_RTT_STATUS_FAIL_BUSY_TRY_LATER)
+                .setMacAddress(request.mRttPeers.get(1).macAddress)
+                .setRetryAfterDurationMillis(retryAfterDurationMillis).build());
+        expectedResults.add(new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_BUSY_TRY_LATER)
+                .setMacAddress(request.mRttPeers.get(1).macAddress)
+                .setRetryAfterDurationMillis(retryAfterDurationMillis).build());
+
+        // result 2: fail
+        halResults.add(new RangingResult.Builder()
+                .setStatus(WifiRttController.FRAMEWORK_RTT_STATUS_FAILURE)
+                .setMacAddress(request.mRttPeers.get(2).macAddress).build());
+        expectedResults.add(new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_FAIL)
+                .setMacAddress(request.mRttPeers.get(2).macAddress).build());
+
+
+        // (1) request ranging operation
+        mDut.startRanging(mockIbinder, mPackageName, mFeatureId, null, request,
+                mockCallback, mExtras);
+        mMockLooper.dispatchAll();
+
+        // (2) verify that the request was issued to the WifiRttController
+        verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
+
+        // (3) return results with missing entries
+        mRangingResultsCbCaptor.getValue()
+                .onRangingResults(mIntCaptor.getValue(), halResults);
+        mMockLooper.dispatchAll();
+
+        // (5) verify that (full) results dispatched
+        verify(mockCallback).onRangingResults(mListCaptor.capture());
+        assertTrue(compareListContentsNoOrdering(expectedResults, mListCaptor.getValue()));
+        verifyWakeupCancelled();
+
+        // verify metrics
+        verify(mockMetrics).recordRequest(eq(mDefaultWs), eq(request));
+        verify(mockMetrics).recordResult(eq(request), eq(halResults), anyInt());
+        verify(mockMetrics).recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_SUCCESS);
+        verify(mockMetrics).enableVerboseLogging(anyBoolean());
+        verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
+                mAlarmManager.getAlarmManager());
+    }
 }

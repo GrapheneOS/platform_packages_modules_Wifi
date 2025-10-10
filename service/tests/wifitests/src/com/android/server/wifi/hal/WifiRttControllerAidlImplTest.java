@@ -666,6 +666,40 @@ public class WifiRttControllerAidlImplTest extends WifiBaseTest {
     }
 
     /**
+     * Validate correct result conversion from HAL to framework for BUSY_TRY_LATER status.
+     */
+    @Test
+    public void testRangeResultsBusyTryLater() throws Exception {
+        int cmdId = 55;
+        RttResult[] results = new RttResult[1];
+        RttResult res = createRttResult();
+        res.addr = MacAddress.byteAddrFromStringAddr("05:06:07:08:09:0A");
+        res.status = RttStatus.FAIL_BUSY_TRY_LATER;
+        res.retryAfterDuration = 5; // 5 seconds
+        results[0] = res;
+
+        // (1) have the HAL call us with results
+        mEventCallbackCaptor.getValue().onResults(cmdId, results);
+
+        // (2) verify call to framework
+        verify(mRangingResultsCallbackMock).onRangingResults(eq(cmdId), mRttResultCaptor.capture());
+
+        // verify contents of the framework results
+        List<RangingResult> rttR = mRttResultCaptor.getValue();
+
+        collector.checkThat("number of entries", rttR.size(), equalTo(1));
+
+        RangingResult rttResult = rttR.get(0);
+        collector.checkThat("status", rttResult.getStatus(),
+                equalTo(RangingResult.STATUS_BUSY_TRY_LATER));
+        collector.checkThat("mac", rttResult.getMacAddress().toByteArray(),
+                equalTo(MacAddress.fromString("05:06:07:08:09:0A").toByteArray()));
+        collector.checkThat("retryAfterDuration", rttResult.getRetryAfterDurationMillis(),
+                equalTo(5000));
+        verifyNoMoreInteractions(mIWifiRttControllerMock);
+    }
+
+    /**
      * Validation ranging with invalid bw and preamble combination will be ignored.
      */
     @Test

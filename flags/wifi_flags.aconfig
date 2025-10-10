@@ -471,6 +471,15 @@ flag {
     description: "Use the supplicant solution for wifi aware"
     bug: "448421897"
 }
+
+flag {
+    name: "rtt_busy_try_later_api"
+    is_exported: true
+    namespace: "wifi"
+    description: "Adds a new RTT status code for when the peer is busy and a method to get the retry duration."
+    bug: "407453160"
+}
+
 flag {
     name: "last_caller_26q2"
     is_exported: true
