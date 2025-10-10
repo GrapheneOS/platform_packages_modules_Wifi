@@ -1514,9 +1514,14 @@ public class WifiConfigurationTest {
         when(mMockUserHandle.getIdentifier()).thenReturn(UserHandle.SYSTEM.getIdentifier());
         when(Flags.multiUserWifiEnhancement()).thenReturn(true);
         WifiConfiguration config = new WifiConfiguration();
+        // No stored creator user id
+        assertEquals(config.getStoredCreatorUserId(), -2);
+        assertEquals(config.getCreatorUserIdInternal(), UserHandle.SYSTEM.getIdentifier());
         int testUserId = 10;
         config.setCreatorUserId(testUserId);
         assertEquals(config.getStoredCreatorUserId(), testUserId);
+        assertEquals(config.getCreatorUserIdInternal(), testUserId);
+        // Non system case
         int testUserIdFromUid = 999;
         when(mMockUserHandle.getIdentifier()).thenReturn(testUserIdFromUid);
         assertEquals(config.getCreatorUserId(), testUserIdFromUid);
