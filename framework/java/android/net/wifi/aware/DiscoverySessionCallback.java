@@ -305,7 +305,7 @@ public class DiscoverySessionCallback {
      * @param peerHandle An opaque handle to the peer matching our discovery operation.
      * @param reason Discovered service lost reason code. One of
      *               {@link WifiAwareManager#WIFI_AWARE_DISCOVERY_LOST_REASON_PEER_NOT_VISIBLE},
-     *               {@link WifiAwareManager#WIFI_AWARE_DISCOVERY_LOST_REASON_UNKNOWN
+     *               {@link WifiAwareManager#WIFI_AWARE_DISCOVERY_LOST_REASON_UNKNOWN}
      */
     public void onServiceLost(@NonNull PeerHandle peerHandle,
             @WifiAwareManager.DiscoveryLostReasonCode int reason) {
