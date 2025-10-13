@@ -46,7 +46,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
-import android.app.ActivityManager;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.MacAddress;
@@ -68,6 +67,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
@@ -131,6 +131,7 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
     @Mock private HalDeviceManager mHalDeviceManager;
     @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
     @Mock private UserManager mUserManager;
+    @Mock WifiPermissionsUtil mWifiPermissionsUtil;
 
     private Random mRandom;
     private MockResourceCache mResources;
@@ -152,15 +153,15 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         // static mocking
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(Flags.class, withSettings().lenient())
-                .mockStatic(ActivityManager.class, withSettings().lenient())
                 .strictness(Strictness.LENIENT)
                 .startMocking();
         mMockApplInfo.targetSdkVersion = Build.VERSION_CODES.P;
-        when(ActivityManager.getCurrentUser()).thenReturn(TEST_USER_ID);
         when(mContext.getApplicationInfo()).thenReturn(mMockApplInfo);
         when(mWifiInjector.getUserManager()).thenReturn(mUserManager);
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(mWifiInjector.getHalDeviceManager()).thenReturn(mHalDeviceManager);
+        when(mWifiInjector.getWifiPermissionsUtil()).thenReturn(mWifiPermissionsUtil);
+        when(mWifiPermissionsUtil.getCurrentUser()).thenReturn(TEST_USER_ID);
         // Default assume true for all old test cases.
         when(mHalDeviceManager.isConcurrencyComboLoadedFromDriver()).thenReturn(true);
         /* Setup expectations for Resources to return some default settings. */
