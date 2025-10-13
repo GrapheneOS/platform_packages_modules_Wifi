@@ -6330,7 +6330,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
         assertTrue(mWifiServiceImpl.disconnect(TEST_PACKAGE_NAME));
         mLooper.dispatchAll();
-        verify(mClientModeManager).disconnect();
+        verify(mClientModeManager).disconnect(Process.myUid());
         verify(mLastCallerInfoManager).put(eq(WifiManager.API_DISCONNECT), anyInt(), anyInt(),
                 anyInt(), eq(TEST_PACKAGE_NAME), anyBoolean());
     }
@@ -6345,6 +6345,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verifyCheckChangePermission(TEST_PACKAGE_NAME);
         verify(mClientModeManager, never()).disconnect();
+        verify(mClientModeManager, never()).disconnect(anyInt());
     }
 
     /**
@@ -6363,6 +6364,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         }
         verifyCheckChangePermission(TEST_PACKAGE_NAME);
         verify(mClientModeManager, never()).disconnect();
+        verify(mClientModeManager, never()).disconnect(anyInt());
         verify(mLastCallerInfoManager, never()).put(eq(WifiManager.API_DISCONNECT), anyInt(),
                 anyInt(), anyInt(), any(), anyBoolean());
     }

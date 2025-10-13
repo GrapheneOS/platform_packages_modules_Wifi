@@ -81,6 +81,13 @@ public interface ClientMode {
     @Keep
     void disconnect();
 
+    /**
+     * Disconnect by a uid
+     * @param uid UID that triggered the disconnect
+     */
+    @Keep
+    void disconnect(int uid);
+
     void reconnect(WorkSource ws);
 
     void reassociate();

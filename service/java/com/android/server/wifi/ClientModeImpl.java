@@ -1539,6 +1539,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         }
                     }, mWifiThreadRunner).launchDialog();
         } else {
+            boolean isUserSelectedBeforeOverride = mIsUserSelected;
             if (mIsUserSelected && ATTRIBUTION_TAG_DISALLOW_CONNECT_CHOICE.equals(attributionTag)) {
                 mIsUserSelected = false;
                 logd("connectToUserSelectNetwork attributionTag override to disable user selected");
@@ -1557,6 +1558,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     // automatically connecting back to it.
                     mWifiConfigManager.userTemporarilyDisabledNetwork(config.SSID,
                             Process.WIFI_UID);
+                }
+                if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
+                    if (mNetworkFactory.isConnectedToConfig(config)) {
+                        mNetworkFactory.onDisconnectionExpected(
+                                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION,
+                                isUserSelectedBeforeOverride);
+                    }
                 }
             }
             startConnectToNetwork(netId, uid, SUPPLICANT_BSSID_ANY);
@@ -1979,6 +1987,26 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mFrameworkDisconnectReasonOverride =
                 WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__DISCONNECT_GENERAL;
         sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_GENERIC);
+    }
+
+    /**
+     * Special version of disconnect for handling API call of {@link WifiManager#disconnect()}
+     * @param uid calling app uid
+     */
+    public void disconnect(int uid) {
+        if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
+            boolean isUserTriggered = mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                    || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid);
+            WifiConfiguration config = getConnectedWifiConfigurationInternal();
+            if (mNetworkFactory.isConnectedToConfig(config)) {
+                // TODO (b/449257685): Add dialog to ask for user confirmation if this is user
+                // triggered.
+                mNetworkFactory.onDisconnectionExpected(
+                        WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API,
+                        isUserTriggered);
+            }
+        }
+        disconnect();
     }
 
     /**

@@ -62,6 +62,12 @@ public interface ClientModeDefaults extends ClientMode {
 
     default void disconnect() { }
 
+    /**
+     * Disconnect by a uid
+     * @param uid UID that triggered the disconnect
+     */
+    default void disconnect(int uid) { }
+
     default void reconnect(WorkSource ws) { }
 
     default void reassociate() { }

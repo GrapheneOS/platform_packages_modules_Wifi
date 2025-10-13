@@ -3717,7 +3717,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             return false;
         }
         mLog.info("disconnect uid=%").c(callingUid).flush();
-        mWifiThreadRunner.post(() -> mActiveModeWarden.getPrimaryClientModeManager().disconnect(),
+        mWifiThreadRunner.post(() -> mActiveModeWarden.getPrimaryClientModeManager()
+                        .disconnect(callingUid),
                 TAG + "#disconnect");
         mLastCallerInfoManager.put(WifiManager.API_DISCONNECT,
                 Process.myTid(),
