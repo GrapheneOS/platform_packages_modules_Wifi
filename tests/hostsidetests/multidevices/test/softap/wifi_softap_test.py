@@ -97,6 +97,11 @@ class WifiSoftApTest(base_test.BaseTestClass):
       ssid, password = self._wait_for_on_tethering_started(callback)
       softap_callback = self.host.wifi.wifiRegisterSoftApCallback()
 
+    # Wait for 0 client changed from registration
+    self._wait_for_on_connected_clients_changed(
+        0, softap_callback
+    )
+
     # Add client to the hotspot and verify connection.
     asserts.assert_true(
         self._check_wifi_scan_result_for_ssid(self.client, ssid),
@@ -104,7 +109,7 @@ class WifiSoftApTest(base_test.BaseTestClass):
     )
     self.client.wifi.wifiConnectSimple(ssid, password)
     client_mac_address = self._wait_for_on_connected_clients_changed(
-        softap_callback
+        1, softap_callback
     )
 
     # Disconnect the client and verify disconnection.
@@ -262,7 +267,9 @@ class WifiSoftApTest(base_test.BaseTestClass):
     return ad.wifi.wifiWaitForTetheringDisabled()
 
   def _wait_for_on_connected_clients_changed(
-      self, softap_callback: callback_handler_v2.CallbackHandlerV2
+      self,
+      expectedClientNumber: int,
+      softap_callback: callback_handler_v2.CallbackHandlerV2,
   ) -> str:
     """Wait for SoftApCallback#onConnectedClientsChanged to be received.
 
@@ -270,10 +277,11 @@ class WifiSoftApTest(base_test.BaseTestClass):
     mac address of the connected client is returned.
 
     Args:
+      expectedClientNumber: The expected client number from callback
       softap_callback: The SoftApCallback callback identifier.
 
     Returns:
-      The string mac address of the connected client.
+      The string mac address of the connected client if there is an expected client.
     """
     try:
       on_connected_clients_changed_event = softap_callback.waitAndGet(
@@ -285,18 +293,20 @@ class WifiSoftApTest(base_test.BaseTestClass):
     except errors.CallbackHandlerTimeoutError:
       asserts.fail('Connection could not be established.')
 
-    # In our test cases, there is only one other device involved
-    # so we can confirm that the client has connected.
     asserts.assert_equal(
         on_connected_clients_changed_event.data[
             constants.SoftApOnConnectedClientsChangedDataKey.CONNECTED_CLIENTS_COUNT
         ],
-        1,
+        expectedClientNumber,
     )
 
-    return on_connected_clients_changed_event.data[
-        constants.SoftApOnConnectedClientsChangedDataKey.CLIENT_MAC_ADDRESS
-    ]
+    # In our test cases, there is only one other device involved
+    if expectedClientNumber > 0:
+        return on_connected_clients_changed_event.data[
+            constants.SoftApOnConnectedClientsChangedDataKey.CLIENT_MAC_ADDRESS
+        ]
+    else:
+        return ""
 
   def _wait_for_on_clients_disconnected(
       self,
