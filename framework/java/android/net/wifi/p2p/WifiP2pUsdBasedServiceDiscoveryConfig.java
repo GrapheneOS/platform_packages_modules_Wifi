@@ -143,8 +143,8 @@ public final class WifiP2pUsdBasedServiceDiscoveryConfig implements Parcelable {
          * {@code ScanResult#WIFI_BAND_5_GHZ} or {@code ScanResult#WIFI_BAND_6_GHZ}
          *
          * <p>
-         *     {@link #setBand(int)} and {@link #setFrequenciesMhz(int[])} are
-         *     mutually exclusive. Setting operating band and frequency both is invalid.
+         *     This is mutually exclusive with {@link #setFrequenciesMhz(int[])}. Calling this
+         *     method will clear any frequencies that were previously set.
          * <p>
          *     Optional. {@code ScanResult#UNSPECIFIED} by default.
          *
@@ -159,6 +159,8 @@ public final class WifiP2pUsdBasedServiceDiscoveryConfig implements Parcelable {
                 throw new IllegalArgumentException("Invalid band: " + band);
             }
             mBand = band;
+            // Enforce mutual exclusivity by clearing the frequencies.
+            mFrequenciesMhz = null;
             return this;
         }
 
@@ -166,8 +168,8 @@ public final class WifiP2pUsdBasedServiceDiscoveryConfig implements Parcelable {
          * Set the frequencies requested for service discovery.
          *
          * <p>
-         *     {@link #setBand(int)} and {@link #setFrequenciesMhz(int[])} are
-         *     mutually exclusive. Setting band and frequencies both is invalid.
+         *     This is mutually exclusive with {@link #setBand(int)}. Calling this
+         *     method will clear any band that was previously set.
          * <p>
          *     Optional. 2437 by default.
          * @param frequenciesMhz Frequencies in MHz to scan for services. This value cannot be an
@@ -183,6 +185,8 @@ public final class WifiP2pUsdBasedServiceDiscoveryConfig implements Parcelable {
                         + " must be between 1 and " + MAXIMUM_CHANNEL_FREQUENCIES);
             }
             mFrequenciesMhz = frequenciesMhz;
+            // Enforce mutual exclusivity by clearing the band.
+            mBand = ScanResult.UNSPECIFIED;
             return this;
         }
 
@@ -194,10 +198,6 @@ public final class WifiP2pUsdBasedServiceDiscoveryConfig implements Parcelable {
          */
         @NonNull
         public WifiP2pUsdBasedServiceDiscoveryConfig build() {
-            if (mBand != ScanResult.UNSPECIFIED && mFrequenciesMhz != null) {
-                throw new IllegalStateException(
-                        "Frequencies and band are mutually exclusive.");
-            }
             return new WifiP2pUsdBasedServiceDiscoveryConfig(mBand, mFrequenciesMhz);
         }
     }
