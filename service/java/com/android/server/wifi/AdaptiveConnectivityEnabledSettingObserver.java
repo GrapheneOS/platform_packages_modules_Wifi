@@ -93,6 +93,19 @@ public class AdaptiveConnectivityEnabledSettingObserver {
         mAdaptiveConnectivityEnabled = readValueFromSettings();
         Log.d(TAG, "Adaptive connectivity status initialized to: " + mAdaptiveConnectivityEnabled);
         mWifiMetrics.setAdaptiveConnectivityState(mAdaptiveConnectivityEnabled);
+        if (!settingsKey.equals(ADAPTIVE_CONNECTIVITY_WIFI_ENABLED)) {
+            // Value for ADAPTIVE_CONNECTIVITY_WIFI_ENABLED may not be initialized on first boot up
+            // Register content observer for it to not miss update.
+            Uri newKeyUri = Settings.Secure.getUriFor(ADAPTIVE_CONNECTIVITY_WIFI_ENABLED);
+            if (newKeyUri == null) {
+                Log.e(
+                        TAG,
+                        "Adaptive connectivity user toggle does not exist in Settings for key "
+                                + ADAPTIVE_CONNECTIVITY_WIFI_ENABLED);
+                return;
+            }
+            mFrameworkFacade.registerContentObserver(mContext, newKeyUri, true, mContentObserver);
+        }
     }
 
     /** True if adaptive connectivity is enabled, false otherwise. */
@@ -120,7 +133,8 @@ public class AdaptiveConnectivityEnabledSettingObserver {
     }
 
     private String getObservedSettingsKey() {
-        if (mObservedSettingsKey == null) {
+        if (mObservedSettingsKey == null
+                || !mObservedSettingsKey.equals(ADAPTIVE_CONNECTIVITY_WIFI_ENABLED)) {
             mObservedSettingsKey =
                     mFrameworkFacade.getSecureIntegerSetting(
                                             mContext, ADAPTIVE_CONNECTIVITY_WIFI_ENABLED, -1)
