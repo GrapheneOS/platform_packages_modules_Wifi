@@ -249,8 +249,8 @@ public class WifiP2pServiceInfo implements Parcelable {
        return sb.toString();
    }
 
-   @Override
-   public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (o == this) {
             return true;
         }
@@ -258,20 +258,27 @@ public class WifiP2pServiceInfo implements Parcelable {
             return false;
         }
 
-       /*
-        * Don't compare USD based service advertisement session ID.
-        * The session ID may be changed on each service discovery advertisement.
-        */
         WifiP2pServiceInfo servInfo = (WifiP2pServiceInfo) o;
+
+        /*
+         * Don't compare USD based service advertisement session ID.
+         * The session ID may be changed on each service discovery advertisement.
+         */
+        boolean usdConfigEquals = true;
+        if (Environment.isSdkAtLeastB() && Flags.wifiDirectR2()) {
+            usdConfigEquals = Objects.equals(mUsdServiceConfig, servInfo.mUsdServiceConfig);
+        }
         return Objects.equals(mQueryList, servInfo.mQueryList)
-                && Objects.equals(mUsdServiceConfig, servInfo.mUsdServiceConfig);
-   }
+                && usdConfigEquals;
+    }
 
     @Override
     public int hashCode() {
         int result = 17;
         result = 31 * result + (mQueryList == null ? 0 : mQueryList.hashCode());
-        result = 31 * result + (mUsdServiceConfig == null ? 0 : mUsdServiceConfig.hashCode());
+        if (Environment.isSdkAtLeastB() && Flags.wifiDirectR2()) {
+            result = 31 * result + (mUsdServiceConfig == null ? 0 : mUsdServiceConfig.hashCode());
+        }
         return result;
     }
 
