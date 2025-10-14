@@ -24,7 +24,6 @@ import static android.net.wifi.SoftApConfiguration.SECURITY_TYPE_WPA3_SAE_TRANSI
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_STATIC_CHIP_INFO;
 
 import android.annotation.NonNull;
-import android.app.ActivityManager;
 import android.app.compat.CompatChanges;
 import android.content.Context;
 import android.content.IntentFilter;
@@ -48,8 +47,10 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.net.module.util.MacAddressUtils;
 import com.android.server.wifi.util.ApConfigUtil;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
+
 
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
@@ -98,6 +99,7 @@ public class WifiApConfigStore {
     private final WifiNative mWifiNative;
     private final HalDeviceManager mHalDeviceManager;
     private final WifiSettingsConfigStore mWifiSettingsConfigStore;
+    private final WifiPermissionsUtil mWifiPermissionsUtil;
     private boolean mHasNewDataToSerialize = false;
     private boolean mForceApChannel = false;
     private int mForcedApBand;
@@ -159,7 +161,7 @@ public class WifiApConfigStore {
         }
 
         public void migrateFromSharedToPrivateIfNeeded() {
-            UserHandle foregroundUser = UserHandle.of(ActivityManager.getCurrentUser());
+            UserHandle foregroundUser = UserHandle.of(mWifiPermissionsUtil.getCurrentUser());
             SoftApConfiguration config;
             if (mSharedToPrivateMigrationDataHolder == null
                     || !mUsersNeedMigration.contains(foregroundUser)) {
@@ -198,6 +200,7 @@ public class WifiApConfigStore {
         mActiveModeWarden = activeModeWarden;
         mWifiMetrics = wifiMetrics;
         mWifiNative = wifiInjector.getWifiNative();
+        mWifiPermissionsUtil = wifiInjector.getWifiPermissionsUtil();
 
         // Register store data listeners
         final SoftApStoreDataSource softApStoreDataSource = new SoftApStoreDataSource();
@@ -659,7 +662,7 @@ public class WifiApConfigStore {
         String key = ssid != null ? ssid.toString() : null;
         // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         if (Flags.multiUserWifiEnhancement()) {
-            String currentUserId = String.valueOf(ActivityManager.getCurrentUser());
+            String currentUserId = String.valueOf(mWifiPermissionsUtil.getCurrentUser());
             key = ssid != null ? ssid.toString() + currentUserId
                     : currentUserId;
         }
