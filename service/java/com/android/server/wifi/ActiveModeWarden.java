@@ -2356,6 +2356,16 @@ public class ActiveModeWarden {
                     log("Airplane mode toggled");
                     if (!mSettingsStore.shouldWifiRemainEnabledWhenApmEnabled()) {
                         log("Wifi disabled on APM, disable wifi");
+                        if (mFeatureFlags.localOnlyDisconnectReason()) {
+                            WifiNetworkFactory wifiNetworkFactory =
+                                    mWifiInjector.getWifiNetworkFactory();
+                            if (wifiNetworkFactory != null) {
+                                wifiNetworkFactory.onDisconnectionExpected(
+                                        WifiManager
+                                                .STATUS_LOCAL_ONLY_DISCONNECTION_AIRPLANE_MODE_ON,
+                                        true);
+                            }
+                        }
                         shutdownWifi();
                         // onStopped will move the state machine to "DisabledState".
                         mLastCallerInfoManager.put(WifiManager.API_WIFI_ENABLED, Process.myTid(),
