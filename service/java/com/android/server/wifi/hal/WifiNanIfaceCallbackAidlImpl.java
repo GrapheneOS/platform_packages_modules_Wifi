@@ -16,6 +16,14 @@
 
 package com.android.server.wifi.hal;
 
+import static android.net.wifi.aware.Characteristics.SUPPORTED_PERIODIC_RANGING_INTERVAL_1024TU;
+import static android.net.wifi.aware.Characteristics.SUPPORTED_PERIODIC_RANGING_INTERVAL_128TU;
+import static android.net.wifi.aware.Characteristics.SUPPORTED_PERIODIC_RANGING_INTERVAL_2048TU;
+import static android.net.wifi.aware.Characteristics.SUPPORTED_PERIODIC_RANGING_INTERVAL_256TU;
+import static android.net.wifi.aware.Characteristics.SUPPORTED_PERIODIC_RANGING_INTERVAL_4096TU;
+import static android.net.wifi.aware.Characteristics.SUPPORTED_PERIODIC_RANGING_INTERVAL_512TU;
+import static android.net.wifi.aware.Characteristics.SUPPORTED_PERIODIC_RANGING_INTERVAL_8192TU;
+
 import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT;
 import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK;
 import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_BOOTSTRAPPING_REJECT;
@@ -43,6 +51,7 @@ import android.hardware.wifi.NanPairingConfig;
 import android.hardware.wifi.NanPairingConfirmInd;
 import android.hardware.wifi.NanPairingRequestInd;
 import android.hardware.wifi.NanPairingRequestType;
+import android.hardware.wifi.NanPeriodicRangingInterval;
 import android.hardware.wifi.NanStatus;
 import android.hardware.wifi.NanStatusCode;
 import android.hardware.wifi.NanSuspensionModeChangeInd;
@@ -763,7 +772,36 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
                 .halToFrameworkChannelBandwidth(capabilities.maxSupportedBandwidth);
         frameworkCapabilities.maxSupportedRxChains =
                 toFrameworkChainsSupported(capabilities.maxNumRxChainsSupported);
+        frameworkCapabilities.supportedPeriodicRangingIntervals =
+                toFrameworkSupportedPeriodicRangingIntervals(
+                        capabilities.supportedPeriodicRangingIntervals);
         return frameworkCapabilities;
+    }
+
+    private static int toFrameworkSupportedPeriodicRangingIntervals(int halIntervals) {
+        int frameworkIntervals = 0;
+        if ((halIntervals & NanPeriodicRangingInterval.INTERVAL_128TU) != 0) {
+            frameworkIntervals |= SUPPORTED_PERIODIC_RANGING_INTERVAL_128TU;
+        }
+        if ((halIntervals & NanPeriodicRangingInterval.INTERVAL_256TU) != 0) {
+            frameworkIntervals |= SUPPORTED_PERIODIC_RANGING_INTERVAL_256TU;
+        }
+        if ((halIntervals & NanPeriodicRangingInterval.INTERVAL_512TU) != 0) {
+            frameworkIntervals |= SUPPORTED_PERIODIC_RANGING_INTERVAL_512TU;
+        }
+        if ((halIntervals & NanPeriodicRangingInterval.INTERVAL_1024TU) != 0) {
+            frameworkIntervals |= SUPPORTED_PERIODIC_RANGING_INTERVAL_1024TU;
+        }
+        if ((halIntervals & NanPeriodicRangingInterval.INTERVAL_2048TU) != 0) {
+            frameworkIntervals |= SUPPORTED_PERIODIC_RANGING_INTERVAL_2048TU;
+        }
+        if ((halIntervals & NanPeriodicRangingInterval.INTERVAL_4096TU) != 0) {
+            frameworkIntervals |= SUPPORTED_PERIODIC_RANGING_INTERVAL_4096TU;
+        }
+        if ((halIntervals & NanPeriodicRangingInterval.INTERVAL_8192TU) != 0) {
+            frameworkIntervals |= SUPPORTED_PERIODIC_RANGING_INTERVAL_8192TU;
+        }
+        return frameworkIntervals;
     }
 
     private static int toPublicDataPathCipherSuites(int nativeCipherSuites) {

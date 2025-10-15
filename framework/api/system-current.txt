@@ -1578,7 +1578,16 @@ package android.net.wifi.aware {
   public final class Characteristics implements android.os.Parcelable {
     method @FlaggedApi("com.android.ranging.flags.ranging_rtt_enabled") public int getMaxSupportedRangingPacketBandwidth();
     method @FlaggedApi("com.android.ranging.flags.ranging_rtt_enabled") public int getMaxSupportedRxChains();
+    method @FlaggedApi("com.android.wifi.flags.aware_periodic_ranging_intervals") public int getSupportedPeriodicRangingIntervals();
     method @FlaggedApi("com.android.ranging.flags.ranging_rtt_enabled") public boolean isPeriodicRangingSupported();
+    field @FlaggedApi("com.android.wifi.flags.aware_periodic_ranging_intervals") public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_1024TU = 8; // 0x8
+    field @FlaggedApi("com.android.wifi.flags.aware_periodic_ranging_intervals") public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_128TU = 1; // 0x1
+    field @FlaggedApi("com.android.wifi.flags.aware_periodic_ranging_intervals") public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_2048TU = 16; // 0x10
+    field @FlaggedApi("com.android.wifi.flags.aware_periodic_ranging_intervals") public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_256TU = 2; // 0x2
+    field @FlaggedApi("com.android.wifi.flags.aware_periodic_ranging_intervals") public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_4096TU = 32; // 0x20
+    field @FlaggedApi("com.android.wifi.flags.aware_periodic_ranging_intervals") public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_512TU = 4; // 0x4
+    field @FlaggedApi("com.android.wifi.flags.aware_periodic_ranging_intervals") public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_8192TU = 64; // 0x40
+    field @FlaggedApi("com.android.wifi.flags.aware_periodic_ranging_intervals") public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_NONE = 0; // 0x0
     field @FlaggedApi("com.android.ranging.flags.ranging_rtt_enabled") public static final int SUPPORTED_RX_CHAINS_1 = 1; // 0x1
     field @FlaggedApi("com.android.ranging.flags.ranging_rtt_enabled") public static final int SUPPORTED_RX_CHAINS_2 = 2; // 0x2
     field @FlaggedApi("com.android.ranging.flags.ranging_rtt_enabled") public static final int SUPPORTED_RX_CHAINS_3 = 3; // 0x3
