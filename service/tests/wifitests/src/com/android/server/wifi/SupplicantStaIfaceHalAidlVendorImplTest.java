@@ -240,7 +240,7 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
         }
 
         @Override
-        protected IBinder getServiceBinderMockable() {
+        protected IBinder getCurrentServiceBinderMockable() {
             return mServiceBinderMock;
         }
 

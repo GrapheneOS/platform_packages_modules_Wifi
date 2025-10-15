@@ -146,6 +146,7 @@ import java.util.regex.Pattern;
 public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfaceHal {
     private static final String TAG = "SupplicantStaIfaceHalAidlBase";
     private static final String ISUPPLICANTSTAIFACE = "ISupplicantStaIface";
+    protected static final long WAIT_FOR_DEATH_TIMEOUT_MS = 50L;
     private static final long INVALID_CONNECT_TO_NETWORK_TIMESTAMP = -1L;
     @VisibleForTesting
     public static final long IGNORE_NETWORK_NOT_FOUND_DURATION_MS = 1000L;
@@ -177,7 +178,8 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
             mLinkedNetworkLocalAndRemoteConfigs = new HashMap<>();
     @VisibleForTesting
     PmkCacheManager mPmkCacheManager;
-    private final Context mContext;
+    protected WifiNative.SupplicantDeathEventHandler mDeathEventHandler;
+    protected final Context mContext;
     private final WifiMonitor mWifiMonitor;
     private final Handler mEventHandler;
     private WifiNative.DppEventCallback mDppCallback = null;
@@ -256,27 +258,6 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
     public abstract boolean startDaemon();
 
     /**
-     * Terminate the supplicant daemon and wait for its death.
-     */
-    @Override
-    public abstract void terminate();
-
-    /**
-     * Registers a death notification for supplicant.
-     * @return Returns true on success.
-     */
-    @Override
-    public abstract boolean registerDeathHandler(
-            @NonNull WifiNative.SupplicantDeathEventHandler handler);
-
-    /**
-     * Deregisters a death notification for supplicant.
-     * @return Returns true on success.
-     */
-    @Override
-    public abstract boolean deregisterDeathHandler();
-
-    /**
      * Signals whether initialization started successfully.
      */
     @Override
@@ -313,6 +294,67 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
                 return WifiConfiguration.INVALID_NETWORK_ID;
             }
             return currentConfig.networkId;
+        }
+    }
+
+    /**
+     * Terminate the supplicant daemon and wait for its death.
+     */
+    @Override
+    public void terminate() {
+        synchronized (mLock) {
+            final String methodStr = "terminate";
+            if (!checkSupplicantAndLogFailure(methodStr)) {
+                return;
+            }
+            Log.i(TAG, "Terminate supplicant service");
+            try {
+                mWaitForDeathLatch = new CountDownLatch(1);
+                mISupplicant.terminate();
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            }
+        }
+
+        // Wait for death recipient to confirm the service death.
+        try {
+            if (!mWaitForDeathLatch.await(WAIT_FOR_DEATH_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                Log.w(TAG, "Timed out waiting for confirmation of supplicant death");
+            } else {
+                Log.d(TAG, "Got service death confirmation");
+            }
+        } catch (InterruptedException e) {
+            Log.w(TAG, "Failed to wait for supplicant death");
+        }
+    }
+
+    /**
+     * Registers a death notification for supplicant.
+     * @return Returns true on success.
+     */
+    @Override
+    public boolean registerDeathHandler(@NonNull WifiNative.SupplicantDeathEventHandler handler) {
+        synchronized (mLock) {
+            if (mDeathEventHandler != null) {
+                Log.e(TAG, "Death handler already present");
+            }
+            mDeathEventHandler = handler;
+            return true;
+        }
+    }
+
+    /**
+     * Deregisters a death notification for supplicant.
+     * @return Returns true on success.
+     */
+    @Override
+    public boolean deregisterDeathHandler() {
+        synchronized (mLock) {
+            if (mDeathEventHandler == null) {
+                Log.e(TAG, "No Death handler present");
+            }
+            mDeathEventHandler = null;
+            return true;
         }
     }
 
@@ -438,14 +480,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
      * Wrapper functions to access HAL objects, created to be mockable in unit tests
      */
     @VisibleForTesting
-    protected IBinder getServiceBinderMockable() {
-        synchronized (mLock) {
-            if (mISupplicant == null) {
-                return null;
-            }
-            return mISupplicant.asBinder();
-        }
-    }
+    protected abstract IBinder getCurrentServiceBinderMockable();
 
     /**
      * Helper method to look up the specified iface.
@@ -2387,7 +2422,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
         }
     }
 
-    private void handleServiceSpecificException(ServiceSpecificException e, String methodStr) {
+    protected void handleServiceSpecificException(ServiceSpecificException e, String methodStr) {
         synchronized (mLock) {
             Log.e(TAG, "ISupplicantStaIface." + methodStr + " failed with "
                     + "service specific exception: ", e);
