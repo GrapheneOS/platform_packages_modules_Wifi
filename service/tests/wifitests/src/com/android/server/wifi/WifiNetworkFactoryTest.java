@@ -1919,6 +1919,36 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
     }
 
+    @Test
+    public void testOnDisconnectionExpectedTriggersCallbackOnlyOnce() throws Exception {
+        // Setup a successful connection
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
+        // Connect to request 1
+        sendNetworkRequestAndSetupForConnectionStatus(TEST_SSID_1);
+        // Send network connection success indication.
+        assertNotNull(mSelectedNetwork);
+        mWifiNetworkFactory.handleConnectionAttemptEnded(
+                WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1,
+                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
+        // Resend the request from a fg service (should be accepted since it is already connected).
+        assertTrue(mWifiNetworkFactory.acceptRequest(mNetworkRequest));
+        mWifiNetworkFactory.addLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME_1);
+
+        // Now mock a disconnect and verify the correct listener is triggered
+        mWifiNetworkFactory.onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API, true);
+        verify(mLocalOnlyDisconnectionStatusListener).onDisconnectionStatus(
+                eq((WifiNetworkSpecifier) mNetworkRequest.getNetworkSpecifier()), eq(true),
+                eq(WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API));
+
+        // Now mock another disconnect and verify the correct listener is not triggered
+        mWifiNetworkFactory.onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
+        verify(mLocalOnlyDisconnectionStatusListener, never()).onDisconnectionStatus(
+                any(), anyBoolean(), eq(WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN));
+    }
+
     /**
      * Verify handling of connection failure to a different network.
      */
