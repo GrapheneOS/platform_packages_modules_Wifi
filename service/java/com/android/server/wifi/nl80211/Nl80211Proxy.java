@@ -29,8 +29,6 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_GENL_NAME
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_MULTICAST_GROUP_MLME;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_MULTICAST_GROUP_REG;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_MULTICAST_GROUP_SCAN;
-import static com.android.server.wifi.nl80211.NetlinkConstants.NLMSG_DONE;
-import static com.android.server.wifi.nl80211.NetlinkConstants.NLMSG_ERROR;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -118,46 +116,57 @@ public class Nl80211Proxy {
         }
     }
 
-    private static @Nullable GenericNetlinkMsg parseNl80211MessageFromBuffer(
+    private static @Nullable List<GenericNetlinkMsg> parseNl80211MessagesFromBuffer(
             @NonNull ByteBuffer buffer) {
-        if (buffer.remaining() == 0) {
-            return null;
+        if (buffer == null) return null;
+        List<GenericNetlinkMsg> messages = new ArrayList<>();
+        while (buffer.remaining() > 0) {
+            GenericNetlinkMsg message = GenericNetlinkMsg.parse(buffer);
+            if (message == null) {
+                Log.e(TAG, "Unable to parse a received message");
+                return null;
+            }
+            messages.add(message);
+            if (message.isDoneMsg()) {
+                Log.i(TAG, "Received NLMSG_DONE");
+                break;
+            }
+            if (message.isErrorMsg()) {
+                Log.e(TAG, "Received NLMSG_ERROR: " + message);
+                break;
+            }
+            if (!message.isFlagEnabled(StructNlMsgHdr.NLM_F_MULTI)) {
+                Log.i(TAG, "Multi flag is not set");
+                break;
+            }
         }
-        GenericNetlinkMsg message = GenericNetlinkMsg.parse(buffer);
-        if (message == null) {
-            Log.e(TAG, "Unable to parse a received message. bufRemaining=" + buffer.remaining());
-            return null;
-        }
-        return message;
+        return messages;
     }
 
     private @Nullable List<GenericNetlinkMsg> receiveNl80211Messages() {
         List<GenericNetlinkMsg> messages = new ArrayList<>();
         try {
+            // The response may arrive in several batches, where each batch
+            // can contain several individual messages.
             while (true) {
+                // Receive a batch of messages into the receive buffer.
                 ByteBuffer recvBuffer =
                         NetlinkUtils.recvMessage(
                                 mNetlinkFd,
                                 NetlinkUtils.DEFAULT_RECV_BUFSIZE,
                                 NetlinkUtils.IO_TIMEOUT_MS);
-                GenericNetlinkMsg message = parseNl80211MessageFromBuffer(recvBuffer);
-                if (message == null) {
-                    Log.e(TAG, "Unable to parse a received message.");
+                // Parse the individual messages from the batch.
+                List<GenericNetlinkMsg> parsedMessages = parseNl80211MessagesFromBuffer(recvBuffer);
+                if (parsedMessages == null || parsedMessages.isEmpty()) {
                     return null;
                 }
-                if (message.nlHeader.nlmsg_type == NLMSG_DONE) {
+                messages.addAll(parsedMessages);
+                // Exit the loop if any exit conditions were encountered during parsing.
+                GenericNetlinkMsg lastMsg = messages.get(messages.size() - 1);
+                if (lastMsg.isDoneMsg() || lastMsg.isErrorMsg()
+                        || !lastMsg.isFlagEnabled(StructNlMsgHdr.NLM_F_MULTI)) {
                     break;
                 }
-                messages.add(message);
-                if (message.nlHeader.nlmsg_type == NLMSG_ERROR) {
-                    Log.e(TAG, "Received NLMSG_ERROR: " + message);
-                    break;
-                }
-                if ((message.nlHeader.nlmsg_flags & StructNlMsgHdr.NLM_F_MULTI)
-                        != StructNlMsgHdr.NLM_F_MULTI) {
-                    break;
-                }
-
             }
         } catch (ErrnoException | IllegalArgumentException | InterruptedIOException e) {
             Log.i(TAG, "Unable to receive Nl80211 messages. " + e);
