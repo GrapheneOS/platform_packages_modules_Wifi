@@ -853,7 +853,8 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
     public boolean respondToBootstrappingRequest(short transactionId, int bootstrappingId,
             boolean accept, byte pubSubId, int method) {
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "respondToBootstrappingRequest: transactionId=" + transactionId);
+            Log.v(TAG, "respondToBootstrappingRequest: transactionId=" + transactionId
+                    + ", bootstrappingId=" + bootstrappingId + ", pubsubId=" + pubSubId);
         }
         recordTransactionId(transactionId);
 
