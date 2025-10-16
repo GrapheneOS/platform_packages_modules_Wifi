@@ -7751,6 +7751,78 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
+    public void testDisconnectWithUidShowsDialogForUser() throws Exception {
+        when(com.android.wifi.flags.Flags.localOnlyDisconnectReason()).thenReturn(true);
+        connect();
+
+        when(mWifiNetworkFactory.isConnectedToConfig(any())).thenReturn(true);
+        when(mWifiNetworkFactory.connectedNetworkHasDisconnectListenerRegistered())
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(TEST_UID)).thenReturn(true);
+        WifiDialogManager mockWifiDialogManager = mock(WifiDialogManager.class);
+        WifiDialogManager.DialogHandle mockDialogHandle =
+                mock(WifiDialogManager.DialogHandle.class);
+        when(mockWifiDialogManager.createLegacySimpleDialog(any(), any(), any(), any(), any(),
+                any(), any())).thenReturn(mockDialogHandle);
+        when(mWifiInjector.getWifiDialogManager()).thenReturn(mockWifiDialogManager);
+        mCmi.disconnect(TEST_UID);
+        mLooper.dispatchAll();
+        ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> callbackCaptor =
+                ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
+        verify(mockWifiDialogManager).createLegacySimpleDialog(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                callbackCaptor.capture(),
+                any());
+        verify(mockDialogHandle).launchDialog();
+        WifiDialogManager.SimpleDialogCallback callback = callbackCaptor.getValue();
+        verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
+
+        // User clicks negative button; should not disconnect
+        callback.onNegativeButtonClicked();
+        mLooper.dispatchAll();
+        // disconnect() should not be called again.
+        verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
+
+        // User clicks positive button.
+        callback.onPositiveButtonClicked();
+        mLooper.dispatchAll();
+        verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+    }
+
+    @Test
+    public void testDisconnectWithUidNoDialogForApp() throws Exception {
+        when(com.android.wifi.flags.Flags.localOnlyDisconnectReason()).thenReturn(true);
+        connect();
+
+        when(mWifiNetworkFactory.isConnectedToConfig(any())).thenReturn(true);
+        when(mWifiNetworkFactory.connectedNetworkHasDisconnectListenerRegistered())
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(TEST_UID)).thenReturn(false);
+        WifiDialogManager mockWifiDialogManager = mock(WifiDialogManager.class);
+        WifiDialogManager.DialogHandle mockDialogHandle =
+                mock(WifiDialogManager.DialogHandle.class);
+        when(mockWifiDialogManager.createLegacySimpleDialog(any(), any(), any(), any(), any(),
+                any(), any())).thenReturn(mockDialogHandle);
+        when(mWifiInjector.getWifiDialogManager()).thenReturn(mockWifiDialogManager);
+        mCmi.disconnect(TEST_UID);
+        mLooper.dispatchAll();
+
+        verify(mockWifiDialogManager, never()).createLegacySimpleDialog(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any());
+        verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+    }
+
+    @Test
     public void verifyDisconnectWithUid_FlagEnabled() {
         when(com.android.wifi.flags.Flags.localOnlyDisconnectReason()).thenReturn(true);
         // test user triggered disconnect

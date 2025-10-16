@@ -709,6 +709,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private final WifiPseudonymManager.PseudonymUpdatingListener mPseudonymUpdatingListener;
 
     private final ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
+    private WifiDialogManager.DialogHandle mActiveLocalOnlyDisconnectDialogHandle = null;
 
     @VisibleForTesting
     public static final String X509_CERTIFICATE_EXPIRED_ERROR_STRING = "certificate has expired";
@@ -1989,6 +1990,53 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_GENERIC);
     }
 
+    private void launchUserDisconnectDialog(WifiConfiguration config) {
+        // TODO: replace the SSID with the proper user friendly app name.
+        final String title = mContext.getString(R.string.wifi_disconnect_dialog_title,
+                config.SSID);
+        final String message = mContext.getString(R.string.wifi_disconnect_dialog_message,
+                config.SSID);
+        final String positiveButton = mContext.getString(
+                R.string.wifi_disconnect_dialog_positive_button);
+        final String negativeButton = mContext.getString(
+                R.string.wifi_disconnect_dialog_negative_button);
+        WifiDialogManager.DialogHandle dialogHandle = mWifiInjector.getWifiDialogManager()
+                .createLegacySimpleDialog(
+                        title, message, positiveButton, negativeButton, null,
+                        new WifiDialogManager.SimpleDialogCallback() {
+                            @Override
+                            public void onPositiveButtonClicked() {
+                                if (mNetworkFactory.isConnectedToConfig(config)) {
+                                    mNetworkFactory.onDisconnectionExpected(
+                                            WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API,
+                                            true);
+                                }
+                                disconnect();
+                            }
+                            @Override
+                            public void onNegativeButtonClicked() {
+                                // Do nothing.
+                            }
+                            @Override
+                            public void onNeutralButtonClicked() {
+                                // Not used.
+                            }
+                            @Override
+                            public void onCancelled() {
+                                // Do nothing.
+                            }
+                        }, mWifiThreadRunner);
+        dialogHandle.launchDialog();
+        mActiveLocalOnlyDisconnectDialogHandle = dialogHandle;
+    }
+
+    private void cleanupUserDisconnectDialog() {
+        if (mActiveLocalOnlyDisconnectDialogHandle != null) {
+            mActiveLocalOnlyDisconnectDialogHandle.dismissDialog();
+            mActiveLocalOnlyDisconnectDialogHandle = null;
+        }
+    }
+
     /**
      * Special version of disconnect for handling API call of {@link WifiManager#disconnect()}
      * @param uid calling app uid
@@ -1998,9 +2046,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             boolean isUserTriggered = mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                     || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid);
             WifiConfiguration config = getConnectedWifiConfigurationInternal();
-            if (mNetworkFactory.isConnectedToConfig(config)) {
-                // TODO (b/449257685): Add dialog to ask for user confirmation if this is user
-                // triggered.
+            boolean isConnectedToLocalOnlyNetwork = mNetworkFactory.isConnectedToConfig(config);
+            boolean connectedNetworkHasDisconnectListenerRegistered =
+                    mNetworkFactory.connectedNetworkHasDisconnectListenerRegistered();
+            if (isUserTriggered && isConnectedToLocalOnlyNetwork
+                    && connectedNetworkHasDisconnectListenerRegistered) {
+                launchUserDisconnectDialog(config);
+                return;
+            }
+            if (isConnectedToLocalOnlyNetwork) {
                 mNetworkFactory.onDisconnectionExpected(
                         WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API,
                         isUserTriggered);
@@ -3632,6 +3686,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mNetworkFactory.onDisconnectionExpected(
                     WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
         }
+        // The current network has already disconnected somehow. Any pending user dialog is now
+        // obsolete and should be cleared.
+        cleanupUserDisconnectDialog();
 
         // DISASSOC_AP_BUSY could be received in both after L3 connection is successful or right
         // after BSSID association if the AP can't accept more stations.

@@ -2155,6 +2155,22 @@ public class WifiNetworkFactory extends NetworkFactory {
     }
 
     /**
+     * Get whether there are disconnection status listeners registered for the currently connected
+     * network.
+     * @return true if there are disconnection status listeners registered
+     */
+    public boolean connectedNetworkHasDisconnectListenerRegistered() {
+        if (mConnectedSpecificNetworkRequest == null
+                || mConnectedSpecificNetworkRequestSpecifier == null) {
+            return false;
+        }
+        RemoteCallbackList<ILocalOnlyDisconnectionStatusListener> listenersTracker =
+                mLocalOnlyDisconnectionStatusListenerPerApp.get(
+                        mConnectedSpecificNetworkRequest.getRequestorPackageName());
+        return listenersTracker != null && listenersTracker.getRegisteredCallbackCount() != 0;
+    }
+
+    /**
      * Called by the framework when disconnection is imminent due to the given reason.
      * @param reason reason for disconnection
      * @param isUserTriggered true if the disconnection is user triggered
