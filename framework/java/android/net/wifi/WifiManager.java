@@ -2208,7 +2208,7 @@ public class WifiManager {
     private static final SparseArray<IWifiStateChangedListener>
             sWifiStateChangedListenerMap = new SparseArray<>();
     private static final SparseArray<IRestrictAutoJoinToSubIdCallback>
-            sRestrictAutoJoinToSubIdCallbackMap = new SparseArray<>();
+            sRestrictAutoJoinToSubscriptionIdCallbackMap = new SparseArray<>();
 
     /**
      * Multi-link operation (MLO) will allow Wi-Fi devices to operate on multiple links at the same
@@ -7986,11 +7986,13 @@ public class WifiManager {
      * Register a callback for Wi-Fi auto-join restriction state.
      * Caller will receive the event when the autojoin restriction state changes.
      * Caller can remove a previously registered callback using
-     * {@link #removeRestrictAutoJoinToSubIdCallback(RestrictAutoJoinToSubIdCallback)}
+     * {@link
+     * #removeRestrictAutoJoinToSubscriptionIdCallback(RestrictAutoJoinToSubscriptionIdCallback)}
      *
      * @see WifiManager#startRestrictingAutoJoinToSubscriptionId(int)
      * @see WifiManager#stopRestrictingAutoJoinToSubscriptionId()
-     * @see WifiManager#removeRestrictAutoJoinToSubIdCallback(RestrictAutoJoinToSubIdCallback)
+     * @see WifiManager
+     * #removeRestrictAutoJoinToSubscriptionIdCallback(RestrictAutoJoinToSubscriptionIdCallback)
      *
      * @param executor Executor to execute listener callback on
      * @param callback Listener to register
@@ -8003,31 +8005,31 @@ public class WifiManager {
             android.Manifest.permission.NETWORK_SETTINGS,
             android.Manifest.permission.NETWORK_SETUP_WIZARD})
     @RequiresApi(Build.VERSION_CODES.S)
-    public void addRestrictAutoJoinToSubIdCallback(
+    public void addRestrictAutoJoinToSubscriptionIdCallback(
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull RestrictAutoJoinToSubIdCallback callback) {
+            @NonNull RestrictAutoJoinToSubscriptionIdCallback callback) {
         Objects.requireNonNull(executor);
         Objects.requireNonNull(callback);
         if (mVerboseLoggingEnabled) {
-            Log.d(TAG, "addRestrictAutoJoinToSubIdCallback: callback=" + callback
+            Log.d(TAG, "addRestrictAutoJoinToSubscriptionIdCallback: callback=" + callback
                     + ", executor=" + executor);
         }
         if (!SdkLevel.isAtLeastS()) {
             throw new UnsupportedOperationException();
         }
         final int callbackIdentifier = System.identityHashCode(callback);
-        synchronized (sRestrictAutoJoinToSubIdCallbackMap) {
+        synchronized (sRestrictAutoJoinToSubscriptionIdCallbackMap) {
             try {
-                if (sRestrictAutoJoinToSubIdCallbackMap.contains(callbackIdentifier)) {
+                if (sRestrictAutoJoinToSubscriptionIdCallbackMap.contains(callbackIdentifier)) {
                     Log.w(TAG, "Same listener already registered");
                     return;
                 }
                 IRestrictAutoJoinToSubIdCallback.Stub callbackProxy =
                         new RestrictAutoJoinToSubIdCallbackProxy(executor, callback);
-                sRestrictAutoJoinToSubIdCallbackMap.put(callbackIdentifier, callbackProxy);
+                sRestrictAutoJoinToSubscriptionIdCallbackMap.put(callbackIdentifier, callbackProxy);
                 mService.addRestrictAutoJoinToSubIdCallback(callbackProxy);
             } catch (RemoteException e) {
-                sRestrictAutoJoinToSubIdCallbackMap.remove(callbackIdentifier);
+                sRestrictAutoJoinToSubscriptionIdCallbackMap.remove(callbackIdentifier);
                 throw e.rethrowFromSystemServer();
             }
         }
@@ -8047,28 +8049,28 @@ public class WifiManager {
             android.Manifest.permission.NETWORK_SETTINGS,
             android.Manifest.permission.NETWORK_SETUP_WIZARD})
     @RequiresApi(Build.VERSION_CODES.S)
-    public void removeRestrictAutoJoinToSubIdCallback(
-            @NonNull RestrictAutoJoinToSubIdCallback callback) {
+    public void removeRestrictAutoJoinToSubscriptionIdCallback(
+            @NonNull RestrictAutoJoinToSubscriptionIdCallback callback) {
         Objects.requireNonNull(callback);
         if (mVerboseLoggingEnabled) {
-            Log.d(TAG, "removeRestrictAutoJoinToSubIdCallback: callback=" + callback);
+            Log.d(TAG, "removeRestrictAutoJoinToSubscriptionIdCallback: callback=" + callback);
         }
         if (!SdkLevel.isAtLeastS()) {
             throw new UnsupportedOperationException();
         }
         final int callbackIdentifier = System.identityHashCode(callback);
-        synchronized (sRestrictAutoJoinToSubIdCallbackMap) {
+        synchronized (sRestrictAutoJoinToSubscriptionIdCallbackMap) {
             try {
-                if (!sRestrictAutoJoinToSubIdCallbackMap.contains(callbackIdentifier)) {
+                if (!sRestrictAutoJoinToSubscriptionIdCallbackMap.contains(callbackIdentifier)) {
                     Log.w(TAG, "Unknown external listener " + callbackIdentifier);
                     return;
                 }
                 mService.removeRestrictAutoJoinToSubIdCallback(
-                        sRestrictAutoJoinToSubIdCallbackMap.get(callbackIdentifier));
+                        sRestrictAutoJoinToSubscriptionIdCallbackMap.get(callbackIdentifier));
             } catch (RemoteException e) {
                 throw e.rethrowFromSystemServer();
             } finally {
-                sRestrictAutoJoinToSubIdCallbackMap.remove(callbackIdentifier);
+                sRestrictAutoJoinToSubscriptionIdCallbackMap.remove(callbackIdentifier);
             }
         }
     }
@@ -8085,7 +8087,7 @@ public class WifiManager {
     @FlaggedApi(Flags.FLAG_RESTRICT_AUTOJOIN_CALLBACK_API)
     @SystemApi
     @RequiresApi(Build.VERSION_CODES.S)
-    public interface RestrictAutoJoinToSubIdCallback {
+    public interface RestrictAutoJoinToSubscriptionIdCallback {
         /**
          * Called when the Wi-Fi auto-join restriction to a subscription ID starts.
          *
@@ -8107,10 +8109,10 @@ public class WifiManager {
     private static class RestrictAutoJoinToSubIdCallbackProxy
             extends IRestrictAutoJoinToSubIdCallback.Stub {
         private Executor mExecutor;
-        private RestrictAutoJoinToSubIdCallback mCallback;
+        private RestrictAutoJoinToSubscriptionIdCallback mCallback;
 
         RestrictAutoJoinToSubIdCallbackProxy(@NonNull Executor executor,
-                @NonNull RestrictAutoJoinToSubIdCallback callback) {
+                @NonNull RestrictAutoJoinToSubscriptionIdCallback callback) {
             Objects.requireNonNull(executor);
             Objects.requireNonNull(callback);
             mExecutor = executor;
