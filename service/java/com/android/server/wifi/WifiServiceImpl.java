@@ -9902,9 +9902,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public void setOpenNetworkNotifierEnabled(boolean enable) {
-        if (!Environment.isSdkNewerThanB()) {
-            throw new UnsupportedOperationException();
-        }
+        // TODO: b/449013275 Throw UnsupportedOperationException when !Environment.isSdkNewerThanB()
         int callingUid = Binder.getCallingUid();
         if (!isSettingsOrSuw(Binder.getCallingPid(), callingUid)) {
             throw new SecurityException("Uid " + callingUid
@@ -9923,9 +9921,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public void isOpenNetworkNotifierEnabled(@NonNull IBooleanListener listener) {
-        if (!Environment.isSdkNewerThanB()) {
-            throw new UnsupportedOperationException();
-        }
+        // TODO: b/449013275 Throw UnsupportedOperationException when !Environment.isSdkNewerThanB()
         Objects.requireNonNull(listener, "listener cannot be null");
         int callingUid = Binder.getCallingUid();
         if (!isSettingsOrSuw(Binder.getCallingPid(), callingUid)) {
