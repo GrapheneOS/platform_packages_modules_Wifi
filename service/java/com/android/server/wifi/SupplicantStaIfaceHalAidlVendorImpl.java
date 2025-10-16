@@ -38,9 +38,7 @@ import java.util.concurrent.TimeUnit;
 public class SupplicantStaIfaceHalAidlVendorImpl extends SupplicantStaIfaceHalAidlBase {
     private static final String TAG = "SupplicantStaIfaceHalAidlVendorImpl";
     private static final String HAL_INSTANCE_NAME = ISupplicant.DESCRIPTOR + "/default";
-    private static final long WAIT_FOR_DEATH_TIMEOUT_MS = 50L;
 
-    private WifiNative.SupplicantDeathEventHandler mDeathEventHandler;
     private SupplicantDeathRecipient mSupplicantDeathRecipient;
     private boolean mServiceDeclared = false;
 
@@ -52,6 +50,16 @@ public class SupplicantStaIfaceHalAidlVendorImpl extends SupplicantStaIfaceHalAi
         mSupplicantDeathRecipient = new SupplicantDeathRecipient();
     }
 
+    @Override
+    protected IBinder getCurrentServiceBinderMockable() {
+        synchronized (mLock) {
+            if (mISupplicant == null) {
+                return null;
+            }
+            return mISupplicant.asBinder();
+        }
+    }
+
     private class SupplicantDeathRecipient implements DeathRecipient {
         @Override
         public void binderDied() {
@@ -61,7 +69,7 @@ public class SupplicantStaIfaceHalAidlVendorImpl extends SupplicantStaIfaceHalAi
         @Override
         public void binderDied(@NonNull IBinder who) {
             synchronized (mLock) {
-                IBinder supplicantBinder = getServiceBinderMockable();
+                IBinder supplicantBinder = getCurrentServiceBinderMockable();
                 Log.w(TAG, "ISupplicant binder died. who=" + who + ", service="
                         + supplicantBinder);
                 if (supplicantBinder == null) {
@@ -134,7 +142,7 @@ public class SupplicantStaIfaceHalAidlVendorImpl extends SupplicantStaIfaceHalAi
             try {
                 getServiceVersion();
                 Log.i(TAG, "Remote Version: " + mServiceVersion);
-                IBinder serviceBinder = getServiceBinderMockable();
+                IBinder serviceBinder = getCurrentServiceBinderMockable();
                 if (serviceBinder == null) {
                     return false;
                 }
@@ -181,56 +189,6 @@ public class SupplicantStaIfaceHalAidlVendorImpl extends SupplicantStaIfaceHalAi
                 mServiceVersion = serviceVersion;
                 Log.i(TAG, "Remote service version was cached");
             }
-        }
-    }
-
-    @Override
-    public void terminate() {
-        synchronized (mLock) {
-            final String methodStr = "terminate";
-            if (!checkSupplicantAndLogFailure(methodStr)) {
-                return;
-            }
-            Log.i(TAG, "Terminate supplicant service");
-            try {
-                mWaitForDeathLatch = new CountDownLatch(1);
-                mISupplicant.terminate();
-            } catch (RemoteException e) {
-                handleRemoteException(e, methodStr);
-            }
-        }
-
-        // Wait for death recipient to confirm the service death.
-        try {
-            if (!mWaitForDeathLatch.await(WAIT_FOR_DEATH_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                Log.w(TAG, "Timed out waiting for confirmation of supplicant death");
-            } else {
-                Log.d(TAG, "Got service death confirmation");
-            }
-        } catch (InterruptedException e) {
-            Log.w(TAG, "Failed to wait for supplicant death");
-        }
-    }
-
-    @Override
-    public boolean registerDeathHandler(@NonNull WifiNative.SupplicantDeathEventHandler handler) {
-        synchronized (mLock) {
-            if (mDeathEventHandler != null) {
-                Log.e(TAG, "Death handler already present");
-            }
-            mDeathEventHandler = handler;
-            return true;
-        }
-    }
-
-    @Override
-    public boolean deregisterDeathHandler() {
-        synchronized (mLock) {
-            if (mDeathEventHandler == null) {
-                Log.e(TAG, "No Death handler present");
-            }
-            mDeathEventHandler = null;
-            return true;
         }
     }
 
