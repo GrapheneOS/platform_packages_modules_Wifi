@@ -52,14 +52,36 @@ oneway interface ISupplicantNanIfaceEventCallback {
     void eventMatchExpired(in byte discoverySessionId, in int peerId);
 
     /**
+     * Callback indicating that an active publish session has terminated.
+     *
+     * @param sessionId Discovery session ID of the terminated session.
+     * @param status NanStatus describing the reason for the session termination.
+     *               Possible status codes are:
+     *               |NanStatusCode.SUCCESS|
+     *               |NanStatusCode.INTERNAL_FAILURE|
+     */
+    void eventPublishTerminated(in byte sessionId, in NanStatus status);
+
+    /**
+     * Callback indicating that an active subscribe session has terminated.
+     *
+     * @param sessionId Discovery session ID of the terminated session.
+     * @param status NanStatus describing the reason for the session termination.
+     *               Possible status codes are:
+     *               |NanStatusCode.SUCCESS|
+     *               |NanStatusCode.INTERNAL_FAILURE|
+     */
+    void eventSubscribeTerminated(in byte sessionId, in NanStatus status);
+
+    /**
      * Callback providing status of a completed followup message transmit operation. Indicates the
      * response after the supplicant has attempted to send the followup message over-the-air.
      *
      * @param id Command ID corresponding to the original |transmitFollowupRequest| request.
      * @param status NanStatus of the operation. Possible status codes are:
-     *               |NanStatusCode.SUCCESS|
-     *               |NanStatusCode.NO_OTA_ACK|
-     *               |NanStatusCode.PROTOCOL_FAILURE|
+     *        |NanStatusCode.SUCCESS|
+     *        |NanStatusCode.NO_OTA_ACK|
+     *        |NanStatusCode.PROTOCOL_FAILURE|
      */
     void eventTransmitFollowup(in char id, in NanStatus status);
 
@@ -76,7 +98,7 @@ oneway interface ISupplicantNanIfaceEventCallback {
      *
      * @param id Command ID corresponding to the original request.
      * @param status NanStatus of the operation. Possible status codes are:
-     *     |NanStatusCode.SUCCESS|
+     *        |NanStatusCode.SUCCESS|
      * @param capabilities Capability data.
      */
     void notifyCapabilitiesResponse(
