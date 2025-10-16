@@ -16,6 +16,8 @@
 
 package com.android.server.wifi.nl80211;
 
+import static com.android.server.wifi.nl80211.NetlinkConstants.NLMSG_DONE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NLMSG_ERROR;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -141,6 +143,27 @@ public class GenericNetlinkMsg {
             }
         }
         return true;
+    }
+
+    /**
+     * @return true if this message is a Netlink error message.
+     */
+    public boolean isErrorMsg() {
+        return nlHeader.nlmsg_type == NLMSG_ERROR;
+    }
+
+    /**
+     * @return true if this message is a Netlink done message.
+     */
+    public boolean isDoneMsg() {
+        return nlHeader.nlmsg_type == NLMSG_DONE;
+    }
+
+    /**
+     * @return true if the provided Netlink flag is enabled.
+     */
+    public boolean isFlagEnabled(short flag) {
+        return (nlHeader.nlmsg_flags & flag) == flag;
     }
 
     /**

@@ -148,6 +148,23 @@ public class Nl80211ProxyTest {
     }
 
     /**
+     * Pack several instances of GenericNetlinkMsg into a ByteBuffer.
+     */
+    private ByteBuffer genericNetlinkMessagesToByteBuffer(
+            GenericNetlinkMsg... messages) throws Exception {
+        int requiredBufSize = 0;
+        for (GenericNetlinkMsg message : messages) {
+            requiredBufSize += message.nlHeader.nlmsg_len;
+        }
+        ByteBuffer buffer = Nl80211TestUtils.createByteBuffer(requiredBufSize);
+        for (GenericNetlinkMsg message : messages) {
+            message.pack(buffer);
+        }
+        buffer.position(0); // reset to the beginning of the buffer
+        return buffer;
+    }
+
+    /**
      * Set the response returned by {@link NetlinkUtils#recvMessage(FileDescriptor, int, long)}
      */
     private void setResponseMessage(GenericNetlinkMsg responseMessage) throws Exception {
@@ -222,25 +239,33 @@ public class Nl80211ProxyTest {
      */
     @Test
     public void testSendAndReceiveMessage_multiPartResponse() throws Exception {
+        // First batch will contain two messages
         GenericNetlinkMsg response1 = new GenericNetlinkMsg(
                 (short) (Nl80211TestUtils.TEST_COMMAND + 15),
                 Nl80211TestUtils.TEST_TYPE,
                 StructNlMsgHdr.NLM_F_MULTI,
                 Nl80211TestUtils.TEST_SEQUENCE);
-        // Message with NLMSG_DONE marks the end of the multipart response
-        // and should not be returned to the framework caller
         GenericNetlinkMsg response2 = new GenericNetlinkMsg(
                 (short) (Nl80211TestUtils.TEST_COMMAND + 16),
+                Nl80211TestUtils.TEST_TYPE,
+                StructNlMsgHdr.NLM_F_MULTI,
+                Nl80211TestUtils.TEST_SEQUENCE);
+        // Second batch will contain a message with NLMSG_DONE,
+        // marking the end of the multipart response
+        GenericNetlinkMsg doneResponse = new GenericNetlinkMsg(
+                (short) (Nl80211TestUtils.TEST_COMMAND + 17),
                 NLMSG_DONE,
                 StructNlMsgHdr.NLM_F_MULTI,
                 Nl80211TestUtils.TEST_SEQUENCE);
         when(NetlinkUtils.recvMessage(any(), anyInt(), anyLong()))
-                .thenReturn(genericNetlinkMsgToByteBuffer(response1))
-                .thenReturn(genericNetlinkMsgToByteBuffer(response2));
+                .thenReturn(genericNetlinkMessagesToByteBuffer(response1, response2))
+                .thenReturn(genericNetlinkMsgToByteBuffer(doneResponse));
         GenericNetlinkMsg requestMsg = Nl80211TestUtils.createTestMessage();
         List<GenericNetlinkMsg> receivedResponses = mDut.sendMessageAndReceiveResponses(requestMsg);
-        assertEquals(1, receivedResponses.size());
+        assertEquals(3, receivedResponses.size());
         assertTrue(response1.equals(receivedResponses.get(0)));
+        assertTrue(response2.equals(receivedResponses.get(1)));
+        assertTrue(doneResponse.equals(receivedResponses.get(2)));
     }
 
     /**
