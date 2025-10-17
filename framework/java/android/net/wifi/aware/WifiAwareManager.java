@@ -25,6 +25,7 @@ import static android.Manifest.permission.OVERRIDE_WIFI_CONFIG;
 import static android.annotation.RestrictedForEnvironment.ENVIRONMENT_SDK_RUNTIME;
 import static android.net.wifi.ScanResult.WIFI_BAND_24_GHZ;
 import static android.net.wifi.ScanResult.WIFI_BAND_5_GHZ;
+import static com.android.wifi.flags.Flags.FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST;
 
 import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
@@ -68,7 +69,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.ref.WeakReference;
 import java.nio.BufferOverflowException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -1443,4 +1446,60 @@ public class WifiAwareManager {
         attach(null, null, attachCallback, null, true, executor);
     }
 
+    /**
+     * Get the TLV buffer containing the TXT record.
+     *
+     * @param txtRecord txtMap TXT record with key/value pair in a map confirming to format defined
+     *                  at http://files.dns-sd.org/draft-cheshire-dnsext-dns-sd.txt.
+     * @return The TLV buffer containing the TXT record.
+     */
+    @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
+    public @NonNull static byte[] getTxtRecordTlvBuffer(@NonNull Map<String, String> txtRecord) {
+        Objects.requireNonNull(txtRecord, "txtRecord cannot be null");
+        TlvBufferUtils.TlvConstructor txt = new TlvBufferUtils.TlvConstructor(0, 1);
+        txt.allocate(65535); // 65535 is the max size of text info.
+        for (Map.Entry<String, String> entry : txtRecord.entrySet()) {
+            if (entry.getKey().isEmpty() || entry.getValue().isEmpty()) {
+                throw new IllegalArgumentException("TXT record key or value cannot be empty.");
+            }
+                txt.putString(0, entry.getKey() + "=" + entry.getValue());
+        }
+        TlvBufferUtils.TlvConstructor tlvBuffer = new TlvBufferUtils.TlvConstructor(1, 2);
+        tlvBuffer.allocate(65538);
+        tlvBuffer.putByteArray(4, txt.getArray());
+
+        return tlvBuffer.getArray();
+    }
+
+    /**
+     * Get the TXT record map from the TLV buffer.
+     *
+     * @param txtRecordTlvBuffer The TLV buffer containing the TXT record.
+     * @return The TXT record map.
+     */
+    @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
+    public @NonNull static Map<String, String> getTxtRecordMap(
+            @Nullable byte[] txtRecordTlvBuffer) {
+        Objects.requireNonNull(txtRecordTlvBuffer, "txtRecordTlvBuffer cannot be null");
+        if (!TlvBufferUtils.isValid(txtRecordTlvBuffer, 1, 2)) {
+            throw new IllegalArgumentException("Invalid txtRecordTlvBuffer provided");
+        }
+        TlvBufferUtils.TlvIterable iter = new TlvBufferUtils.TlvIterable(1, 2, txtRecordTlvBuffer);
+        Map<String, String> txtRecord = new HashMap<>();
+        for (TlvBufferUtils.TlvElement elem : iter) {
+            if (elem.type == 4) {
+                TlvBufferUtils.TlvIterable txtIter = new TlvBufferUtils.TlvIterable(0, 1,
+                        elem.getRawData());
+                for (TlvBufferUtils.TlvElement txtElem : txtIter) {
+                    if (txtElem.type == 0) {
+                        String[] keyValue = new String(txtElem.getRawData()).split("=");
+                        if (keyValue.length == 2) {
+                            txtRecord.put(keyValue[0], keyValue[1]);
+                        }
+                    }
+                }
+            }
+        }
+        return txtRecord;
+    }
 }

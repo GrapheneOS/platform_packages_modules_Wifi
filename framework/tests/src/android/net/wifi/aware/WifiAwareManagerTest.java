@@ -2157,4 +2157,44 @@ public class WifiAwareManagerTest {
                 .build();
         config.assertValid(mCharacteristics, true);
     }
+
+    @Test
+    public void testTxtRecord() {
+        // 1. valid TXT record
+        java.util.Map<String, String> txtRecord = new java.util.HashMap<>();
+        txtRecord.put("key1", "value1");
+        txtRecord.put("key2", "value2");
+        byte[] tlvBuffer = WifiAwareManager.getTxtRecordTlvBuffer(txtRecord);
+        java.util.Map<String, String> rereadTxtRecord = WifiAwareManager.getTxtRecordMap(tlvBuffer);
+        assertEquals(txtRecord, rereadTxtRecord);
+
+        // 2. empty TXT record
+        txtRecord.clear();
+        tlvBuffer = WifiAwareManager.getTxtRecordTlvBuffer(txtRecord);
+        rereadTxtRecord = WifiAwareManager.getTxtRecordMap(tlvBuffer);
+        assertEquals(txtRecord, rereadTxtRecord);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetTxtRecordMapInvalidTlv() {
+        WifiAwareManager.getTxtRecordMap(new byte[10]);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testGetTxtRecordTlvBufferNull() {
+        WifiAwareManager.getTxtRecordTlvBuffer(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testGetTxtRecordMapNull() {
+        WifiAwareManager.getTxtRecordMap(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetTxtRecordTlvBufferEmptyKey() {
+        java.util.Map<String, String> txtRecord = new java.util.HashMap<>();
+        txtRecord.put("", "value");
+        WifiAwareManager.getTxtRecordTlvBuffer(txtRecord);
+    }
+
 }
