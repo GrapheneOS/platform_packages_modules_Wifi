@@ -17,6 +17,7 @@
 package com.android.server.wifi.aware;
 
 import android.net.MacAddress;
+import android.net.wifi.WifiContext;
 import android.net.wifi.aware.AwareParams;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
@@ -29,6 +30,7 @@ import android.util.SparseIntArray;
 
 import com.android.modules.utils.BasicShellCommandHandler;
 import com.android.server.wifi.hal.WifiNanIface;
+import com.android.wifi.resources.R;
 import com.android.server.wifi.hal.WifiNanIface.PowerParameters;
 
 import java.io.FileDescriptor;
@@ -48,10 +50,13 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
     private boolean mVerboseLoggingEnabled = false;
 
     private final WifiAwareNativeManager mHal;
+    private final WifiContext mContext;
     private SparseIntArray mTransactionIds; // VDBG only!
+    public static final byte[] SDEA_HEADER = byteArrayFromString("50-6F-9A-02");
 
-    public WifiAwareNativeApi(WifiAwareNativeManager wifiAwareNativeManager) {
+    public WifiAwareNativeApi(WifiAwareNativeManager wifiAwareNativeManager, WifiContext context) {
         mHal = wifiAwareNativeManager;
+        mContext = context;
         onReset();
     }
 
@@ -419,7 +424,8 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.e(TAG, "publish: null interface");
             return false;
         }
-        return iface.publish(transactionId, publishId, publishConfig, nik);
+        return iface.publish(transactionId, publishId, publishConfig, nik,
+                isSdeaHeaderNeeded() ? SDEA_HEADER : null);
     }
 
     /**
@@ -444,7 +450,8 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.e(TAG, "subscribe: null interface");
             return false;
         }
-        return iface.subscribe(transactionId, subscribeId, subscribeConfig, nik);
+        return iface.subscribe(transactionId, subscribeId, subscribeConfig, nik,
+                isSdeaHeaderNeeded() ? SDEA_HEADER : null);
     }
 
     /**
@@ -483,7 +490,8 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         try {
             MacAddress destMac = MacAddress.fromBytes(dest);
             return iface.sendMessage(
-                    transactionId, pubSubId, requestorInstanceId, destMac, message);
+                    transactionId, pubSubId, requestorInstanceId, destMac, message,
+                    isSdeaHeaderNeeded() ? SDEA_HEADER : null);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Invalid dest mac received: " + Arrays.toString(dest));
             return false;
@@ -831,7 +839,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         try {
             MacAddress peerMac = MacAddress.fromBytes(peer);
             return iface.initiateBootstrapping(transactionId, peerId, peerMac, method, cookie,
-                    pubSubId, isComeBack, ssi);
+                    pubSubId, isComeBack, ssi, isSdeaHeaderNeeded() ? SDEA_HEADER : null);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
             return false;
@@ -944,6 +952,21 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             return mExternalSetParams.get(key);
         }
         return mSettablePowerParameters.get(state).get(key);
+    }
+
+    private static byte[] byteArrayFromString(String addr) {
+        String[] parts = addr.split("-");
+        byte[] bytes = new byte[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            int x = Integer.valueOf(parts[i], 16);
+            bytes[i] = (byte) x;
+        }
+        return bytes;
+    }
+
+    private boolean isSdeaHeaderNeeded() {
+        return mContext.getResourceCache()
+                .getBoolean(R.bool.config_wifiAwareSdeaHeaderFromFramework);
     }
 
     /**

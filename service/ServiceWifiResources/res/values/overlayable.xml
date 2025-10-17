@@ -358,6 +358,7 @@
           <item type="bool" name="config_wifiUsdPublisherSupported" />
           <item type="integer" name="config_internalScorerType" />
           <item type="bool" name="config_prioritizeExternalScorer" />
+          <item type="bool" name="config_wifiAwareSdeaHeaderFromFramework" />
 
           <!-- Params from config.xml that can be overlayed -->
 

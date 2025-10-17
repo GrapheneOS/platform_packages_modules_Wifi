@@ -137,7 +137,7 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
      * See comments for {@link IWifiNanIface#publish(short, byte, PublishConfig, byte[])}
      */
     public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
-            byte[] nanIdentityKey) {
+            byte[] nanIdentityKey, byte[] sdeaOverhead) {
         final String methodStr = "publish";
         return validateAndCall(methodStr, false,
                 () -> publishInternal(methodStr, transactionId, publishId, publishConfig));
@@ -147,8 +147,7 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
      * See comments for {@link IWifiNanIface#subscribe(short, byte, SubscribeConfig, byte[])}
      */
     public boolean subscribe(short transactionId, byte subscribeId,
-            SubscribeConfig subscribeConfig,
-            byte[] nanIdentityKey) {
+            SubscribeConfig subscribeConfig, byte[] nanIdentityKey, byte[] sdeaOverhead) {
         final String methodStr = "subscribe";
         return validateAndCall(methodStr, false,
                 () -> subscribeInternal(methodStr, transactionId, subscribeId, subscribeConfig));
@@ -158,7 +157,7 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
      * See comments for {@link IWifiNanIface#sendMessage(short, byte, int, MacAddress, byte[])}
      */
     public boolean sendMessage(short transactionId, byte pubSubId, int requestorInstanceId,
-            MacAddress dest, byte[] message) {
+            MacAddress dest, byte[] message, byte[] sdeaHeader) {
         final String methodStr = "sendMessage";
         return validateAndCall(methodStr, false,
                 () -> sendMessageInternal(methodStr, transactionId, pubSubId, requestorInstanceId,
@@ -261,7 +260,8 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
 
     @Override
     public boolean initiateNanBootstrappingRequest(short transactionId, int peerId, MacAddress peer,
-            int method, byte[] cookie, byte pubSubId, boolean isComeBack, byte[] ssi) {
+            int method, byte[] cookie, byte pubSubId, boolean isComeBack, byte[] ssi,
+            byte[] sdeaHeader) {
         return false;
     }
 

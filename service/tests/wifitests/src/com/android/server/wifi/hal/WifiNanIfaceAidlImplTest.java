@@ -73,6 +73,7 @@ import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.aware.Capabilities;
 import com.android.server.wifi.util.HalAidlUtil;
 
+import java.util.Arrays;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -87,7 +88,7 @@ import java.util.Objects;
 
 public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
     private static final Capabilities TEST_CAPABILITIES = new Capabilities();
-
+    private static final byte[] TEST_SDEA_HEADER = new byte[] {0x01, 0x02, 0x03};
     private WifiNanIfaceAidlImpl mDut;
     @Mock private IWifiNanIface mIWifiNanIfaceMock;
 
@@ -188,23 +189,23 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         int numPublishExpected = 2;
         int numSubscribeExpected = 4;
 
-        assertTrue(mDut.publish(tid, pid, pubDefault, null));
-        assertTrue(mDut.publish(tid, pid, pubWithRanging, null));
-        assertTrue(mDut.subscribe(tid, pid, subDefault, null));
-        assertTrue(mDut.subscribe(tid, pid, subWithMin, null));
-        assertTrue(mDut.subscribe(tid, pid, subWithMax, null));
-        assertTrue(mDut.subscribe(tid, pid, subWithMinMax, null));
+        assertTrue(mDut.publish(tid, pid, pubDefault, null, null));
+        assertTrue(mDut.publish(tid, pid, pubWithRanging, null, null));
+        assertTrue(mDut.subscribe(tid, pid, subDefault, null, null));
+        assertTrue(mDut.subscribe(tid, pid, subWithMin, null, null));
+        assertTrue(mDut.subscribe(tid, pid, subWithMax, null, null));
+        assertTrue(mDut.subscribe(tid, pid, subWithMinMax, null, null));
 
         if (SdkLevel.isAtLeastV()) {
-            assertTrue(mDut.publish(tid, pid, pubWithVendorData, null));
-            assertTrue(mDut.subscribe(tid, pid, subWithVendorData, null));
+            assertTrue(mDut.publish(tid, pid, pubWithVendorData, null, null));
+            assertTrue(mDut.subscribe(tid, pid, subWithVendorData, null, null));
             numPublishExpected += 1;
             numSubscribeExpected += 1;
 
         }
 
         if (Environment.isSdkAtLeastB()) {
-            assertTrue(mDut.subscribe(tid, pid, subWithPeriodicRanging, null));
+            assertTrue(mDut.subscribe(tid, pid, subWithPeriodicRanging, null, null));
             numSubscribeExpected += 1;
         }
 
@@ -296,6 +297,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assumeTrue(SdkLevel.isAtLeastU());
         short tid = 250;
         byte pid = 34;
+        byte[] ssi = "some service specific info".getBytes();
         AwarePairingConfig awarePairingConfig = new AwarePairingConfig.Builder()
                 .setPairingCacheEnabled(true)
                 .setPairingSetupEnabled(true)
@@ -306,10 +308,11 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         PublishConfig config = new PublishConfig.Builder()
                 .setServiceName("XXX")
                 .setPairingConfig(awarePairingConfig)
+                .setServiceSpecificInfo(ssi)
                 .build();
         ArgumentCaptor<NanPublishRequest> pubCaptor = ArgumentCaptor.forClass(
                 NanPublishRequest.class);
-        assertTrue(mDut.publish(tid, pid, config, null));
+        assertTrue(mDut.publish(tid, pid, config, null, TEST_SDEA_HEADER));
         verify(mIWifiNanIfaceMock)
                 .startPublishRequest(eq((char) tid), pubCaptor.capture());
         NanPublishRequest halPubReq = pubCaptor.getValue();
@@ -327,6 +330,10 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assertTrue(halPubReq.baseConfigs.securityConfig.requiresEnhancedFrameProtection);
         assertTrue(halPubReq.baseConfigs.securityConfig.supportBigtksa);
         assertTrue(halPubReq.baseConfigs.securityConfig.supportGtkAndIgtk);
+        assertArrayEquals(ssi, Arrays.copyOfRange(halPubReq.baseConfigs.extendedServiceSpecificInfo,
+                3, halPubReq.baseConfigs.extendedServiceSpecificInfo.length));
+        assertArrayEquals(TEST_SDEA_HEADER, Arrays.copyOfRange(
+                halPubReq.baseConfigs.extendedServiceSpecificInfo, 0, 3));
     }
 
     @Test
@@ -334,6 +341,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assumeTrue(SdkLevel.isAtLeastU());
         short tid = 250;
         byte pid = 34;
+        byte[] ssi = "some service specific info".getBytes();
         AwarePairingConfig awarePairingConfig = new AwarePairingConfig.Builder()
                 .setPairingCacheEnabled(true)
                 .setPairingSetupEnabled(true)
@@ -344,10 +352,11 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         SubscribeConfig config = new SubscribeConfig.Builder()
                 .setServiceName("XXX")
                 .setPairingConfig(awarePairingConfig)
+                .setServiceSpecificInfo(ssi)
                 .build();
         ArgumentCaptor<NanSubscribeRequest> subCaptor = ArgumentCaptor.forClass(
                 NanSubscribeRequest.class);
-        assertTrue(mDut.subscribe(tid, pid, config, null));
+        assertTrue(mDut.subscribe(tid, pid, config, null, TEST_SDEA_HEADER));
         verify(mIWifiNanIfaceMock)
                 .startSubscribeRequest(eq((char) tid), subCaptor.capture());
         NanSubscribeRequest halSubReq = subCaptor.getValue();
@@ -363,6 +372,10 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assertTrue(halSubReq.baseConfigs.securityConfig.requiresEnhancedFrameProtection);
         assertTrue(halSubReq.baseConfigs.securityConfig.supportBigtksa);
         assertTrue(halSubReq.baseConfigs.securityConfig.supportGtkAndIgtk);
+        assertArrayEquals(ssi, Arrays.copyOfRange(halSubReq.baseConfigs.extendedServiceSpecificInfo,
+                3, halSubReq.baseConfigs.extendedServiceSpecificInfo.length));
+        assertArrayEquals(TEST_SDEA_HEADER, Arrays.copyOfRange(
+                halSubReq.baseConfigs.extendedServiceSpecificInfo, 0, 3));
     }
 
 
@@ -700,7 +713,8 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         MacAddress peer = MacAddress.fromString("00:01:02:03:04:05");
         ArgumentCaptor<NanBootstrappingRequest> reqCaptor = ArgumentCaptor.forClass(
                 NanBootstrappingRequest.class);
-        assertTrue(mDut.initiateNanBootstrappingRequest(tid, 1, peer, 2, null, pid, false, ssi));
+        assertTrue(mDut.initiateNanBootstrappingRequest(tid, 1, peer, 2, null, pid, false, ssi,
+                TEST_SDEA_HEADER));
         verify(mIWifiNanIfaceMock).initiateBootstrappingRequest(eq((char) tid),
                 reqCaptor.capture());
         NanBootstrappingRequest request = reqCaptor.getValue();
@@ -709,7 +723,9 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         assertArrayEquals(peer.toByteArray(), request.peerDiscMacAddr);
         assertArrayEquals(new byte[0], request.cookie);
         assertEquals(pid, request.discoverySessionId);
-        assertArrayEquals(ssi, request.serviceSpecificInfo);
+        assertArrayEquals(ssi, Arrays.copyOfRange(request.serviceSpecificInfo, 3,
+            request.serviceSpecificInfo.length));
+        assertArrayEquals(TEST_SDEA_HEADER, Arrays.copyOfRange(request.serviceSpecificInfo, 0, 3));
     }
 
     @Test
