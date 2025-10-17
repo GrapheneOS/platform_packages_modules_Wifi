@@ -201,6 +201,7 @@ public class WifiNetworkFactory extends NetworkFactory {
      * Indicates that we have new data to serialize.
      */
     private boolean mHasNewDataToSerialize = false;
+    private boolean mDisconnectionCallbackTriggered = false;
 
     private final HashMap<String, RemoteCallbackList<ILocalOnlyConnectionStatusListener>>
             mLocalOnlyStatusListenerPerApp = new HashMap<>();
@@ -1462,6 +1463,7 @@ public class WifiNetworkFactory extends NetworkFactory {
             mConnectedSpecificNetworkRequest = mActiveSpecificNetworkRequest;
             mConnectedSpecificNetworkRequestSpecifier = mActiveSpecificNetworkRequestSpecifier;
             mConnectedUids.clear();
+            mDisconnectionCallbackTriggered = false;
         }
 
         mConnectedUids.add(mActiveSpecificNetworkRequest.getRequestorUid());
@@ -2159,6 +2161,10 @@ public class WifiNetworkFactory extends NetworkFactory {
      */
     public void onDisconnectionExpected(
             @WifiManager.LocalOnlyDisconnectionStatusCode int reason, boolean isUserTriggered) {
+        if (mDisconnectionCallbackTriggered) {
+            return;
+        }
+        mDisconnectionCallbackTriggered = true;
         if (mConnectedSpecificNetworkRequest != null
                 && mConnectedSpecificNetworkRequestSpecifier != null) {
             sendDisconnectionFailureIfAllowed(

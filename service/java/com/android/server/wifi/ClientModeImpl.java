@@ -3627,6 +3627,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             stopDhcpSetup();
         }
 
+        if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()
+                && mNetworkFactory.isConnectedToConfig(getConnectedWifiConfigurationInternal())) {
+            mNetworkFactory.onDisconnectionExpected(
+                    WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
+        }
+
         // DISASSOC_AP_BUSY could be received in both after L3 connection is successful or right
         // after BSSID association if the AP can't accept more stations.
         if (disconnectReason == StaIfaceReasonCode.DISASSOC_AP_BUSY) {
