@@ -612,12 +612,14 @@ package android.net.wifi {
     method public int getRecentFailureReason();
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public java.util.List<android.net.wifi.OuiKeyedData> getVendorData();
     method public boolean hasNoInternetAccess();
+    method @FlaggedApi("android.security.aapm_feature_disable_insecure_wifi_autojoin") public boolean isAutoJoinInAdvancedProtectionModeEnabled();
     method public boolean isEphemeral();
     method public static boolean isMetered(@Nullable android.net.wifi.WifiConfiguration, @Nullable android.net.wifi.WifiInfo);
     method public boolean isNoInternetAccessExpected();
     method public boolean isRepeaterEnabled();
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public boolean isSendDhcpHostnameEnabled();
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public boolean isWifi7Enabled();
+    method @FlaggedApi("android.security.aapm_feature_disable_insecure_wifi_autojoin") public void setAutoJoinInAdvancedProtectionModeEnabled(boolean);
     method public void setBssidAllowlist(@Nullable java.util.List<android.net.MacAddress>);
     method public void setDeletionPriority(int) throws java.lang.IllegalArgumentException;
     method public void setNetworkSelectionStatus(@NonNull android.net.wifi.WifiConfiguration.NetworkSelectionStatus);

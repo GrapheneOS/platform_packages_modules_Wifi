@@ -1538,4 +1538,34 @@ public class WifiConfigurationTest {
         WifiConfiguration reconfig = WifiConfiguration.CREATOR.createFromParcel(parcelR);
         assertEquals(reconfig.getStoredCreatorUserId(), testUserId);
     }
+
+    /**
+     * Verifies that mAllowedAutoJoinInAdvancedProtection can be set and retrieved successfully.
+     */
+    @Test
+    public void testAllowedAutoJoinInAdvancedProtection() {
+        WifiConfiguration config = new WifiConfiguration();
+        // Default should be allowed
+        assertTrue(config.isAutoJoinInAdvancedProtectionModeEnabled());
+
+        // Test set to false
+        config.setAutoJoinInAdvancedProtectionModeEnabled(false);
+        assertFalse(config.isAutoJoinInAdvancedProtectionModeEnabled());
+
+        // Also test parcel
+        Parcel parcelW = Parcel.obtain();
+        config.writeToParcel(parcelW, 0);
+        byte[] bytes = parcelW.marshall();
+        parcelW.recycle();
+
+        Parcel parcelR = Parcel.obtain();
+        parcelR.unmarshall(bytes, 0, bytes.length);
+        parcelR.setDataPosition(0);
+        WifiConfiguration reconfig = WifiConfiguration.CREATOR.createFromParcel(parcelR);
+        assertFalse(reconfig.isAutoJoinInAdvancedProtectionModeEnabled());
+
+        // Test copy constructor
+        WifiConfiguration copyConfig = new WifiConfiguration(config);
+        assertFalse(copyConfig.isAutoJoinInAdvancedProtectionModeEnabled());
+    }
 }

@@ -191,7 +191,6 @@ public class WifiDeviceStateChangeManagerTest extends WifiBaseTest {
         mIsAapmApiFlagEnabled = true;
         ArgumentCaptor<AdvancedProtectionManager.Callback> apmCallbackCaptor =
                 ArgumentCaptor.forClass(AdvancedProtectionManager.Callback.class);
-        when(mFeatureFlags.wepDisabledInApm()).thenReturn(true);
         AdvancedProtectionManager mockAdvancedProtectionManager =
                 mock(AdvancedProtectionManager.class);
         when(mContext.getSystemService(AdvancedProtectionManager.class))

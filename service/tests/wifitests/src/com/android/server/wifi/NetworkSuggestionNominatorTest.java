@@ -25,6 +25,7 @@ import static com.android.server.wifi.WifiConfigurationTestUtil.generateWifiConf
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
@@ -45,6 +46,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.util.Environment;
 import android.os.Process;
 import android.telephony.SubscriptionManager;
 import android.util.LocalLog;
@@ -99,6 +101,7 @@ public class NetworkSuggestionNominatorTest extends WifiBaseTest {
     private @Mock WifiCarrierInfoManager mWifiCarrierInfoManager;
     private @Mock WifiPseudonymManager mWifiPseudonymManager;
     private @Mock WifiMetrics mWifiMetrics;
+    private @Mock WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
     private NetworkSuggestionNominator mNetworkSuggestionNominator;
     private List<Pair<ScanDetail, WifiConfiguration>> mPasspointCandidates =
             Collections.emptyList();
@@ -112,18 +115,21 @@ public class NetworkSuggestionNominatorTest extends WifiBaseTest {
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(ActivityManager.class, withSettings().lenient())
                 .mockStatic(Flags.class, withSettings().lenient())
+                .mockStatic(android.security.Flags.class, withSettings().lenient())
                 .strictness(Strictness.LENIENT)
                 .startMocking();
         // Mock necessary method and enable flag by default to make sure test won't be broken.
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(false);
         when(Flags.multiUserWifiEnhancement()).thenReturn(true);
         when(ActivityManager.getCurrentUser()).thenReturn(0);
         mNetworkSuggestionNominator = new NetworkSuggestionNominator(
                 mWifiNetworkSuggestionsManager, mWifiConfigManager,
                 new LocalLog(100), mWifiCarrierInfoManager, mWifiPseudonymManager,
-                mWifiMetrics);
+                mWifiMetrics, mWifiDeviceStateChangeManager);
         when(mWifiCarrierInfoManager.getBestMatchSubscriptionId(any())).thenReturn(
                 SubscriptionManager.INVALID_SUBSCRIPTION_ID);
         when(mWifiConfigManager.isNetworkTemporarilyDisabledByUser(anyString())).thenReturn(false);
+        when(mWifiDeviceStateChangeManager.isAapmEnabled()).thenReturn(false);
     }
 
 
@@ -614,6 +620,11 @@ public class NetworkSuggestionNominatorTest extends WifiBaseTest {
         // check for any saved networks.
         verify(mWifiConfigManager, times(suggestionSsids.length))
                 .isNetworkTemporarilyDisabledByUser(anyString());
+        if (Environment.isSdkNewerThanB()
+                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+            verify(mWifiDeviceStateChangeManager, times(suggestionSsids.length))
+                    .isAapmEnabled();
+        }
         verify(mWifiConfigManager).getConfiguredNetwork(suggestions[0]
                 .createInternalWifiConfiguration(mWifiCarrierInfoManager).getProfileKey());
         verify(mWifiConfigManager).isNonCarrierMergedNetworkTemporarilyDisabled(any());
@@ -807,6 +818,11 @@ public class NetworkSuggestionNominatorTest extends WifiBaseTest {
 
         verify(mWifiConfigManager, times(suggestionSsids.length))
                 .isNetworkTemporarilyDisabledByUser(anyString());
+        if (Environment.isSdkNewerThanB()
+                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+            verify(mWifiDeviceStateChangeManager, times(suggestionSsids.length))
+                    .isAapmEnabled();
+        }
         verify(mWifiConfigManager).getConfiguredNetwork(eq(suggestions[0]
                 .createInternalWifiConfiguration(mWifiCarrierInfoManager).getProfileKey()));
         verify(mWifiConfigManager).tryEnableNetwork(eq(
@@ -2051,5 +2067,77 @@ public class NetworkSuggestionNominatorTest extends WifiBaseTest {
         }
         // Verify actual matches the expected.
         assertTrue(actualSsids.containsAll(Arrays.asList(expectedSsids)));
+    }
+
+
+    /**
+     * Verifies that auto-join for network suggestions is correctly handled based on the
+     * isAutoJoinInAdvancedProtectionModeEnabled flag when AAPM is active.
+     * 1. If AAPM is off, auto-join should be allowed regardless of the flag.
+     * 2. If AAPM is on and the flag is false, auto-join should be disallowed.
+     * 3. If AAPM is on and the flag is true, auto-join should be allowed.
+     */
+    @Test
+    public void testAapmModeAndAllowedAutoJoinInAdvancedProtection() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
+        String[] scanSsids = {"test1"};
+        String[] bssids = {"6c:f3:7f:ae:8c:f3"};
+        int[] freqs = {2470};
+        String[] caps = {"[ESS]"};
+        int[] levels = {-67};
+        String[] suggestionSsids = {"\"" + scanSsids[0] + "\""};
+        int[] securities = {SECURITY_PSK};
+        boolean[] appInteractions = {true};
+        boolean[] meteredness = {true};
+        int[] priorities = {-1};
+        int[] uids = {TEST_UID};
+        String[] packageNames = {TEST_PACKAGE};
+        boolean[] autojoin = {true};
+        boolean[] shareWithUser = {true};
+        int[] priorityGroup = {0};
+
+        ScanDetail[] scanDetails =
+                buildScanDetails(scanSsids, bssids, freqs, caps, levels, mClock);
+        ExtendedWifiNetworkSuggestion[] suggestions = buildNetworkSuggestions(suggestionSsids,
+                securities, appInteractions, meteredness, priorities, uids,
+                packageNames, autojoin, shareWithUser, priorityGroup);
+        linkScanDetailsWithNetworkSuggestions(scanDetails, suggestions);
+        suggestions[0].wns.wifiConfiguration.setAutoJoinInAdvancedProtectionModeEnabled(false);
+        setupAddToWifiConfigManager(suggestions[0]);
+
+        List<Pair<ScanDetail, WifiConfiguration>> connectableNetworks = new ArrayList<>();
+
+        // Test auto-join is allowed when AAPM is off.
+        when(mWifiDeviceStateChangeManager.isAapmEnabled()).thenReturn(false);
+        mNetworkSuggestionNominator.nominateNetworks(
+                Arrays.asList(scanDetails), mPasspointCandidates, false, false, false,
+                Collections.emptySet(),
+                (ScanDetail scanDetail, WifiConfiguration configuration) -> {
+                    connectableNetworks.add(Pair.create(scanDetail, configuration));
+                });
+        validateConnectableNetworks(connectableNetworks, scanSsids[0]);
+        connectableNetworks.clear();
+
+        // Test auto-join is not allowed when AAPM is on and auto-join is disallowed.
+        when(mWifiDeviceStateChangeManager.isAapmEnabled()).thenReturn(true);
+        mNetworkSuggestionNominator.nominateNetworks(
+                Arrays.asList(scanDetails), mPasspointCandidates, false, false, false,
+                Collections.emptySet(),
+                (ScanDetail scanDetail, WifiConfiguration configuration) -> {
+                    connectableNetworks.add(Pair.create(scanDetail, configuration));
+                });
+        assertTrue(connectableNetworks.isEmpty());
+
+        // Test auto-join is allowed when AAPM is on and auto-join is allowed.
+        suggestions[0].wns.wifiConfiguration.setAutoJoinInAdvancedProtectionModeEnabled(true);
+        setupAddToWifiConfigManager(suggestions[0]);
+        mNetworkSuggestionNominator.nominateNetworks(
+                Arrays.asList(scanDetails), mPasspointCandidates, false, false, false,
+                Collections.emptySet(),
+                (ScanDetail scanDetail, WifiConfiguration configuration) -> {
+                    connectableNetworks.add(Pair.create(scanDetail, configuration));
+                });
+        validateConnectableNetworks(connectableNetworks, scanSsids[0]);
     }
 }
