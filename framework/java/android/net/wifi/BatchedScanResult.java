@@ -63,12 +63,18 @@ public class BatchedScanResult implements Parcelable {
         return sb.toString();
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public int describeContents() {
         return 0;
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(truncated ? 1 : 0);
         dest.writeInt(scanResults.size());
@@ -77,7 +83,10 @@ public class BatchedScanResult implements Parcelable {
         }
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public static final @android.annotation.NonNull Creator<BatchedScanResult> CREATOR =
         new Creator<BatchedScanResult>() {
             public BatchedScanResult createFromParcel(Parcel in) {

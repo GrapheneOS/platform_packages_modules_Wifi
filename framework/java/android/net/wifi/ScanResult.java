@@ -64,9 +64,10 @@ public final class ScanResult implements Parcelable {
     public String SSID;
 
     /**
-     * Ascii encoded SSID. This will replace SSID when we deprecate it. @hide
+     * Ascii encoded SSID. This will replace SSID when we deprecate it.
      *
      * @deprecated Use {@link #getWifiSsid()} instead.
+     * @hide
      */
     @Deprecated
     // TODO(b/231433398): add maxTargetSdk = Build.VERSION_CODES.S
@@ -670,7 +671,7 @@ public final class ScanResult implements Parcelable {
 
     /**
      * Timestamp representing date when this result was last seen, in milliseconds from 1970
-     * {@hide}
+     * @hide
      */
     @UnsupportedAppUsage
     public long seen;
@@ -678,7 +679,7 @@ public final class ScanResult implements Parcelable {
     /**
      * On devices with multiple hardware radio chains, this class provides metadata about
      * each radio chain that was used to receive this scan result (probe response or beacon).
-     * {@hide}
+     * @hide
      */
     public static class RadioChainInfo {
         /** Vendor defined id for a radio chain. */
@@ -715,7 +716,7 @@ public final class ScanResult implements Parcelable {
      *
      * For Example: On devices with 2 hardware radio chains, this list could hold 1 or 2
      * entries based on whether this scan result was received using one or both the chains.
-     * {@hide}
+     * @hide
      */
     public RadioChainInfo[] radioChainInfos;
 
@@ -737,7 +738,7 @@ public final class ScanResult implements Parcelable {
     /**
      * The approximate distance to the AP in centimeter, if available.  Else
      * {@link #UNSPECIFIED}.
-     * {@hide}
+     * @hide
      */
     @UnsupportedAppUsage
     public int distanceCm;
@@ -745,15 +746,15 @@ public final class ScanResult implements Parcelable {
     /**
      * The standard deviation of the distance to the access point, if available.
      * Else {@link #UNSPECIFIED}.
-     * {@hide}
+     * @hide
      */
     @UnsupportedAppUsage
     public int distanceSdCm;
 
-    /** {@hide} */
+    /** @hide */
     public static final long FLAG_PASSPOINT_NETWORK               = 0x0000000000000001;
 
-    /** {@hide} */
+    /** @hide */
     public static final long FLAG_80211mc_RESPONDER               = 0x0000000000000002;
 
     /** @hide */
@@ -774,7 +775,7 @@ public final class ScanResult implements Parcelable {
      */
     /**
      * Defines flags; such as {@link #FLAG_PASSPOINT_NETWORK}.
-     * {@hide}
+     * @hide
      */
     @UnsupportedAppUsage
     public long flags;
@@ -1399,12 +1400,18 @@ public final class ScanResult implements Parcelable {
             return ByteBuffer.wrap(bytes).asReadOnlyBuffer();
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeInt(id);
             dest.writeInt(idExt);
@@ -1939,12 +1946,18 @@ public final class ScanResult implements Parcelable {
         return sb.toString();
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public int describeContents() {
         return 0;
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public void writeToParcel(Parcel dest, int flags) {
         long start = dest.dataSize();
         if (wifiSsid != null) {

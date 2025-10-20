@@ -50,7 +50,7 @@ public final class WifiUsabilityClassifierFactoryTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         mWifiUsabilityClassifierFactory =
-                new WifiUsabilityClassifierFactory(mMockRandomForestModule);
+                new WifiUsabilityClassifierFactory(mMockWifiContext, mMockRandomForestModule);
         when(mMockRandomForestModule.getRandomForestParams(any(WifiContext.class)))
                 .thenReturn(RANDOM_FOREST_MODEL);
     }
@@ -58,13 +58,13 @@ public final class WifiUsabilityClassifierFactoryTest {
     @Test
     public void getModel_invalidId_returnNull() {
         assertNull(mWifiUsabilityClassifierFactory
-                .getModel(mMockWifiContext, Constants.RANDOM_FOREST_MODEL_ID + 100));
+                .getClassifier(Constants.RANDOM_FOREST_MODEL_ID + 100));
     }
 
     @Test
     public void getModel_validId_returnNotNull() {
         assertEquals(Constants.RANDOM_FOREST_MODEL_ID,
-                mWifiUsabilityClassifierFactory.getModel(mMockWifiContext,
+                mWifiUsabilityClassifierFactory.getClassifier(
                         Constants.RANDOM_FOREST_MODEL_ID).getModelId());
     }
 }

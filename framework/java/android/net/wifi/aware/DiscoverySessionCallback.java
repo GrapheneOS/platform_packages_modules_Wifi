@@ -17,9 +17,11 @@
 package android.net.wifi.aware;
 
 import static com.android.ranging.flags.Flags.FLAG_RANGING_RTT_ENABLED;
+import static com.android.wifi.flags.Flags.FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST;
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.annotation.SystemApi;
 import android.net.wifi.rtt.RangingResult;
 
@@ -194,9 +196,9 @@ public class DiscoverySessionCallback {
     /**
      * Called when a subscribe operation results in a
      * service discovery. Called when a Subscribe service was configured with a range requirement
-     * {@link SubscribeConfig.Builder#setMinDistanceMm(int)} and/or
-     * {@link SubscribeConfig.Builder#setMaxDistanceMm(int)} and the Publish service was configured
-     * with {@link PublishConfig.Builder#setRangingEnabled(boolean)}.
+     * {@link SubscribeConfig.Builder#setEgressDistanceMm(int)} and/or
+     * {@link SubscribeConfig.Builder#setIngressDistanceMm(int)} and the Publish service was
+     * configured with {@link PublishConfig.Builder#setRangingEnabled(boolean)}.
      * <p>
      * If either Publisher or Subscriber does not enable Ranging, or if Ranging is temporarily
      * disabled by the underlying device, service discovery proceeds without ranging and the
@@ -230,9 +232,9 @@ public class DiscoverySessionCallback {
     /**
      * Called when a subscribe operation results in a
      * service discovery. Called when a Subscribe service was configured with a range requirement
-     * {@link SubscribeConfig.Builder#setMinDistanceMm(int)} and/or
-     * {@link SubscribeConfig.Builder#setMaxDistanceMm(int)} and the Publish service was configured
-     * with {@link PublishConfig.Builder#setRangingEnabled(boolean)}.
+     * {@link SubscribeConfig.Builder#setEgressDistanceMm(int)} and/or
+     * {@link SubscribeConfig.Builder#setIngressDistanceMm(int)} and the Publish service was
+     * configured with {@link PublishConfig.Builder#setRangingEnabled(boolean)}.
      * <p>
      * If either Publisher or Subscriber does not enable Ranging, or if Ranging is temporarily
      * disabled by the underlying device, service discovery proceeds without ranging and the
@@ -303,7 +305,7 @@ public class DiscoverySessionCallback {
      * @param peerHandle An opaque handle to the peer matching our discovery operation.
      * @param reason Discovered service lost reason code. One of
      *               {@link WifiAwareManager#WIFI_AWARE_DISCOVERY_LOST_REASON_PEER_NOT_VISIBLE},
-     *               {@link WifiAwareManager#WIFI_AWARE_DISCOVERY_LOST_REASON_UNKNOWN
+     *               {@link WifiAwareManager#WIFI_AWARE_DISCOVERY_LOST_REASON_UNKNOWN}
      */
     public void onServiceLost(@NonNull PeerHandle peerHandle,
             @WifiAwareManager.DiscoveryLostReasonCode int reason) {
@@ -371,11 +373,34 @@ public class DiscoverySessionCallback {
      * The follow-up out-of-band bootstrapping can start
      *
      * @param peerHandle The bootstrapping peer handle
-     * @param method     The bootstrapping method accept by the peer
+     * @param method     The bootstrapping method accepted by the peer
+     *
+     * @deprecated Use {@link #onBootstrappingSucceeded(PeerHandle, int, byte[])} instead. 
+     *             Once the new callback is overrided, this callback will not be triggered.
      */
+    @Deprecated
+    @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
     public void onBootstrappingSucceeded(@NonNull PeerHandle peerHandle,
             @AwarePairingConfig.BootstrappingMethod int method){
 
+    }
+
+    /**
+     * Callback indicating that a Bootstrapping method negotiation succeeded.
+     * The follow-up out-of-band bootstrapping can start
+     *
+     * @param peerHandle The bootstrapping peer handle
+     * @param method     The bootstrapping method accepted by the peer
+     * @param message    An arbitrary byte array sent by the peer as part of its bootstrapping
+     *                   request {@link DiscoverySession#initiateBootstrappingRequest(PeerHandle, int, byte[])}.
+     *                   It will be non-null only on publisher side when the peer sets a message in
+     *                   its bootstrapping request. It will always be null on subscriber side.
+     */
+    @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
+    public void onBootstrappingSucceeded(@NonNull PeerHandle peerHandle,
+            @AwarePairingConfig.BootstrappingMethod int method,
+            @Nullable byte[] message){
+        onBootstrappingSucceeded(peerHandle, method);
     }
 
     /**

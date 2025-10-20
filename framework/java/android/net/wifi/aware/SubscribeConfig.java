@@ -192,16 +192,16 @@ public final class SubscribeConfig implements Parcelable {
     public final boolean mEnableTerminateNotification;
 
     /** @hide */
-    public final boolean mMinDistanceMmSet;
+    public final boolean mEgressDistanceMmSet;
 
     /** @hide */
-    public final int mMinDistanceMm;
+    public final int mEgressDistanceMm;
 
     /** @hide */
-    public final boolean mMaxDistanceMmSet;
+    public final boolean mIngressDistanceMmSet;
 
     /** @hide */
-    public final int mMaxDistanceMm;
+    public final int mIngressDistanceMm;
 
     private final boolean mEnableInstantMode;
 
@@ -239,8 +239,8 @@ public final class SubscribeConfig implements Parcelable {
     /** @hide */
     public SubscribeConfig(byte[] serviceName, byte[] serviceSpecificInfo, byte[] matchFilter,
             int subscribeType, int ttlSec, boolean enableTerminateNotification,
-            boolean minDistanceMmSet, int minDistanceMm, boolean maxDistanceMmSet,
-            int maxDistanceMm, boolean enableInstantMode, @WifiScanner.WifiBand int band,
+            boolean egressDistanceMmSet, int egressDistanceMm, boolean ingressDistanceMmSet,
+            int ingressDistanceMm, boolean enableInstantMode, @WifiScanner.WifiBand int band,
             AwarePairingConfig pairingConfig, boolean isSuspendable,
             @NonNull List<OuiKeyedData> vendorData, int rangingInterval,
             boolean enablePeriodicRanging, int rttBurstSize, int frequencyMhz,
@@ -252,10 +252,10 @@ public final class SubscribeConfig implements Parcelable {
         mSubscribeType = subscribeType;
         mTtlSec = ttlSec;
         mEnableTerminateNotification = enableTerminateNotification;
-        mMinDistanceMm = minDistanceMm;
-        mMinDistanceMmSet = minDistanceMmSet;
-        mMaxDistanceMm = maxDistanceMm;
-        mMaxDistanceMmSet = maxDistanceMmSet;
+        mEgressDistanceMm = egressDistanceMm;
+        mEgressDistanceMmSet = egressDistanceMmSet;
+        mIngressDistanceMm = ingressDistanceMm;
+        mIngressDistanceMmSet = ingressDistanceMmSet;
         mEnableInstantMode = enableInstantMode;
         mBand = band;
         mPairingConfig = pairingConfig;
@@ -284,10 +284,10 @@ public final class SubscribeConfig implements Parcelable {
                 + ", mMatchFilter.length=" + (mMatchFilter == null ? 0 : mMatchFilter.length)
                 + ", mSubscribeType=" + mSubscribeType + ", mTtlSec=" + mTtlSec
                 + ", mEnableTerminateNotification=" + mEnableTerminateNotification
-                + ", mMinDistanceMm=" + mMinDistanceMm
-                + ", mMinDistanceMmSet=" + mMinDistanceMmSet
-                + ", mMaxDistanceMm=" + mMaxDistanceMm
-                + ", mMaxDistanceMmSet=" + mMaxDistanceMmSet + "]"
+                + ", mEgressDistanceMm=" + mEgressDistanceMm
+                + ", mEgressDistanceMmSet=" + mEgressDistanceMmSet
+                + ", mIngressDistanceMm=" + mIngressDistanceMm
+                + ", mIngressDistanceMmSet=" + mIngressDistanceMmSet + "]"
                 + ", mEnableInstantMode=" + mEnableInstantMode
                 + ", mBand=" + mBand
                 + ", mPairingConfig" + mPairingConfig
@@ -316,10 +316,10 @@ public final class SubscribeConfig implements Parcelable {
         dest.writeInt(mSubscribeType);
         dest.writeInt(mTtlSec);
         dest.writeInt(mEnableTerminateNotification ? 1 : 0);
-        dest.writeInt(mMinDistanceMm);
-        dest.writeInt(mMinDistanceMmSet ? 1 : 0);
-        dest.writeInt(mMaxDistanceMm);
-        dest.writeInt(mMaxDistanceMmSet ? 1 : 0);
+        dest.writeInt(mEgressDistanceMm);
+        dest.writeInt(mEgressDistanceMmSet ? 1 : 0);
+        dest.writeInt(mIngressDistanceMm);
+        dest.writeInt(mIngressDistanceMmSet ? 1 : 0);
         dest.writeBoolean(mEnableInstantMode);
         dest.writeInt(mBand);
         dest.writeParcelable(mPairingConfig, flags);
@@ -350,10 +350,10 @@ public final class SubscribeConfig implements Parcelable {
             int subscribeType = in.readInt();
             int ttlSec = in.readInt();
             boolean enableTerminateNotification = in.readInt() != 0;
-            int minDistanceMm = in.readInt();
-            boolean minDistanceMmSet = in.readInt() != 0;
-            int maxDistanceMm = in.readInt();
-            boolean maxDistanceMmSet = in.readInt() != 0;
+            int egressDistanceMm = in.readInt();
+            boolean egressDistanceMmSet = in.readInt() != 0;
+            int ingressDistanceMm = in.readInt();
+            boolean ingressDistanceMmSet = in.readInt() != 0;
             boolean enableInstantMode = in.readBoolean();
             int band = in.readInt();
             AwarePairingConfig pairingConfig = in.readParcelable(
@@ -370,11 +370,10 @@ public final class SubscribeConfig implements Parcelable {
             int channelWidth = in.readInt();
 
             return new SubscribeConfig(serviceName, ssi, matchFilter, subscribeType, ttlSec,
-                    enableTerminateNotification, minDistanceMmSet, minDistanceMm, maxDistanceMmSet,
-                    maxDistanceMm, enableInstantMode, band, pairingConfig, isSuspendable,
-                    vendorData, rangingInterval, enablePeriodicRanging, burstSize,
-                    frequencyMhz, centerFrequency0Mhz, centerFrequency1Mhz, preamble,
-                    channelWidth);
+                    enableTerminateNotification, egressDistanceMmSet, egressDistanceMm,
+                    ingressDistanceMmSet, ingressDistanceMm, enableInstantMode, band, pairingConfig,
+                    isSuspendable, vendorData, rangingInterval, enablePeriodicRanging, burstSize,
+                    frequencyMhz, centerFrequency0Mhz, centerFrequency1Mhz, preamble, channelWidth);
         }
     };
 
@@ -394,8 +393,8 @@ public final class SubscribeConfig implements Parcelable {
                 mServiceSpecificInfo, lhs.mServiceSpecificInfo) && Arrays.equals(mMatchFilter,
                 lhs.mMatchFilter) && mSubscribeType == lhs.mSubscribeType && mTtlSec == lhs.mTtlSec
                 && mEnableTerminateNotification == lhs.mEnableTerminateNotification
-                && mMinDistanceMmSet == lhs.mMinDistanceMmSet
-                && mMaxDistanceMmSet == lhs.mMaxDistanceMmSet
+                && mEgressDistanceMmSet == lhs.mEgressDistanceMmSet
+                && mIngressDistanceMmSet == lhs.mIngressDistanceMmSet
                 && mEnableInstantMode == lhs.mEnableInstantMode
                 && mBand == lhs.mBand
                 && mIsSuspendable == lhs.mIsSuspendable
@@ -410,11 +409,11 @@ public final class SubscribeConfig implements Parcelable {
             return false;
         }
 
-        if (mMinDistanceMmSet && mMinDistanceMm != lhs.mMinDistanceMm) {
+        if (mEgressDistanceMmSet && mEgressDistanceMm != lhs.mEgressDistanceMm) {
             return false;
         }
 
-        if (mMaxDistanceMmSet && mMaxDistanceMm != lhs.mMaxDistanceMm) {
+        if (mIngressDistanceMmSet && mIngressDistanceMm != lhs.mIngressDistanceMm) {
             return false;
         }
 
@@ -428,16 +427,16 @@ public final class SubscribeConfig implements Parcelable {
     public int hashCode() {
         int result = Objects.hash(Arrays.hashCode(mServiceName),
                 Arrays.hashCode(mServiceSpecificInfo), Arrays.hashCode(mMatchFilter),
-                mSubscribeType, mTtlSec, mEnableTerminateNotification, mMinDistanceMmSet,
-                mMaxDistanceMmSet, mEnableInstantMode, mBand,  mIsSuspendable, mVendorData,
+                mSubscribeType, mTtlSec, mEnableTerminateNotification, mEgressDistanceMmSet,
+                mIngressDistanceMmSet, mEnableInstantMode, mBand,  mIsSuspendable, mVendorData,
                 mPeriodicRangingEnabled, mRttBurstSize, mFrequencyMhz, mCenterFrequency0Mhz,
                 mCenterFrequency1Mhz, mPreamble, mChannelWidth);
 
-        if (mMinDistanceMmSet) {
-            result = Objects.hash(result, mMinDistanceMm);
+        if (mEgressDistanceMmSet) {
+            result = Objects.hash(result, mEgressDistanceMm);
         }
-        if (mMaxDistanceMmSet) {
-            result = Objects.hash(result, mMaxDistanceMm);
+        if (mIngressDistanceMmSet) {
+            result = Objects.hash(result, mIngressDistanceMm);
         }
         if (mPeriodicRangingEnabled) {
             result = Objects.hash(result, mPeriodicRangingInterval);
@@ -501,19 +500,19 @@ public final class SubscribeConfig implements Parcelable {
             }
         }
 
-        if (mMinDistanceMmSet && mMinDistanceMm < 0) {
+        if (mEgressDistanceMmSet && mEgressDistanceMm < 0) {
             throw new IllegalArgumentException("Minimum distance must be non-negative");
         }
-        if (mMaxDistanceMmSet && mMaxDistanceMm < 0) {
+        if (mIngressDistanceMmSet && mIngressDistanceMm < 0) {
             throw new IllegalArgumentException("Maximum distance must be non-negative");
         }
 
-        if (mPeriodicRangingEnabled && (mMinDistanceMmSet || mMaxDistanceMmSet)) {
+        if (mPeriodicRangingEnabled && (mEgressDistanceMmSet || mIngressDistanceMmSet)) {
             throw new IllegalArgumentException(
                     "Either Periodic Ranging or Min/Max distance is allowed. Not both.");
         }
 
-        if (!rttSupported && (mMinDistanceMmSet || mMaxDistanceMmSet)) {
+        if (!rttSupported && (mEgressDistanceMmSet || mIngressDistanceMmSet)) {
             throw new IllegalArgumentException("Ranging is not supported");
         }
         if ((!rttSupported || !characteristics.isPeriodicRangingSupported())
@@ -605,6 +604,36 @@ public final class SubscribeConfig implements Parcelable {
             throw new UnsupportedOperationException();
         }
         return mVendorData != null ? mVendorData : Collections.emptyList();
+    }
+
+    /**
+     * Get the ingress distance in mm.
+     * See {@link Builder#setIngressDistanceMm(int)}.
+     *
+     * @return The ingress distance in mm.
+     * @throws IllegalStateException if the value was not set.
+     */
+    @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
+    public int getIngressDistanceMm() {
+        if (!mIngressDistanceMmSet) {
+            throw new IllegalStateException("Ingress distance was not set.");
+        }
+        return mIngressDistanceMm;
+    }
+
+    /**
+     * Get the egress distance in mm.
+     * See {@link Builder#setEgressDistanceMm(int)}.
+     *
+     * @return The egress distance in mm.
+     * @throws IllegalStateException if the value was not set.
+     */
+    @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
+    public int getEgressDistanceMm() {
+        if (!mEgressDistanceMmSet) {
+            throw new IllegalStateException("Egress distance was not set.");
+        }
+        return mEgressDistanceMm;
     }
 
     /**
@@ -719,10 +748,10 @@ public final class SubscribeConfig implements Parcelable {
         private int mSubscribeType = SUBSCRIBE_TYPE_PASSIVE;
         private int mTtlSec = 0;
         private boolean mEnableTerminateNotification = true;
-        private boolean mMinDistanceMmSet = false;
-        private int mMinDistanceMm;
-        private boolean mMaxDistanceMmSet = false;
-        private int mMaxDistanceMm;
+        private boolean mEgressDistanceMmSet = false;
+        private int mEgressDistanceMm;
+        private boolean mIngressDistanceMmSet = false;
+        private int mIngressDistanceMm;
         private boolean mEnableInstantMode;
         private int mBand = WifiScanner.WIFI_BAND_24_GHZ;
         private AwarePairingConfig mPairingConfig;
@@ -892,10 +921,13 @@ public final class SubscribeConfig implements Parcelable {
          *
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
+         * @deprecated Use {@link #setEgressDistanceMm(int)} instead.
          */
+        @Deprecated
+        @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
         public Builder setMinDistanceMm(int minDistanceMm) {
-            mMinDistanceMm = minDistanceMm;
-            mMinDistanceMmSet = true;
+            mEgressDistanceMm = minDistanceMm;
+            mEgressDistanceMmSet = true;
             return this;
         }
 
@@ -931,10 +963,95 @@ public final class SubscribeConfig implements Parcelable {
          *
          * @return The builder to facilitate chaining
          *         {@code builder.setXXX(..).setXXX(..)}.
+         * @deprecated Use {@link #setIngressDistanceMm(int)} instead.
          */
+        @Deprecated
+        @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
         public Builder setMaxDistanceMm(int maxDistanceMm) {
-            mMaxDistanceMm = maxDistanceMm;
-            mMaxDistanceMmSet = true;
+            mIngressDistanceMm = maxDistanceMm;
+            mIngressDistanceMmSet = true;
+            return this;
+        }
+
+        /**
+         * An ingress distance is configured to detect when the device enters a defined range. A
+         * discovery result with range will be reported when the device moves into the range of
+         * the ingress distance (inner threshold) to a matching publisher (based on the other
+         * matching criteria in this configuration). This can be used in conjunction with
+         * {@link #setEgressDistanceMm(int)} to specify a geofence.
+         * <p>
+         * When both ingress (inner threshold) and egress (outer threshold) distances are set
+         * for geofence, the ranging result will be reported when the device moves either into
+         * the range of the inner threshold or out of the range of the outer threshold.
+         * <p>
+         * For ranging to be used in discovery it must also be enabled on the publisher using
+         * {@link PublishConfig.Builder#setRangingEnabled(boolean)}. However, ranging may
+         * not be available or enabled on the publisher or may be temporarily disabled on either
+         * subscriber or publisher - in such cases discovery will proceed without ranging.
+         * <p>
+         * When ranging is enabled and available on both publisher and subscriber and a service
+         * is discovered based on geofence constraints the
+         * {@link DiscoverySessionCallback#onServiceDiscoveredWithinRange(PeerHandle, byte[], List, int)}
+         * is called, otherwise the
+         * {@link DiscoverySessionCallback#onServiceDiscovered(PeerHandle, byte[], List)}
+         * is called.
+         * <p>
+         * The device must support Wi-Fi RTT for this feature to be used. Feature support is checked
+         * as described in {@link android.net.wifi.rtt}.
+         * <p>
+         *
+         * @param ingressDistanceMm Ingress distance, in mm, to the publisher below which to trigger
+         *                      discovery.
+         *
+         * @return The builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
+        @NonNull
+        public Builder setIngressDistanceMm(int ingressDistanceMm) {
+            mIngressDistanceMm = ingressDistanceMm;
+            mIngressDistanceMmSet = true;
+            return this;
+        }
+
+        /**
+         * An egress distance is configured to detect when the device exits a defined range. A
+         * discovery result with range will be reported when the device moves out of the range of
+         * the egress distance (outer threshold) to a matching publisher (based on the other
+         * matching criteria in this configuration). This can be used in conjunction with
+         * {@link #setIngressDistanceMm(int)} to specify a geofence.
+         * <p>
+         * When both ingress (inner threshold) and egress (outer threshold) distances are set
+         * for geofence, the ranging result will be reported when the device moves either into
+         * the range of the inner threshold or out of the range of the outer threshold.
+         * <p>
+         * For ranging to be used in discovery it must also be enabled on the publisher using
+         * {@link PublishConfig.Builder#setRangingEnabled(boolean)}. However, ranging may
+         * not be available or enabled on the publisher or may be temporarily disabled on either
+         * subscriber or publisher - in such cases discovery will proceed without ranging.
+         * <p>
+         * When ranging is enabled and available on both publisher and subscriber and a service
+         * is discovered based on geofence constraints the
+         * {@link DiscoverySessionCallback#onServiceDiscoveredWithinRange(PeerHandle, byte[], List, int)}
+         * is called, otherwise the
+         * {@link DiscoverySessionCallback#onServiceDiscovered(PeerHandle, byte[], List)}
+         * is called.
+         * <p>
+         * The device must support Wi-Fi RTT for this feature to be used. Feature support is checked
+         * as described in {@link android.net.wifi.rtt}.
+         * <p>
+         *
+         * @param egressDistanceMm Egress distance, in mm, to the publisher above which to trigger
+         *                      discovery.
+         *
+         * @return The builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @FlaggedApi(Flags.FLAG_AWARE_INGRESS_EGRESS_DISTANCE)
+        @NonNull
+        public Builder setEgressDistanceMm(int egressDistanceMm) {
+            mEgressDistanceMm = egressDistanceMm;
+            mEgressDistanceMmSet = true;
             return this;
         }
 
@@ -1234,12 +1351,11 @@ public final class SubscribeConfig implements Parcelable {
          */
         public SubscribeConfig build() {
             return new SubscribeConfig(mServiceName, mServiceSpecificInfo, mMatchFilter,
-                    mSubscribeType, mTtlSec, mEnableTerminateNotification,
-                    mMinDistanceMmSet, mMinDistanceMm, mMaxDistanceMmSet, mMaxDistanceMm,
+                    mSubscribeType, mTtlSec, mEnableTerminateNotification, mEgressDistanceMmSet,
+                    mEgressDistanceMm, mIngressDistanceMmSet, mIngressDistanceMm,
                     mEnableInstantMode, mBand, mPairingConfig, mIsSuspendable, mVendorData,
-                    mPeriodicRangingInterval, mPeriodicRangingEnabled, mRttBurstSize,
-                    mFrequencyMhz, mCenterFrequency0Mhz, mCenterFrequency1Mhz, mPreamble,
-                    mChannelWidth);
+                    mPeriodicRangingInterval, mPeriodicRangingEnabled, mRttBurstSize, mFrequencyMhz,
+                    mCenterFrequency0Mhz, mCenterFrequency1Mhz, mPreamble, mChannelWidth);
 
         }
     }

@@ -1280,10 +1280,9 @@ public final class WifiNetworkSuggestion implements Parcelable {
                 BuildProperties buildProperties = BuildProperties.getInstance();
                 if ((mSubscriptionId == SubscriptionManager.INVALID_SUBSCRIPTION_ID
                         && mSubscriptionGroup == null)
-                        || mMeteredOverride != WifiConfiguration.METERED_OVERRIDE_METERED
                         || (!isEnterpriseSuggestion()
                         && !(buildProperties.isEngBuild() || buildProperties.isUserdebugBuild()))) {
-                    throw new IllegalStateException("A carrier merged network must be a metered, "
+                    throw new IllegalStateException("A carrier merged network must be an "
                             + "enterprise network with valid subscription Id");
                 }
             }

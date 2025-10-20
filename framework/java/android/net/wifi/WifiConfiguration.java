@@ -33,7 +33,6 @@ import android.net.NetworkSpecifier;
 import android.net.ProxyInfo;
 import android.net.StaticIpConfiguration;
 import android.net.Uri;
-import android.net.wifi.util.Environment;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.ParcelUuid;
@@ -88,25 +87,25 @@ public class WifiConfiguration implements Parcelable {
      * Current Version of the Backup Serializer.
     */
     private static final int BACKUP_VERSION = 3;
-    /** {@hide} */
+    /** @hide */
     public static final String ssidVarName = "ssid";
-    /** {@hide} */
+    /** @hide */
     public static final String bssidVarName = "bssid";
-    /** {@hide} */
+    /** @hide */
     public static final String pskVarName = "psk";
-    /** {@hide} */
+    /** @hide */
     @Deprecated @UnsupportedAppUsage
     public static final String[] wepKeyVarNames = {"wep_key0", "wep_key1", "wep_key2", "wep_key3"};
-    /** {@hide} */
+    /** @hide */
     @Deprecated
     public static final String wepTxKeyIdxVarName = "wep_tx_keyidx";
-    /** {@hide} */
+    /** @hide */
     public static final String priorityVarName = "priority";
-    /** {@hide} */
+    /** @hide */
     public static final String hiddenSSIDVarName = "scan_ssid";
-    /** {@hide} */
+    /** @hide */
     public static final String pmfVarName = "ieee80211w";
-    /** {@hide} */
+    /** @hide */
     public static final String updateIdentiferVarName = "update_identifier";
     /**
      * The network ID for an invalid network.
@@ -115,12 +114,12 @@ public class WifiConfiguration implements Parcelable {
      */
     @SystemApi
     public static final int INVALID_NETWORK_ID = -1;
-    /** {@hide} */
+    /** @hide */
     public static final int LOCAL_ONLY_NETWORK_ID = -2;
 
-    /** {@hide} */
+    /** @hide */
     private String mPasspointManagementObjectTree;
-    /** {@hide} */
+    /** @hide */
     private static final int MAXIMUM_RANDOM_MAC_GENERATION_RETRY = 3;
 
     /**
@@ -582,7 +581,7 @@ public class WifiConfiguration implements Parcelable {
      * This API would clear existing security types and add a default one.
      *
      * Before calling this API with {@link #SECURITY_TYPE_DPP} as securityType,
-     * call {@link WifiManager#isEasyConnectDppAkmSupported() to know whether this security type is
+     * call {@link WifiManager#isEasyConnectDppAkmSupported()} to know whether this security type is
      * supported or not.
      *
      * @param securityType One of the following security types:
@@ -1371,10 +1370,9 @@ public class WifiConfiguration implements Parcelable {
     /**
      * True if this network configuration is visible to and usable by other users on the
      * same device, false otherwise.
-     *
-     * @hide
      */
-    @SystemApi
+    @SuppressLint("MutableBareField")
+    @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public boolean shared;
 
     /**
@@ -1491,9 +1489,9 @@ public class WifiConfiguration implements Parcelable {
     /**
      * Auto-join is allowed by user for this network.
      * Default true.
-     * @hide
      */
-    @SystemApi
+    @SuppressLint("MutableBareField")
+    @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public boolean allowAutojoin = true;
 
     /**
@@ -4078,7 +4076,10 @@ public class WifiConfiguration implements Parcelable {
         mIpConfiguration.setHttpProxy(proxy);
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public int describeContents() {
         return 0;
     }
@@ -4212,7 +4213,10 @@ public class WifiConfiguration implements Parcelable {
         }
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(networkId);
@@ -4314,7 +4318,10 @@ public class WifiConfiguration implements Parcelable {
         dest.writeInt(mCreatorUserId);
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     @SystemApi
     public static final @android.annotation.NonNull Creator<WifiConfiguration> CREATOR =
             new Creator<WifiConfiguration>() {
@@ -4827,9 +4834,7 @@ public class WifiConfiguration implements Parcelable {
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public void setAllowedToUpdateByOtherUsers(boolean isAllowed) {
-        if (!Environment.isSdkNewerThanB()) {
-            throw new UnsupportedOperationException();
-        }
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         if (!shared && isAllowed) {
             throw new IllegalArgumentException("private network can't update by other user");
         }
@@ -4846,9 +4851,7 @@ public class WifiConfiguration implements Parcelable {
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public boolean isAllowedToUpdateByOtherUsers() {
-        if (!Environment.isSdkNewerThanB()) {
-            throw new UnsupportedOperationException();
-        }
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         return shared && mIsAllowedToUpdateByOtherUsers;
     }
 
@@ -4871,7 +4874,8 @@ public class WifiConfiguration implements Parcelable {
         // when we can't identify it from creator uid
         int userIdFromUid = UserHandle.getUserHandleForUid(creatorUid).getIdentifier();
         if (Flags.multiUserWifiEnhancement()) {
-            return userIdFromUid == UserHandle.SYSTEM.getIdentifier()
+            return (userIdFromUid == UserHandle.SYSTEM.getIdentifier()
+                    && mCreatorUserId != -2 /* UserHandle.USER_CURRENT */)
                     ? mCreatorUserId : userIdFromUid;
         }
         return userIdFromUid;
@@ -4892,9 +4896,7 @@ public class WifiConfiguration implements Parcelable {
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public @UserIdInt int getCreatorUserId() {
-        if (!Environment.isSdkNewerThanB()) {
-            throw new UnsupportedOperationException();
-        }
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         return getCreatorUserIdInternal();
     }
 }

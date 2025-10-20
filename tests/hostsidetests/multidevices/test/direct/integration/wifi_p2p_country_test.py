@@ -34,6 +34,18 @@ from direct import p2p_utils
 
 
 _DEFAULT_FUNCTION_SWITCH_TIME = 10
+_P2P_CONNECT_APIS = ApiTest(
+    apis=[
+        'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo('
+        'android.net.wifi.p2p.WifiP2pManager.Channel channel, '
+        'android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
+        'android.net.wifi.p2p.WifiP2pManager#connect('
+        'android.net.wifi.p2p.WifiP2pManager.Channel channel, '
+        'android.net.wifi.p2p.WifiP2pConfig config, '
+        'android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
+    ]
+)
+
 
 class WifiP2pCountryTestCases(base_test.BaseTestClass):
     """P2p negotiation with country test."""
@@ -55,6 +67,19 @@ class WifiP2pCountryTestCases(base_test.BaseTestClass):
         )
         self.client_ad.debug_tag = f'{self.client_ad.serial}(Client)'
 
+    def teardown_test(self) -> None:
+        utils.concurrent_exec(
+            self._teardown_device,
+            param_list=[[ad] for ad in self.ads],
+            raise_on_exception=True,
+        )
+
+    def on_fail(self, record: records.TestResult) -> None:
+        logging.info('Collecting bugreports...')
+        android_device.take_bug_reports(
+            self.ads, destination=self.current_test_info.output_path
+        )
+
     def _setup_device(self, ad: android_device.AndroidDevice) -> None:
         ad.load_snippet('wifi', constants.WIFI_SNIPPET_PACKAGE_NAME)
         wifi_test_utils.set_screen_on_and_unlock(ad)
@@ -62,6 +87,9 @@ class WifiP2pCountryTestCases(base_test.BaseTestClass):
         ad.wifi.wifiDisable()
         ad.wifi.wifiClearConfiguredNetworks()
         ad.wifi.wifiEnable()
+
+    def _teardown_device(self, ad: android_device.AndroidDevice):
+        p2p_utils.teardown_wifi_p2p(ad)
 
     def set_wifi_country_code(
         self,
@@ -129,142 +157,69 @@ class WifiP2pCountryTestCases(base_test.BaseTestClass):
         time.sleep(_DEFAULT_FUNCTION_SWITCH_TIME)
         wp2putils.p2p_connect(group_owner, client, True, psk)
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
-
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_pbc_and_ping_and_reconnect_US(self) -> None:
-
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.PBC, 'US')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
-
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_pbc_and_ping_and_reconnect_JP(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.PBC, 'JP')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
-
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_pbc_and_ping_and_reconnect_DE(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.PBC, 'DE')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
-
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_pbc_and_ping_and_reconnect_AU(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.PBC, 'AU')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
-
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_pbc_and_ping_and_reconnect_TW(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.PBC, 'TW')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
-
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_pbc_and_ping_and_reconnect_GB(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.PBC, 'GB')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
+    @_P2P_CONNECT_APIS
+    def test_p2p_connect_via_pbc_and_ping_and_reconnect_DZ(self) -> None:
+        self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.PBC, 'DZ')
 
+    @_P2P_CONNECT_APIS
+    def test_p2p_connect_via_pbc_and_ping_and_reconnect_ID(self) -> None:
+        self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.PBC, 'ID')
+
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_display_and_ping_and_reconnect_US(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.DISPLAY, 'US')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
-
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_display_and_ping_and_reconnect_JP(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.DISPLAY, 'JP')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
-
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_display_and_ping_and_reconnect_DE(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.DISPLAY, 'DE')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
-
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_display_and_ping_and_reconnect_AU(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.DISPLAY, 'AU')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
-
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_display_and_ping_and_reconnect_TW(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.DISPLAY, 'TW')
 
-    @ApiTest(
-        apis=[
-            'android.net.wifi.p2p.WifiP2pManager#requestConnectionInfo(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener listener)',
-            'android.net.wifi.p2p.WifiP2pManager#connect(android.net.wifi.p2p.WifiP2pManager.Channel channel, android.net.wifi.p2p.WifiP2pConfig config, android.net.wifi.p2p.WifiP2pManager.ActionListener listener)',
-        ]
-    )
+    @_P2P_CONNECT_APIS
     def test_p2p_connect_via_display_and_ping_and_reconnect_GB(self) -> None:
         self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.DISPLAY, 'GB')
 
+    @_P2P_CONNECT_APIS
+    def test_p2p_connect_via_display_and_ping_and_reconnect_DZ(self) -> None:
+        self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.DISPLAY, 'DZ')
 
-    def _teardown_device(self, ad: android_device.AndroidDevice):
-        p2p_utils.teardown_wifi_p2p(ad)
-
-    def teardown_test(self) -> None:
-        utils.concurrent_exec(
-            self._teardown_device,
-            param_list=[[ad] for ad in self.ads],
-            raise_on_exception=True,
-        )
-
-    def on_fail(self, record: records.TestResult) -> None:
-        logging.info('Collecting bugreports...')
-        android_device.take_bug_reports(
-            self.ads, destination=self.current_test_info.output_path
-        )
+    @_P2P_CONNECT_APIS
+    def test_p2p_connect_via_display_and_ping_and_reconnect_ID(self) -> None:
+        self.p2p_connect_ping_and_reconnect_country(constants.WpsInfo.DISPLAY, 'ID')
 
 
 if __name__ == '__main__':

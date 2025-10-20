@@ -71,7 +71,7 @@ public class SupplicantP2pIfaceHal {
         sVerboseLoggingEnabled = verboseEnabled;
         sHalVerboseLoggingEnabled = halVerboseEnabled;
         SupplicantP2pIfaceHalHidlImpl.enableVerboseLogging(verboseEnabled, halVerboseEnabled);
-        SupplicantP2pIfaceHalAidlImpl.enableVerboseLogging(verboseEnabled, halVerboseEnabled);
+        SupplicantP2pIfaceHalAidlVendorImpl.enableVerboseLogging(verboseEnabled, halVerboseEnabled);
     }
 
     /**
@@ -122,10 +122,10 @@ public class SupplicantP2pIfaceHal {
     @VisibleForTesting
     protected ISupplicantP2pIfaceHal createP2pIfaceHalMockable() {
         synchronized (mLock) {
-            // Prefer AIDL implementation if service is declared.
-            if (SupplicantP2pIfaceHalAidlImpl.serviceDeclared()) {
-                Log.i(TAG, "Initializing SupplicantP2pIfaceHal using AIDL implementation.");
-                return new SupplicantP2pIfaceHalAidlImpl(mMonitor, mWifiInjector);
+            // Prefer AIDL Vendor implementation if service is declared.
+            if (SupplicantP2pIfaceHalAidlVendorImpl.serviceDeclared()) {
+                Log.i(TAG, "Initializing SupplicantP2pIfaceHal using Vendor AIDL implementation.");
+                return new SupplicantP2pIfaceHalAidlVendorImpl(mMonitor, mWifiInjector);
 
             } else if (SupplicantP2pIfaceHalHidlImpl.serviceDeclared()) {
                 Log.i(TAG, "Initializing SupplicantP2pIfaceHal using HIDL implementation.");
@@ -1136,7 +1136,7 @@ public class SupplicantP2pIfaceHal {
      */
     public long getSupportedFeatures() {
         if (mP2pIfaceHal instanceof SupplicantP2pIfaceHalHidlImpl) return 0L;
-        return ((SupplicantP2pIfaceHalAidlImpl) mP2pIfaceHal).getSupportedFeatures();
+        return ((SupplicantP2pIfaceHalAidlBase) mP2pIfaceHal).getSupportedFeatures();
     }
 
     private boolean handleNullHal(String methodStr) {

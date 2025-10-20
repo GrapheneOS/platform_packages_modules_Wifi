@@ -16,8 +16,6 @@
 
 package com.android.server.wifi;
 
-import static com.android.server.wifi.ml_connected_scorer.Constants.RANDOM_FOREST_MODEL_ID;
-
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SuppressLint;
@@ -65,13 +63,13 @@ import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.hotspot2.PasspointManager;
 import com.android.server.wifi.hotspot2.PasspointNetworkNominateHelper;
 import com.android.server.wifi.hotspot2.PasspointObjectFactory;
-import com.android.server.wifi.mainline_supplicant.MainlineSupplicant;
 import com.android.server.wifi.ml_connected_scorer.MlConnectedScorer;
 import com.android.server.wifi.ml_connected_scorer.MlConnectedScorerHelper;
 import com.android.server.wifi.ml_connected_scorer.RandomForestModule;
 import com.android.server.wifi.ml_connected_scorer.WifiUsabilityClassifierFactory;
 import com.android.server.wifi.mockwifi.MockWifiServiceUtil;
 import com.android.server.wifi.nl80211.Nl80211Native;
+import com.android.server.wifi.nl80211.Nl80211Proxy;
 import com.android.server.wifi.p2p.SupplicantP2pIfaceHal;
 import com.android.server.wifi.p2p.WifiP2pMetrics;
 import com.android.server.wifi.p2p.WifiP2pMonitor;
@@ -180,7 +178,6 @@ public class WifiInjector {
     private final WifiP2pMonitor mWifiP2pMonitor;
     private final SupplicantStaIfaceHal mSupplicantStaIfaceHal;
     private final SupplicantP2pIfaceHal mSupplicantP2pIfaceHal;
-    private final MainlineSupplicant mMainlineSupplicant;
     private final HostapdHal mHostapdHal;
     private final WifiVendorHal mWifiVendorHal;
     private final ScoringParams mScoringParams;
@@ -188,7 +185,6 @@ public class WifiInjector {
     private final WifiSettingsStore mSettingsStore;
     private final OpenNetworkNotifier mOpenNetworkNotifier;
     private final WifiLockManager mLockManager;
-    private final WifiNl80211Manager mWifiCondManager;
     private final Nl80211Native mNl80211Native;
     private final Clock mClock = new Clock();
     private final WifiMetrics mWifiMetrics;
@@ -286,6 +282,7 @@ public class WifiInjector {
     private final boolean mHasActiveModem;
     private final RunnerHandler mWifiHandler;
     private boolean mVerboseLoggingEnabled;
+    private WifiUsabilityClassifierFactory mWifiUsabilityClassifierFactory;
     @Nullable private final WepNetworkUsageController mWepNetworkUsageController;
 
     public WifiInjector(WifiContext context) {
@@ -322,6 +319,8 @@ public class WifiInjector {
         mWifiDeviceStateChangeManager = new WifiDeviceStateChangeManager(context, mWifiThreadRunner,
                 this);
         mWifiGlobals = new WifiGlobals(mContext);
+        mWifiUsabilityClassifierFactory =
+                new WifiUsabilityClassifierFactory(mContext, new RandomForestModule());
         mWifiMetrics = new WifiMetrics(mContext, mFrameworkFacade, mClock, wifiLooper,
                 awareMetrics, rttMetrics, new WifiPowerMetrics(mBatteryStats), mWifiP2pMetrics,
                 mDppMetrics, mWifiMonitor, mWifiDeviceStateChangeManager, mWifiGlobals);
@@ -365,18 +364,18 @@ public class WifiInjector {
         mSupplicantStaIfaceHal = new SupplicantStaIfaceHal(
                 mContext, mWifiMonitor, mFrameworkFacade, mWifiHandler, mClock, mWifiMetrics,
                 mWifiGlobals, mSsidTranslator, this);
-        mMainlineSupplicant = new MainlineSupplicant(mWifiThreadRunner, mContext, mWifiGlobals);
         mHostapdHal = new HostapdHal(mContext, mWifiHandler);
-        mWifiCondManager = (WifiNl80211Manager) mContext.getSystemService(
-                Context.WIFI_NL80211_SERVICE);
-        mNl80211Native = new Nl80211Native(mWifiHandler);
+        mNl80211Native = new Nl80211Native(
+                new Nl80211Proxy(mWifiHandler),
+                (WifiNl80211Manager) mContext.getSystemService(Context.WIFI_NL80211_SERVICE),
+                true /* useWificond */);
         mWifiNative = new WifiNative(
-                mWifiVendorHal, mSupplicantStaIfaceHal, mHostapdHal, mWifiCondManager,
+                mWifiVendorHal, mSupplicantStaIfaceHal, mHostapdHal, mNl80211Native,
                 mWifiMonitor, mPropertyService, mWifiMetrics,
-                mWifiHandler, new Random(), mBuildProperties, this, mMainlineSupplicant);
+                mWifiHandler, new Random(), mBuildProperties, this);
         mWifiP2pMonitor = new WifiP2pMonitor();
         mSupplicantP2pIfaceHal = new SupplicantP2pIfaceHal(mWifiP2pMonitor, mWifiGlobals, this);
-        mWifiP2pNative = new WifiP2pNative(mWifiCondManager, mWifiNative, mWifiMetrics,
+        mWifiP2pNative = new WifiP2pNative(mNl80211Native, mWifiNative, mWifiMetrics,
                 mWifiVendorHal, mSupplicantP2pIfaceHal, mHalDeviceManager, mPropertyService, this);
         SubscriptionManager subscriptionManager =
                 mContext.getSystemService(SubscriptionManager.class);
@@ -649,10 +648,10 @@ public class WifiInjector {
 
         mTwtManager = new TwtManager(this, mCmiMonitor, mWifiNative, mWifiHandler, mClock,
                 WifiTwtSession.MAX_TWT_SESSIONS, 1);
-        mBackupRestoreController = new BackupRestoreController(mWifiSettingsBackupRestore, mClock);
-        if (mFeatureFlags.voipDetectionBugfix() && SdkLevel.isAtLeastV()
-                && Flags.passCopiedCallStateList() && mContext.getResources().getBoolean(
-                R.bool.config_wifiVoipDetectionEnabled)) {
+        mBackupRestoreController =
+                new BackupRestoreController(mWifiSettingsBackupRestore, mClock);
+        if (SdkLevel.isAtLeastV() && Flags.passCopiedCallStateList()
+                && mContext.getResources().getBoolean(R.bool.config_wifiVoipDetectionEnabled)) {
             mWifiVoipDetector = new WifiVoipDetector(mContext, mWifiHandler, this,
                     mWifiCarrierInfoManager);
         } else {
@@ -728,6 +727,7 @@ public class WifiInjector {
         mMultiInternetWifiNetworkFactory.enableVerboseLogging(verboseEnabled);
         mWifiRoamingModeManager.enableVerboseLogging(verboseEnabled);
         mWifiHandler.enableVerboseLogging(verboseEnabled);
+        mWifiApConfigStore.enableVerboseLogging(verboseEnabled);
     }
 
     public UserManager getUserManager() {
@@ -909,10 +909,7 @@ public class WifiInjector {
                 mContext, mWifiConfigManager, mBatteryStats, mWifiHandlerThread.getLooper(),
                 mWifiMonitor, ifaceName, clientModeManager, mBroadcastQueue);
         supplicantStateTracker.enableVerboseLogging(verboseLoggingEnabled);
-        WifiUsabilityClassifierFactory wifiUsabilityClassifierFactory =
-                new WifiUsabilityClassifierFactory(new RandomForestModule());
-        MlConnectedScorer mlConnectedScorer = new MlConnectedScorer(
-                wifiUsabilityClassifierFactory.getModel(mContext, RANDOM_FOREST_MODEL_ID),
+        MlConnectedScorer mlConnectedScorer = new MlConnectedScorer(mWifiUsabilityClassifierFactory,
                 new MlConnectedScorerHelper());
         return new ClientModeImpl(mContext, mWifiMetrics, mClock,
                 mWifiScoreCard, mWifiStateTracker, mWifiPermissionsUtil, mWifiConfigManager,
@@ -1032,11 +1029,21 @@ public class WifiInjector {
     }
 
     /**
-     * Construct an instance of {@link SoftApStoreData}.
+     * Construct an instance of {@link SoftApStoreData.SharedStoreData}.
      */
-    public SoftApStoreData makeSoftApStoreData(
+    public SoftApStoreData makeSharedSoftApStoreData(
             SoftApStoreData.DataSource dataSource) {
-        return new SoftApStoreData(mContext, mSettingsMigrationDataHolder, dataSource);
+        return new SoftApStoreData.SharedStoreData(mContext, mSettingsMigrationDataHolder,
+                dataSource);
+    }
+
+    /**
+     * Construct an instance of {@link SoftApStoreData.UserStoreData}.
+     */
+    public SoftApStoreData makeUserSoftApStoreData(
+            SoftApStoreData.DataSource dataSource) {
+        return new SoftApStoreData.UserStoreData(mContext, mSettingsMigrationDataHolder,
+                dataSource);
     }
 
     public WifiPermissionsUtil getWifiPermissionsUtil() {
@@ -1135,10 +1142,6 @@ public class WifiInjector {
             mNetdWrapper = new NetdWrapper(mContext, new Handler(mWifiHandlerThread.getLooper()));
         }
         return mNetdWrapper;
-    }
-
-    public WifiNl80211Manager getWifiCondManager() {
-        return mWifiCondManager;
     }
 
     public Nl80211Native getNl80211Native() {

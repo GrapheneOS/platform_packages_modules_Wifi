@@ -45,6 +45,7 @@ import android.net.wifi.OuiKeyedData;
 import android.net.wifi.OuiKeyedDataUtil;
 import android.net.wifi.RttManager;
 import android.net.wifi.SynchronousExecutor;
+import android.net.wifi.util.Environment;
 import android.net.wifi.util.HexEncoding;
 import android.os.Build;
 import android.os.Handler;
@@ -846,10 +847,12 @@ public class WifiAwareManagerTest {
         collector.checkThat("mTtlSec", subscribeConfig.mTtlSec, equalTo(0));
         collector.checkThat("mEnableTerminateNotification",
                 subscribeConfig.mEnableTerminateNotification, equalTo(true));
-        collector.checkThat("mMinDistanceCmSet", subscribeConfig.mMinDistanceMmSet, equalTo(false));
-        collector.checkThat("mMinDistanceMm", subscribeConfig.mMinDistanceMm, equalTo(0));
-        collector.checkThat("mMaxDistanceMmSet", subscribeConfig.mMaxDistanceMmSet, equalTo(false));
-        collector.checkThat("mMaxDistanceMm", subscribeConfig.mMaxDistanceMm, equalTo(0));
+        collector.checkThat("mMinDistanceCmSet", subscribeConfig.mEgressDistanceMmSet,
+                equalTo(false));
+        collector.checkThat("mMinDistanceMm", subscribeConfig.mEgressDistanceMm, equalTo(0));
+        collector.checkThat("mMaxDistanceMmSet", subscribeConfig.mIngressDistanceMmSet,
+                equalTo(false));
+        collector.checkThat("mMaxDistanceMm", subscribeConfig.mIngressDistanceMm, equalTo(0));
         collector.checkThat("mPeriodicRangingEnabled", subscribeConfig.mPeriodicRangingEnabled,
                 equalTo(false));
         if (SdkLevel.isAtLeastV()) {
@@ -878,8 +881,8 @@ public class WifiAwareManagerTest {
                         .setSubscribeType(subscribeType)
                         .setTtlSec(subscribeTtl)
                         .setTerminateNotificationEnabled(enableTerminateNotification)
-                        .setMinDistanceMm(minDistance)
-                        .setMaxDistanceMm(maxDistance)
+                        .setEgressDistanceMm(minDistance)
+                        .setIngressDistanceMm(maxDistance)
                         .setPeriodicRangingEnabled(true)
                         .setPeriodicRangingInterval(periodicRangingInterval);
         if (SdkLevel.isAtLeastV()) {
@@ -897,14 +900,75 @@ public class WifiAwareManagerTest {
         collector.checkThat("mTtlSec", subscribeTtl, equalTo(subscribeConfig.mTtlSec));
         collector.checkThat("mEnableTerminateNotification", enableTerminateNotification,
                 equalTo(subscribeConfig.mEnableTerminateNotification));
-        collector.checkThat("mMinDistanceMmSet", true, equalTo(subscribeConfig.mMinDistanceMmSet));
-        collector.checkThat("mMinDistanceMm", minDistance, equalTo(subscribeConfig.mMinDistanceMm));
-        collector.checkThat("mMaxDistanceMmSet", true, equalTo(subscribeConfig.mMaxDistanceMmSet));
-        collector.checkThat("mMaxDistanceMm", maxDistance, equalTo(subscribeConfig.mMaxDistanceMm));
+        collector.checkThat("mMinDistanceMmSet", true,
+                equalTo(subscribeConfig.mEgressDistanceMmSet));
+        collector.checkThat("mMinDistanceMm", minDistance,
+                equalTo(subscribeConfig.mEgressDistanceMm));
+        collector.checkThat("mMaxDistanceMmSet", true,
+                equalTo(subscribeConfig.mIngressDistanceMmSet));
+        collector.checkThat("mMaxDistanceMm", maxDistance,
+                equalTo(subscribeConfig.mIngressDistanceMm));
         collector.checkThat("mPeriodicRangingEnabled", true,
                 equalTo(subscribeConfig.mPeriodicRangingEnabled));
         collector.checkThat("mPeriodicRangingInterval", periodicRangingInterval,
                              equalTo(subscribeConfig.mPeriodicRangingInterval));
+        if (SdkLevel.isAtLeastV()) {
+            collector.checkThat("mVendorData", vendorData,
+                    equalTo(subscribeConfig.getVendorData()));
+        }
+    }
+
+    @Test
+    public void testSubscribeConfigBuilderWithIngressEgress() {
+        final String serviceName = "some_service_or_other";
+        final String serviceSpecificInfo = "long arbitrary string with some info";
+        final byte[] matchFilter = { 1, 16, 1, 22 };
+        final int subscribeType = SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE;
+        final int subscribeTtl = 15;
+        final boolean enableTerminateNotification = false;
+        final int ingressDistance = 10;
+        final int egressDistance = 50;
+        final int periodicRangingInterval = SubscribeConfig.PERIODIC_RANGING_INTERVAL_512TU;
+        final List<OuiKeyedData> vendorData = OuiKeyedDataUtil.createTestOuiKeyedDataList(5);
+
+        SubscribeConfig.Builder subscribeConfigBuilder =
+                new SubscribeConfig.Builder().setServiceName(serviceName)
+                        .setServiceSpecificInfo(serviceSpecificInfo.getBytes()).setMatchFilter(
+                                new TlvBufferUtils.TlvIterable(0, 1, matchFilter).toList())
+                        .setSubscribeType(subscribeType)
+                        .setTtlSec(subscribeTtl)
+                        .setTerminateNotificationEnabled(enableTerminateNotification)
+                        .setIngressDistanceMm(ingressDistance)
+                        .setEgressDistanceMm(egressDistance)
+                        .setPeriodicRangingEnabled(true)
+                        .setPeriodicRangingInterval(periodicRangingInterval);
+        if (SdkLevel.isAtLeastV()) {
+            subscribeConfigBuilder.setVendorData(vendorData);
+        }
+        SubscribeConfig subscribeConfig = subscribeConfigBuilder.build();
+
+        collector.checkThat("mServiceName", serviceName.getBytes(),
+                equalTo(subscribeConfig.mServiceName));
+        collector.checkThat("mServiceSpecificInfo",
+                serviceSpecificInfo.getBytes(), equalTo(subscribeConfig.mServiceSpecificInfo));
+        collector.checkThat("mMatchFilter", matchFilter, equalTo(subscribeConfig.mMatchFilter));
+        collector.checkThat("mSubscribeType", subscribeType,
+                equalTo(subscribeConfig.mSubscribeType));
+        collector.checkThat("mTtlSec", subscribeTtl, equalTo(subscribeConfig.mTtlSec));
+        collector.checkThat("mEnableTerminateNotification", enableTerminateNotification,
+                equalTo(subscribeConfig.mEnableTerminateNotification));
+        collector.checkThat("mIngressDistanceMmSet", true,
+                equalTo(subscribeConfig.mIngressDistanceMmSet));
+        collector.checkThat("mIngressDistanceMm", ingressDistance,
+                equalTo(subscribeConfig.mIngressDistanceMm));
+        collector.checkThat("mEgressDistanceMmSet", true,
+                equalTo(subscribeConfig.mEgressDistanceMmSet));
+        collector.checkThat("mEgressDistanceMm", egressDistance,
+                equalTo(subscribeConfig.mEgressDistanceMm));
+        collector.checkThat("mPeriodicRangingEnabled", true,
+                equalTo(subscribeConfig.mPeriodicRangingEnabled));
+        collector.checkThat("mPeriodicRangingInterval", periodicRangingInterval,
+                equalTo(subscribeConfig.mPeriodicRangingInterval));
         if (SdkLevel.isAtLeastV()) {
             collector.checkThat("mVendorData", vendorData,
                     equalTo(subscribeConfig.getVendorData()));
@@ -930,8 +994,8 @@ public class WifiAwareManagerTest {
                         .setSubscribeType(subscribeType)
                         .setTtlSec(subscribeTtl)
                         .setTerminateNotificationEnabled(enableTerminateNotification)
-                        .setMinDistanceMm(minDistance)
-                        .setMaxDistanceMm(maxDistance);
+                        .setEgressDistanceMm(minDistance)
+                        .setIngressDistanceMm(maxDistance);
         if (SdkLevel.isAtLeastV()) {
             subscribeConfigBuilder.setVendorData(vendorData);
         }
@@ -1959,14 +2023,92 @@ public class WifiAwareManagerTest {
                 AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
         inOrder.verify(mockAwareService).initiateBootStrappingSetupRequest(eq(clientId),
                 eq(sessionId), eq(peerId),
-                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC), isNull());
 
         // (4) Bootstrapping confirmed
         sessionProxyCallback.getValue().onBootstrappingVerificationConfirmed(peerId, true,
-                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC);
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC, null);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingSucceeded(eq(peerHandle),
-                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC));
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC), isNull());
+
+        // (5) initiate pairing request
+        subscribeSession.getValue().initiatePairingRequest(peerHandle, alias,
+                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128 , password);
+        inOrder.verify(mockAwareService).initiateNanPairingSetupRequest(eq(clientId), eq(sessionId),
+                eq(peerId), eq(password), eq(alias), eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+
+        // (6) Received confirm event
+        sessionProxyCallback.getValue().onPairingSetupConfirmed(peerHandle.peerId, true, alias);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onPairingSetupSucceeded(eq(peerHandle),
+                eq(alias));
+
+        // (7) terminate
+        subscribeSession.getValue().close();
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockAwareService).terminateSession(clientId, sessionId);
+
+        verifyNoMoreInteractions(mockCallback, mockSessionCallback, mockAwareService,
+                mockSubscribeSession);
+    }
+
+    @Test
+    public void testInitiatePairingFlowWithSsi() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        final int clientId = 4565;
+        final int sessionId = 123;
+        final ConfigRequest configRequest = new ConfigRequest.Builder().build();
+        final SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().build();
+        final int peerId = 873;
+        final PeerHandle peerHandle = new PeerHandle(peerId);
+        final String password = "password";
+        final String alias = "alias";
+        final byte[] ssi = "some service specific info".getBytes();
+
+        InOrder inOrder = inOrder(mockCallback, mockSessionCallback, mockAwareService,
+                mockSubscribeSession);
+        ArgumentCaptor<WifiAwareSession> sessionCaptor = ArgumentCaptor.forClass(
+                WifiAwareSession.class);
+        ArgumentCaptor<IWifiAwareEventCallback> clientProxyCallback = ArgumentCaptor
+                .forClass(IWifiAwareEventCallback.class);
+        ArgumentCaptor<IWifiAwareDiscoverySessionCallback> sessionProxyCallback = ArgumentCaptor
+                .forClass(IWifiAwareDiscoverySessionCallback.class);
+        ArgumentCaptor<SubscribeDiscoverySession> subscribeSession = ArgumentCaptor
+                .forClass(SubscribeDiscoverySession.class);
+
+        // (0) connect + success
+        mDut.attach(mMockLooperHandler, configRequest, mockCallback, null, false, null);
+        inOrder.verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
+                eq(configRequest), eq(false), any(), eq(false));
+        clientProxyCallback.getValue().onConnectSuccess(clientId);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockCallback).onAttached(sessionCaptor.capture());
+        WifiAwareSession session = sessionCaptor.getValue();
+
+        // (1) subscribe
+        session.subscribe(subscribeConfig, mockSessionCallback, mMockLooperHandler);
+        inOrder.verify(mockAwareService).subscribe(any(), any(), eq(clientId), eq(subscribeConfig),
+                sessionProxyCallback.capture(), any());
+
+        // (2) subscribe session created
+        sessionProxyCallback.getValue().onSessionStarted(sessionId);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onSubscribeStarted(subscribeSession.capture());
+
+        // (3) Initiate bootstrapping
+        subscribeSession.getValue().initiateBootstrappingRequest(peerHandle,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC, ssi);
+        inOrder.verify(mockAwareService).initiateBootStrappingSetupRequest(eq(clientId),
+                eq(sessionId), eq(peerId),
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC), eq(ssi));
+
+        // (4) Bootstrapping confirmed
+        sessionProxyCallback.getValue().onBootstrappingVerificationConfirmed(peerId, true,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC, ssi);
+        mMockLooper.dispatchAll();
+        inOrder.verify(mockSessionCallback).onBootstrappingSucceeded(eq(peerHandle),
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_OPPORTUNISTIC), eq(ssi));
 
         // (5) initiate pairing request
         subscribeSession.getValue().initiatePairingRequest(peerHandle, alias,
@@ -2010,9 +2152,49 @@ public class WifiAwareManagerTest {
     public void testSubscribeConfigAssertValidMinDistanceGreaterThanMaxDistance() {
         SubscribeConfig config = new SubscribeConfig.Builder()
                 .setServiceName("TestService")
-                .setMinDistanceMm(1000)
-                .setMaxDistanceMm(100)
+                .setEgressDistanceMm(1000)
+                .setIngressDistanceMm(100)
                 .build();
         config.assertValid(mCharacteristics, true);
     }
+
+    @Test
+    public void testTxtRecord() {
+        // 1. valid TXT record
+        java.util.Map<String, String> txtRecord = new java.util.HashMap<>();
+        txtRecord.put("key1", "value1");
+        txtRecord.put("key2", "value2");
+        byte[] tlvBuffer = WifiAwareManager.getTxtRecordTlvBuffer(txtRecord);
+        java.util.Map<String, String> rereadTxtRecord = WifiAwareManager.getTxtRecordMap(tlvBuffer);
+        assertEquals(txtRecord, rereadTxtRecord);
+
+        // 2. empty TXT record
+        txtRecord.clear();
+        tlvBuffer = WifiAwareManager.getTxtRecordTlvBuffer(txtRecord);
+        rereadTxtRecord = WifiAwareManager.getTxtRecordMap(tlvBuffer);
+        assertEquals(txtRecord, rereadTxtRecord);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetTxtRecordMapInvalidTlv() {
+        WifiAwareManager.getTxtRecordMap(new byte[10]);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testGetTxtRecordTlvBufferNull() {
+        WifiAwareManager.getTxtRecordTlvBuffer(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testGetTxtRecordMapNull() {
+        WifiAwareManager.getTxtRecordMap(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetTxtRecordTlvBufferEmptyKey() {
+        java.util.Map<String, String> txtRecord = new java.util.HashMap<>();
+        txtRecord.put("", "value");
+        WifiAwareManager.getTxtRecordTlvBuffer(txtRecord);
+    }
+
 }

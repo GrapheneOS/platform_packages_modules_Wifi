@@ -26,7 +26,7 @@ import android.net.wifi.usd.SubscribeConfig;
 /**
  * Interface that UsdService implements
  *
- * {@hide}
+ * @hide
  */
 interface IUsdManager {
     Characteristics getCharacteristics();

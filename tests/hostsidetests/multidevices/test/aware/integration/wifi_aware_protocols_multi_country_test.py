@@ -36,6 +36,20 @@ RUNTIME_PERMISSIONS = (
 )
 PACKAGE_NAME = constants.WIFI_AWARE_SNIPPET_PACKAGE_NAME
 
+UNSOLICITED_PASSIVE_APIS = [
+    'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
+    'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
+    'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+    'android.net.ConnectivityManager#requestNetwork(android.net.NetworkRequest request, android.net.ConnectivityManager.NetworkCallback networkCallback, int timeoutMs)',
+]
+
+SOLICITED_ACTIVE_APIS = [
+    'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
+    'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
+    'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
+    'android.net.ConnectivityManager#requestNetwork(android.net.NetworkRequest request, android.net.ConnectivityManager.NetworkCallback networkCallback, int timeoutMs)',
+]
+
 
 class ProtocolsMultiCountryTest(base_test.BaseTestClass):
   """Test Case: ProtocolsMultiCountry.
@@ -48,7 +62,7 @@ class ProtocolsMultiCountryTest(base_test.BaseTestClass):
 
   ads: list[android_device.AndroidDevice]
   SERVICE_NAME = 'GoogleTestXYZ'
-  country_code = 'US,JP,DE,AU,CN,GB'
+  country_code = 'US,JP,DE,AU,TW,GB'
 
   def setup_class(self):
     # Register two Android devices.
@@ -236,86 +250,171 @@ class ProtocolsMultiCountryTest(base_test.BaseTestClass):
         s_ipv6,
     )
 
-  @ApiTest(
-    apis=[
-        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)',
-        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)',
-        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
-        'android.net.ConnectivityManager#requestNetwork(android.net.NetworkRequest request, android.net.ConnectivityManager.NetworkCallback networkCallback, int timeoutMs)',
-    ]
-  )
-  def test_ping6_ib_unsolicited_passive_multicountry(self):
-    """Validate ping6 works with UNSOLICITED/PASSIVE sessions.
+  @ApiTest(apis=UNSOLICITED_PASSIVE_APIS)
+  def test_ping6_ib_unsolicited_passive_country_us(self):
+    """Validate ping6 works with UNSOLICITED/PASSIVE sessions for US.
 
     Validate that ping6 works correctly on an NDP created using Aware
-    discovery with UNSOLICITED/PASSIVE sessions by different country code.
+    discovery with UNSOLICITED/PASSIVE sessions by US country code.
     """
     self.ib_ping6_test(pub_type=constants.PublishType.UNSOLICITED,
-                       sub_type=constants.SubscribeType.PASSIVE)
+                       sub_type=constants.SubscribeType.PASSIVE, code='US')
 
-  @ApiTest(
-    apis=[
-        'android.net.wifi.aware.PublishConfig.Builder#setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)',
-        'android.net.wifi.aware.SubscribeConfig.Builder#setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)',
-        'android.net.wifi.aware.WifiAwareNetworkSpecifier.Builder#build()',
-        'android.net.ConnectivityManager#requestNetwork(android.net.NetworkRequest request, android.net.ConnectivityManager.NetworkCallback networkCallback, int timeoutMs)',
-    ]
-  )
-  def test_ping6_ib_solicited_active_multicountry(self):
-    """"Validate ping6 works with SOLICITED/ACTIVE session.
+  @ApiTest(apis=UNSOLICITED_PASSIVE_APIS)
+  def test_ping6_ib_unsolicited_passive_country_jp(self):
+    """Validate ping6 works with UNSOLICITED/PASSIVE sessions for JP.
 
     Validate that ping6 works correctly on an NDP created using Aware
-    discovery with SOLICITED/ACTIVE sessions by different country code.
+    discovery with UNSOLICITED/PASSIVE sessions by JP country code.
+    """
+    self.ib_ping6_test(pub_type=constants.PublishType.UNSOLICITED,
+                       sub_type=constants.SubscribeType.PASSIVE, code='JP')
+
+  @ApiTest(apis=UNSOLICITED_PASSIVE_APIS)
+  def test_ping6_ib_unsolicited_passive_country_de(self):
+    """Validate ping6 works with UNSOLICITED/PASSIVE sessions for DE.
+
+    Validate that ping6 works correctly on an NDP created using Aware
+    discovery with UNSOLICITED/PASSIVE sessions by DE country code.
+    """
+    self.ib_ping6_test(pub_type=constants.PublishType.UNSOLICITED,
+                       sub_type=constants.SubscribeType.PASSIVE, code='DE')
+
+  @ApiTest(apis=UNSOLICITED_PASSIVE_APIS)
+  def test_ping6_ib_unsolicited_passive_country_au(self):
+    """Validate ping6 works with UNSOLICITED/PASSIVE sessions for AU.
+
+    Validate that ping6 works correctly on an NDP created using Aware
+    discovery with UNSOLICITED/PASSIVE sessions by AU country code.
+    """
+    self.ib_ping6_test(pub_type=constants.PublishType.UNSOLICITED,
+                       sub_type=constants.SubscribeType.PASSIVE, code='AU')
+
+  @ApiTest(apis=UNSOLICITED_PASSIVE_APIS)
+  def test_ping6_ib_unsolicited_passive_country_tw(self):
+    """Validate ping6 works with UNSOLICITED/PASSIVE sessions for TW.
+
+    Validate that ping6 works correctly on an NDP created using Aware
+    discovery with UNSOLICITED/PASSIVE sessions by TW country code.
+    """
+    self.ib_ping6_test(pub_type=constants.PublishType.UNSOLICITED,
+                       sub_type=constants.SubscribeType.PASSIVE, code='TW')
+
+  @ApiTest(apis=UNSOLICITED_PASSIVE_APIS)
+  def test_ping6_ib_unsolicited_passive_country_gb(self):
+    """Validate ping6 works with UNSOLICITED/PASSIVE sessions for GB.
+
+    Validate that ping6 works correctly on an NDP created using Aware
+    discovery with UNSOLICITED/PASSIVE sessions by GB country code.
+    """
+    self.ib_ping6_test(pub_type=constants.PublishType.UNSOLICITED,
+                       sub_type=constants.SubscribeType.PASSIVE, code='GB')
+
+  @ApiTest(apis=SOLICITED_ACTIVE_APIS)
+  def test_ping6_ib_solicited_active_country_us(self):
+    """Validate ping6 works with SOLICITED/ACTIVE sessions for US.
+
+    Validate that ping6 works correctly on an NDP created using Aware
+    discovery with SOLICITED/ACTIVE sessions by US country code.
     """
     self.ib_ping6_test(pub_type=constants.PublishType.SOLICITED,
-                       sub_type=constants.SubscribeType.ACTIVE)
+                       sub_type=constants.SubscribeType.ACTIVE, code='US')
 
-  def ib_ping6_test(self, pub_type: int, sub_type: int):
+  @ApiTest(apis=SOLICITED_ACTIVE_APIS)
+  def test_ping6_ib_solicited_active_country_jp(self):
+    """Validate ping6 works with SOLICITED/ACTIVE sessions for JP.
+
+    Validate that ping6 works correctly on an NDP created using Aware
+    discovery with SOLICITED/ACTIVE sessions by JP country code.
+    """
+    self.ib_ping6_test(pub_type=constants.PublishType.SOLICITED,
+                       sub_type=constants.SubscribeType.ACTIVE, code='JP')
+
+  @ApiTest(apis=SOLICITED_ACTIVE_APIS)
+  def test_ping6_ib_solicited_active_country_de(self):
+    """Validate ping6 works with SOLICITED/ACTIVE sessions for DE.
+
+    Validate that ping6 works correctly on an NDP created using Aware
+    discovery with SOLICITED/ACTIVE sessions by DE country code.
+    """
+    self.ib_ping6_test(pub_type=constants.PublishType.SOLICITED,
+                       sub_type=constants.SubscribeType.ACTIVE, code='DE')
+
+  @ApiTest(apis=SOLICITED_ACTIVE_APIS)
+  def test_ping6_ib_solicited_active_country_au(self):
+    """Validate ping6 works with SOLICITED/ACTIVE sessions for AU.
+
+    Validate that ping6 works correctly on an NDP created using Aware
+    discovery with SOLICITED/ACTIVE sessions by AU country code.
+    """
+    self.ib_ping6_test(pub_type=constants.PublishType.SOLICITED,
+                       sub_type=constants.SubscribeType.ACTIVE, code='AU')
+
+  @ApiTest(apis=SOLICITED_ACTIVE_APIS)
+  def test_ping6_ib_solicited_active_country_tw(self):
+    """Validate ping6 works with SOLICITED/ACTIVE sessions for TW.
+
+    Validate that ping6 works correctly on an NDP created using Aware
+    discovery with SOLICITED/ACTIVE sessions by TW country code.
+    """
+    self.ib_ping6_test(pub_type=constants.PublishType.SOLICITED,
+                       sub_type=constants.SubscribeType.ACTIVE, code='TW')
+
+  @ApiTest(apis=SOLICITED_ACTIVE_APIS)
+  def test_ping6_ib_solicited_active_country_gb(self):
+    """Validate ping6 works with SOLICITED/ACTIVE sessions for GB.
+
+    Validate that ping6 works correctly on an NDP created using Aware
+    discovery with SOLICITED/ACTIVE sessions by GB country code.
+    """
+    self.ib_ping6_test(pub_type=constants.PublishType.SOLICITED,
+                       sub_type=constants.SubscribeType.ACTIVE, code='GB')
+
+  def ib_ping6_test(self, pub_type: int, sub_type: int, code: str):
     p_dut = self.ads[0]
     s_dut = self.ads[1]
     asserts.skip_if(
         not p_dut.is_adb_root or not s_dut.is_adb_root,
         'APM toggle needs Android device(s) with root permission',
     )
-    for code in self.country_code.split(','):
-      p_dut.log.info('testing country code : %s', code)
-      self.set_wifi_country_code(p_dut, code)
-      self.set_wifi_country_code(s_dut, code)
-      # Create NDP.
-      (
-          pub_network_cap,
-          sub_network_cap,
-          p_aware_if,
-          s_aware_if,
-          p_ipv6,
-          s_ipv6,
-      ) = self.create_ib_ndp(
-          p_dut,
-          s_dut,
-          p_config=autils.create_discovery_config(
-              self.SERVICE_NAME, p_type=pub_type
-          ),
-          s_config=autils.create_discovery_config(
-              self.SERVICE_NAME, s_type=sub_type
-          ),
-          device_startup_offset=self.device_startup_offset,
-      )
-      logging.info('Interface names: P=%s, S=%s', p_aware_if, s_aware_if)
-      logging.info('Interface addresses (IPv6): P=%s, S=%s', p_ipv6, s_ipv6)
+    p_dut.log.info('testing country code : %s', code)
+    self.set_wifi_country_code(p_dut, code)
+    self.set_wifi_country_code(s_dut, code)
+    # Create NDP.
+    (
+        pub_network_cap,
+        sub_network_cap,
+        p_aware_if,
+        s_aware_if,
+        p_ipv6,
+        s_ipv6,
+    ) = self.create_ib_ndp(
+        p_dut,
+        s_dut,
+        p_config=autils.create_discovery_config(
+            self.SERVICE_NAME, p_type=pub_type
+        ),
+        s_config=autils.create_discovery_config(
+            self.SERVICE_NAME, s_type=sub_type
+        ),
+        device_startup_offset=self.device_startup_offset,
+    )
+    logging.info('Interface names: P=%s, S=%s', p_aware_if, s_aware_if)
+    logging.info('Interface addresses (IPv6): P=%s, S=%s', p_ipv6, s_ipv6)
 
-      ndpfreq = pub_network_cap.data[constants.NetworkCbEventKey.CHANNEL_IN_MHZ]
-      p_dut.log.info('Publisher freq list=%s', ndpfreq)
+    ndp_freq = pub_network_cap.data[constants.NetworkCbEventKey.CHANNEL_IN_MHZ]
+    p_dut.log.info('Publisher freq list=%s', ndp_freq)
 
-      ndpfreq = sub_network_cap.data[constants.NetworkCbEventKey.CHANNEL_IN_MHZ]
-      s_dut.log.info('Subscriber freq list=%s', ndpfreq)
+    ndp_freq = sub_network_cap.data[constants.NetworkCbEventKey.CHANNEL_IN_MHZ]
+    s_dut.log.info('Subscriber freq list=%s', ndp_freq)
 
-      autils.run_ping6(p_dut, s_ipv6)
-      time.sleep(1)
-      autils.run_ping6(s_dut, p_ipv6)
+    autils.run_ping6(p_dut, s_ipv6)
+    time.sleep(1)
+    autils.run_ping6(s_dut, p_ipv6)
 
-      # Session clean-up.
-      p_dut.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
-      s_dut.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
+    # Session clean-up.
+    p_dut.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
+    s_dut.wifi_aware_snippet.wifiAwareCloseAllWifiAwareSession()
 
 
 if __name__ == '__main__':

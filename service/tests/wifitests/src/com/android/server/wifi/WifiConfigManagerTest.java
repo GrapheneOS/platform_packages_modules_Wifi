@@ -7281,11 +7281,14 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     }
 
     private void verifyTransitionDisableIndicationForSecurityType(
-            WifiConfiguration testNetwork, int indication) {
+            WifiConfiguration testNetwork,
+            @WifiConfiguration.SecurityType int connectedSecurityType, int indication) {
 
         int disabledType = testNetwork.getDefaultSecurityParams().getSecurityType();
         NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(testNetwork);
         int networkId = result.getNetworkId();
+        mWifiConfigManager.setNetworkLastUsedSecurityParams(networkId,
+                SecurityParams.createSecurityParamsBySecurityType(connectedSecurityType));
         mWifiConfigManager.addOnNetworkUpdateListener(mListener);
 
         WifiConfiguration configBefore = mWifiConfigManager.getConfiguredNetwork(networkId);
@@ -7305,6 +7308,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     public void testPskSaeTransitionDisableIndication() {
         verifyTransitionDisableIndicationForSecurityType(
                 WifiConfigurationTestUtil.createPskNetwork(),
+                SECURITY_TYPE_PSK,
                 WifiMonitor.TDI_USE_WPA3_PERSONAL);
     }
 
@@ -7315,6 +7319,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     public void testWpa2Wpa3EnterpriseValidationTransitionDisableIndication() {
         verifyTransitionDisableIndicationForSecurityType(
                 WifiConfigurationTestUtil.createEapNetwork(),
+                WifiConfiguration.SECURITY_TYPE_EAP_WPA3_ENTERPRISE,
                 WifiMonitor.TDI_USE_WPA3_ENTERPRISE);
     }
 
@@ -7325,6 +7330,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     public void testOpenOweValidationTransitionDisableIndication() {
         verifyTransitionDisableIndicationForSecurityType(
                 WifiConfigurationTestUtil.createOpenNetwork(),
+                WifiConfiguration.SECURITY_TYPE_OWE,
                 WifiMonitor.TDI_USE_ENHANCED_OPEN);
     }
 
@@ -7336,6 +7342,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration testNetwork = WifiConfigurationTestUtil.createPskNetwork();
         NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(testNetwork);
         int networkId = result.getNetworkId();
+        mWifiConfigManager.setNetworkLastUsedSecurityParams(networkId,
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_SAE));
 
         WifiConfiguration configBefore = mWifiConfigManager.getConfiguredNetwork(networkId);
         assertFalse(configBefore.getSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE)
@@ -7350,11 +7359,14 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     }
 
     private void verifyNonApplicableTransitionDisableIndicationForSecurityType(
-            WifiConfiguration testNetwork, int indication) {
+            WifiConfiguration testNetwork,
+            @WifiConfiguration.SecurityType int connectedSecurityType, int indication) {
 
         int disabledType = testNetwork.getDefaultSecurityParams().getSecurityType();
         NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(testNetwork);
         int networkId = result.getNetworkId();
+        mWifiConfigManager.setNetworkLastUsedSecurityParams(networkId,
+                SecurityParams.createSecurityParamsBySecurityType(connectedSecurityType));
 
         WifiConfiguration configBefore = mWifiConfigManager.getConfiguredNetwork(networkId);
         assertTrue(configBefore.getSecurityParams(disabledType).isEnabled());
@@ -7373,6 +7385,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     public void testOpenTransitionDisableIndicationNotAffectPskSaeType() {
         verifyNonApplicableTransitionDisableIndicationForSecurityType(
                 WifiConfigurationTestUtil.createPskNetwork(),
+                WifiConfiguration.SECURITY_TYPE_PSK,
                 WifiMonitor.TDI_USE_SAE_PK
                         | WifiMonitor.TDI_USE_ENHANCED_OPEN
                         | WifiMonitor.TDI_USE_WPA3_ENTERPRISE);
@@ -7386,6 +7399,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     public void testNonApplicableTransitionDisableIndicationNotAffectWpa2Wpa3EnterpriseType() {
         verifyNonApplicableTransitionDisableIndicationForSecurityType(
                 WifiConfigurationTestUtil.createEapNetwork(),
+                WifiConfiguration.SECURITY_TYPE_EAP,
                 WifiMonitor.TDI_USE_SAE_PK
                         | WifiMonitor.TDI_USE_ENHANCED_OPEN
                         | WifiMonitor.TDI_USE_WPA3_PERSONAL);
@@ -7399,6 +7413,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     public void testNonApplicableTransitionDisableIndicationNotAffectOpenOweType() {
         verifyNonApplicableTransitionDisableIndicationForSecurityType(
                 WifiConfigurationTestUtil.createOpenNetwork(),
+                WifiConfiguration.SECURITY_TYPE_OWE,
                 WifiMonitor.TDI_USE_SAE_PK
                         | WifiMonitor.TDI_USE_WPA3_PERSONAL
                         | WifiMonitor.TDI_USE_WPA3_ENTERPRISE);
@@ -7413,6 +7428,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration testNetwork = WifiConfigurationTestUtil.createPskNetwork();
         NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(testNetwork);
         int networkId = result.getNetworkId();
+        mWifiConfigManager.setNetworkLastUsedSecurityParams(networkId,
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_SAE));
 
         WifiConfiguration configBefore = mWifiConfigManager.getConfiguredNetwork(networkId);
         assertFalse(configBefore.getSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE)
@@ -7426,6 +7444,55 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration configAfter = mWifiConfigManager.getConfiguredNetwork(networkId);
         assertFalse(configAfter.getSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE)
                 .isSaePkOnlyMode());
+    }
+
+    /**
+     * Verifies that a station (STA) that does not support SAE ignores a Transition Disable
+     * Indication for SAE.
+     */
+    @Test
+    public void testSaeTransitionDisableIndicationNotAffectPskTypeWhenSaeIsNotSupported() {
+        WifiConfiguration testNetwork = WifiConfigurationTestUtil.createPskNetwork();
+        NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(testNetwork);
+        int networkId = result.getNetworkId();
+        mWifiConfigManager.setNetworkLastUsedSecurityParams(networkId,
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_PSK));
+
+        WifiConfiguration configBefore = mWifiConfigManager.getConfiguredNetwork(networkId);
+        assertTrue(configBefore.getSecurityParams(SECURITY_TYPE_PSK).isEnabled());
+
+        when(mPrimaryClientModeManager.getSupportedFeaturesBitSet()).thenReturn(
+                createCapabilityBitset(0));
+        int indication = WifiMonitor.TDI_USE_WPA3_PERSONAL;
+        mWifiConfigManager.updateNetworkTransitionDisable(result.getNetworkId(), indication);
+
+        WifiConfiguration configAfter = mWifiConfigManager.getConfiguredNetwork(networkId);
+        assertTrue(configAfter.getSecurityParams(SECURITY_TYPE_PSK).isEnabled());
+    }
+
+    /**
+     * Verifies that a station (STA) that does not support SAE upgrade ignores a Transition Disable
+     * Indication for SAE.
+     */
+    @Test
+    public void testSaeTransitionDisableIndicationNotAffectPskTypeWhenSaeUpgradeFlagIsDisabled() {
+        WifiConfiguration testNetwork = WifiConfigurationTestUtil.createPskNetwork();
+        NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(testNetwork);
+        int networkId = result.getNetworkId();
+        mWifiConfigManager.setNetworkLastUsedSecurityParams(networkId,
+                SecurityParams.createSecurityParamsBySecurityType(
+                        WifiConfiguration.SECURITY_TYPE_PSK));
+
+        WifiConfiguration configBefore = mWifiConfigManager.getConfiguredNetwork(networkId);
+        assertTrue(configBefore.getSecurityParams(SECURITY_TYPE_PSK).isEnabled());
+
+        when(mWifiGlobals.isWpa3SaeUpgradeEnabled()).thenReturn(false);
+        int indication = WifiMonitor.TDI_USE_WPA3_PERSONAL;
+        mWifiConfigManager.updateNetworkTransitionDisable(result.getNetworkId(), indication);
+
+        WifiConfiguration configAfter = mWifiConfigManager.getConfiguredNetwork(networkId);
+        assertTrue(configAfter.getSecurityParams(SECURITY_TYPE_PSK).isEnabled());
     }
 
     @Test
@@ -8617,5 +8684,71 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         // Current user is admin and allow to remove a network.
         assertTrue(mWifiConfigManager.removeNetwork(
                 openNetwork.networkId, TEST_UPDATE_UID, TEST_CREATOR_NAME));
+    }
+
+
+    /**
+     * Verifies that getSavedNetworksForScanDetail returns null when the ScanDetail has no
+     * ScanResult.
+     */
+    @Test
+    public void testGetSavedNetworksForScanDetailWithNullScanResult() {
+        ScanDetail scanDetail = mock(ScanDetail.class);
+        when(scanDetail.getScanResult()).thenReturn(null);
+        assertNull(mWifiConfigManager.getSavedNetworksForScanDetail(scanDetail));
+    }
+
+    /**
+     * Verifies that getSavedNetworksForScanDetail returns an empty list when no network matches
+     * the ScanDetail.
+     */
+    @Test
+    public void testGetSavedNetworksForScanDetailWithNoMatchingNetwork() {
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        verifyAddNetworkToWifiConfigManager(openNetwork);
+        ScanDetail scanDetail = createScanDetailForNetwork(
+                WifiConfigurationTestUtil.createPskNetwork());
+        assertTrue(mWifiConfigManager.getSavedNetworksForScanDetail(scanDetail).isEmpty());
+    }
+
+    /**
+     * Verifies that getSavedNetworksForScanDetail returns a list with a single matching network.
+     */
+    @Test
+    public void testGetSavedNetworksForScanDetailWithSingleMatchingNetwork() {
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        verifyAddNetworkToWifiConfigManager(openNetwork);
+        ScanDetail scanDetail = createScanDetailForNetwork(openNetwork);
+        List<WifiConfiguration> matchedNetworks =
+                mWifiConfigManager.getSavedNetworksForScanDetail(scanDetail);
+        assertEquals(1, matchedNetworks.size());
+        assertEquals(openNetwork.networkId, matchedNetworks.get(0).networkId);
+    }
+
+    /**
+     * Verifies that getSavedNetworksForScanDetail returns a list with multiple matching networks.
+     */
+    @Test
+    public void testGetSavedNetworksForScanDetailWithMultipleMatchingNetworks() {
+        WifiConfiguration openNetwork1 = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork1.networkId = 0;
+        verifyAddNetworkToWifiConfigManager(openNetwork1);
+
+        WifiConfiguration openNetwork2 = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork2.SSID = openNetwork1.SSID;
+        openNetwork2.networkId = 1;
+        openNetwork2.shared = false;
+        verifyAddNetworkToWifiConfigManager(openNetwork2);
+
+        ScanDetail scanDetail = createScanDetailForNetwork(openNetwork1);
+        List<WifiConfiguration> matchedNetworks =
+                mWifiConfigManager.getSavedNetworksForScanDetail(scanDetail);
+        assertEquals(2, matchedNetworks.size());
+        Set<Integer> networkIds = new HashSet<>();
+        for (WifiConfiguration config : matchedNetworks) {
+            networkIds.add(config.networkId);
+        }
+        assertTrue(networkIds.contains(openNetwork1.networkId));
+        assertTrue(networkIds.contains(openNetwork2.networkId));
     }
 }

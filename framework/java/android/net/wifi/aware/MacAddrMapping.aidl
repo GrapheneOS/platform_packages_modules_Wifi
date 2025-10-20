@@ -19,7 +19,7 @@
  /**
   * Mapping from a peer id to its MAC address.
   *
-  * {@hide}
+  * @hide
   */
  parcelable MacAddrMapping {
      int peerId;

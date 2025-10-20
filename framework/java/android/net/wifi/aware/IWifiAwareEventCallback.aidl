@@ -21,7 +21,7 @@ import android.net.wifi.aware.ConfigRequest;
 /**
  * Callback interface that WifiAwareManager implements
  *
- * {@hide}
+ * @hide
  */
 oneway interface IWifiAwareEventCallback
 {

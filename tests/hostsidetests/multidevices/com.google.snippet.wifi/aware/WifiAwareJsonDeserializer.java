@@ -61,7 +61,7 @@ public class WifiAwareJsonDeserializer {
     private static final String MIN_DISTANCE_MM = "min_distance_mm";
     private static final String PAIRING_CONFIG = "pairing_config";
     private static final String TTL_SEC = "TtlSec";
-    private static final String INSTANTMODE_ENABLE = "InstantModeEnabled";
+    private static final String INSTANT_MODE = "instant_mode";
     private static final String BAND_5 = "5G";
     // PublishConfig special
     private static final String PUBLISH_TYPE = "publish_type";
@@ -183,9 +183,9 @@ public class WifiAwareJsonDeserializer {
         if (jsonObject.has(TTL_SEC)) {
             builder.setTtlSec(jsonObject.getInt(TTL_SEC));
         }
-        if (SdkLevel.isAtLeastT() && jsonObject.has(INSTANTMODE_ENABLE)) {
+        if (SdkLevel.isAtLeastT() && jsonObject.has(INSTANT_MODE)) {
             builder.setInstantCommunicationModeEnabled(true,
-                    Objects.equals(jsonObject.getString(INSTANTMODE_ENABLE), BAND_5)
+                    Objects.equals(jsonObject.getString(INSTANT_MODE), BAND_5)
                             ? WIFI_BAND_5_GHZ :WIFI_BAND_24_GHZ);
         }
         return builder.build();
@@ -279,9 +279,9 @@ public class WifiAwareJsonDeserializer {
         if (jsonObject.has(TTL_SEC)) {
             builder.setTtlSec(jsonObject.getInt(TTL_SEC));
         }
-        if (SdkLevel.isAtLeastT() && jsonObject.has(INSTANTMODE_ENABLE)) {
+        if (SdkLevel.isAtLeastT() && jsonObject.has(INSTANT_MODE)) {
             builder.setInstantCommunicationModeEnabled(true,
-                    Objects.equals(jsonObject.getString(INSTANTMODE_ENABLE), BAND_5)
+                    Objects.equals(jsonObject.getString(INSTANT_MODE), BAND_5)
                             ? WIFI_BAND_5_GHZ :WIFI_BAND_24_GHZ);
         }
         return builder.build();

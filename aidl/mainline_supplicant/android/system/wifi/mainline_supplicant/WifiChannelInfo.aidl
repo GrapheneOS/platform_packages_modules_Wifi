@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,32 +16,34 @@
 
 package android.system.wifi.mainline_supplicant;
 
+import android.hardware.wifi.supplicant.WifiChannelWidthInMhz;
+
 /**
- * Enum values indicating the status of any supplicant operation.
+ * Channel information.
  */
-enum SupplicantStatusCode {
+parcelable WifiChannelInfo {
     /**
-     * No errors.
+     * Channel width (20, 40, 80, 80+80, 160, 320).
      */
-    SUCCESS = 0,
+    WifiChannelWidthInMhz width;
+
     /**
-     * Unknown failure occurred.
+     * Primary 20 MHz channel.
      */
-    FAILURE_UNKNOWN = 1,
+    int centerFreq;
+
     /**
-     * One of the provided arguments is invalid.
+     * Center frequency (MHz) first segment.
      */
-    FAILURE_ARGS_INVALID = 2,
+    int centerFreq0;
+
     /**
-     * Interface with the provided name already exists.
+     * Center frequency (MHz) second segment.
      */
-    FAILURE_IFACE_EXISTS = 3,
-    /**
-     * Interface with the provided name does not exist.
+    int centerFreq1;
+
+   /**
+     * Number of spatial streams used in the channel.
      */
-    FAILURE_IFACE_UNKNOWN = 4,
-    /**
-     * Operation is not supported by the service.
-     */
-    FAILURE_UNSUPPORTED = 5,
+    int numSpatialStreams;
 }

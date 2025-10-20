@@ -20,7 +20,12 @@ import static android.hardware.wifi.NanStatusCode.FOLLOWUP_TX_QUEUE_FULL;
 import static android.hardware.wifi.V1_0.NanRangingIndication.EGRESS_MET_MASK;
 import static android.net.wifi.WifiAvailableChannel.OP_MODE_WIFI_AWARE;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
+import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128;
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_DATA_PATH_ROLE_INITIATOR;
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_DATA_PATH_ROLE_RESPONDER;
+import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER_TYPE_IB;
 
+import static com.android.server.wifi.aware.WifiAwareDiscoverySessionState.INVALID_INSTANCE_ID;
 import static com.android.server.wifi.WifiSettingsConfigStore.D2D_ALLOWED_WHEN_INFRA_STA_DISABLED;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_CAPABILITIES;
 
@@ -84,7 +89,9 @@ import android.net.wifi.aware.IdentityChangedListener;
 import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
+import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
 import android.net.wifi.aware.WifiAwareManager;
+import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.net.wifi.util.HexEncoding;
 import android.os.Bundle;
 import android.os.Handler;
@@ -205,7 +212,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     private byte[] mNik = "0123456789012345".getBytes();
     private byte[] mPeerNik = "6789012345678901".getBytes();
     private byte[] mPmk = "01234567890123456789012345678901".getBytes();
+    private byte[] mSsi = "some info".getBytes();
     private StaticMockitoSession mSession;
+    private static final int TEST_USER_ID = 10;
 
     @Captor
     ArgumentCaptor<StatsManager.StatsPullAtomCallback> mPullAtomCallbackArgumentCaptor;
@@ -274,7 +283,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
-        when(mFeatureFlags.d2dWhenInfraStaOff()).thenReturn(true);
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         mDut = new WifiAwareStateManager(mWifiInjector, mPairingConfigManager);
         mDut.setNative(mMockNativeManager, mMockNative);
         mDut.start(mMockContext, mMockLooper.getLooper(), mAwareMetricsMock,
@@ -326,6 +335,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 mPullAtomCallbackArgumentCaptor.capture());
         assertEquals(StatsManager.PULL_SUCCESS, mPullAtomCallbackArgumentCaptor.getValue()
                 .onPullAtom(WIFI_AWARE_CAPABILITIES, new ArrayList<>()));
+        mDut.handleUserSwitch(TEST_USER_ID);
+        verify(mPairingConfigManager).reset();
+        reset(mPairingConfigManager);
     }
 
     /**
@@ -1636,7 +1648,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         final int rangeMax = 10;
 
         ConfigRequest configRequest = new ConfigRequest.Builder().build();
-        SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().setMaxDistanceMm(
+        SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().setIngressDistanceMm(
                 rangeMax).build();
 
         IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
@@ -1821,8 +1833,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().setServiceName(serviceName)
                 .setServiceSpecificInfo(ssi.getBytes())
                 .setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)
-                .setMinDistanceMm(rangeMin)
-                .setMaxDistanceMm(rangeMax)
+                .setEgressDistanceMm(rangeMin)
+                .setIngressDistanceMm(rangeMax)
                 .build();
 
         IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
@@ -4154,8 +4166,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().setServiceName(serviceName)
                 .setServiceSpecificInfo(ssi.getBytes())
                 .setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_PASSIVE)
-                .setMinDistanceMm(rangeMin)
-                .setMaxDistanceMm(rangeMax)
+                .setEgressDistanceMm(rangeMin)
+                .setIngressDistanceMm(rangeMax)
                 .build();
 
         IWifiAwareEventCallback mockCallback = mock(IWifiAwareEventCallback.class);
@@ -4605,7 +4617,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         final String alias = "alias";
 
         AwarePairingConfig pairingConfig = new AwarePairingConfig(true, true, true,
-                AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_DISPLAY,
                 WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128);
         ConfigRequest configRequest = new ConfigRequest.Builder().build();
         PublishConfig publishConfig = new PublishConfig.Builder()
@@ -4661,16 +4673,16 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (3) Receive bootstrapping request
         mDut.onBootstrappingRequestNotification(publishId, peerId, peerMac1, bootstrappingId,
-                AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, mSsi);
         mMockLooper.dispatchAll();
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).respondToBootstrappingRequest(transactionId.capture(),
                 eq(bootstrappingId), eq(true), eq(publishId),
-                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN));
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_DISPLAY));
         mDut.onRespondToBootstrappingIndicationResponseSuccess(transactionId.getValue());
         mMockLooper.dispatchAll();
         verify(mockSessionCallback).onBootstrappingVerificationConfirmed(peerIdCaptor.capture(),
-                eq(true), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN));
+                eq(true), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_DISPLAY), eq(mSsi));
 
         // (4) receive pairing request
         mDut.onPairingRequestNotification(publishId, peerId, peerMac1, pairId,
@@ -4709,14 +4721,31 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mPairingConfigManager).addPairedDeviceSecurityAssociation(eq(callingPackage),
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
-        // (8) publish termination (from firmware - not app!)
+        // (8) try to response a data path request.
+        WifiAwareDataPathSecurityConfig config = new WifiAwareDataPathSecurityConfig(
+                WIFI_AWARE_CIPHER_SUITE_NCS_SK_128, null, null, null);
+        WifiAwareNetworkSpecifier ns = new WifiAwareNetworkSpecifier(NETWORK_SPECIFIER_TYPE_IB,
+                WIFI_AWARE_DATA_PATH_ROLE_RESPONDER, clientId, sessionId.getValue(), peerId,
+                null, 0, -1, 0, false, config);
+        mDut.respondToDataPathRequest(true, 1, "aware_data0", new byte[0], false, ns, peerMac1);
+        mMockLooper.dispatchAll();
+        // Verify the enhanced framework protection is enabled.
+        inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
+                eq(1), eq("aware_data0"), eq(new byte[0]), eq(false),
+                any(), any(), anyByte(), eq(true));
+        mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
+        mMockLooper.dispatchAll();
+        verify(mMockAwareDataPathStatemanager)
+                .onRespondToDataPathRequest(eq(1), eq(true), eq(0));
+
+        // (9) publish termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(publishId, reasonTerminate, true);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(true),
                 anyInt());
 
-        // (9) app terminates session
+        // (10) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
 
@@ -4837,14 +4866,31 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 .addPairedDeviceSecurityAssociation(eq(callingPackage),
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
-        // (7) publish termination (from firmware - not app!)
+        // (7) try to response a data path request.
+        WifiAwareDataPathSecurityConfig config = new WifiAwareDataPathSecurityConfig(
+                WIFI_AWARE_CIPHER_SUITE_NCS_SK_128, null, null, null);
+        WifiAwareNetworkSpecifier ns = new WifiAwareNetworkSpecifier(NETWORK_SPECIFIER_TYPE_IB,
+                WIFI_AWARE_DATA_PATH_ROLE_RESPONDER, clientId, sessionId.getValue(), peerId,
+                null, 0, -1, 0, false, config);
+        mDut.respondToDataPathRequest(true, 1, "aware_data0", new byte[0], false, ns, peerMac1);
+        mMockLooper.dispatchAll();
+        // Verify the enhanced framework protection is enabled.
+        inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
+                eq(1), eq("aware_data0"), eq(new byte[0]), eq(false),
+                any(), any(), anyByte(), eq(true));
+        mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
+        mMockLooper.dispatchAll();
+        verify(mMockAwareDataPathStatemanager)
+                .onRespondToDataPathRequest(eq(1), eq(true), eq(0));
+
+        // (8) publish termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(publishId, reasonTerminate, true);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(true),
                 anyInt());
 
-        // (8) app terminates session
+        // (9) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
 
@@ -4868,6 +4914,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         final int bootstrappingId = 101;
         final byte[] peerMac = HexEncoding.decode("060708090A0B".toCharArray(), false);
         final String alias = "alias";
+        final byte[] ssi = "service specific info".getBytes();
 
         AwarePairingConfig pairingConfig = new AwarePairingConfig(true, true, true,
                 AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,
@@ -4933,18 +4980,19 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (4) Initiate bootstrapping request
         mDut.initiateBootStrappingSetupRequest(clientId, sessionId.getValue(),
-                peerIdCaptor.getValue(), AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, 0, null
-        );
+                peerIdCaptor.getValue(), AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, 0, null,
+                ssi);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).initiateBootstrapping(transactionId.capture(), eq(peerId),
                 eq(peerMac), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN), isNull(),
-                eq(subscribeId), eq(false));
+                eq(subscribeId), eq(false), eq(ssi));
         mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId);
         mDut.onBootstrappingConfirmNotification(bootstrappingId,
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT, NanStatusCode.SUCCESS, 0, null);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
-                peerIdCaptor.getValue(), true, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
+                peerIdCaptor.getValue(), true, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,
+                null);
 
         // (5) Initiate pairing setup request
         mDut.initiateNanPairingSetupRequest(clientId, sessionId.getValue(), peerIdCaptor.getValue(),
@@ -4970,14 +5018,29 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mPairingConfigManager).addPairedDeviceSecurityAssociation(eq(callingPackage),
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
-        // (7) subscribe termination (from firmware - not app!)
+        // (7) initiate a datapath
+        WifiAwareDataPathSecurityConfig config = new WifiAwareDataPathSecurityConfig(
+                WIFI_AWARE_CIPHER_SUITE_NCS_SK_128, null, null, null);
+        WifiAwareNetworkSpecifier ns = new WifiAwareNetworkSpecifier(NETWORK_SPECIFIER_TYPE_IB,
+                WIFI_AWARE_DATA_PATH_ROLE_INITIATOR, clientId, sessionId.getValue(), peerId,
+                null, 0, -1, 0, false, config);
+        mDut.initiateDataPathSetup(ns, peerId, 0, 0, peerMac, "aware_data0", false, null);
+        mMockLooper.dispatchAll();
+        // Verify the enhanced framework protection is enabled.
+        inOrder.verify(mMockNative).initiateDataPath(transactionId.capture(), eq(peerId), eq(0),
+                eq(0), any(), eq("aware_data0"), eq(false), isNull(), any(), any(),
+                eq(subscribeId), eq(true));
+        mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), 1);
+        mMockLooper.dispatchAll();
+
+        // (8) subscribe termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false),
                 anyInt());
 
-        // (8) app terminates session
+        // (9) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
 
@@ -5093,15 +5156,29 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 .addPairedDeviceSecurityAssociation(eq(callingPackage), eq(alias),
                         any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
+        // (6) initiate a datapath
+        WifiAwareDataPathSecurityConfig config = new WifiAwareDataPathSecurityConfig(
+                WIFI_AWARE_CIPHER_SUITE_NCS_SK_128, null, null, null);
+        WifiAwareNetworkSpecifier ns = new WifiAwareNetworkSpecifier(NETWORK_SPECIFIER_TYPE_IB,
+                WIFI_AWARE_DATA_PATH_ROLE_INITIATOR, clientId, sessionId.getValue(), peerId,
+                null, 0, -1, 0, false, config);
+        mDut.initiateDataPathSetup(ns, peerId, 0, 0, peerMac1, "aware_data0", false, null);
+        mMockLooper.dispatchAll();
+        // Verify the enhanced framework protection is enabled.
+        inOrder.verify(mMockNative).initiateDataPath(transactionId.capture(), eq(peerId), eq(0),
+                eq(0), any(), eq("aware_data0"), eq(false), isNull(), any(), any(),
+                eq(subscribeId), eq(true));
+        mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), 1);
+        mMockLooper.dispatchAll();
 
-        // (6) subscribe termination (from firmware - not app!)
+        // (7) subscribe termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false),
                 anyInt());
 
-        // (7) app terminates session
+        // (8) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
 
@@ -5125,6 +5202,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         final int bootstrappingId = 101;
         final byte[] peerMac = HexEncoding.decode("060708090A0B".toCharArray(), false);
         final String alias = "alias";
+        final byte[] ssi = "service specifc info".getBytes();
 
         AwarePairingConfig pairingConfig = new AwarePairingConfig(true, true, true,
                 AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,
@@ -5190,35 +5268,38 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (3) Initiate bootstrapping request
 
         mDut.initiateBootStrappingSetupRequest(clientId, sessionId.getValue(),
-                peerIdCaptor.getValue(), AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, 0, null
-        );
+                peerIdCaptor.getValue(), AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, 0, null,
+                ssi);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).initiateBootstrapping(transactionId.capture(), eq(peerId),
                 eq(peerMac), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN), isNull(),
-                eq(subscribeId), eq(false));
+                eq(subscribeId), eq(false), eq(ssi));
         mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId);
 
         // (4) Receive comeback respond, will send the request again with delay
         mDut.onBootstrappingConfirmNotification(bootstrappingId,
-                WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK, NanStatusCode.SUCCESS, 1, null);
+                WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK, NanStatusCode.SUCCESS, 1000,
+                null);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback, never()).onBootstrappingVerificationConfirmed(
-                anyInt(), anyBoolean(), anyInt());
+                anyInt(), anyBoolean(), anyInt(), any());
 
-        Thread.sleep(1000);
+        Thread.sleep(1030);
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).initiateBootstrapping(transactionId.capture(), eq(peerId),
                 eq(peerMac), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN), isNull(),
-                eq(subscribeId), eq(true));
+                eq(subscribeId), eq(true), eq(ssi));
         mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId + 1);
 
         // (5) Receive comeback respond on the followup request, will consider reject and notify the
         // app
         mDut.onBootstrappingConfirmNotification(bootstrappingId + 1,
-                WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK, NanStatusCode.SUCCESS, 1, null);
+                WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK, NanStatusCode.SUCCESS, 1000,
+                null);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
-                peerIdCaptor.getValue(), false, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN);
+                peerIdCaptor.getValue(), false, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,
+                null);
 
         // (6) subscribe termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
@@ -6029,11 +6110,12 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 /* instantModeBand= */ 0,
                 /* isSuspendable= */ false,
                 /* pairingConfig= */ null);
-
+        int peerId0 = session.getPeerIdOrAddIfNew(INVALID_INSTANCE_ID, mac1);
         int peerId1 = session.getPeerIdOrAddIfNew(instanceId, mac1);
         int peerId2 = session.getPeerIdOrAddIfNew(instanceId, mac2);
         int peerId1Again = session.getPeerIdOrAddIfNew(instanceId, mac1);
 
+        assertEquals("Valid instanceId should override the invalid instanceId", peerId0, peerId1);
         assertEquals("Same MAC should return same peer ID", peerId1, peerId1Again);
         assertNotEquals("Different MACs should return different peer IDs", peerId1, peerId2);
 
@@ -6050,6 +6132,36 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         assertTrue("Mac(2) mismatch", Arrays.equals(mac2, peerInfo2.mMac));
         assertNotNull("PeerHandle(2) cannot be null", peerInfo2.mPeerHandle);
         assertEquals("PeerId(2) mismatch", peerId2, peerInfo2.mPeerHandle.peerId);
+    }
+
+    @Test
+    public void testHandleUserSwitch() {
+        int userId = 20;
+        mDut.handleUserSwitch(userId);
+        mMockLooper.dispatchAll();
+        verify(mPairingConfigManager).reset();
+    }
+
+    @Test
+    public void testHandleUserSwitchSameUser() {
+        mDut.handleUserUnlock(TEST_USER_ID);
+        mMockLooper.dispatchAll();
+        verify(mPairingConfigManager, never()).reset();
+    }
+
+    @Test
+    public void testHandleUserStop() {
+        mDut.handleUserStop(TEST_USER_ID);
+        mMockLooper.dispatchAll();
+        verify(mPairingConfigManager).reset();
+    }
+
+    @Test
+    public void testHandleUserStopDifferentUser() {
+        int userId = 20;
+        mDut.handleUserStop(userId);
+        mMockLooper.dispatchAll();
+        verify(mPairingConfigManager, never()).reset();
     }
 }
 

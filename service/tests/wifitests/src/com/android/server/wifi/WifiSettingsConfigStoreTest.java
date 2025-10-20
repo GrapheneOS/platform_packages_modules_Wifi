@@ -26,8 +26,9 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -45,6 +46,7 @@ import android.os.Handler;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.os.test.TestLooper;
+import android.provider.Settings;
 import android.util.Xml;
 
 import androidx.test.filters.SmallTest;
@@ -91,6 +93,24 @@ public class WifiSettingsConfigStoreTest extends WifiBaseTest {
     private static final boolean TEST_PRIVATE_SETTING_NON_DEFAULT_VALUE =
             !TEST_PRIVATE_SETTING.defaultValue;
 
+    // A collection of all user-specific private setting keys that need migration.
+    // See WifiSettingsConfigStore#prepareSharedToPrivateMigrationDataHolder.
+    private static final List<Key> PRIVATE_SETTING_KEYS_NEED_MIGRATION = List.of(
+            WifiSettingsConfigStore.D2D_ALLOWED_WHEN_INFRA_STA_DISABLED,
+            WifiSettingsConfigStore.WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON,
+            WifiSettingsConfigStore.WIFI_SCAN_ALWAYS_AVAILABLE,
+            WifiSettingsConfigStore.WIFI_WAKEUP_ENABLED,
+            WifiSettingsConfigStore.WIFI_WEP_ALLOWED
+    );
+
+    // A map of user-specific private setting keys that have their Settings.Global counterpart, to
+    // their Settings.Global key name.
+    private static final Map<Key, String> PRIVATE_SETTING_KEYS_TO_SETTINGS_GLOBAL_KEYS = Map.of(
+            WifiSettingsConfigStore.WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON,
+            Settings.Global.WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON,
+            WifiSettingsConfigStore.WIFI_WAKEUP_ENABLED,
+            Settings.Global.WIFI_WAKEUP_ENABLED
+    );
 
     @Mock
     private Context mContext;
@@ -435,30 +455,40 @@ public class WifiSettingsConfigStoreTest extends WifiBaseTest {
         WifiConfigStore.StoreData userStoreData = storeDataCaptor.getAllValues().get(1);
 
         // Load from DE that does not contain private settings to be migrated.
-        when(mFrameworkFacade.getIntegerSetting(any(), any())).thenReturn(0);
+        PRIVATE_SETTING_KEYS_TO_SETTINGS_GLOBAL_KEYS.forEach(
+                (configStoreKey, settingsGlobalKey) -> {
+                    if (configStoreKey.defaultValue instanceof Boolean) {
+                        boolean value = (Boolean) configStoreKey.defaultValue;
+                        when(mFrameworkFacade.getIntegerSetting(eq(mContext), eq(settingsGlobalKey),
+                                anyInt())).thenReturn(value ? 1 : 0);
+                    } else {
+                        throw new IllegalArgumentException(
+                                "Unhandled type for config key: " + configStoreKey.key);
+                    }
+                });
         when(mUserManager.getUserHandles(anyBoolean())).thenReturn(List.of(TEST_USER_HANDLE));
         XmlPullParser in = createSettingsTestXmlForParsing(Map.of(
                 TEST_SHARED_SETTING.key, TEST_SHARED_SETTING_NON_DEFAULT_VALUE
         ));
         sharedStoreData.deserializeData(in, in.getDepth(), -1, null);
-        // In migration cache, WIFI_WEP_ALLOWED fallbacks to default value (true) and
-        // WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON fallbacks to the Settings.Global value (0).
-        assertTrue((boolean) mWifiSettingsConfigStore.mSharedToPrivateMigrationDataHolder.get(
-                WifiSettingsConfigStore.WIFI_WEP_ALLOWED.key));
-        assertFalse((boolean) mWifiSettingsConfigStore.mSharedToPrivateMigrationDataHolder.get(
-                WifiSettingsConfigStore.WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON.key));
-        // Flip the WIFI_WEP_ALLOWED value in mSettings to track change from migration.
-        mWifiSettingsConfigStore.put(WifiSettingsConfigStore.WIFI_WEP_ALLOWED, false);
-        assertFalse(mWifiSettingsConfigStore.get(WifiSettingsConfigStore.WIFI_WEP_ALLOWED));
-        assertTrue(mWifiSettingsConfigStore.get(
-                WifiSettingsConfigStore.WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON));
 
-        // CE doesn't contain settings and try to migrate.
+        // Verify that in the migration data cache, private keys to be migrated from both
+        // Settings.Global and defaultValue are populated with their default values.
+        for (Key key : PRIVATE_SETTING_KEYS_NEED_MIGRATION) {
+            assertEquals(key.defaultValue,
+                    mWifiSettingsConfigStore.mSharedToPrivateMigrationDataHolder.get(key.key));
+        }
+
+        // CE doesn't contain settings and try to migrate. Before migration, explicitly set all
+        // values as null to track change.
+        for (Key key : PRIVATE_SETTING_KEYS_NEED_MIGRATION) {
+            mWifiSettingsConfigStore.put(key, null);
+        }
         when(ActivityManager.getCurrentUser()).thenReturn(UserHandle.getUserId(TEST_UID));
         userStoreData.deserializeData(/* input */ null, in.getDepth(), -1, null);
-        assertTrue(mWifiSettingsConfigStore.get(WifiSettingsConfigStore.WIFI_WEP_ALLOWED));
-        assertFalse(mWifiSettingsConfigStore.get(
-                WifiSettingsConfigStore.WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON));
+        for (Key key : PRIVATE_SETTING_KEYS_NEED_MIGRATION) {
+            assertEquals(key.defaultValue, mWifiSettingsConfigStore.get(key));
+        }
     }
 
     private XmlPullParser createSettingsTestXmlForParsing(final Map<String, Object> settings)

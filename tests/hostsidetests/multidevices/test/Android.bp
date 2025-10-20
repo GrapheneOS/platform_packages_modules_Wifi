@@ -1,10 +1,10 @@
-// Copyright (C) 2023 The Android Open Source Project
+// Copyright (C) 2025 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -68,6 +68,7 @@ python_test_host {
         "aware/wifi_aware_network_test.py",
         "aware/wifi_aware_discovery_ranging_test.py",
         "aware/aware_snippet_utils.py",
+        "aware/wifi_aware_pairing_test.py",
     ],
     libs: [
         "aware_lib_utils",
@@ -87,6 +88,50 @@ python_test_host {
     ],
 }
 
+python_test_host {
+    name: "CtsWifiConnectionTests",
+    main: "connection/__init__.py", // Unused, but required by Soong
+    srcs: [
+        "connection/__init__.py", // Unused, but required by Soong
+    ],
+    test_config: "connection/AndroidTest.xml",
+    data: [
+        // The py sources are loaded as a package here.
+        ":CtsWifiConnectionTests_py_zip",
+        "connection/WifiConnectionTestbed.yaml",
+    ],
+    device_common_data: [":wifi_mobly_snippet"],
+    test_options: {
+        unit_test: false,
+        runner: "mobly",
+    },
+    test_suites: [
+        "general-tests",
+        "cts-v-host",
+    ],
+}
+
+genrule {
+    name: "CtsWifiConnectionTests_py_zip",
+    srcs: [
+        // Declare all test files here
+        "connection/*",
+    ],
+    tools: [
+        "soong_zip",
+    ],
+    cmd: "mkdir -p $(genDir)/dist &&" + // Create temp directory
+        // Copy all connection/ test files
+        "cp -rv packages/modules/Wifi/tests/hostsidetests/multidevices/test/connection/ $(genDir)/dist/ &&" +
+        // Copy the entry point to package root as __main__.py
+        "cp $(genDir)/dist/connection/wifi_connection_test_suite.py $(genDir)/dist/__main__.py &&" +
+        // Copy requirements file to package root
+        "cp $(genDir)/dist/connection/requirements.txt $(genDir)/dist/ &&" +
+        // Zip contents of dist directory
+        "$(location soong_zip) -o $(out) -C $(genDir)/dist -D $(genDir)/dist",
+    out: ["CtsWifiConnectionTests_py.zip"],
+}
+
 python_library_host {
     name: "wifi_direct_constants",
     srcs: ["direct/constants.py"],
@@ -98,6 +143,7 @@ python_library_host {
     libs: [
         "wifi_direct_constants",
         "mobly",
+        "wifi_test_utils",
     ],
 }
 
@@ -118,14 +164,14 @@ python_test_host {
 }
 
 python_test_host {
-    name: "WifiDirectTests",
-    main: "direct/wifi_direct_test_suite.py",
+    name: "CtsWifiDirectTests",
+    main: "direct/cts_wifi_direct_test_suite.py",
     srcs: [
         "direct/group_owner_negotiation_test.py",
         "direct/group_owner_test.py",
         "direct/group_owner_with_config_test.py",
         "direct/service_discovery_test.py",
-        "direct/wifi_direct_test_suite.py",
+        "direct/cts_wifi_direct_test_suite.py",
     ],
     test_config: "direct/AndroidTest.xml",
     libs: [
@@ -134,6 +180,7 @@ python_test_host {
         "wifi_test_utils",
         "wifi_direct_test_utils",
         "platform-test-py-annotations",
+        "py-snippet-uiautomator",
     ],
     device_common_data: [":wifi_mobly_snippet"],
     test_options: {
@@ -142,6 +189,7 @@ python_test_host {
     },
     test_suites: [
         "general-tests",
+        "cts-v-host",
     ],
 }
 
@@ -234,6 +282,30 @@ python_test_host {
         "platform-test-py-annotations",
     ],
     device_common_data: [":wifi_mobly_snippet"],
+    test_options: {
+        unit_test: false,
+        runner: "mobly",
+    },
+    test_suites: [
+        "general-tests",
+    ],
+}
+
+// New entry for WifiUsdMoblyTestCases
+python_test_host {
+    name: "WifiUsdTests",
+    main: "usd/wifi_usd_test.py",
+    srcs: ["usd/wifi_usd_test.py"],
+    test_config: "usd/AndroidTest.xml",
+    libs: [
+        "mobly",
+        "wifi_test_utils",
+        "platform-test-py-annotations",
+    ],
+    device_common_data: [
+        ":wifi_usd_snippet", // Package the custom USD snippet
+        ":mobly-bundled-snippets", // Package the standard Mobly snippet
+    ],
     test_options: {
         unit_test: false,
         runner: "mobly",

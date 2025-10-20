@@ -24,8 +24,8 @@ from direct import group_owner_with_config_test
 from direct import service_discovery_test
 
 
-class WifiDirectTestSuite(base_suite.BaseSuite):
-    """Wi-Fi Direct test suite."""
+class CtsWifiDirectTests(base_suite.BaseSuite):
+    """CTS Wi-Fi Direct test suite."""
 
     def setup_suite(self, config):
         del config  # unused

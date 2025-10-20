@@ -55,12 +55,12 @@ public class WlanWakeReasonAndCounts implements Parcelable {
     public int[] cmdEventWakeCntArray;
     public int[] driverFWLocalWakeCntArray;
 
-    /* {@hide} */
+    /* @hide */
     public WlanWakeReasonAndCounts() {
     }
 
     @Override
-    /* {@hide} */
+    /* @hide */
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append(" totalCmdEventWake ").append(totalCmdEventWake);
@@ -91,7 +91,7 @@ public class WlanWakeReasonAndCounts implements Parcelable {
     }
 
     /* Implement the Parcelable interface
-     * {@hide}
+     * @hide
      */
     @Override
     public int describeContents() {
@@ -99,7 +99,7 @@ public class WlanWakeReasonAndCounts implements Parcelable {
     }
 
     /* Implement the Parcelable interface
-     * {@hide}
+     * @hide
      */
     @Override
     public void writeToParcel(Parcel dest, int flags) {
@@ -125,7 +125,7 @@ public class WlanWakeReasonAndCounts implements Parcelable {
     }
 
     /* Implement the Parcelable interface
-     * {@hide}
+     * @hide
      */
     public static final Creator<WlanWakeReasonAndCounts> CREATOR =
             new Creator<WlanWakeReasonAndCounts>() {
@@ -154,7 +154,7 @@ public class WlanWakeReasonAndCounts implements Parcelable {
                 }
 
                 /* Implement the Parcelable interface
-                 * {@hide}
+                 * @hide
                  */
                 @Override
                 public WlanWakeReasonAndCounts[] newArray(int size) {

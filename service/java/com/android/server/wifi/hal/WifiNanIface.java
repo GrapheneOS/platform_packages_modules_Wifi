@@ -454,11 +454,12 @@ public class WifiNanIface implements WifiHal.WifiInterface {
     public boolean initiateDataPath(short transactionId, int peerId, int channelRequestType,
             int channel, MacAddress peer, String interfaceName,
             boolean isOutOfBand, byte[] appInfo, Capabilities capabilities,
-            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId) {
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
+        boolean frameProtectionEnabled) {
         return validateAndCall("initiateDataPath", false,
                 () -> mWifiNanIface.initiateDataPath(transactionId, peerId, channelRequestType,
                         channel, peer, interfaceName, isOutOfBand, appInfo, capabilities,
-                        securityConfig, pubSubId));
+                        securityConfig, pubSubId, frameProtectionEnabled));
     }
 
     /**
@@ -468,11 +469,12 @@ public class WifiNanIface implements WifiHal.WifiInterface {
     public boolean respondToDataPathRequest(short transactionId, boolean accept, int ndpId,
             String interfaceName, byte[] appInfo,
             boolean isOutOfBand, Capabilities capabilities,
-            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId) {
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
+            boolean frameProtectionEnabled) {
         return validateAndCall("respondToDataPathRequest", false,
                 () -> mWifiNanIface.respondToDataPathRequest(transactionId, accept, ndpId,
                         interfaceName, appInfo, isOutOfBand, capabilities, securityConfig,
-                        pubSubId));
+                        pubSubId, frameProtectionEnabled));
     }
 
     /**
@@ -518,10 +520,10 @@ public class WifiNanIface implements WifiHal.WifiInterface {
      * {@link IWifiNanIface#initiateNanBootstrappingRequest(short, int, MacAddress, int, byte[], byte, boolean)}
      */
     public boolean initiateBootstrapping(short transactionId, int peerId, MacAddress peer,
-            int method, byte[] cookie, byte pubSubId, boolean isComeBack) {
+            int method, byte[] cookie, byte pubSubId, boolean isComeBack, byte[] ssi) {
         return validateAndCall("initiateBootstrapping", false,
                 () -> mWifiNanIface.initiateNanBootstrappingRequest(transactionId, peerId, peer,
-                        method, cookie, pubSubId, isComeBack));
+                        method, cookie, pubSubId, isComeBack, ssi));
     }
     /**
      * {@link IWifiNanIface#respondToNanBootstrappingRequest(short, int, boolean, byte, int)}
@@ -845,7 +847,7 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          * Indicates that the bootstrapping request is from the peer device.
          */
         void eventBootstrappingRequest(int discoverySessionId, int peerId, byte[] peerDiscMacAddr,
-                int bootstrappingInstanceId, int method);
+                int bootstrappingInstanceId, int method, byte[] serviceSpecificInfo);
 
         /**
          * Indicates that the bootstrapping is finished

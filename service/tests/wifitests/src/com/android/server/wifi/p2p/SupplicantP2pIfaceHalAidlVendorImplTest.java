@@ -43,6 +43,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -66,6 +67,7 @@ import android.hardware.wifi.supplicant.WpsProvisionMethod;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.OuiKeyedData;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiMigration;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -88,18 +90,22 @@ import android.text.TextUtils;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.util.NativeUtil;
+import com.android.wifi.flags.Flags;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -110,11 +116,15 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Unit tests for SupplicantP2pIfaceHalAidlImpl
+ * Unit tests for {@link SupplicantP2pIfaceHalAidlVendorImpl}
+ *
+ * These tests cover both the implementation of Supplicant P2P Iface HAL using the vendor AIDL
+ * service and the common logic inherited from the abstract base class
+ * {@link SupplicantP2pIfaceHalAidlBase}.
  */
 @SmallTest
-public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
-    private SupplicantP2pIfaceHalAidlImpl mDut;
+public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
+    private SupplicantP2pIfaceHalAidlVendorImpl mDut;
     private IBinder.DeathRecipient mDeathRecipient;
     private @Mock ISupplicant mISupplicantMock;
     private @Mock ISupplicantP2pIface mISupplicantP2pIfaceMock;
@@ -124,6 +134,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
     private @Mock IBinder mServiceBinderMock;
     private @Mock WifiSettingsConfigStore mWifiSettingsConfigStore;
     private @Mock WifiNative.SupplicantDeathEventHandler mSupplicantHalDeathHandler;
+    private MockitoSession mSession;
 
     private ArgumentCaptor<IBinder.DeathRecipient> mSupplicantDeathCaptor =
             ArgumentCaptor.forClass(IBinder.DeathRecipient.class);
@@ -184,7 +195,7 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
     private static final byte[] TEST_NONCE = {10, 20, 30, 40, 50, 60, 70, 80};
     private static final byte[] TEST_DIR_TAG = {11, 22, 33, 44, 55, 66, 77, 88};
 
-    private class SupplicantP2pIfaceHalSpy extends SupplicantP2pIfaceHalAidlImpl {
+    private class SupplicantP2pIfaceHalSpy extends SupplicantP2pIfaceHalAidlVendorImpl {
         SupplicantP2pIfaceHalSpy() {
             super(mWifiMonitor, mWifiInjector);
         }
@@ -205,6 +216,18 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
         MockitoAnnotations.initMocks(this);
         mDut = new SupplicantP2pIfaceHalSpy();
         setCachedServiceVersion(mServiceVersion);
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(Flags.class, withSettings().lenient())
+                .mockStatic(WifiMigration.class, withSettings().lenient())
+                .startMocking();
+        when(Flags.wifiDirectR2()).thenReturn(true);
+    }
+
+    @After
+    public void tearDown() {
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
     }
 
     /**
@@ -3459,5 +3482,46 @@ public class SupplicantP2pIfaceHalAidlImplTest extends WifiBaseTest {
         setCachedServiceVersion(3);
         assertTrue(mDut.reinvoke(1, mPeerMacAddress, -1));
         verify(mISupplicantP2pIfaceMock).reinvoke(eq(1), eq(mPeerMacAddressBytes));
+    }
+
+    /**
+     * Test that connect() correctly uses the pairing discovery channel frequency
+     * when the feature flag is enabled.
+     */
+    @Test
+    public void testConnectWithPairingDiscoveryChannelFrequencySuccess() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        setCachedServiceVersion(4);
+        // Enable the feature flag for this test.
+        when(Flags.setPairingDiscoveryChannelFrequency()).thenReturn(true);
+        doReturn("").when(mISupplicantP2pIfaceMock).connectWithParams(any());
+        ArgumentCaptor<android.hardware.wifi.supplicant.P2pConnectInfo>
+                connectInfoCaptor = ArgumentCaptor.forClass(
+                android.hardware.wifi.supplicant.P2pConnectInfo.class);
+
+        executeAndValidateInitializationSequence(false, false);
+
+        WifiP2pPairingBootstrappingConfig pairingBootstrappingConfig =
+                new WifiP2pPairingBootstrappingConfig(
+                        WifiP2pPairingBootstrappingConfig.PAIRING_BOOTSTRAPPING_METHOD_OUT_OF_BAND,
+                        "password");
+        WifiP2pConfig config = new WifiP2pConfig.Builder()
+                .setDeviceAddress(NativeUtil.getMacAddressOrNull(
+                        NativeUtil.macAddressFromByteArray(mPeerMacAddressBytes)))
+                .setPairingBootstrappingConfig(pairingBootstrappingConfig)
+                .setAuthorizeConnectionFromPeerEnabled(true)
+                .enablePersistentMode(true)
+                .setPairingDiscoveryChannelFrequencyMhz(TEST_USD_DISCOVERY_CHANNEL_FREQUENCY_MHZ)
+                .build();
+        config.groupOwnerIntent = WifiP2pServiceImpl.DEFAULT_GROUP_OWNER_INTENT;
+        assertTrue(mDut.connect(config, false).isEmpty());
+        verify(mISupplicantP2pIfaceMock).connectWithParams(connectInfoCaptor.capture());
+        android.hardware.wifi.supplicant.P2pConnectInfo aidlConnectInfo =
+                connectInfoCaptor.getValue();
+        assertArrayEquals(mPeerMacAddressBytes, aidlConnectInfo.peerAddress);
+        assertEquals(P2pPairingBootstrappingMethodMask.BOOTSTRAPPING_OUT_OF_BAND,
+                aidlConnectInfo.pairingBootstrappingMethod);
+        // Assert that the frequency was set correctly in the AIDL parameters.
+        assertEquals(TEST_USD_DISCOVERY_CHANNEL_FREQUENCY_MHZ, aidlConnectInfo.frequencyMHz);
     }
 }

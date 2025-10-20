@@ -139,18 +139,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * HAL calls to set up/tear down the supplicant daemon and make requests
- * related to station mode. Uses the AIDL supplicant interface.
+ * Abstract base class for the Supplicant STA Iface HAL AIDL implementations.
  * To maintain thread-safety, the locking protocol is that every non-static method (regardless of
  * access level) acquires mLock.
  */
-public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
-    private static final String TAG = "SupplicantStaIfaceHalAidlImpl";
+public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfaceHal {
+    private static final String TAG = "SupplicantStaIfaceHalAidlBase";
     private static final String ISUPPLICANTSTAIFACE = "ISupplicantStaIface";
-    @VisibleForTesting
-    private static final String HAL_INSTANCE_NAME = ISupplicant.DESCRIPTOR + "/default";
-    @VisibleForTesting
-    public static final long WAIT_FOR_DEATH_TIMEOUT_MS = 50L;
+    protected static final long WAIT_FOR_DEATH_TIMEOUT_MS = 50L;
     private static final long INVALID_CONNECT_TO_NETWORK_TIMESTAMP = -1L;
     @VisibleForTesting
     public static final long IGNORE_NETWORK_NOT_FOUND_DURATION_MS = 1000L;
@@ -162,15 +158,14 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private static final Pattern WPS_DEVICE_TYPE_PATTERN =
             Pattern.compile("^(\\d{1,2})-([0-9a-fA-F]{8})-(\\d{1,2})$");
 
-    private final Object mLock = new Object();
-    private boolean mVerboseLoggingEnabled = false;
-    private boolean mVerboseHalLoggingEnabled = false;
-    private boolean mServiceDeclared = false;
-    private int mServiceVersion = -1;
+    protected final Object mLock = new Object();
+    protected boolean mVerboseLoggingEnabled = false;
+    protected boolean mVerboseHalLoggingEnabled = false;
+    protected int mServiceVersion = -1;
 
     // Supplicant HAL interface objects
-    private ISupplicant mISupplicant = null;
-    private Map<String, ISupplicantStaIface> mISupplicantStaIfaces = new HashMap<>();
+    protected ISupplicant mISupplicant = null;
+    protected Map<String, ISupplicantStaIface> mISupplicantStaIfaces = new HashMap<>();
     private Map<String, ISupplicantStaIfaceCallback>
             mISupplicantStaIfaceCallbacks = new HashMap<>();
     private Map<String, SupplicantStaNetworkHalAidlImpl>
@@ -183,9 +178,8 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             mLinkedNetworkLocalAndRemoteConfigs = new HashMap<>();
     @VisibleForTesting
     PmkCacheManager mPmkCacheManager;
-    private WifiNative.SupplicantDeathEventHandler mDeathEventHandler;
-    private SupplicantDeathRecipient mSupplicantDeathRecipient;
-    private final Context mContext;
+    protected WifiNative.SupplicantDeathEventHandler mDeathEventHandler;
+    protected final Context mContext;
     private final WifiMonitor mWifiMonitor;
     private final Handler mEventHandler;
     private WifiNative.DppEventCallback mDppCallback = null;
@@ -193,8 +187,8 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     private final WifiMetrics mWifiMetrics;
     private final WifiGlobals mWifiGlobals;
     private final SsidTranslator mSsidTranslator;
-    private final WifiInjector mWifiInjector;
-    private CountDownLatch mWaitForDeathLatch;
+    protected final WifiInjector mWifiInjector;
+    protected CountDownLatch mWaitForDeathLatch;
     private INonStandardCertCallback mNonStandardCertCallback;
     private SupplicantStaIfaceHal.QosScsResponseCallback mQosScsResponseCallback;
     private MscsParams mLastMscsParams;
@@ -210,33 +204,6 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
      * this default implementation.
      */
     private UsdNativeManager.UsdEventsCallback mUsdEventsCallback = null;
-
-    private class SupplicantDeathRecipient implements DeathRecipient {
-        @Override
-        public void binderDied() {
-        }
-
-        @Override
-        public void binderDied(@NonNull IBinder who) {
-            synchronized (mLock) {
-                IBinder supplicantBinder = getServiceBinderMockable();
-                Log.w(TAG, "ISupplicant binder died. who=" + who + ", service="
-                        + supplicantBinder);
-                if (supplicantBinder == null) {
-                    Log.w(TAG, "Supplicant Death EventHandler called"
-                            + " when ISupplicant/binder service is already cleared");
-                } else if (supplicantBinder != who) {
-                    Log.w(TAG, "Ignoring stale death recipient notification");
-                    return;
-                }
-                if (mWaitForDeathLatch != null) {
-                    mWaitForDeathLatch.countDown();
-                }
-                Log.w(TAG, "Handle supplicant death");
-                supplicantServiceDiedHandler();
-            }
-        }
-    }
 
     @VisibleForTesting
     protected class KeystoreMigrationStatusConsumer implements IntConsumer {
@@ -258,7 +225,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
-    public SupplicantStaIfaceHalAidlImpl(Context context, WifiMonitor monitor, Handler handler,
+    public SupplicantStaIfaceHalAidlBase(Context context, WifiMonitor monitor, Handler handler,
             Clock clock, WifiMetrics wifiMetrics, WifiGlobals wifiGlobals,
             @NonNull SsidTranslator ssidTranslator, WifiInjector wifiInjector) {
         mContext = context;
@@ -268,10 +235,39 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         mWifiMetrics = wifiMetrics;
         mWifiGlobals = wifiGlobals;
         mSsidTranslator = ssidTranslator;
-        mSupplicantDeathRecipient = new SupplicantDeathRecipient();
         mPmkCacheManager = new PmkCacheManager(mClock, mEventHandler);
         mWifiInjector = wifiInjector;
     }
+
+    // Abstract methods to be implemented by the derived classes
+
+    /**
+     * Checks whether the ISupplicant service is declared, and therefore should be available.
+     *
+     * @return true if the ISupplicant service is declared
+     */
+    @Override
+    public abstract boolean initialize();
+
+    /**
+     * Start the supplicant daemon.
+     *
+     * @return true on success, false otherwise.
+     */
+    @Override
+    public abstract boolean startDaemon();
+
+    /**
+     * Signals whether initialization started successfully.
+     */
+    @Override
+    public abstract boolean isInitializationStarted();
+
+    /**
+     * Signals whether initialization completed successfully.
+     */
+    @Override
+    public abstract boolean isInitializationComplete();
 
     /**
      * Enable/Disable verbose logging.
@@ -291,26 +287,6 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
-    /**
-     * Checks whether the ISupplicant service is declared, and therefore should be available.
-     *
-     * @return true if the ISupplicant service is declared
-     */
-    public boolean initialize() {
-        synchronized (mLock) {
-            if (mISupplicant != null) {
-                Log.i(TAG, "Service is already initialized, skipping initialize method");
-                return true;
-            }
-            if (mVerboseLoggingEnabled) {
-                Log.i(TAG, "Checking for ISupplicant service.");
-            }
-            mISupplicantStaIfaces.clear();
-            mServiceDeclared = serviceDeclared();
-            return mServiceDeclared;
-        }
-    }
-
     protected int getCurrentNetworkId(@NonNull String ifaceName) {
         synchronized (mLock) {
             WifiConfiguration currentConfig = getCurrentNetworkLocalConfig(ifaceName);
@@ -318,6 +294,67 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
                 return WifiConfiguration.INVALID_NETWORK_ID;
             }
             return currentConfig.networkId;
+        }
+    }
+
+    /**
+     * Terminate the supplicant daemon and wait for its death.
+     */
+    @Override
+    public void terminate() {
+        synchronized (mLock) {
+            final String methodStr = "terminate";
+            if (!checkSupplicantAndLogFailure(methodStr)) {
+                return;
+            }
+            Log.i(TAG, "Terminate supplicant service");
+            try {
+                mWaitForDeathLatch = new CountDownLatch(1);
+                mISupplicant.terminate();
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            }
+        }
+
+        // Wait for death recipient to confirm the service death.
+        try {
+            if (!mWaitForDeathLatch.await(WAIT_FOR_DEATH_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                Log.w(TAG, "Timed out waiting for confirmation of supplicant death");
+            } else {
+                Log.d(TAG, "Got service death confirmation");
+            }
+        } catch (InterruptedException e) {
+            Log.w(TAG, "Failed to wait for supplicant death");
+        }
+    }
+
+    /**
+     * Registers a death notification for supplicant.
+     * @return Returns true on success.
+     */
+    @Override
+    public boolean registerDeathHandler(@NonNull WifiNative.SupplicantDeathEventHandler handler) {
+        synchronized (mLock) {
+            if (mDeathEventHandler != null) {
+                Log.e(TAG, "Death handler already present");
+            }
+            mDeathEventHandler = handler;
+            return true;
+        }
+    }
+
+    /**
+     * Deregisters a death notification for supplicant.
+     * @return Returns true on success.
+     */
+    @Override
+    public boolean deregisterDeathHandler() {
+        synchronized (mLock) {
+            if (mDeathEventHandler == null) {
+                Log.e(TAG, "No Death handler present");
+            }
+            mDeathEventHandler = null;
+            return true;
         }
     }
 
@@ -341,7 +378,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
             }
 
             ISupplicantStaIfaceCallback callback = new SupplicantStaIfaceCallbackAidlImpl(
-                    SupplicantStaIfaceHalAidlImpl.this, ifaceName,
+                    SupplicantStaIfaceHalAidlBase.this, ifaceName,
                     new Object(), mContext, mWifiMonitor, mSsidTranslator, mEventHandler);
             if (registerCallback(iface, callback)) {
                 mISupplicantStaIfaces.put(ifaceName, iface);
@@ -416,63 +453,6 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     }
 
     /**
-     * Registers a death notification for supplicant.
-     * @return Returns true on success.
-     */
-    public boolean registerDeathHandler(@NonNull WifiNative.SupplicantDeathEventHandler handler) {
-        synchronized (mLock) {
-            if (mDeathEventHandler != null) {
-                Log.e(TAG, "Death handler already present");
-            }
-            mDeathEventHandler = handler;
-            return true;
-        }
-    }
-
-    /**
-     * Deregisters a death notification for supplicant.
-     * @return Returns true on success.
-     */
-    public boolean deregisterDeathHandler() {
-        synchronized (mLock) {
-            if (mDeathEventHandler == null) {
-                Log.e(TAG, "No Death handler present");
-            }
-            mDeathEventHandler = null;
-            return true;
-        }
-    }
-
-    /**
-     * Signals whether initialization started successfully.
-     */
-    public boolean isInitializationStarted() {
-        synchronized (mLock) {
-            return mServiceDeclared;
-        }
-    }
-
-    /**
-     * Signals whether initialization completed successfully.
-     */
-    public boolean isInitializationComplete() {
-        synchronized (mLock) {
-            return mISupplicant != null;
-        }
-    }
-
-    /**
-     * Indicates whether the AIDL service is declared
-     */
-    public static boolean serviceDeclared() {
-        // Service Manager API ServiceManager#isDeclared supported after T.
-        if (!SdkLevel.isAtLeastT()) {
-            return false;
-        }
-        return ServiceManager.isDeclared(HAL_INSTANCE_NAME);
-    }
-
-    /**
      * Check that the service is running at least the expected version.
      * Use to avoid the case where the framework is using a newer
      * interface version than the service.
@@ -481,7 +461,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         return expectedVersion <= mServiceVersion;
     }
 
-    private void clearState() {
+    protected void clearState() {
         synchronized (mLock) {
             Log.i(TAG, "Clearing internal state");
             mISupplicant = null;
@@ -496,129 +476,11 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
-    private void supplicantServiceDiedHandler() {
-        synchronized (mLock) {
-            clearState();
-            if (mDeathEventHandler != null) {
-                mDeathEventHandler.onDeath();
-            }
-        }
-    }
-
-    /**
-     * Start the supplicant daemon.
-     *
-     * @return true on success, false otherwise.
-     */
-    public boolean startDaemon() {
-        synchronized (mLock) {
-            final String methodStr = "startDaemon";
-            if (mISupplicant != null) {
-                Log.i(TAG, "Service is already initialized, skipping " + methodStr);
-                return true;
-            }
-
-            clearState();
-            mISupplicant = getSupplicantMockable();
-            if (mISupplicant == null) {
-                Log.e(TAG, "Unable to obtain ISupplicant binder.");
-                return false;
-            }
-            Log.i(TAG, "Obtained ISupplicant binder.");
-            Log.i(TAG, "Local Version: " + ISupplicant.VERSION);
-
-            try {
-                getServiceVersion();
-                Log.i(TAG, "Remote Version: " + mServiceVersion);
-                IBinder serviceBinder = getServiceBinderMockable();
-                if (serviceBinder == null) {
-                    return false;
-                }
-                mWaitForDeathLatch = null;
-                serviceBinder.linkToDeath(mSupplicantDeathRecipient, /* flags= */  0);
-                setLogLevel(mVerboseHalLoggingEnabled);
-                registerNonStandardCertCallback();
-                return true;
-            } catch (RemoteException e) {
-                handleRemoteException(e, methodStr);
-                return false;
-            }
-        }
-    }
-
-    private void getServiceVersion() throws RemoteException {
-        synchronized (mLock) {
-            if (mISupplicant == null) return;
-            if (mServiceVersion == -1) {
-                int serviceVersion = mISupplicant.getInterfaceVersion();
-                mWifiInjector.getSettingsConfigStore().put(
-                        WifiSettingsConfigStore.SUPPLICANT_HAL_AIDL_SERVICE_VERSION,
-                        serviceVersion);
-                mServiceVersion = serviceVersion;
-                Log.i(TAG, "Remote service version was cached");
-            }
-        }
-    }
-
-    /**
-     * Terminate the supplicant daemon & wait for its death.
-     */
-    public void terminate() {
-        synchronized (mLock) {
-            final String methodStr = "terminate";
-            if (!checkSupplicantAndLogFailure(methodStr)) {
-                return;
-            }
-            Log.i(TAG, "Terminate supplicant service");
-            try {
-                mWaitForDeathLatch = new CountDownLatch(1);
-                mISupplicant.terminate();
-            } catch (RemoteException e) {
-                handleRemoteException(e, methodStr);
-            }
-        }
-
-        // Wait for death recipient to confirm the service death.
-        try {
-            if (!mWaitForDeathLatch.await(WAIT_FOR_DEATH_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                Log.w(TAG, "Timed out waiting for confirmation of supplicant death");
-            } else {
-                Log.d(TAG, "Got service death confirmation");
-            }
-        } catch (InterruptedException e) {
-            Log.w(TAG, "Failed to wait for supplicant death");
-        }
-    }
-
     /**
      * Wrapper functions to access HAL objects, created to be mockable in unit tests
      */
     @VisibleForTesting
-    protected ISupplicant getSupplicantMockable() {
-        synchronized (mLock) {
-            try {
-                if (SdkLevel.isAtLeastT()) {
-                    return ISupplicant.Stub.asInterface(
-                            ServiceManager.waitForDeclaredService(HAL_INSTANCE_NAME));
-                } else {
-                    return null;
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Unable to get ISupplicant service, " + e);
-                return null;
-            }
-        }
-    }
-
-    @VisibleForTesting
-    protected IBinder getServiceBinderMockable() {
-        synchronized (mLock) {
-            if (mISupplicant == null) {
-                return null;
-            }
-            return mISupplicant.asBinder();
-        }
-    }
+    protected abstract IBinder getCurrentServiceBinderMockable();
 
     /**
      * Helper method to look up the specified iface.
@@ -2497,7 +2359,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     /**
      * Returns false if mISupplicant is null and logs failure message
      */
-    private boolean checkSupplicantAndLogFailure(final String methodStr) {
+    protected boolean checkSupplicantAndLogFailure(final String methodStr) {
         synchronized (mLock) {
             if (mISupplicant == null) {
                 Log.e(TAG, "Can't call " + methodStr + ", ISupplicant is null");
@@ -2552,7 +2414,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
-    private void handleRemoteException(RemoteException e, String methodStr) {
+    protected void handleRemoteException(RemoteException e, String methodStr) {
         synchronized (mLock) {
             clearState();
             Log.e(TAG,
@@ -2560,7 +2422,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
         }
     }
 
-    private void handleServiceSpecificException(ServiceSpecificException e, String methodStr) {
+    protected void handleServiceSpecificException(ServiceSpecificException e, String methodStr) {
         synchronized (mLock) {
             Log.e(TAG, "ISupplicantStaIface." + methodStr + " failed with "
                     + "service specific exception: ", e);
@@ -4127,7 +3989,7 @@ public class SupplicantStaIfaceHalAidlImpl implements ISupplicantStaIfaceHal {
     }
 
     @SuppressLint("NewApi") // Keystore migration API is guarded by an SDK check
-    private void registerNonStandardCertCallback() {
+    protected void registerNonStandardCertCallback() {
         synchronized (mLock) {
             final String methodStr = "registerNonStandardCertCallback";
             if (!checkSupplicantAndLogFailure(methodStr) || !isServiceVersionAtLeast(2)) {

@@ -16,7 +16,8 @@
 
 package android.system.wifi.mainline_supplicant;
 
-import android.system.wifi.mainline_supplicant.IStaInterface;
+import android.hardware.wifi.supplicant.ISupplicant;
+import android.system.wifi.mainline_supplicant.ISupplicantNanIface;
 
 /**
  * Root of the mainline supplicant interface. This is an unstable AIDL interface used
@@ -24,53 +25,26 @@ import android.system.wifi.mainline_supplicant.IStaInterface;
  */
 interface IMainlineSupplicant {
     /**
-     * Register a STA interface with the supplicant.
+     * Retrieve the root interface for the vendor supplicant.
      *
-     * @param ifaceName Name of the interface (ex. wlan0)
-     * @throws ServiceSpecificException with one of the following values:
-     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
-     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|
-     */
-    @PropagateAllowBlocking IStaInterface addStaInterface(String ifaceName);
-
-    /**
-     * Remove a STA interface from the supplicant.
-     *
-     * @param ifaceName Name of the interface (ex. wlan0)
-     * @throws ServiceSpecificException with one of the following values:
-     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
-     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|
-     *         |SupplicantStatusCode.FAILURE_IFACE_UNKNOWN|
-     */
-    void removeStaInterface(String ifaceName);
-
-    /**
-     * Terminate the service.
-     */
-    oneway void terminate();
-
-    /**
-     * Debug log levels for the supplicant. Only log messages with a level greater than
-     * or equal to the one set via |setDebugParams| will be logged.
-     */
-    @Backing(type="byte")
-    enum DebugLevel {
-        EXCESSIVE = 0,
-        MSGDUMP = 1,
-        DEBUG = 2,
-        INFO = 3,
-        WARNING = 4,
-        ERROR = 5,
-    }
-
-    /**
-     * Set debug parameters for the supplicant.
-     *
-     * @param level Debug logging level for the supplicant.
-     * @param showKeys Determines whether to show keys in the logs.
-     *        CAUTION: Do not enable this param in production code!
+     * @return AIDL interface object representing the root of the
+     *         vendor supplicant service
      * @throws ServiceSpecificException with one of the following values:
      *         |SupplicantStatusCode.FAILURE_UNKNOWN|
      */
-    void setDebugParams(DebugLevel level, boolean showKeys);
+    @PropagateAllowBlocking ISupplicant getVendorSupplicant();
+
+    /**
+     * Registers a wireless NANinterface in supplicant.
+     *
+     * @param ifaceName Name of the interface (e.g aware0).
+     * @return AIDL interface object representing the interface if
+     *         successful, null otherwise.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|,
+     *         |SupplicantStatusCode.FAILURE_IFACE_EXISTS|
+     */
+    @PropagateAllowBlocking ISupplicantNanIface addNanInterface(in String ifaceName);
+
 }

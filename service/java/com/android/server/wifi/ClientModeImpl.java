@@ -108,7 +108,6 @@ import android.net.wifi.WifiSsid;
 import android.net.wifi.flags.Flags;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.net.wifi.util.ScanResultUtil;
 import android.os.BatteryStatsManager;
 import android.os.Build;
@@ -159,6 +158,7 @@ import com.android.server.wifi.hotspot2.IconEvent;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.hotspot2.PasspointManager;
 import com.android.server.wifi.hotspot2.WnmData;
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.p2p.WifiP2pServiceImpl;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
@@ -699,6 +699,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     @Nullable
     private WifiVcnNetworkPolicyChangeListener mVcnPolicyChangeListener;
+
+    // used by shell command to set network as restricted for testing
+    private boolean mIsRestrictedNetworkDebug = false;
 
     /** NETWORK_NOT_FOUND_EVENT event counter */
     private int mNetworkNotFoundEventCount = 0;
@@ -1536,6 +1539,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         }
                     }, mWifiThreadRunner).launchDialog();
         } else {
+            boolean isUserSelectedBeforeOverride = mIsUserSelected;
             if (mIsUserSelected && ATTRIBUTION_TAG_DISALLOW_CONNECT_CHOICE.equals(attributionTag)) {
                 mIsUserSelected = false;
                 logd("connectToUserSelectNetwork attributionTag override to disable user selected");
@@ -1554,6 +1558,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     // automatically connecting back to it.
                     mWifiConfigManager.userTemporarilyDisabledNetwork(config.SSID,
                             Process.WIFI_UID);
+                }
+                if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
+                    if (mNetworkFactory.isConnectedToConfig(config)) {
+                        mNetworkFactory.onDisconnectionExpected(
+                                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION,
+                                isUserSelectedBeforeOverride);
+                    }
                 }
             }
             startConnectToNetwork(netId, uid, SUPPLICANT_BSSID_ANY);
@@ -1979,6 +1990,26 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     /**
+     * Special version of disconnect for handling API call of {@link WifiManager#disconnect()}
+     * @param uid calling app uid
+     */
+    public void disconnect(int uid) {
+        if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
+            boolean isUserTriggered = mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                    || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid);
+            WifiConfiguration config = getConnectedWifiConfigurationInternal();
+            if (mNetworkFactory.isConnectedToConfig(config)) {
+                // TODO (b/449257685): Add dialog to ask for user confirmation if this is user
+                // triggered.
+                mNetworkFactory.onDisconnectionExpected(
+                        WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API,
+                        isUserTriggered);
+            }
+        }
+        disconnect();
+    }
+
+    /**
      * Initiate a reconnection to AP
      */
     public void reconnect(WorkSource workSource) {
@@ -2148,6 +2179,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         // Polls link layer stats and RSSI. This allows the stats to show up in
         // WifiScoreReport's dump() output when taking a bug report even if the screen is off.
         updateLinkLayerStatsRssiAndScoreReport();
+        pw.println("mIsRestrictedNetworkDebug " + mIsRestrictedNetworkDebug);
         pw.println("mLinkProperties " + mLinkProperties);
         pw.println("mWifiInfo " + mWifiInfo);
         pw.println("mDhcpResultsParcelable "
@@ -3593,6 +3625,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             }
         } else {
             stopDhcpSetup();
+        }
+
+        if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()
+                && mNetworkFactory.isConnectedToConfig(getConnectedWifiConfigurationInternal())) {
+            mNetworkFactory.onDisconnectionExpected(
+                    WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
         }
 
         // DISASSOC_AP_BUSY could be received in both after L3 connection is successful or right
@@ -5305,7 +5343,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         if (!WifiConfiguration.isMetered(currentWifiConfiguration, mWifiInfo)) {
-            builder.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
+            if (currentWifiConfiguration.carrierMerged) {
+                builder.removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
+                builder.addCapability(NetworkCapabilities.NET_CAPABILITY_TEMPORARILY_NOT_METERED);
+            } else {
+                builder.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
+            }
         } else {
             builder.removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
         }
@@ -5367,6 +5410,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
 
         updateLinkBandwidth(builder);
+        if (mIsRestrictedNetworkDebug) {
+            builder.removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED);
+            logd("NET_CAPABILITY_NOT_RESTRICTED is removed");
+        }
         final NetworkCapabilities networkCapabilities = builder.build();
         if (mVcnManager == null || !currentWifiConfiguration.carrierMerged
                 || !SdkLevel.isAtLeastS()) {
@@ -5448,6 +5495,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     @Override
     public void updateCapabilities() {
         updateCapabilities(getConnectedWifiConfigurationInternal());
+    }
+
+    /**
+     * Override to set the network as restricted for debugging purpose.
+     */
+    @Override
+    public void setRestrictedNetworkDebug(boolean restricted) {
+        mIsRestrictedNetworkDebug = restricted;
     }
 
     /**
@@ -6484,10 +6539,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 case CMD_CONNECTING_WATCHDOG_TIMER: {
                     if (mConnectingWatchdogCount == message.arg1) {
                         if (mVerboseLoggingEnabled) log("Connecting watchdog! -> disconnect");
-                        mFrameworkDisconnectReasonOverride =
-                                WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__CONNECTING_WATCHDOG_TIMER;
-                        sendMessageAtFrontOfQueue(CMD_DISCONNECT,
-                                StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER);
+                        reportConnectionAttemptEnd(
+                                WifiMetrics.ConnectionEvent.FAILURE_NO_RESPONSE,
+                                WifiMetricsProto.ConnectionEvent.HLF_NONE,
+                                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN, 0);
+                        handleNetworkDisconnect(false,
+                                WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__CONNECTING_WATCHDOG_TIMER);
+                        transitionTo(mDisconnectedState);
                         if (SdkLevel.isAtLeastS() && mTargetWifiConfiguration != null) {
                             mWifiConfigManager.setRecentFailureAssociationStatus(
                                     mTargetWifiConfiguration.networkId,
@@ -7037,7 +7095,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         mWifiGlobals.getPollRssiIntervalMillis(),
                         mWifiScoreReport.getAospScorerPredictionStatusForEvaluation(),
                         mWifiScoreReport.getExternalScorerPredictionStatusForEvaluation(),
-                        mWifiScoreReport.isExternalScorerActive());
+                        mWifiScoreReport.isExternalScorerActive(),
+                        mWifiScoreReport.getLastInternalScorerType());
                 mWifiScoreReport.clearScorerPredictionStatusForEvaluation();
             }
             // Send the update score to network agent.
@@ -7581,6 +7640,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                                                 config.networkId,
                                                 DISABLED_NO_INTERNET_TEMPORARY);
                                     }
+                                    pollForFreshRssiIfStale();
                                     mWifiBlocklistMonitor.handleBssidConnectionFailure(
                                             mLastBssid, config,
                                             WifiBlocklistMonitor.REASON_NETWORK_VALIDATION_FAILURE,
@@ -7740,6 +7800,24 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             if (SdkLevel.isAtLeastV() && mWifiInjector.getWifiVoipDetector() != null) {
                 mWifiInjector.getWifiVoipDetector().notifyWifiConnected(false,
                         isPrimary(), mInterfaceName);
+            }
+        }
+    }
+
+    /**
+     * Checks if the current RSSI is stale and, if so, performs a one-shot poll to get a fresh
+     * value before it is used for decisions like blocklisting.
+     */
+    private void pollForFreshRssiIfStale() {
+        if (mClock.getElapsedSinceBootMillis() - mWifiInfo.getLastRssiUpdateMillis()
+                > mWifiHealthMonitor.getScanRssiValidTimeMs()) {
+            Log.d(getTag(), "RSSI is stale, performing a one-shot poll before blocklisting.");
+            WifiSignalPollResults pollResults = mWifiNative.signalPoll(mInterfaceName);
+            if (pollResults != null) {
+                int newRssi = RssiUtil.calculateAdjustedRssi(pollResults.getRssi());
+                if (newRssi > mWifiInfo.INVALID_RSSI) {
+                    mWifiInfo.setRssi(newRssi);
+                }
             }
         }
     }

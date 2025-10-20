@@ -15,12 +15,15 @@
 aidl_interface {
     name: "android.system.wifi.mainline_supplicant",
     unstable: true,
-    srcs: [
-        "android/system/wifi/mainline_supplicant/*.aidl",
+    imports: [
+        "android.hardware.wifi.supplicant-V5",
+        "android.hardware.wifi.common-V2",
     ],
+    srcs: ["android/system/wifi/mainline_supplicant/*.aidl"],
     backend: {
         java: {
             enabled: true,
+            sdk_version: "module_current",
             apex_available: [
                 "//apex_available:platform",
                 "com.android.wifi",
@@ -34,6 +37,7 @@ aidl_interface {
         },
         ndk: {
             enabled: true,
+            gen_trace: true,
             apex_available: [
                 "//apex_available:platform",
                 "com.android.wifi",
@@ -41,6 +45,9 @@ aidl_interface {
             min_sdk_version: "30",
         },
         cpp: {
+            enabled: false,
+        },
+        rust: {
             enabled: false,
         },
     },

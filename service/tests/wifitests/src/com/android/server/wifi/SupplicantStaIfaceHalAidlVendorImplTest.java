@@ -167,10 +167,14 @@ import java.util.Random;
 import java.util.Set;
 
 /**
- * Unit tests for SupplicantStaIfaceHalAidlImpl
+ * Unit tests for {@link SupplicantStaIfaceHalAidlVendorImpl}.
+ *
+ * These tests cover both the implementation of Supplicant STA Iface HAL using the vendor AIDL
+ * service and the common logic inherited from the abstract base class
+ * {@link SupplicantStaIfaceHalAidlBase}.
  */
 @SmallTest
-public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
+public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
     private static final Map<Integer, String> NETWORK_ID_TO_SSID = Map.of(
             1, "\"ssid1\"",
             2, "\"ssid2\"",
@@ -219,12 +223,14 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     private ArgumentCaptor<IBinder.DeathRecipient> mSupplicantDeathCaptor =
             ArgumentCaptor.forClass(IBinder.DeathRecipient.class);
 
-    private class SupplicantStaIfaceHalSpy extends SupplicantStaIfaceHalAidlImpl {
+    private class SupplicantStaIfaceHalSpy extends SupplicantStaIfaceHalAidlVendorImpl {
         SupplicantStaNetworkHalAidlImpl mStaNetwork;
 
-        SupplicantStaIfaceHalSpy() {
-            super(mContext, mWifiMonitor, mHandler, mClock, mWifiMetrics, mWifiGlobals,
-                    mSsidTranslator, mWifiInjector);
+        SupplicantStaIfaceHalSpy(Context context, WifiMonitor monitor,
+                Handler handler, Clock clock, WifiMetrics wifiMetrics, WifiGlobals wifiGlobals,
+                @NonNull SsidTranslator ssidTranslator, WifiInjector wifiInjector) {
+            super(context, monitor, handler, clock, wifiMetrics, wifiGlobals, ssidTranslator,
+                    wifiInjector);
             mStaNetwork = mSupplicantStaNetworkMock;
         }
 
@@ -234,7 +240,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
         }
 
         @Override
-        protected IBinder getServiceBinderMockable() {
+        protected IBinder getCurrentServiceBinderMockable() {
             return mServiceBinderMock;
         }
 
@@ -282,7 +288,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
                 });
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(Flags.legacyKeystoreToWifiBlobstoreMigrationReadOnly()).thenReturn(true);
-        mDut = new SupplicantStaIfaceHalSpy();
+        mDut = new SupplicantStaIfaceHalSpy(mContext, mWifiMonitor, mHandler, mClock,
+                mWifiMetrics, mWifiGlobals, mSsidTranslator, mWifiInjector);
     }
 
     @After
@@ -2600,7 +2607,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
     /**
      * Tests the conversion method
-     * {@link SupplicantStaIfaceHalAidlImpl#frameworkToHalQosPolicyScsData(QosPolicyParams)}
+     * {@link SupplicantStaIfaceHalAidlBase#frameworkToHalQosPolicyScsData(QosPolicyParams)}
      */
     @Test
     public void testFrameworkToHalQosPolicyScsData() throws Exception {
@@ -2623,7 +2630,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
     /**
      * Tests the conversion method
-     * {@link SupplicantStaIfaceHalAidlImpl#frameworkToHalQosPolicyScsData(QosPolicyParams)}
+     * {@link SupplicantStaIfaceHalAidlBase#frameworkToHalQosPolicyScsData(QosPolicyParams)}
      * when the instance contains QosCharacteristics.
      */
     @Test
@@ -2798,7 +2805,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
             assertNotEquals(0, paramsMask & QosCharacteristicsMask.MSDU_DELIVERY_INFO);
             MsduDeliveryInfo halDeliveryInfo = halChars.msduDeliveryInfo;
             int convertedFrameworkRatio =
-                    SupplicantStaIfaceHalAidlImpl.frameworkToHalDeliveryRatio(
+                    SupplicantStaIfaceHalAidlBase.frameworkToHalDeliveryRatio(
                             frameworkChars.getDeliveryRatio());
             assertEquals(convertedFrameworkRatio, halDeliveryInfo.deliveryRatio);
             assertEquals((byte) frameworkChars.getCountExponent(), halDeliveryInfo.countExponent);
@@ -2844,7 +2851,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
 
         if (mDut.isServiceVersionAtLeast(3)) {
             int convertedFrameworkDirection =
-                    SupplicantStaIfaceHalAidlImpl.frameworkToHalPolicyDirection(
+                    SupplicantStaIfaceHalAidlBase.frameworkToHalPolicyDirection(
                             frameworkPolicy.getDirection());
             assertEquals(convertedFrameworkDirection, halPolicy.direction);
             if (frameworkPolicy.getQosCharacteristics() != null) {
@@ -3401,8 +3408,8 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     }
 
     /**
-     * Test {@link SupplicantStaIfaceHalAidlImpl#enableMscs(MscsParams, String)} and verify the
-     * conversion from {@link MscsParams} to its HAL equivalent.
+     * Test {@link SupplicantStaIfaceHalAidlVendorImpl#enableMscs(MscsParams, String)} and verify
+     * the conversion from {@link MscsParams} to its HAL equivalent.
      */
     @Test
     public void testEnableMscs() throws Exception {
@@ -3437,7 +3444,7 @@ public class SupplicantStaIfaceHalAidlImplTest extends WifiBaseTest {
     }
 
     /**
-     * Test that MSCS params set through {@link SupplicantStaIfaceHalAidlImpl#enableMscs(
+     * Test that MSCS params set through {@link SupplicantStaIfaceHalAidlVendorImpl#enableMscs(
      * MscsParams, String)} are cached for later resends.
      */
     @Test

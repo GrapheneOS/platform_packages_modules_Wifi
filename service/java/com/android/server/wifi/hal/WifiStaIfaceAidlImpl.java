@@ -97,6 +97,7 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
     private SsidTranslator mSsidTranslator;
 
     private final boolean mWifiLinkLayerAllRadiosStatsAggregationEnabled;
+    private boolean mIsGetCachedScanDataSupported = true;
 
     public WifiStaIfaceAidlImpl(@NonNull android.hardware.wifi.IWifiStaIface staIface,
             @NonNull Context context, @NonNull SsidTranslator ssidTranslator) {
@@ -394,12 +395,22 @@ public class WifiStaIfaceAidlImpl implements IWifiStaIface {
         synchronized (mLock) {
             try {
                 if (!isServiceVersionAtLeast(2)
-                        || !checkIfaceAndLogFailure(methodStr)) return null;
+                        || !checkIfaceAndLogFailure(methodStr))  {
+                    return null;
+                }
+                if (!mIsGetCachedScanDataSupported) {
+                    return null;
+                }
                 CachedScanData scanData = mWifiStaIface.getCachedScanData();
                 return halToFrameworkCachedScanData(scanData);
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
+                if (e.errorCode == WifiStatusCode.ERROR_NOT_SUPPORTED) {
+                    Log.e(TAG, "getCachedScanData is not supported on this device."
+                            + " Disabling for subsequent calls.");
+                    mIsGetCachedScanDataSupported = false;
+                }
                 handleServiceSpecificException(e, methodStr);
             }
             return null;

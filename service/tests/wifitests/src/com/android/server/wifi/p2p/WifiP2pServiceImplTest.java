@@ -9205,7 +9205,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mDialogHandle).launchDialog();
 
 
-        // Framework is expected to send authorize as soon as the PIN is Displayed
+        // Framework is expected to send authorize if user accepts the connection request.
+        sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_ACCEPT);
         verify(mWifiNative, times(1)).authorizeConnectRequestOnGroupOwner(
                 configCaptor.capture(),
                 eq(IFACE_NAME_P2P));
@@ -9213,7 +9214,6 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertEquals(WifiP2pPairingBootstrappingConfig
                         .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PINCODE,
                 config.getPairingBootstrappingConfig().getPairingBootstrappingMethod());
-        assertEquals(config.deviceAddress, mTestWifiP2pV2Device.deviceAddress);
         assertEquals(pincode,
                 config.getPairingBootstrappingConfig().getPairingBootstrappingPassword());
         assertTrue(config.isAuthorizeConnectionFromPeerEnabled());
@@ -9250,7 +9250,8 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         verify(mDialogHandle).launchDialog();
 
 
-        // Framework is expected to send authorize as soon as the PIN is Displayed
+        // Framework is expected to send authorize if user accepts the connection request.
+        sendSimpleMsg(null, WifiP2pServiceImpl.PEER_CONNECTION_USER_ACCEPT);
         verify(mWifiNative, times(1)).authorizeConnectRequestOnGroupOwner(
                 configCaptor.capture(),
                 eq(IFACE_NAME_P2P));
@@ -9258,7 +9259,6 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertEquals(WifiP2pPairingBootstrappingConfig
                         .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PASSPHRASE,
                 config.getPairingBootstrappingConfig().getPairingBootstrappingMethod());
-        assertEquals(config.deviceAddress, mTestWifiP2pV2Device.deviceAddress);
         assertEquals(passphrase,
                 config.getPairingBootstrappingConfig().getPairingBootstrappingPassword());
         assertTrue(config.isAuthorizeConnectionFromPeerEnabled());

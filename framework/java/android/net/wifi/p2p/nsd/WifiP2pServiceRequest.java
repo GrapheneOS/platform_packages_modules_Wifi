@@ -321,10 +321,14 @@ public class WifiP2pServiceRequest implements Parcelable {
          * Not compare transaction id.
          * Transaction id may be changed on each service discovery operation.
          */
+        boolean usdConfigEquals = true;
+        if (Environment.isSdkAtLeastB() && Flags.wifiDirectR2()) {
+            usdConfigEquals = Objects.equals(mUsdServiceConfig, req.mUsdServiceConfig);
+        }
         return mProtocolType == req.mProtocolType
                 && mLength == req.mLength
                 && Objects.equals(mQuery, req.mQuery)
-                && Objects.equals(mUsdServiceConfig, req.mUsdServiceConfig);
+                && usdConfigEquals;
    }
 
     @Override
@@ -333,16 +337,24 @@ public class WifiP2pServiceRequest implements Parcelable {
         result = 31 * result + mProtocolType;
         result = 31 * result + mLength;
         result = 31 * result + (mQuery == null ? 0 : mQuery.hashCode());
-        result = 31 * result + (mUsdServiceConfig == null ? 0 : mUsdServiceConfig.hashCode());
+        if (Environment.isSdkAtLeastB() && Flags.wifiDirectR2()) {
+            result = 31 * result + (mUsdServiceConfig == null ? 0 : mUsdServiceConfig.hashCode());
+        }
         return result;
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public int describeContents() {
         return 0;
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(mProtocolType);
         dest.writeInt(mLength);
@@ -354,7 +366,10 @@ public class WifiP2pServiceRequest implements Parcelable {
         }
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
     public static final @android.annotation.NonNull Creator<WifiP2pServiceRequest> CREATOR =
             new Creator<WifiP2pServiceRequest>() {

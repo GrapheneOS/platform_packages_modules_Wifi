@@ -143,7 +143,6 @@ import android.net.wifi.WifiSsid;
 import android.net.wifi.flags.Flags;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.util.ScanResultUtil;
 import android.os.BatteryStatsManager;
@@ -183,6 +182,7 @@ import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.hotspot2.PasspointManager;
 import com.android.server.wifi.hotspot2.PasspointProvisioningTestUtil;
 import com.android.server.wifi.hotspot2.WnmData;
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.p2p.WifiP2pServiceImpl;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 import com.android.server.wifi.proto.nano.WifiMetricsProto.StaEvent;
@@ -729,6 +729,7 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         // static mocking
         mSession = ExtendedMockito.mockitoSession().strictness(Strictness.LENIENT)
+                .mockStatic(com.android.wifi.flags.Flags.class, withSettings().lenient())
                 .mockStatic(WifiInjector.class, withSettings().lenient())
                 .spyStatic(MacAddress.class)
                 .startMocking();
@@ -4685,9 +4686,10 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         mLooper.moveTimeForward(ClientModeImpl.CONNECTING_WATCHDOG_TIMEOUT_MS);
         mLooper.dispatchAll();
-        verify(mWifiMetrics).logStaEvent(eq(WIFI_IFACE_NAME),
-                eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
-                eq(StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER));
+        verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(any(), any(),
+                eq(WifiBlocklistMonitor.REASON_FAILURE_NO_RESPONSE), anyInt());
+        verify(mWifiDiagnostics).reportConnectionEvent(
+                eq(WifiDiagnostics.CONNECTION_EVENT_TIMEOUT), any());
     }
 
     @Test
@@ -4695,17 +4697,17 @@ public class ClientModeImplTest extends WifiBaseTest {
         connect();
         mLooper.moveTimeForward(ClientModeImpl.CONNECTING_WATCHDOG_TIMEOUT_MS);
         mLooper.dispatchAll();
-        verify(mWifiMetrics, never()).logStaEvent(eq(WIFI_IFACE_NAME),
-                eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
-                eq(StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER));
+        verify(mWifiBlocklistMonitor, never()).handleBssidConnectionFailure(any(), any(),
+                anyInt(), anyInt());
+        verify(mWifiDiagnostics, never()).reportConnectionEvent(
+                eq(WifiDiagnostics.CONNECTION_EVENT_TIMEOUT), any());
     }
 
     private void verifyConnectionEventTimeoutDoesNotOccur() {
         mLooper.moveTimeForward(ClientModeImpl.CONNECTING_WATCHDOG_TIMEOUT_MS);
         mLooper.dispatchAll();
-        verify(mWifiMetrics, never()).logStaEvent(eq(WIFI_IFACE_NAME),
-                eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
-                eq(StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER));
+        verify(mWifiDiagnostics, never()).reportConnectionEvent(
+                eq(WifiDiagnostics.CONNECTION_EVENT_TIMEOUT), any());
     }
 
     /**
@@ -5823,6 +5825,108 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that a one-shot signal poll is triggered when RSSI is stale during network
+     * validation failure.
+     */
+    @Test
+    public void testInternetValidationFailure_StaleRssi_ExpectPoll() throws Exception {
+        setupNetworkValidationFailure(TEST_RSSI);
+        reset(mWifiNative);
+        int freshRssi = -55;
+        WifiSignalPollResults freshPollResults = new WifiSignalPollResults();
+        freshPollResults.addEntry(0, freshRssi, 65, 54, sFreq);
+        when(mWifiNative.signalPoll(any())).thenReturn(freshPollResults);
+        when(mWifiNative.getSupportedFeatureSet(WIFI_IFACE_NAME)).thenReturn(
+                createCapabilityBitset(WifiManager.WIFI_FEATURE_LINK_LAYER_STATS));
+        when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(new WifiLinkLayerStats());
+
+        int scanRssiValidTimeMs = 5000;
+
+        when(mWifiHealthMonitor.getScanRssiValidTimeMs()).thenReturn(scanRssiValidTimeMs);
+        mWifiInfo.setRssi(TEST_RSSI);
+
+        long lastRssiUpdateTimeMs = mWifiInfo.getLastRssiUpdateMillis();
+        long staleRssiTimeMs = lastRssiUpdateTimeMs + scanRssiValidTimeMs + 1;
+
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(staleRssiTimeMs);
+
+        mWifiNetworkAgentCallbackCaptor.getValue().onValidationStatus(
+                NetworkAgent.VALIDATION_STATUS_NOT_VALID, null /* captivePortalUrl */);
+        mLooper.dispatchAll();
+
+        // Verify poll happened and blocklist uses new RSSI
+        verify(mWifiNative, times(1)).signalPoll(eq(WIFI_IFACE_NAME));
+        verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(eq(TEST_BSSID_STR),
+                any(WifiConfiguration.class),
+                eq(WifiBlocklistMonitor.REASON_NETWORK_VALIDATION_FAILURE), eq(freshRssi));
+    }
+
+    @Test
+    public void testInternetValidationFailure_FreshRssi_ExpectNoPoll() throws Exception {
+        setupNetworkValidationFailure(TEST_RSSI);
+        reset(mWifiNative);
+
+        when(mWifiNative.signalPoll(any())).thenReturn(new WifiSignalPollResults());
+        when(mWifiNative.getSupportedFeatureSet(WIFI_IFACE_NAME)).thenReturn(
+                createCapabilityBitset(WifiManager.WIFI_FEATURE_LINK_LAYER_STATS));
+        when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(new WifiLinkLayerStats());
+
+        int scanRssiValidTimeMs = 5000;
+
+        when(mWifiHealthMonitor.getScanRssiValidTimeMs()).thenReturn(scanRssiValidTimeMs);
+
+        mWifiInfo.setRssi(TEST_RSSI);
+        long lastRssiUpdateTimeMs = mWifiInfo.getLastRssiUpdateMillis();
+
+        long freshRssiTimeMs = lastRssiUpdateTimeMs + scanRssiValidTimeMs - 1;
+        when(mClock.getElapsedSinceBootMillis()).thenReturn(freshRssiTimeMs);
+
+        mWifiNetworkAgentCallbackCaptor.getValue().onValidationStatus(
+                NetworkAgent.VALIDATION_STATUS_NOT_VALID, null /* captivePortalUrl */);
+        mLooper.dispatchAll();
+
+        // Verify the one-shot poll was NOT triggered
+        verify(mWifiNative, never()).signalPoll(eq(WIFI_IFACE_NAME));
+
+        // Verify blocklist monitor is called with the current (fresh) RSSI
+        verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(eq(TEST_BSSID_STR),
+                any(WifiConfiguration.class),
+                eq(WifiBlocklistMonitor.REASON_NETWORK_VALIDATION_FAILURE), eq(TEST_RSSI));
+    }
+
+    private void setupNetworkValidationFailure(int initialRssi) throws Exception {
+        // Setup RSSI poll to update WifiInfo
+        mCmi.enableRssiPolling(true);
+        WifiLinkLayerStats llStats = new WifiLinkLayerStats();
+        llStats.txmpdu_be = 1000;
+        llStats.rxmpdu_bk = 2000;
+        WifiSignalPollResults signalPollResults = new WifiSignalPollResults();
+        signalPollResults.addEntry(0, initialRssi, 65, 54, sFreq);
+        when(mWifiNative.getSupportedFeatureSet(WIFI_IFACE_NAME)).thenReturn(
+                createCapabilityBitset(WifiManager.WIFI_FEATURE_LINK_LAYER_STATS));
+        when(mWifiNative.getWifiLinkLayerStats(any())).thenReturn(llStats);
+        when(mWifiNative.signalPoll(any())).thenReturn(signalPollResults);
+
+        connect();
+        verify(mWifiInjector).makeWifiNetworkAgent(any(), any(), any(), any(),
+                mWifiNetworkAgentCallbackCaptor.capture());
+
+        WifiConfiguration currentNetwork = new WifiConfiguration();
+        currentNetwork.networkId = FRAMEWORK_NETWORK_ID;
+        currentNetwork.SSID = DEFAULT_TEST_SSID;
+        currentNetwork.noInternetAccessExpected = false;
+        currentNetwork.numNoInternetAccessReports = 1;
+        currentNetwork.getNetworkSelectionStatus().setHasEverValidatedInternetAccess(true);
+
+        // not user selected
+        when(mWifiConfigManager.getConfiguredNetwork(FRAMEWORK_NETWORK_ID))
+                .thenReturn(currentNetwork);
+        when(mWifiConfigManager.getConfiguredNetworkWithoutMasking(FRAMEWORK_NETWORK_ID))
+                .thenReturn(currentNetwork);
+        when(mWifiConfigManager.getLastSelectedNetwork()).thenReturn(FRAMEWORK_NETWORK_ID + 1);
+    }
+
+    /**
      * Verify that we do not set the user connect choice after a successful connection if the
      * connection is not made by the user.
      */
@@ -6618,6 +6722,7 @@ public class ClientModeImplTest extends WifiBaseTest {
      */
     @Test
     public void verifyWifiInfoGetNetworkSpecifierPackageName() throws Exception {
+        when(com.android.wifi.flags.Flags.localOnlyDisconnectReason()).thenReturn(true);
         mConnectedNetwork.fromWifiNetworkSpecifier = true;
         mConnectedNetwork.ephemeral = true;
         mConnectedNetwork.trusted = true;
@@ -6634,6 +6739,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiConfigManager, never()).userTemporarilyDisabledNetwork(
                 eq(mConnectedNetwork.SSID), anyInt());
         // Setup new manual connection to another network
+        when(mWifiNetworkFactory.isConnectedToConfig(mConnectedNetwork)).thenReturn(true);
         WifiConfiguration config = WifiConfigurationTestUtil.createPskSaeNetwork();
         config.networkId = TEST_NETWORK_ID;
         when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(config);
@@ -6650,6 +6756,15 @@ public class ClientModeImplTest extends WifiBaseTest {
         // blocklist
         verify(mWifiConfigManager).userTemporarilyDisabledNetwork(eq(mConnectedNetwork.SSID),
                 anyInt());
+        verify(mWifiNetworkFactory).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION, true);
+
+        DisconnectEventInfo disconnectEventInfo =
+                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
+        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkFactory).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
     }
 
     /**
@@ -7636,6 +7751,41 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     @Test
+    public void verifyDisconnectWithUid_FlagEnabled() {
+        when(com.android.wifi.flags.Flags.localOnlyDisconnectReason()).thenReturn(true);
+        // test user triggered disconnect
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(TEST_UID)).thenReturn(true);
+        when(mWifiNetworkFactory.isConnectedToConfig(any())).thenReturn(true);
+        mCmi.disconnect(TEST_UID);
+        verify(mWifiNetworkFactory).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API, true);
+
+        // test non user triggered disconnect
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(TEST_UID)).thenReturn(false);
+        when(mWifiPermissionsUtil.checkNetworkSetupWizardPermission(TEST_UID)).thenReturn(false);
+        mCmi.disconnect(TEST_UID);
+        verify(mWifiNetworkFactory).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API, false);
+    }
+
+    @Test
+    public void verifyDisconnectWithUid_FlagDisabled() {
+        when(com.android.wifi.flags.Flags.localOnlyDisconnectReason()).thenReturn(false);
+        // test user triggered disconnect; should not trigger onDisconnectionExpected since flag
+        // is disabled
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(TEST_UID)).thenReturn(true);
+        when(mWifiNetworkFactory.isConnectedToConfig(any())).thenReturn(true);
+        mCmi.disconnect(TEST_UID);
+        verify(mWifiNetworkFactory, never()).onDisconnectionExpected(anyInt(), anyBoolean());
+
+        // test non user triggered disconnect; should not trigger onDisconnectionExpected since
+        // flag is disabled
+        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(TEST_UID)).thenReturn(false);
+        mCmi.disconnect(TEST_UID);
+        verify(mWifiNetworkFactory, never()).onDisconnectionExpected(anyInt(), anyBoolean());
+    }
+
+    @Test
     public void testVerifyWifiInfoStateOnFrameworkDisconnectButMissingDisconnectEvent()
             throws Exception {
         connect();
@@ -8145,16 +8295,13 @@ public class ClientModeImplTest extends WifiBaseTest {
         // should not trigger disconnect on short watchdog timeout
         mLooper.moveTimeForward(ClientModeImpl.CONNECTING_WATCHDOG_SHORT_TIMEOUT_MS);
         mLooper.dispatchAll();
-        verify(mWifiMetrics, never()).logStaEvent(eq(WIFI_IFACE_NAME),
-                eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
-                eq(StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER));
+        verify(mWifiNative, never()).disableNetwork(WIFI_IFACE_NAME);
 
         // Simulate watchdog timeout and ensure we retuned to disconnected state.
         mLooper.moveTimeForward(ClientModeImpl.CONNECTING_WATCHDOG_TIMEOUT_MS + 5L);
         mLooper.dispatchAll();
-        verify(mWifiMetrics).logStaEvent(eq(WIFI_IFACE_NAME),
-                eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
-                eq(StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER));
+        verify(mWifiNative).disableNetwork(WIFI_IFACE_NAME);
+        assertEquals("DisconnectedState", mCmi.getCurrentState().getName());
         if (SdkLevel.isAtLeastS()) {
             verify(mWifiConfigManager).setRecentFailureAssociationStatus(anyInt(),
                     eq(WifiConfiguration.RECENT_FAILURE_NETWORK_NOT_FOUND));
@@ -8170,9 +8317,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         // should trigger disconnect on the short watchdog timeout
         mLooper.moveTimeForward(ClientModeImpl.CONNECTING_WATCHDOG_SHORT_TIMEOUT_MS);
         mLooper.dispatchAll();
-        verify(mWifiMetrics).logStaEvent(eq(WIFI_IFACE_NAME),
-                eq(StaEvent.TYPE_FRAMEWORK_DISCONNECT),
-                eq(StaEvent.DISCONNECT_CONNECT_WATCHDOG_TIMER));
+        verify(mWifiDiagnostics).reportConnectionEvent(
+                eq(WifiDiagnostics.CONNECTION_EVENT_TIMEOUT), any());
         if (SdkLevel.isAtLeastS()) {
             verify(mWifiConfigManager).setRecentFailureAssociationStatus(anyInt(),
                     eq(WifiConfiguration.RECENT_FAILURE_NETWORK_NOT_FOUND));
@@ -8333,6 +8479,19 @@ public class ClientModeImplTest extends WifiBaseTest {
         // oemPaid introduced in S, not applicable to R
         assumeTrue(SdkLevel.isAtLeastS());
         mConnectedNetwork.restricted = true;
+        connect();
+        expectRegisterNetworkAgent((agentConfig) -> { },
+                (cap) -> {
+                    assertFalse(cap.hasCapability(NetworkCapabilities
+                            .NET_CAPABILITY_NOT_RESTRICTED));
+                });
+    }
+
+    @Test
+    public void testRestrictedetworkCapabilityWithOverride() throws Exception {
+        // oemPaid introduced in S, not applicable to R
+        assumeTrue(SdkLevel.isAtLeastS());
+        mCmi.setRestrictedNetworkDebug(true);
         connect();
         expectRegisterNetworkAgent((agentConfig) -> { },
                 (cap) -> {
@@ -8900,11 +9059,15 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mDataTelephonyManager.getSubscriberId()).thenReturn(testSubscriberId);
         mConnectedNetwork.carrierMerged = true;
         mConnectedNetwork.subscriptionId = DATA_SUBID;
+        mConnectedNetwork.meteredOverride = METERED_OVERRIDE_NOT_METERED;
         connect();
         expectRegisterNetworkAgent((agentConfig) -> {
             assertEquals(testSubscriberId, agentConfig.subscriberId);
         }, (cap) -> {
                 assertFalse(cap.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VCN_MANAGED));
+                assertFalse(cap.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED));
+                assertTrue(cap.hasCapability(NetworkCapabilities
+                        .NET_CAPABILITY_TEMPORARILY_NOT_METERED));
                 assertEquals(Collections.singleton(DATA_SUBID), cap.getSubscriptionIds());
             });
         // Verify VCN policy listener is registered

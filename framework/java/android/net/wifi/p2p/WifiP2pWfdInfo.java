@@ -265,10 +265,10 @@ public final class WifiP2pWfdInfo implements Parcelable {
     /**
      * Sets the type of the Wifi Display R2 device.
      * See Wifi Display technical specification v2.0.0, section 5.1.12 for Wifi Display R2.
-     * Before calling this API, call {@link WifiManager#isWifiDisplayR2Supported()
+     * Before calling this API, call {@link WifiManager#isWifiDisplayR2Supported()}
      * to know whether Wifi Display R2 is supported or not.
      * If R2 info was filled without Wifi Display R2 support,
-     * {@link WifiP2pManager#setWfdInfo(Channel, WifiP2pWfdInfo, ActionListener)
+     * {@link WifiP2pManager#setWfdInfo(Channel, WifiP2pWfdInfo, ActionListener)}
      * would fail.
      *
      * @param deviceType One of {@link #DEVICE_TYPE_WFD_SOURCE}, {@link #DEVICE_TYPE_PRIMARY_SINK},

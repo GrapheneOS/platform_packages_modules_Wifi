@@ -102,6 +102,7 @@ import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -109,8 +110,12 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
+
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -132,7 +137,7 @@ public class RttServiceImplTest extends WifiBaseTest {
     private BroadcastReceiver mPowerBcastReceiver;
     private BroadcastReceiver mLocationModeReceiver;
     private MockResources mMockResources = new MockResources();
-    private MockitoSession mSession;
+    private MockitoSession mSession = null;
 
     private final String mPackageName = "some.package.name.for.rtt.app";
     private final String mFeatureId = "some.feature.name.for.rtt.app";
@@ -220,6 +225,10 @@ public class RttServiceImplTest extends WifiBaseTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        mSession = ExtendedMockito.mockitoSession().strictness(Strictness.LENIENT)
+                .mockStatic(Flags.class, withSettings().lenient())
+                .startMocking();
+        when(Flags.monitorIntentForAllUsers()).thenReturn(false);
         mDut = new RttServiceImplSpy(mockContext);
         mDut.fakeUid = mDefaultUid;
         mMockLooper = new TestLooper();
@@ -286,6 +295,15 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         validateCorrectRttStatusChangeBroadcast();
         assertTrue(mDut.isAvailable());
+
+        WifiRttController.Capabilities cap = new WifiRttController.Capabilities();
+        cap.lcrSupported = true;
+        cap.oneSidedRttSupported = true;
+        cap.ntbInitiatorSupported = true;
+        cap.lciSupported = true;
+        when(mockRttControllerHal.getRttCapabilities()).thenReturn(cap);
+        mDut.getRttCharacteristics();
+        verify(mockRttControllerHal).getRttCapabilities();
     }
 
     @After
@@ -303,9 +321,6 @@ public class RttServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testRegisterReceiverForAllUsersWhenFlagOn() throws Exception {
-        mSession = ExtendedMockito.mockitoSession()
-                .mockStatic(Flags.class, withSettings().lenient())
-                .startMocking();
         when(Flags.monitorIntentForAllUsers()).thenReturn(true);
         mDut.start(mMockLooper.getLooper(), mockClock, mockAwareManager, mockMetrics,
                 mockPermissionUtil, mWifiSettingsConfigStore, mockHalDeviceManager,
@@ -377,7 +392,8 @@ public class RttServiceImplTest extends WifiBaseTest {
             clock.time += MEASUREMENT_DURATION;
             // (2) verify that the request was issued to the WifiRttController
             verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(requests[i]));
-            verifyWakeupSet(i % 2 != 0, 0);
+            verifyWakeupSet(i % 2 != 0 ? RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS
+                    : RttServiceImpl.HAL_RANGING_TIMEOUT_MS, 0);
 
             // (3) HAL calls back with result
             mRangingResultsCbCaptor.getValue()
@@ -408,6 +424,52 @@ public class RttServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Validate a downgraded secure ranging flow.
+     */
+    @Test
+    public void testSecureRangingDowngrade() throws RemoteException {
+        // Reset RTT controller capabilities.
+        mDut.setRttCapabilitiesForTest(null);
+        RangingRequest request = RttTestUtils.getDummySecureRangingRequest(
+                RangingRequest.SECURITY_MODE_OPPORTUNISTIC);
+        mWifiConfiguration.preSharedKey = "TEST_PASSWORD";
+        WifiSsid ssid = request.mRttPeers.get(
+                1).getSecureRangingConfig().getPasnConfig().getWifiSsid();
+        when(mWifiConfigManager.getConfiguredNetworkWithPassword(eq(ssid),
+                eq(WifiConfiguration.SECURITY_TYPE_SAE))).thenReturn(mWifiConfiguration);
+        when(mSsidTranslator.getTranslatedSsid(eq(ssid))).thenReturn(ssid);
+
+        // Make sure the second peer is configured with no password for SAE.
+        assertNull(request.mRttPeers.get(1).getSecureRangingConfig().getPasnConfig().getPassword());
+
+        ClockAnswer clock = new ClockAnswer();
+        doAnswer(clock).when(mockClock).getWallClockMillis();
+        clock.time = 100;
+        mDut.startRanging(mockIbinder, mPackageName, mFeatureId, null, request, mockCallback,
+                mExtras);
+        mMockLooper.dispatchAll();
+        verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), mRequestCaptor.capture());
+        verifyWakeupSet(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, 0);
+        // Verify the timeout was set to default value HAL_RANGING_TIMEOUT_MS
+        RangingRequest halRequest = mRequestCaptor.getValue();
+        assertNotEquals("Request to WifiRttController is not null", null, halRequest);
+        assertEquals("Size of request", request.mRttPeers.size(), halRequest.mRttPeers.size());
+
+        // Verify ranging results are processed correctly
+        Pair<List<RangingResult>, List<RangingResult>> resultsPair = getDummyRangingResults(
+                halRequest);
+        mRangingResultsCbCaptor.getValue().onRangingResults(mIntCaptor.getValue(),
+                resultsPair.second);
+        mMockLooper.dispatchAll();
+        verify(mockCallback).onRangingResults(mListCaptor.capture());
+        assertTrue(compareListContentsNoOrdering(resultsPair.second, mListCaptor.getValue()));
+
+        verifyWakeupCancelled();
+        verifyNoMoreInteractions(mockRttControllerHal, mockCallback,
+                mAlarmManager.getAlarmManager());
+    }
+
+    /**
      * Validate a successful secure ranging flow.
      */
     @Test
@@ -431,7 +493,8 @@ public class RttServiceImplTest extends WifiBaseTest {
                 mExtras);
         mMockLooper.dispatchAll();
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), mRequestCaptor.capture());
-        verifyWakeupSet(false, 0);
+        verifyWakeupSet(request.mRttPeers.get(1).getNtbMaxTimeBetweenMeasurementsMicros() / 1000,
+                0);
         RangingRequest halRequest = mRequestCaptor.getValue();
         assertNotEquals("Request to WifiRttController is not null", null, halRequest);
         assertEquals("Size of request", request.mRttPeers.size(), halRequest.mRttPeers.size());
@@ -501,7 +564,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         // verify that the request is translated from the PeerHandle issued to WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), mRequestCaptor.capture());
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         RangingRequest finalRequest = mRequestCaptor.getValue();
         assertNotEquals("Request to WifiRttController is not null", null, finalRequest);
@@ -579,7 +642,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         // verify that the request is translated from the PeerHandle issued to WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), mRequestCaptor.capture());
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         assertEquals(burstSize, mRequestCaptor.getValue().getRttBurstSize());
 
@@ -634,7 +697,7 @@ public class RttServiceImplTest extends WifiBaseTest {
             if (i == 0) {
                 verify(mockCallback).onRangingFailure(RangingResultCallback.STATUS_CODE_FAIL);
             } else {
-                verifyWakeupSet(true, 0);
+                verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
             }
 
             // (4) on failed HAL: even if the HAL calls back with result we shouldn't dispatch
@@ -681,7 +744,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // (3) HAL calls back with result - should get a FAILED callback
         when(mockPermissionUtil.checkCallersLocationPermission(eq(mPackageName), eq(mFeatureId),
@@ -733,7 +796,7 @@ public class RttServiceImplTest extends WifiBaseTest {
             // (3) verify first request and all odd requests were issued to the WifiRttController
             if (i == 0 || i % 2 == 1) {
                 verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(requests[i]));
-                verifyWakeupSet(true, 0);
+                verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
             }
 
             // (4) trigger first death recipient (which will map to the even UID)
@@ -804,7 +867,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         verify(mockIbinder).linkToDeath(mDeathRecipientCaptor.capture(), anyInt());
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // (2) execute binder death
         mDeathRecipientCaptor.getValue().binderDied();
@@ -858,7 +921,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // (3) cancel the request
         mDut.cancelRanging(worksourceCancel);
@@ -906,7 +969,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // (3) cancel the request
         mDut.cancelRanging(worksourceCancel);
@@ -944,7 +1007,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // (3) HAL calls back with result - but wrong ID
         mRangingResultsCbCaptor.getValue()
@@ -997,7 +1060,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // (3) return results with missing entries
         mRangingResultsCbCaptor.getValue()
@@ -1041,7 +1104,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         // (2) verify that the request was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // (3) return results with ALL results missing
         mRangingResultsCbCaptor.getValue()
@@ -1085,7 +1148,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         // verify that request 1 was issued to the WifiRttController
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request1));
         int cmdId1 = mIntCaptor.getValue();
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // (2) time-out
         mAlarmManager.dispatch(RttServiceImpl.HAL_RANGING_TIMEOUT_TAG);
@@ -1095,7 +1158,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockRttControllerHal).rangeCancel(eq(cmdId1), any());
         verify(mockCallback).onRangingFailure(RangingResultCallback.STATUS_CODE_FAIL);
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request2));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // (3) send both result 1 and result 2
         mRangingResultsCbCaptor.getValue()
@@ -1159,7 +1222,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request1));
-        verifyWakeupSet(true, clock.time);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, clock.time);
 
         // (1.1) get result
         mRangingResultsCbCaptor.getValue()
@@ -1184,7 +1247,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request3));
-        verifyWakeupSet(true, clock.time);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, clock.time);
 
         // (3.1) get result
         mRangingResultsCbCaptor.getValue()
@@ -1204,7 +1267,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request4));
-        verifyWakeupSet(true, clock.time);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, clock.time);
 
         // (4.1) get result
         mRangingResultsCbCaptor.getValue()
@@ -1238,7 +1301,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request6));
-        verifyWakeupSet(true, clock.time);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, clock.time);
 
         // (6.1) get result
         mRangingResultsCbCaptor.getValue()
@@ -1322,7 +1385,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request1));
-        verifyWakeupSet(true, clock.time);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, clock.time);
 
         // (1.1) get result
         mRangingResultsCbCaptor.getValue()
@@ -1340,7 +1403,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request2));
-        verifyWakeupSet(true, clock.time);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, clock.time);
 
         // (2.1) get result
         mRangingResultsCbCaptor.getValue()
@@ -1411,7 +1474,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // 2. issue FLOOD LEVEL requests + 10 at various UIDs - no failure expected
         for (int i = 0; i < RttServiceImpl.MAX_QUEUED_PER_UID + 10; ++i) {
@@ -1449,9 +1512,6 @@ public class RttServiceImplTest extends WifiBaseTest {
     @Test
     public void testGetRttCharacteristics() {
         WifiRttController.Capabilities cap = new WifiRttController.Capabilities();
-        cap.lcrSupported = true;
-        cap.oneSidedRttSupported = true;
-        cap.lciSupported = true;
         when(mockRttControllerHal.getRttCapabilities()).thenReturn(cap);
         Bundle characteristics = mDut.getRttCharacteristics();
         assertTrue(characteristics.getBoolean(CHARACTERISTICS_KEY_BOOLEAN_ONE_SIDED_RTT));
@@ -1492,7 +1552,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         controllerInorder.verify(mockRttControllerHal).rangeRequest(
                 mIntCaptor.capture(), eq(request));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // 2. issue FLOOD LEVEL requests + 10: should get 11 failures (10 extra + 1 original)
         for (int i = 0; i < RttServiceImpl.MAX_QUEUED_PER_UID + 10; ++i) {
@@ -1514,7 +1574,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         controllerInorder.verify(mockRttControllerHal).rangeRequest(
                 mIntCaptor.capture(), eq(request));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // 4. issue a request: don't expect a failure
         mDut.startRanging(mockIbinder, mPackageName, mFeatureId, useUids ? null : ws, request,
@@ -1597,7 +1657,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
 
         verify(mockRttControllerHal).rangeRequest(mIntCaptor.capture(), eq(request1));
-        verifyWakeupSet(true, 0);
+        verifyWakeupSet(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, 0);
 
         // (2) disable RTT: all requests should "fail"
         if (failureMode == FAILURE_MODE_DISABLE_WIFI) {
@@ -1677,15 +1737,14 @@ public class RttServiceImplTest extends WifiBaseTest {
         mLocationModeReceiver.onReceive(mockContext, intent);
     }
 
-    private void verifyWakeupSet(boolean useAwareTimeout, long baseTime) {
+    private void verifyWakeupSet(long timeout, long baseTime) {
         ArgumentCaptor<Long> longCaptor = ArgumentCaptor.forClass(Long.class);
 
         mInOrder.verify(mAlarmManager.getAlarmManager()).setExact(anyInt(), longCaptor.capture(),
                 eq(RttServiceImpl.HAL_RANGING_TIMEOUT_TAG), any(AlarmManager.OnAlarmListener.class),
                 any(Handler.class));
 
-        assertEquals(baseTime + (useAwareTimeout ? RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS
-                : RttServiceImpl.HAL_RANGING_TIMEOUT_MS), longCaptor.getValue().longValue());
+        assertEquals(baseTime + timeout, longCaptor.getValue().longValue());
     }
 
     private void verifyWakeupCancelled() {
@@ -1762,5 +1821,179 @@ public class RttServiceImplTest extends WifiBaseTest {
         public long answer() {
             return time;
         }
+    }
+
+    @Mock
+    WifiRttController.Capabilities mMockCapabilities;
+
+    /**
+     * Helper to create a mock ResponderConfig.
+     */
+    private ResponderConfig createMockResponderConfig(int type, boolean is80211azNtbSupported,
+            long ntbMaxTimeMicros) {
+        ResponderConfig mockConfig = mock(ResponderConfig.class);
+        when(mockConfig.getResponderType()).thenReturn(type);
+        when(mockConfig.is80211azNtbSupported()).thenReturn(is80211azNtbSupported);
+        when(mockConfig.getNtbMaxTimeBetweenMeasurementsMicros()).thenReturn(ntbMaxTimeMicros);
+        return mockConfig;
+    }
+
+    @Test
+    public void calculateTimeout_emptyResponderList_returnsBaseTimeout() {
+        List<ResponderConfig> responders = Collections.emptyList();
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_nullResponderList_returnsBaseTimeout() {
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(null, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_noSpecialResponders_returnsBaseTimeout() {
+        ResponderConfig normalResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP,
+                false, 0); // Assuming RESPONDER_AP is a valid type
+        List<ResponderConfig> responders = Collections.singletonList(normalResponder);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_oneAwareResponder_returnsAwareTimeout() {
+        ResponderConfig awareResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AWARE,
+                false, 0);
+        List<ResponderConfig> responders = Collections.singletonList(awareResponder);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_awareAndNormalResponders_returnsAwareTimeout() {
+        ResponderConfig awareResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AWARE,
+                false, 0);
+        ResponderConfig normalResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP,
+                false, 0);
+        List<ResponderConfig> responders = Arrays.asList(normalResponder, awareResponder);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_ntbSupported_ntbResponder_returnsNtbTimeout() {
+        mMockCapabilities.ntbInitiatorSupported = true;
+        long ntbTimeMicros = 15000_000; // 15 seconds
+        long ntbTimeMillis = ntbTimeMicros / 1000;
+
+        ResponderConfig ntbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP, true,
+                ntbTimeMicros);
+        List<ResponderConfig> responders = Collections.singletonList(ntbResponder);
+
+        long expectedTimeout = Math.max(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, ntbTimeMillis);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        assertEquals(expectedTimeout, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_ntbNotSupportedByInitiator_ntbResponder_returnsBaseTimeout() {
+        mMockCapabilities.ntbInitiatorSupported = false; // Initiator doesn't
+        // support NTB
+        long ntbTimeMicros = 15000_000; // 15 seconds
+
+        ResponderConfig ntbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP, true,
+                ntbTimeMicros); // Responder supports NTB
+        List<ResponderConfig> responders = Collections.singletonList(ntbResponder);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeout); // Should fallback
+        // to base
+    }
+
+    @Test
+    public void calculateTimeout_ntbSupported_ntbResponderNotSupported_returnsBaseTimeout() {
+        mMockCapabilities.ntbInitiatorSupported = true;
+        long ntbTimeMicros = 15000_000; // 15 seconds
+
+        ResponderConfig nonNtbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP,
+                false, ntbTimeMicros); // Responder doesn't support
+        // NTB
+        List<ResponderConfig> responders = Collections.singletonList(nonNtbResponder);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeout); // Should fallback
+        // to base
+    }
+
+    @Test
+    public void calculateTimeout_awareAndNtbResponders_ntbHigher_returnsNtbTimeout() {
+        mMockCapabilities.ntbInitiatorSupported = true;
+        long ntbTimeMicros =
+                (RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS + 1000) * 1000; // NTB time >
+        // Aware time
+        long ntbTimeMillis = ntbTimeMicros / 1000;
+
+        ResponderConfig awareResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AWARE,
+                false, 0);
+        ResponderConfig ntbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP, true,
+                ntbTimeMicros);
+        List<ResponderConfig> responders = Arrays.asList(awareResponder, ntbResponder);
+
+        long expectedTimeout = Math.max(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, ntbTimeMillis);
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        assertEquals(expectedTimeout, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_awareAndNtbResponders_awareHigher_returnsAwareTimeout() {
+        mMockCapabilities.ntbInitiatorSupported = true;
+        // NTB time < Aware time (after conversion to ms)
+        long ntbTimeMicros = (RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS - 1000) * 1000;
+        if (ntbTimeMicros < 0) {
+            ntbTimeMicros = RttServiceImpl.HAL_RANGING_TIMEOUT_MS * 500; // ensure
+        }
+        // positive and smaller
+        long ntbTimeMillis = ntbTimeMicros / 1000;
+
+
+        ResponderConfig awareResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AWARE,
+                false, 0);
+        ResponderConfig ntbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP, true,
+                ntbTimeMicros);
+        List<ResponderConfig> responders = Arrays.asList(awareResponder, ntbResponder);
+
+        long expectedTimeout = Math.max(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, ntbTimeMillis);
+        // In this setup, Aware timeout should be greater
+        expectedTimeout = Math.max(expectedTimeout, RttServiceImpl.HAL_RANGING_TIMEOUT_MS);
+
+
+        long timeout = RttServiceImpl.calculateRangeRequestTimeoutMs(responders, mMockCapabilities);
+        Assert.assertEquals(expectedTimeout, timeout);
+    }
+
+    @Test
+    public void calculateTimeout_nullCapabilities_ntbResponder_returnsBaseOrDefaultAware() {
+        // If capabilities is null, ntbInitiatorSupported check should effectively be false.
+        long ntbTimeMicros = 15000_000; // 15 seconds
+
+        ResponderConfig ntbResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AP, true,
+                ntbTimeMicros);
+        ResponderConfig awareResponder = createMockResponderConfig(ResponderConfig.RESPONDER_AWARE,
+                false, 0);
+
+        List<ResponderConfig> respondersNtbOnly = Collections.singletonList(ntbResponder);
+        long timeoutNtbOnly = RttServiceImpl.calculateRangeRequestTimeoutMs(respondersNtbOnly,
+                null); // Pass null capabilities
+        Assert.assertEquals(RttServiceImpl.HAL_RANGING_TIMEOUT_MS, timeoutNtbOnly);
+
+        List<ResponderConfig> respondersWithAware = Arrays.asList(ntbResponder, awareResponder);
+        long timeoutWithAware = RttServiceImpl.calculateRangeRequestTimeoutMs(respondersWithAware,
+                null); // Pass null capabilities
+        Assert.assertEquals(RttServiceImpl.HAL_AWARE_RANGING_TIMEOUT_MS, timeoutWithAware);
     }
 }

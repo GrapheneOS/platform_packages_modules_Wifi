@@ -105,14 +105,22 @@ public class ConnectivityManagerSnippet implements Snippet {
         String mCallBackId;
         Network mNetWork;
         NetworkCapabilities mNetworkCapabilities;
+        long mCurrentTimestamp;
+        long mCreateTimestamp;
+
+
         NetworkCallback(String callBackId) {
             mCallBackId = callBackId;
+            mCreateTimestamp = System.currentTimeMillis();
         }
 
         @Override
         public void onAvailable(Network network) {
             SnippetEvent event = new SnippetEvent(mCallBackId, "NetworkCallback");
             event.getData().putString(EVENT_KEY_CB_NAME, "onAvailable");
+            mCurrentTimestamp = System.currentTimeMillis();
+            event.getData().putLong("current_timestamp", System.currentTimeMillis());
+            event.getData().putLong("creation_timestamp", mCreateTimestamp);
             mNetWork = network;
             EventCache.getInstance().postEvent(event);
         }
@@ -177,6 +185,8 @@ public class ConnectivityManagerSnippet implements Snippet {
             event.getData().putParcelable(EVENT_KEY_NETWORK, network);
             event.getData().putString(EVENT_KEY_NETWORK_INTERFACE,
                     linkProperties.getInterfaceName());
+            event.getData().putLong("current_timestamp", System.currentTimeMillis());
+            event.getData().putLong("creation_timestamp", mCreateTimestamp);
             EventCache.getInstance().postEvent(event);
         }
 

@@ -10,7 +10,7 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<configuration description="Test config for Wi-Fi Direct multi-device tests">
+<configuration description="Test config for Wi-Fi Direct multi-device CTS tests">
   <option name="test-suite-tag" value="cts-v-host" />
   <option name="config-descriptor:metadata" key="component" value="wifi" />
   <option name="config-descriptor:metadata" key="parameter" value="not_instant_app" />
@@ -32,6 +32,6 @@
 
   <test class="MoblyAospTest" />
 
-  <option name="mobly_pkg" key="file" value="WifiDirectTests" />
+  <option name="mobly_pkg" key="file" value="CtsWifiDirectTests" />
   <option name="build_apk" key="file" value="wifi_mobly_snippet.apk" />
 </configuration>

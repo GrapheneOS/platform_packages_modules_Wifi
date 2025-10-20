@@ -499,13 +499,13 @@ public class WifiScanner {
      */
     public static final int SCAN_TYPE_MAX = 2;
 
-    /** {@hide} */
+    /** @hide */
     public static final String SCAN_PARAMS_SCAN_SETTINGS_KEY = "ScanSettings";
-    /** {@hide} */
+    /** @hide */
     public static final String SCAN_PARAMS_WORK_SOURCE_KEY = "WorkSource";
-    /** {@hide} */
+    /** @hide */
     public static final String REQUEST_PACKAGE_NAME_KEY = "PackageName";
-    /** {@hide} */
+    /** @hide */
     public static final String REQUEST_FEATURE_ID_KEY = "FeatureId";
 
     /**
@@ -608,7 +608,7 @@ public class WifiScanner {
         public int stepCount;
         /**
          * Flag to indicate if the scan settings are targeted for PNO scan.
-         * {@hide}
+         * @hide
          */
         public boolean isPnoScan;
         /**
@@ -634,7 +634,7 @@ public class WifiScanner {
         /**
          * This scan request may ignore location settings while receiving scans. This should only
          * be used in emergency situations.
-         * {@hide}
+         * @hide
          */
         @SystemApi
         public boolean ignoreLocationSettings;
@@ -644,7 +644,7 @@ public class WifiScanner {
          * compute results for behalf on their clients. FLP/NLP module using this flag should ensure
          * that they note in app-ops the eventual delivery of location information computed using
          * these results to their client .
-         * {@hide}
+         * @hide
          */
         @SystemApi
         public boolean hideFromAppOps;
@@ -795,12 +795,18 @@ public class WifiScanner {
             }
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeInt(band);
             dest.writeInt(periodInMs);
@@ -890,20 +896,20 @@ public class WifiScanner {
         /**
          * Indicates the buckets that were scanned to generate these results.
          * This is not relevant to WifiScanner API users and is used internally.
-         * {@hide}
+         * @hide
          */
         private int mBucketsScanned;
         /**
          * Bands scanned. One of the WIFI_BAND values.
          * Will be {@link #WIFI_BAND_UNSPECIFIED} if the list of channels do not fully cover
          * any of the bands.
-         * {@hide}
+         * @hide
          */
         private int mScannedBands;
         /** all scan results discovered in this scan, sorted by timestamp in ascending order */
         private final List<ScanResult> mResults;
 
-        /** {@hide} */
+        /** @hide */
         public ScanData() {
             mResults = new ArrayList<>();
         }
@@ -914,13 +920,13 @@ public class WifiScanner {
             mResults = new ArrayList<>(Arrays.asList(results));
         }
 
-        /** {@hide} */
+        /** @hide */
         public ScanData(int id, int flags, int bucketsScanned, int bandsScanned,
                         ScanResult[] results) {
             this(id, flags, bucketsScanned, bandsScanned, new ArrayList<>(Arrays.asList(results)));
         }
 
-        /** {@hide} */
+        /** @hide */
         public ScanData(int id, int flags, int bucketsScanned, int bandsScanned,
                         List<ScanResult> results) {
             mId = id;
@@ -949,7 +955,7 @@ public class WifiScanner {
             return mFlags;
         }
 
-        /** {@hide} */
+        /** @hide */
         public int getBucketsScanned() {
             return mBucketsScanned;
         }
@@ -981,7 +987,7 @@ public class WifiScanner {
         /**
          * Same as {@link #getScannedBands()}. For use in the wifi stack without version check.
          *
-         * {@hide}
+         * @hide
          */
         public @WifiBand int getScannedBandsInternal() {
             return mScannedBands;
@@ -991,32 +997,38 @@ public class WifiScanner {
             return mResults.toArray(new ScanResult[0]);
         }
 
-        /** {@hide} */
+        /** @hide */
         public void addResults(@NonNull ScanResult[] newResults) {
             for (ScanResult result : newResults) {
                 mResults.add(new ScanResult(result));
             }
         }
 
-        /** {@hide} */
+        /** @hide */
         public void addResults(@NonNull ScanData s) {
             mScannedBands |= s.mScannedBands;
             mFlags |= s.mFlags;
             addResults(s.getResults());
         }
 
-        /** {@hide} */
+        /** @hide */
         public boolean isFullBandScanResults() {
             return (mScannedBands & WifiScanner.WIFI_BAND_24_GHZ) != 0
                 && (mScannedBands & WifiScanner.WIFI_BAND_5_GHZ) != 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeInt(mId);
             dest.writeInt(mFlags);
@@ -1026,7 +1038,10 @@ public class WifiScanner {
             parceledListSlice.writeToParcel(dest, flags);
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public static final @NonNull Creator<ScanData> CREATOR =
                 new Creator<ScanData>() {
                     public ScanData createFromParcel(Parcel in) {
@@ -1058,12 +1073,18 @@ public class WifiScanner {
             return mResults;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public void writeToParcel(Parcel dest, int flags) {
             if (mResults != null) {
                 dest.writeInt(mResults.length);
@@ -1076,7 +1097,10 @@ public class WifiScanner {
             }
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public static final @NonNull Creator<ParcelableScanData> CREATOR =
                 new Creator<ParcelableScanData>() {
                     public ParcelableScanData createFromParcel(Parcel in) {
@@ -1106,12 +1130,18 @@ public class WifiScanner {
             return mResults;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public void writeToParcel(Parcel dest, int flags) {
             if (mResults != null) {
                 dest.writeInt(mResults.length);
@@ -1124,7 +1154,10 @@ public class WifiScanner {
             }
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public static final @NonNull Creator<ParcelableScanResults> CREATOR =
                 new Creator<ParcelableScanResults>() {
                     public ParcelableScanResults createFromParcel(Parcel in) {
@@ -1142,19 +1175,19 @@ public class WifiScanner {
                 };
     }
 
-    /** {@hide} */
+    /** @hide */
     public static final String PNO_PARAMS_PNO_SETTINGS_KEY = "PnoSettings";
-    /** {@hide} */
+    /** @hide */
     public static final String PNO_PARAMS_SCAN_SETTINGS_KEY = "ScanSettings";
     /**
      * PNO scan configuration parameters to be sent to {@link #startPnoScan}.
      * Note: This structure needs to be in sync with |wifi_epno_params| struct in gscan HAL API.
-     * {@hide}
+     * @hide
      */
     public static class PnoSettings implements Parcelable {
         /**
          * Pno network to be added to the PNO scan filtering.
-         * {@hide}
+         * @hide
          */
         public static class PnoNetwork {
             /*
@@ -1224,7 +1257,10 @@ public class WifiScanner {
             }
         }
 
-        /** Connected vs Disconnected PNO flag {@hide} */
+        /**
+         * Connected vs Disconnected PNO flag
+         * @hide
+         */
         public boolean isConnected;
         /** Minimum 5GHz RSSI for a BSSID to be considered */
         public int min5GHzRssi;
@@ -1239,12 +1275,18 @@ public class WifiScanner {
         /** Pno Network filter list */
         public PnoNetwork[] networkList;
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeInt(isConnected ? 1 : 0);
             dest.writeInt(min5GHzRssi);
@@ -1265,7 +1307,10 @@ public class WifiScanner {
             }
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public static final @NonNull Creator<PnoSettings> CREATOR =
                 new Creator<PnoSettings>() {
                     public PnoSettings createFromParcel(Parcel in) {
@@ -1323,7 +1368,7 @@ public class WifiScanner {
     /**
      * interface to get PNO scan events on; specify this on {@link #startDisconnectedPnoScan} and
      * {@link #startConnectedPnoScan}.
-     * {@hide}
+     * @hide
      */
     public interface PnoScanListener extends ScanListener {
         /**
@@ -1338,7 +1383,7 @@ public class WifiScanner {
      * @param enable set to true to enable scanning, set to false to disable all types of scanning.
      *
      * @see WifiManager#ACTION_WIFI_SCAN_AVAILABILITY_CHANGED
-     * {@hide}
+     * @hide
      */
     @SystemApi
     @RequiresPermission(Manifest.permission.NETWORK_STACK)
@@ -1714,7 +1759,7 @@ public class WifiScanner {
      * @param listener specifies the object to report events to. This object is also treated as a
      *                 key for this scan, and must also be specified to cancel the scan. Multiple
      *                 scans should also not share this object.
-     * {@hide}
+     * @hide
      */
     public void startConnectedPnoScan(ScanSettings scanSettings, PnoSettings pnoSettings,
             @NonNull @CallbackExecutor Executor executor, PnoScanListener listener) {
@@ -1732,7 +1777,7 @@ public class WifiScanner {
      * @param listener specifies the object to report events to. This object is also treated as a
      *                 key for this scan, and must also be specified to cancel the scan. Multiple
      *                 scans should also not share this object.
-     * {@hide}
+     * @hide
      */
     @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void startDisconnectedPnoScan(ScanSettings scanSettings, PnoSettings pnoSettings,
@@ -1746,7 +1791,7 @@ public class WifiScanner {
      * Stop an ongoing wifi PNO scan
      * @param listener specifies which scan to cancel; must be same object as passed in {@link
      *  #startPnoScan}
-     * {@hide}
+     * @hide
      */
     @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void stopPnoScan(ScanListener listener) {
@@ -1804,16 +1849,25 @@ public class WifiScanner {
         public int periodInMs;                              /* scan period in millisecond */
         public BssidInfo[] bssidInfos;
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public void writeToParcel(Parcel dest, int flags) {
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public static final @NonNull Creator<WifiChangeSettings> CREATOR =
                 new Creator<WifiChangeSettings>() {
                     public WifiChangeSettings createFromParcel(Parcel in) {
@@ -1915,16 +1969,25 @@ public class WifiScanner {
         public BssidInfo[] bssidInfos;
         public int apLostThreshold;
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public void writeToParcel(Parcel dest, int flags) {
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public static final @NonNull Creator<HotlistSettings> CREATOR =
                 new Creator<HotlistSettings>() {
                     public HotlistSettings createFromParcel(Parcel in) {

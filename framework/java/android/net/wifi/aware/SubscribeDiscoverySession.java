@@ -33,7 +33,7 @@ public class SubscribeDiscoverySession extends DiscoverySession {
     private static final String TAG = "SubscribeDiscSession";
 
     /**
-     * {@hide}
+     * @hide
      */
     public SubscribeDiscoverySession(WifiAwareManager manager, int clientId,
             int sessionId) {

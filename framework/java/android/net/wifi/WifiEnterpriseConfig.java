@@ -1582,7 +1582,10 @@ public class WifiEnterpriseConfig implements Parcelable {
         return getFieldValue(PLMN_KEY);
     }
 
-    /** See {@link WifiConfiguration#getKeyIdForCredentials} @hide */
+    /**
+     * See {@link WifiConfiguration#getKeyIdForCredentials}
+     * @hide
+     */
     public String getKeyId(WifiEnterpriseConfig current) {
         // If EAP method is not initialized, use current config details
         if (mEapMethod == Eap.NONE) {

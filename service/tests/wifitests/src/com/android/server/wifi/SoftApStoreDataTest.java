@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import android.annotation.NonNull;
 import android.app.test.MockAnswerUtil;
 import android.content.Context;
 import android.net.MacAddress;
@@ -311,10 +312,11 @@ public class SoftApStoreDataTest extends WifiBaseTest {
     @Mock SoftApStoreData.DataSource mDataSource;
     @Mock private WifiMigration.SettingsMigrationData mOemMigrationData;
     @Mock private SettingsMigrationDataHolder mSettingsMigrationDataHolder;
-    SoftApStoreData mSoftApStoreData;
     @Mock private WifiConfigStoreEncryptionUtil mWifiConfigStoreEncryptionUtil;
     private Map<EncryptedData, byte[]> mEncryptedDataMap = new HashMap<>();
     private boolean mShouldEncrypt = false;
+    private SoftApStoreData mSharedSoftApStoreData;
+    private SoftApStoreData mUserSoftApStoreData;
 
     @Before
     public void setUp() throws Exception {
@@ -328,7 +330,10 @@ public class SoftApStoreDataTest extends WifiBaseTest {
                 .thenReturn(mOemMigrationData);
         when(mOemMigrationData.isSoftApTimeoutEnabled()).thenReturn(true);
 
-        mSoftApStoreData = new SoftApStoreData(mContext, mSettingsMigrationDataHolder, mDataSource);
+        mSharedSoftApStoreData = new SoftApStoreData.SharedStoreData(mContext,
+                mSettingsMigrationDataHolder, mDataSource);
+        mUserSoftApStoreData = new SoftApStoreData.UserStoreData(mContext,
+                mSettingsMigrationDataHolder, mDataSource);
         TEST_BLOCKEDLIST.add(MacAddress.fromString(TEST_BLOCKED_CLIENT));
         TEST_ALLOWEDLIST.add(MacAddress.fromString(TEST_ALLOWED_CLIENT));
         doAnswer(new MockAnswerUtil.AnswerWithArguments() {
@@ -344,6 +349,7 @@ public class SoftApStoreDataTest extends WifiBaseTest {
             }
         }).when(mWifiConfigStoreEncryptionUtil).decrypt(any());
         when(Flags.softapConfigStoreMaxChannelWidth()).thenReturn(false);
+        when(Flags.multiUserWifiEnhancement()).thenReturn(false);
         // Default flag is enabled.
         when(Flags.apIsolate()).thenReturn(true);
         when(Flags.bandOptimizationControl()).thenReturn(true);
@@ -363,31 +369,59 @@ public class SoftApStoreDataTest extends WifiBaseTest {
     }
 
     /**
-     * Helper function for serializing configuration data to a XML block.
+     * Helper function for serializing configuration data to a XML block, using an instance of
+     * {@link SoftApStoreData.UserStoreData} by default. This method is used when we are purely
+     * verifying the serialization process, regardless of the multi-user environment. Otherwise, use
+     * {@link #serializeDataForStoreData} with a specific StoreData instance.
      *
      * @return byte[] of the XML data
-     * @throws Exception
      */
     private byte[] serializeData() throws Exception {
+        return serializeDataForStoreData(mUserSoftApStoreData);
+    }
+
+    /**
+     * Helper function for serializing configuration data to a XML block for a given StoreData,
+     * either {@link SoftApStoreData.SharedStoreData} or {@link SoftApStoreData.UserStoreData}.
+     *
+     * @param storeData The SoftApStoreData instance to invoke {@link SoftApStoreData#serializeData}
+     * @return byte[] of the XML data
+     */
+    private byte[] serializeDataForStoreData(@NonNull SoftApStoreData storeData) throws Exception {
         final XmlSerializer out = new FastXmlSerializer();
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         out.setOutput(outputStream, StandardCharsets.UTF_8.name());
-        mSoftApStoreData.serializeData(out, mShouldEncrypt ? mWifiConfigStoreEncryptionUtil : null);
+        storeData.serializeData(out, mShouldEncrypt ? mWifiConfigStoreEncryptionUtil : null);
         out.flush();
         return outputStream.toByteArray();
     }
 
     /**
-     * Helper function for parsing configuration data from a XML block.
+     * Helper function for parsing configuration data from a XML block, using an instance of
+     * {@link SoftApStoreData.UserStoreData} by default. This method is used when we are purely
+     * verifying the deserialization process, regardless of the multi-user environment. Otherwise,
+     * use {@link #deserializeDataForStoreData} with a specific StoreData instance.
      *
      * @param data XML data to parse from
-     * @throws Exception
      */
     private void deserializeData(byte[] data) throws Exception {
+        deserializeDataForStoreData(mUserSoftApStoreData, data);
+    }
+
+    /**
+     * Helper function for parsing configuration data from a XML block for a given StoreData,
+     * either {@link SoftApStoreData.SharedStoreData} or {@link SoftApStoreData.UserStoreData}.
+     *
+     * @param storeData The SoftApStoreData instance to invoke
+     *                  {@link SoftApStoreData#deserializeData}
+     * @param data      XML data to parse from
+     */
+    private void deserializeDataForStoreData(@NonNull SoftApStoreData storeData, byte[] data)
+            throws Exception {
         final XmlPullParser in = Xml.newPullParser();
         final ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
         in.setInput(inputStream, StandardCharsets.UTF_8.name());
-        mSoftApStoreData.deserializeData(in, in.getDepth(),
+        storeData.deserializeData(in, in.getDepth(),
                 WifiConfigStore.ENCRYPT_CREDENTIALS_CONFIG_STORE_DATA_VERSION,
                 mShouldEncrypt ? mWifiConfigStoreEncryptionUtil : null);
     }
@@ -395,8 +429,6 @@ public class SoftApStoreDataTest extends WifiBaseTest {
     /**
      * Verify that parsing an empty data doesn't cause any crash and no configuration should
      * be deserialized.
-     *
-     * @throws Exception
      */
     @Test
     public void deserializeEmptyStoreData() throws Exception {
@@ -405,15 +437,110 @@ public class SoftApStoreDataTest extends WifiBaseTest {
     }
 
     /**
-     * Verify that SoftApStoreData is written to
-     * {@link WifiConfigStore#STORE_FILE_SHARED_SOFTAP}.
-     *
-     * @throws Exception
+     * Verify that when no StoreData section found from CE corresponds to
+     * {@link SoftApStoreData.UserStoreData}, it will attempt to retrieve migration data.
      */
     @Test
-    public void getUserStoreFileId() throws Exception {
+    public void deserializeNullUserStoreDataTriggersMigration() throws Exception {
+        mUserSoftApStoreData.deserializeData(null, -1, -1, null);
+        verify(mDataSource).migrateFromSharedToPrivateIfNeeded();
+    }
+
+    /**
+     * Verify that the SharedStoreData is read-only for migration. When it deserialize from DE, it
+     * will only prepare the migration cache.
+     */
+    @Test
+    public void deserializeSharedStoreDataPreparesMigrationDataHolder() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        deserializeDataForStoreData(mSharedSoftApStoreData,
+                TEST_CONFIG_STRING_WITH_ALL_CONFIG_NEWER_THAN_B.getBytes());
+        verify(mDataSource).prepareSharedToPrivateMigrationDataHolder(any());
+        verify(mDataSource, never()).fromDeserialized(any());
+    }
+
+    /**
+     * Verify that {@link SoftApStoreData.UserStoreData} is written to
+     * {@link WifiConfigStore#STORE_FILE_USER_SOFTAP}, and
+     * {@link SoftApStoreData.SharedStoreData} is written to
+     * {@link WifiConfigStore#STORE_FILE_SHARED_SOFTAP}.
+     */
+    @Test
+    public void getStoreFileId() {
+        assertEquals(WifiConfigStore.STORE_FILE_USER_SOFTAP,
+                mUserSoftApStoreData.getStoreFileId());
         assertEquals(WifiConfigStore.STORE_FILE_SHARED_SOFTAP,
-                mSoftApStoreData.getStoreFileId());
+                mSharedSoftApStoreData.getStoreFileId());
+    }
+
+    /**
+     * Verify that {@link SoftApStoreData.UserStoreData} checks its data source to query if there's
+     * new data for serialization.
+     */
+    @Test
+    public void testHasNewUserDataToSerialize() {
+        mUserSoftApStoreData.hasNewDataToSerialize();
+        verify(mDataSource).hasNewDataToSerialize();
+    }
+
+    /**
+     * Verify that {@link SoftApStoreData.SharedStoreData} is read-only and always return false when
+     * querying if there's new data for serialization. In turn, its serializeData method will do
+     * nothing.
+     */
+    @Test
+    public void testHasNewSharedDataToSerialize() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        assertFalse(mSharedSoftApStoreData.hasNewDataToSerialize());
+        serializeDataForStoreData(mSharedSoftApStoreData);
+        verify(mDataSource, never()).toSerialize();
+    }
+
+    /**
+     * Verify that the legacy {@link SoftApStoreData.SharedStoreData} checks its data source to
+     * query if there's new data for serialization. When either sdk version is not newer than B or
+     * {@link Flags#multiUserWifiEnhancement()} is not enabled, the SharedStoreData falls back to
+     * the legacy SoftApStoreData.
+     */
+    @Test
+    public void testHasNewLegacySharedDataToSerialize() {
+        mSharedSoftApStoreData.hasNewDataToSerialize();
+        verify(mDataSource).hasNewDataToSerialize();
+    }
+
+    /**
+     * Verify that {@link SoftApStoreData.UserStoreData} delegates to its data source to reset.
+     */
+    @Test
+    public void resetUserData() {
+        mUserSoftApStoreData.resetData();
+        verify(mDataSource).reset();
+    }
+
+    /**
+     * Verify that {@link SoftApStoreData.SharedStoreData} not only resets data but also clears the
+     * cache for data migration.
+     */
+    @Test
+    public void resetSharedData() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        mSharedSoftApStoreData.resetData();
+        verify(mDataSource).resetMigrationDataHolder();
+        verify(mDataSource, never()).reset();
+    }
+
+    /**
+     * Verify that {@link SoftApStoreData.UserStoreData} delegates to its data source to reset. When
+     * either sdk version is not newer than B or {@link Flags#multiUserWifiEnhancement()} is not
+     * enabled, the SharedStoreData falls back to the legacy SoftApStoreData.
+     */
+    @Test
+    public void resetLegacySharedData() {
+        mSharedSoftApStoreData.resetData();
+        verify(mDataSource).reset();
     }
 
     /**

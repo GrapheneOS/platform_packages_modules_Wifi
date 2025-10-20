@@ -413,12 +413,18 @@ public class WifiP2pServiceResponse implements Parcelable {
         return result;
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public int describeContents() {
         return 0;
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(mServiceType);
         dest.writeInt(mStatus);
@@ -436,7 +442,10 @@ public class WifiP2pServiceResponse implements Parcelable {
         }
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public static final @android.annotation.NonNull Creator<WifiP2pServiceResponse> CREATOR =
             new Creator<WifiP2pServiceResponse>() {
                 public WifiP2pServiceResponse createFromParcel(Parcel in) {

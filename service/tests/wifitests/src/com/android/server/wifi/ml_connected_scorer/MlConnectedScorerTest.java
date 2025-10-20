@@ -26,6 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 import android.net.wifi.WifiInfo;
@@ -59,13 +60,15 @@ public final class MlConnectedScorerTest {
     private MlConnectedScorer mScorer;
 
     @Mock WifiUsabilityClassifier mMockClassifier;
+    @Mock WifiUsabilityClassifierFactory mMockFactory;
     @Mock MlConnectedScorerHelper mMockHelper;
     @Mock WifiInfo mMockWifiInfo;
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        mScorer = new MlConnectedScorer(mMockClassifier, mMockHelper);
+        mScorer = new MlConnectedScorer(mMockFactory, mMockHelper);
+        when(mMockFactory.getClassifier(anyInt())).thenReturn(mMockClassifier);
         when(mMockClassifier.calculateScore(any())).thenReturn(TEST_MODEL_SCORE);
         when(mMockHelper.isTimeStampGapTooLarge(any(WifiUsabilityStatsEntry.class),
                 any(WifiUsabilityStatsEntry.class))).thenReturn(false);
@@ -122,6 +125,14 @@ public final class MlConnectedScorerTest {
         mScorer.getUpdatedScore(false, getUsabilityStats(TIME_STAMP_MS));
 
         assertEquals(1, mScorer.mBuffer.size());
+    }
+
+    @Test
+    public void getUpdatedScore_nullClassifier_returnUnclassifiedScore() {
+        when(mMockFactory.getClassifier(anyInt())).thenReturn(null);
+
+        assertEquals(Constants.UNCLASSIFIED_SCORE,
+                mScorer.getUpdatedScore(true, getUsabilityStats(TIME_STAMP_MS)), TOL);
     }
 
     @Test

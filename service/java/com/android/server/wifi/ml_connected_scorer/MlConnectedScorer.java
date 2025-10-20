@@ -29,6 +29,7 @@ import static java.lang.Math.min;
 
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiUsabilityStatsEntry;
+import android.util.Log;
 
 import com.android.server.wifi.ConnectedScoreResult;
 import com.android.server.wifi.ConnectedScorer;
@@ -54,12 +55,13 @@ public class MlConnectedScorer extends ConnectedScorer {
     @VisibleForTesting
     boolean mBlockCurrentBssid = false;
     private boolean mIsScoreTrendingDownwards = false;
-    private WifiUsabilityClassifier mClassifier; // the classifier used to calculate the score
+    private WifiUsabilityClassifierFactory mFactory; // the factory used to get the classifier
     private MlConnectedScorerHelper mHelper;
     private String mLastBssid = null;
     private int mLastFrequency = -1;
-    public MlConnectedScorer(WifiUsabilityClassifier classifier, MlConnectedScorerHelper helper) {
-        mClassifier = classifier;
+    public MlConnectedScorer(WifiUsabilityClassifierFactory factory,
+            MlConnectedScorerHelper helper) {
+        mFactory = factory;
         mHelper = helper;
     }
 
@@ -132,7 +134,13 @@ public class MlConnectedScorer extends ConnectedScorer {
             mBuffer.remove();
         }
         if (mBuffer.size() >= Constants.MIN_BUFFER_SIZE) {
-            double rawScore = mClassifier.calculateScore(mBuffer);
+            WifiUsabilityClassifier classifier =
+                    mFactory.getClassifier(Constants.RANDOM_FOREST_MODEL_ID);
+            if (classifier == null) {
+                Log.e(TAG, "Can't load the ML model!");
+                return Constants.UNCLASSIFIED_SCORE;
+            }
+            double rawScore = classifier.calculateScore(mBuffer);
             rawScore = overrideScoreIfLinkAlreadyBad(
                     rawScore,
                     wrapper.totalTxBad,

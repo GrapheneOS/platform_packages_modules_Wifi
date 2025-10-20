@@ -49,6 +49,8 @@ public class WifiP2pConfigTest {
     private static final String DEVICE_ADDRESS = "aa:bb:cc:dd:ee:ff";
     private static final String TEST_NETWORK_NAME = "DIRECT-xy-Android";
     private static final String TEST_PASSPHRASE = "password";
+    private static final String TEST_PIN = "123456";
+    private static final int TEST_DISCOVERY_CHANNEL_MHZ = 2437;
     /**
      * Check network name setter
      */
@@ -451,7 +453,7 @@ public class WifiP2pConfigTest {
         assumeTrue(Environment.isSdkAtLeastB());
         WifiP2pPairingBootstrappingConfig expectedPairingBootstrappingConfig =
                 new WifiP2pPairingBootstrappingConfig(WifiP2pPairingBootstrappingConfig
-                .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PINCODE, "1234");
+                .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PINCODE, TEST_PIN);
         WifiP2pConfig c = new WifiP2pConfig.Builder()
                 .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
                 .setPairingBootstrappingConfig(expectedPairingBootstrappingConfig)
@@ -474,7 +476,7 @@ public class WifiP2pConfigTest {
         assumeTrue(Environment.isSdkAtLeastB());
         WifiP2pPairingBootstrappingConfig expectedPairingBootstrappingConfig =
                 new WifiP2pPairingBootstrappingConfig(WifiP2pPairingBootstrappingConfig
-                        .PAIRING_BOOTSTRAPPING_METHOD_OUT_OF_BAND, "1234");
+                        .PAIRING_BOOTSTRAPPING_METHOD_OUT_OF_BAND, TEST_PASSPHRASE);
         WifiP2pConfig c = new WifiP2pConfig.Builder()
                 .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
                 .setPairingBootstrappingConfig(expectedPairingBootstrappingConfig)
@@ -486,5 +488,52 @@ public class WifiP2pConfigTest {
         assertNotNull(pairingBootstrappingConfig);
         assertEquals(expectedPairingBootstrappingConfig, pairingBootstrappingConfig);
         assertTrue(c.isAuthorizeConnectionFromPeerEnabled());
+    }
+
+    /** Verify that a config with the discovery channel can be built. */
+    @Test
+    public void testBuildConfigWithDiscoveryChannelForOobPairingBootstrapping() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        WifiP2pPairingBootstrappingConfig expectedPairingBootstrappingConfig =
+                new WifiP2pPairingBootstrappingConfig(WifiP2pPairingBootstrappingConfig
+                        .PAIRING_BOOTSTRAPPING_METHOD_OUT_OF_BAND, TEST_PASSPHRASE);
+        WifiP2pConfig c = new WifiP2pConfig.Builder()
+                .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
+                .setPairingBootstrappingConfig(expectedPairingBootstrappingConfig)
+                .setPairingDiscoveryChannelFrequencyMhz(TEST_DISCOVERY_CHANNEL_MHZ)
+                .build();
+        assertEquals(TEST_DISCOVERY_CHANNEL_MHZ, c.getPairingDiscoveryChannelFrequencyMhz());
+    }
+
+    /**
+     * Verify that the builder throws IllegalStateException if discovery channel is set without
+     * a pairing bootstrapping config.
+     */
+    @Test(expected = IllegalStateException.class)
+    public void testBuildThrowIllegalStateExceptionWithDiscoveryChannelWithoutPairingConfig()
+            throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new WifiP2pConfig.Builder()
+                .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
+                .setPairingDiscoveryChannelFrequencyMhz(TEST_DISCOVERY_CHANNEL_MHZ)
+                .build();
+    }
+
+    /**
+     * Verify that the builder throws IllegalStateException if discovery channel is set with a
+     * pairing method other than OUT_OF_BAND.
+     */
+    @Test(expected = IllegalStateException.class)
+    public void testBuildThrowIllegalStateExceptionWithDiscoveryChannelWithInvalidMethod()
+            throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        WifiP2pPairingBootstrappingConfig expectedPairingBootstrappingConfig =
+                new WifiP2pPairingBootstrappingConfig(WifiP2pPairingBootstrappingConfig
+                        .PAIRING_BOOTSTRAPPING_METHOD_DISPLAY_PINCODE, TEST_PIN);
+        new WifiP2pConfig.Builder()
+                .setDeviceAddress(MacAddress.fromString(DEVICE_ADDRESS))
+                .setPairingBootstrappingConfig(expectedPairingBootstrappingConfig)
+                .setPairingDiscoveryChannelFrequencyMhz(TEST_DISCOVERY_CHANNEL_MHZ)
+                .build();
     }
 }

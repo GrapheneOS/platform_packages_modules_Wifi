@@ -18,6 +18,8 @@ package com.android.server.wifi;
 
 import static android.net.wifi.WifiConfiguration.MeteredOverride;
 import static android.net.wifi.WifiUsabilityStatsEntry.SCORER_TYPE_INVALID;
+import static android.net.wifi.WifiUsabilityStatsEntry.SCORER_TYPE_ML;
+import static android.net.wifi.WifiUsabilityStatsEntry.SCORER_TYPE_VELOCITY;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
 import static com.android.server.wifi.proto.WifiStatsLog.SCORER_PREDICTION_RESULT_REPORTED;
@@ -258,6 +260,8 @@ public class WifiMetrics {
     public static final int COUNTRY_CODE_CONFLICT_WIFI_SCAN = -1;
     public static final int COUNTRY_CODE_CONFLICT_WIFI_SCAN_TELEPHONY = -2;
     public static final int MAX_COUNTRY_CODE_COUNT = 4;
+    public static final String INTERNAL_VELOCITY_SCORER_NAME = "INTERNAL_VELOCITY_SCORER";
+    public static final String INTERNAL_ML_SCORER_NAME = "INTERNAL_ML_SCORER";
     // Histogram for WifiConfigStore IO duration times. Indicates the following 5 buckets (in ms):
     //   < 50
     //   [50, 100)
@@ -2376,6 +2380,27 @@ public class WifiMetrics {
     }
 
     /**
+     * Extracts the OUI (first 3 octets) from a BSSID string.
+     * It checks the Locally Administered Bit (U/L bit) of the first octet.
+     * @param bssid The MAC address of the Access Point in "XX:XX:XX:XX:XX:XX" format.
+     * @return The OUI string, or "RANDOM_MAC" if the BSSID is a locally administered address.
+     */
+    private String getOuiFromBssid(String bssid) {
+        if (bssid == null || bssid.length() != 17) {
+            return null;
+        }
+
+        String firstOctetHex = bssid.substring(0, 2);
+        int firstOctet = Integer.parseInt(firstOctetHex, 16);
+        // Check the Locally Administered Bit (U/L Bit).
+        if ((firstOctet & 0x02) != 0) {
+            return "RANDOM_MAC";
+        }
+
+        return bssid.substring(0, 8);
+    }
+
+    /**
      * End a Connection event record. Call when wifi connection attempt succeeds or fails.
      * If a Connection event has not been started and is active when .end is called, then this
      * method will do nothing.
@@ -2456,7 +2481,8 @@ public class WifiMetrics {
                         frequency,
                         currentConnectionEvent.mL2ConnectingDuration,
                         currentConnectionEvent.mL3ConnectingDuration,
-                        lastDisconnectReason);
+                        lastDisconnectReason,
+                        getOuiFromBssid(currentConnectionEvent.mConfigBssid));
 
                 if (connectionSucceeded) {
                     reportRouterCapabilities(currentConnectionEvent.mRouterFingerPrint);
@@ -4058,6 +4084,8 @@ public class WifiMetrics {
                     event.channelFrequency = infos.get(infoIndex).getFrequency();
                     event.channelBandwidth = infos.get(infoIndex).getBandwidth();
                     event.generation = infos.get(infoIndex).getWifiStandardInternal();
+                    writeSoftApInfoChanged(event.channelFrequency,
+                            event.channelBandwidth, event.generation);
                     numOfEventNeededToUpdate--;
                 }
             }
@@ -5089,6 +5117,8 @@ public class WifiMetrics {
                             + event.maxNumClientsSettingInSoftapConfiguration);
                     eventLine.append(",max_num_clients_setting_in_softap_capability="
                             + event.maxNumClientsSettingInSoftapCapability);
+                    eventLine.append(",auto_shutdown_is_enabled="
+                            + event.autoShutdownIsEnabled);
                     eventLine.append(",shutdown_timeout_setting_in_softap_configuration="
                             + event.shutdownTimeoutSettingInSoftapConfiguration);
                     eventLine.append(",default_shutdown_timeout_setting="
@@ -5111,6 +5141,8 @@ public class WifiMetrics {
                             + event.maxNumClientsSettingInSoftapConfiguration);
                     eventLine.append(",max_num_clients_setting_in_softap_capability="
                             + event.maxNumClientsSettingInSoftapCapability);
+                    eventLine.append(",auto_shutdown_is_enabled="
+                            + event.autoShutdownIsEnabled);
                     eventLine.append(",shutdown_timeout_setting_in_softap_configuration="
                             + event.shutdownTimeoutSettingInSoftapConfiguration);
                     eventLine.append(",default_shutdown_timeout_setting="
@@ -9807,7 +9839,8 @@ public class WifiMetrics {
             int pollingIntervalMs,
             int aospScorerPrediction,
             int externalScorerPrediction,
-            boolean isExternalScorerActive
+            boolean isExternalScorerActive,
+            int internalScorerType
     ) {
         boolean isCellularDataAvailable = mWifiDataStall.isCellularDataAvailable();
         boolean isThroughputSufficient = mWifiDataStall.isThroughputSufficient();
@@ -9816,9 +9849,15 @@ public class WifiMetrics {
                 hasActiveSubInfo, isMobileDataEnabled, isCellularDataAvailable,
                 mAdaptiveConnectivityEnabled);
         int scorerUnusableEvent = convertWifiUnusableTypeForScorer(mUnusableEventType);
+        String internalAttributionTag = null;
+        if (internalScorerType == SCORER_TYPE_VELOCITY) {
+            internalAttributionTag = INTERNAL_VELOCITY_SCORER_NAME;
+        } else if (internalScorerType == SCORER_TYPE_ML) {
+            internalAttributionTag = INTERNAL_ML_SCORER_NAME;
+        }
         WifiStatsLog.write_non_chained(SCORER_PREDICTION_RESULT_REPORTED,
                 Process.WIFI_UID,
-                null,
+                internalAttributionTag,
                 aospScorerPrediction,
                 scorerUnusableEvent,
                 isThroughputSufficient, deviceState, pollingIntervalMs,
@@ -10735,6 +10774,57 @@ public class WifiMetrics {
                 getSoftApStoppedUpstreamType(upstreamCaps));
         WifiStatsLog.write(WifiStatsLog.SOFT_AP_STATE_CHANGED,
                 WifiStatsLog.SOFT_AP_STATE_CHANGED__HOTSPOT_ON__STATE_OFF);
+    }
+
+    /**
+     * Map SoftApInfo channel width to proto enum.
+     */
+    @VisibleForTesting
+    int convertSoftApInfoChannelWidthToProto(
+            @WifiAnnotations.ChannelWidth int channelWidth) {
+        return switch (channelWidth) {
+            case SoftApInfo.CHANNEL_WIDTH_20MHZ_NOHT ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_20MHZ_NOHT;
+            case SoftApInfo.CHANNEL_WIDTH_20MHZ ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_20MHZ;
+            case SoftApInfo.CHANNEL_WIDTH_40MHZ ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_40MHZ;
+            case SoftApInfo.CHANNEL_WIDTH_80MHZ ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_80MHZ;
+            case SoftApInfo.CHANNEL_WIDTH_80MHZ_PLUS_MHZ ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_80MHZ_PLUS_MHZ;
+            case SoftApInfo.CHANNEL_WIDTH_160MHZ ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_160MHZ;
+            case SoftApInfo.CHANNEL_WIDTH_320MHZ ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_320MHZ;
+            case SoftApInfo.CHANNEL_WIDTH_2160MHZ ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_2160MHZ;
+            case SoftApInfo.CHANNEL_WIDTH_4320MHZ ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_4320MHZ;
+            case SoftApInfo.CHANNEL_WIDTH_6480MHZ ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_6480MHZ;
+            case SoftApInfo.CHANNEL_WIDTH_8640MHZ ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_8640MHZ;
+            case SoftApInfo.CHANNEL_WIDTH_AUTO ->
+                    WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_AUTO;
+            default -> WifiStatsLog.SOFT_AP_INFO_CHANGED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_UNKNOWN;
+        };
+    }
+
+    /**
+     * Call when SoftAp info changed intent is triggered.
+     *
+     * @param frequency new channel frequency_mhz after info changed
+     * @param bandwidth new softAp bandwidth setting
+     * @param standard new softAp supported Wifi standard
+     */
+    public void writeSoftApInfoChanged(int frequency, int bandwidth, int standard) {
+        WifiStatsLog.write(WifiStatsLog.SOFT_AP_INFO_CHANGED,
+                frequency,
+                KnownBandsChannelHelper.getBand(frequency),
+                convertSoftApInfoChannelWidthToProto(bandwidth),
+                getSoftApStoppedStandard(standard)
+        );
     }
 
     /**

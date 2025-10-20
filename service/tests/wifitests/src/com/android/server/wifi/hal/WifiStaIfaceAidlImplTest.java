@@ -23,6 +23,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -57,6 +59,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner.ScanData;
 import android.net.wifi.WifiSsid;
+import android.os.ServiceSpecificException;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.dx.mockito.inline.extended.StaticMockitoSession;
@@ -374,6 +377,21 @@ public class WifiStaIfaceAidlImplTest extends WifiBaseTest {
         assertEquals(ScanResult.CHANNEL_WIDTH_80MHZ, scanResults[0].channelWidth);
         assertEquals(ScanResult.WIFI_STANDARD_11AX, scanResults[0].getWifiStandard());
         assertEquals("61:52:43:34:25:16", scanResults[0].BSSID);
+    }
+
+    /**
+     * Verifies that the framework does not call the HAL for getCachedScanData when the device
+     * returns not supported for this feature.
+     */
+    @Test
+    public void testGetCachedScanDataNotSupported() throws Exception {
+        when(WifiHalAidlImpl.isServiceVersionAtLeast(2)).thenReturn(true);
+        doThrow(new ServiceSpecificException(WifiStatusCode.ERROR_NOT_SUPPORTED))
+                .when(mIWifiStaIfaceMock).getCachedScanData();
+        mDut.getCachedScanData();
+        mDut.getCachedScanData();
+        // Expect to get called only once, since subsequent calls to this method will be ignored.
+        verify(mIWifiStaIfaceMock, times(1)).getCachedScanData();
     }
 
     /**

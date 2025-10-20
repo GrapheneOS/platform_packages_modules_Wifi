@@ -131,13 +131,19 @@ public final class CoexUnsafeChannel implements Parcelable {
         return sj.toString();
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     @Override
     public int describeContents() {
         return 0;
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(mBand);

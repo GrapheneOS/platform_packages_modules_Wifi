@@ -219,4 +219,14 @@ public class PairingConfigManager {
         }
         return new ArrayList<>(aliasSet);
     }
+
+    /**
+     * Reset all the caches
+     */
+    public void reset() {
+        mPackageNameToNikMap.clear();
+        mPerAppPairedAliasMap.clear();
+        mAliasToNikMap.clear();
+        mAliasToSecurityInfoMap.clear();
+    }
 }

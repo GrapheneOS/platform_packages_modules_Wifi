@@ -72,7 +72,10 @@ public class WifiP2pDeviceList implements Parcelable {
         }
     }
 
-    /** Clear the list @hide */
+    /**
+     * Clear the list
+     * @hide
+     */
     public boolean clear() {
         if (mDevices.isEmpty()) return false;
         mDevices.clear();
@@ -91,7 +94,10 @@ public class WifiP2pDeviceList implements Parcelable {
         mDevices.get(device.deviceAddress).status = device.status;
     }
 
-    /** Only updates details fetched from the supplicant @hide */
+    /**
+     * Only updates details fetched from the supplicant
+     * @hide
+     */
     public void updateSupplicantDetails(WifiP2pDevice device) {
         validateDevice(device);
         WifiP2pDevice d = mDevices.get(device.deviceAddress);
@@ -159,7 +165,10 @@ public class WifiP2pDeviceList implements Parcelable {
         return mDevices.remove(deviceAddress);
     }
 
-    /** Returns true if any device the list was removed @hide */
+    /**
+     * Returns true if any device the list was removed
+     * @hide
+     */
     public boolean remove(WifiP2pDeviceList list) {
         boolean ret = false;
         for (WifiP2pDevice d : list.mDevices.values()) {

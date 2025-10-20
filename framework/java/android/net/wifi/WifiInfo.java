@@ -1602,7 +1602,10 @@ public class WifiInfo implements TransportInfo, Parcelable {
         return sb.toString();
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public int describeContents() {
         return 0;
     }
@@ -1619,7 +1622,10 @@ public class WifiInfo implements TransportInfo, Parcelable {
         return (redactions & NetworkCapabilities.REDACT_FOR_NETWORK_SETTINGS) != 0;
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(mNetworkId);
         dest.writeInt(mRssi);
@@ -1681,7 +1687,10 @@ public class WifiInfo implements TransportInfo, Parcelable {
         dest.writeList(mVendorData);
     }
 
-    /** Implement the Parcelable interface {@hide} */
+    /**
+     * Implement the Parcelable interface
+     * @hide
+     */
     @UnsupportedAppUsage
     public static final @android.annotation.NonNull Creator<WifiInfo> CREATOR =
         new Creator<WifiInfo>() {

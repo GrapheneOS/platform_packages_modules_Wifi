@@ -39,7 +39,6 @@ import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.pps.Credential.CertificateCredential;
 import android.net.wifi.hotspot2.pps.Credential.SimCredential;
 import android.net.wifi.hotspot2.pps.Credential.UserCredential;
-import android.net.wifi.util.Environment;
 import android.os.Looper;
 import android.os.Process;
 import android.text.TextUtils;
@@ -515,7 +514,8 @@ public class PasspointManager {
         }
 
         mWifiCarrierInfoManager.tryUpdateCarrierIdForPasspoint(config);
-        int creatorUserId = (Environment.isSdkNewerThanB() && Flags.multiUserWifiEnhancement())
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        int creatorUserId = Flags.multiUserWifiEnhancement()
                 ? ActivityManager.getCurrentUser() : -2;
         // Create a provider and install the necessary certificates and keys.
         PasspointProvider newProvider = mObjectFactory.makePasspointProvider(config, mKeyStore,

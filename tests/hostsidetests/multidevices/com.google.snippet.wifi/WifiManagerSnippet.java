@@ -33,6 +33,7 @@ import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApInfo;
 import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
@@ -40,12 +41,14 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiScanner.ScanData;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
 import android.util.Log;
 
+import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.test.platform.app.InstrumentationRegistry;
 
@@ -61,6 +64,7 @@ import com.google.android.mobly.snippet.event.SnippetEvent;
 import com.google.android.mobly.snippet.rpc.AsyncRpc;
 import com.google.android.mobly.snippet.rpc.Rpc;
 import com.google.snippet.wifi.aware.WifiAwareJsonDeserializer;
+import com.google.snippet.wifi.aware.WifiAwareSnippetConverter;
 import com.google.snippet.wifi.softap.WifiSapJsonDeserializer;
 
 import org.json.JSONArray;
@@ -105,6 +109,7 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     private WifiManager.SuggestionConnectionStatusListener mSuggestionConnectionStatusListener;
     private WifiManager.SuggestionUserApprovalStatusListener mSuggestionUserApprovalStatusListener;
     private BroadcastReceiver mNetworkSuggestionPostConnectionReceiver;
+    private volatile boolean mIsScanResultAvailable = false;
 
 
     /**
@@ -118,6 +123,22 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
 
         SnippetSoftApCallback(String callbackId) {
             mCallbackId = callbackId;
+        }
+
+        @Override
+        public void onConnectedClientsChanged(@NonNull List<WifiClient> clients) {
+            Log.d(TAG, "onConnectedClientsChanged, clients=" + clients);
+            SnippetEvent event = new SnippetEvent(mCallbackId, "onConnectedClientsChanged");
+            mConnectedClientsCount = clients.size();
+            event.getData().putInt("connectedClientsCount", mConnectedClientsCount);
+            String macAddress = null;
+            if (!clients.isEmpty()) {
+                // In our Mobly test cases, there is only ever one other device.
+                WifiClient client = clients.get(0);
+                macAddress = client.getMacAddress().toString();
+            }
+            event.getData().putString("clientMacAddress", macAddress);
+            EventCache.getInstance().postEvent(event);
         }
 
         @Override
@@ -912,6 +933,24 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     }
 
     /**
+     * Enables/disables Wi-Fi scan throttling.
+     */
+    @Rpc(description = "Enable/disable wifi scan throttling.")
+    public void wifiSetScanThrottleState(boolean enabled) {
+        ShellIdentityUtils.invokeWithShellPermissions(
+                () -> mWifiManager.setScanThrottleEnabled(enabled));
+    }
+
+    /**
+     * Gets Wi-Fi scan throttling state.
+     */
+    @Rpc(description = "Get Wi-Fi scan throttle state.")
+    public boolean wifiIsScanThrottleEnabled() {
+        return ShellIdentityUtils.invokeWithShellPermissions(
+            () -> mWifiManager.isScanThrottleEnabled());
+    }
+
+    /**
      * Scan listener passed to WiFiScanner APIs.
      *
      * <p>With different types of events triggered when executing WiFiScanner APIs, corresponding
@@ -1083,6 +1122,27 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         }
     }
 
+    /**
+     * Constants for device mobility states.
+     */
+    @IntDef({
+        WifiManager.DEVICE_MOBILITY_STATE_UNKNOWN,
+        WifiManager.DEVICE_MOBILITY_STATE_HIGH_MVMT,
+        WifiManager.DEVICE_MOBILITY_STATE_LOW_MVMT,
+        WifiManager.DEVICE_MOBILITY_STATE_STATIONARY
+    })
+    private @interface DeviceMobilityState {}
+
+    /**
+    * Sets the device mobility state for testing.
+    * @param state The mobility state to set.
+    */
+    @Rpc(description = "Sets the device mobility state.")
+    public void wifiSetDeviceMobilityState(@DeviceMobilityState int state) throws Throwable {
+        Log.d(TAG, "Setting device mobility state to: " + state);
+        // This runs the command with elevated shell permissions.
+        executeWithShellPermission(() -> mWifiManager.setDeviceMobilityState(state));
+    }
     /** Turns on Wi-Fi. */
     @Rpc(description = "Turn on Wi-Fi.")
     public void wifiToggleEnable() throws InterruptedException, WifiManagerSnippetException {
@@ -1093,5 +1153,114 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     @Rpc(description = "Turn off Wi-Fi.")
     public void wifiToggleDisable() throws InterruptedException, WifiManagerSnippetException {
         wifiToggleState(false);
+    }
+
+    /** Start scan, wait for scan to complete, and return results. */
+    @Rpc(
+            description =
+                "Start scan, wait for scan to complete, and return results, which is a list of "
+                + "serialized WifiScanResult objects.")
+    public JSONArray wifiScanAndGetResultsWithShellPermission()
+            throws InterruptedException, JSONException, WifiManagerSnippetException {
+        WifiScanReceiver receiver = new WifiScanReceiver();
+        mContext.registerReceiver(
+                receiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+
+        try {
+            mIsScanResultAvailable = false;
+            if (!executeWithShellPermission(() -> mWifiManager.startScan())) {
+                throw new WifiManagerSnippetException("Failed to initiate Wi-Fi scan.", null);
+            }
+            if (!Utils.waitUntil(() -> mIsScanResultAvailable, 2 * 60)) {
+                throw new WifiManagerSnippetException(
+                    "Failed to get scan results after 2min, timeout!", null);
+            }
+
+            JSONArray results = new JSONArray();
+            for (ScanResult result : mWifiManager.getScanResults()) {
+                results.put(WifiAwareSnippetConverter.serializeScanResult(result));
+            }
+            return results;
+        } finally {
+            mContext.unregisterReceiver(receiver);
+        }
+    }
+
+    private class WifiScanReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context c, Intent intent) {
+            String action = intent.getAction();
+            if (!action.equals(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)) return;
+            if (!intent.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false)) return;
+            mIsScanResultAvailable = true;
+        }
+    }
+
+    /**
+     * Gets the list of usable Wi-Fi channels for a given band and operating mode.
+     *
+     * @param band The Wi-Fi band to query, e.g., {@link SoftApConfiguration#BAND_2GHZ}.
+     * @return A list of usable channel frequencies in MHz, or an empty list on failure or if
+     *         unsupported.
+     */
+    @Rpc(description = "Gets usable Wi-Fi channels for a given band and mode.")
+    public List<Integer> wifiGetUsableChannels(int band, int mode) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            Log.w(TAG, "getUsableChannels requires Android S (API 31) or higher.");
+            return new ArrayList<>();
+        }
+        if (mWifiManager == null) {
+            Log.e(TAG, "WifiManager service not available.");
+            return new ArrayList<>();
+        }
+
+        try {
+            Log.i(TAG, "WifiManager getUsableChannels available.");
+            List<WifiAvailableChannel> channelObjects = mWifiManager.getUsableChannels(
+                            band, mode);
+            if (channelObjects == null) {
+                return  new ArrayList<>();
+            }
+            List<Integer> channelFrequencies = new ArrayList<>();
+            for (WifiAvailableChannel channel : channelObjects) {
+                channelFrequencies.add(channel.getFrequencyMhz());
+            }
+            return channelFrequencies;
+        } catch (SecurityException e) {
+            Log.e(TAG, "Permission denial for getUsableChannels.", e);
+            return new ArrayList<>();
+        } catch (Exception e) {
+            Log.e(TAG, "Error calling getUsableChannels.", e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Sets the country code for the device.
+     *
+     * @param countryCode The country code to set.
+     */
+    @Rpc(description = "Sets the country code for the device.")
+    public void setOverrideWifiCountryCode(String countryCode) {
+        Log.d(TAG, "setOverridetWifiCountryCode: " + countryCode);
+        executeWithShellPermission(() -> mWifiManager.setOverrideCountryCode(countryCode));
+    }
+
+    /**
+     * Gets the country code for the device.
+     *
+     * @return The country code for the device.
+     */
+    @Rpc(description = "Gets the country code for the device.")
+    public String getWifiCountryCode() {
+        return executeWithShellPermission(() -> mWifiManager.getCountryCode());
+    }
+
+    /**
+     * Clears the override country code for the device.
+     */
+    @Rpc(description = "Clears the country code for the device.")
+    public void clearOverrideWifiCountryCode() {
+        executeWithShellPermission(() -> mWifiManager.clearOverrideCountryCode());
     }
 }

@@ -96,6 +96,7 @@ public class WifiScoreReport {
             WifiStatsLog.SCORER_PREDICTION_RESULT_REPORTED__WIFI_PREDICTED_USABILITY_STATE__WIFI_USABILITY_PREDICTED_NONE;
     private int mAospScorerPredictionStatusForEvaluation =
             WifiStatsLog.SCORER_PREDICTION_RESULT_REPORTED__WIFI_PREDICTED_USABILITY_STATE__WIFI_USABILITY_PREDICTED_NONE;
+    private int mLastInternalScorerType = SCORER_TYPE_INVALID;
 
     /**
      * If true, indicates that the associated {@link ClientModeImpl} instance is lingering
@@ -621,8 +622,8 @@ public class WifiScoreReport {
 
         long millis = mClock.getWallClockMillis();
         ConnectedScoreResult scoreResult;
-        int internalScorerType = Flags.mlScorerInWifiFw()
-                ? mWifiGlobals.getInternalScorerType() : SCORER_TYPE_VELOCITY;
+        int internalScorerType = Flags.mlScorerInWifiFw() ? mWifiGlobals.getInternalScorerType()
+                : SCORER_TYPE_VELOCITY;
         final boolean isIntervalMatch =
                 POLLING_INTERVAL_MS == mWifiGlobals.getPollRssiIntervalMillis();
         if (internalScorerType == SCORER_TYPE_VELOCITY
@@ -640,6 +641,7 @@ public class WifiScoreReport {
         statsEntry.setInternalScore(adjustedScore);
         statsEntry.setInternalScorerType(internalScorerType);
 
+        mLastInternalScorerType = internalScorerType;
         mAospScorerPredictionStatusForEvaluation =
                 convertToPredictionStatusForEvaluation(scoreResult.isWifiUsable());
         mWifiMetrics.setScorerPredictedWifiUsabilityState(mInterfaceName, scoreResult.isWifiUsable()
@@ -1136,6 +1138,13 @@ public class WifiScoreReport {
      */
     public int getAospScorerPredictionStatusForEvaluation() {
         return mAospScorerPredictionStatusForEvaluation;
+    }
+
+    /**
+     * Get the internal scorer type that did the latest evaluation
+     */
+    public int getLastInternalScorerType() {
+        return mLastInternalScorerType;
     }
 
     /**

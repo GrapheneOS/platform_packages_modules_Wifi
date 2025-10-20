@@ -728,12 +728,20 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
 
     @Override
     public void initiateBootStrappingSetupRequest(int clientId, int sessionId, int peerId,
-            int method) {
+            int method, byte[] ssi) {
         enforceAccessPermission();
         enforceChangePermission();
-        if (!mStateManager.getCharacteristics().isAwarePairingSupported()) {
+        Characteristics characteristics = mStateManager.getCharacteristics();
+        if (characteristics == null) {
+            throw new IllegalArgumentException("NAN characteristics are not available");
+        }
+        if (!characteristics.isAwarePairingSupported()) {
             throw new IllegalArgumentException(
                     "NAN pairing is not supported");
+        }
+        if (ssi != null && ssi.length > characteristics.getMaxServiceSpecificInfoLength()) {
+            throw new IllegalArgumentException(
+                    "serviceSpecificInfo length longer than supported by device characteristics");
         }
         int uid = getMockableCallingUid();
         enforceClientValidity(uid, clientId);
@@ -743,7 +751,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
                             + ", uid=" + uid + ", clientId=" + clientId + ", peerId=" + peerId);
         }
         mStateManager.initiateBootStrappingSetupRequest(clientId, sessionId, peerId, method, 0,
-                null);
+                null, ssi);
     }
 
     @Override
@@ -855,5 +863,26 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
     private boolean checkNetworkStackPermission() {
         return mContext.checkCallingOrSelfPermission(Manifest.permission.NETWORK_STACK)
                 == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Handle user switch event
+     */
+    public void handleUserSwitch(int userId) {
+        mStateManager.handleUserSwitch(userId);
+    }
+
+    /**
+     * Handle user unlock event
+     */
+    public void handleUserUnlock(int userId) {
+        mStateManager.handleUserUnlock(userId);
+    }
+
+    /**
+     * Handle user stop event
+     */
+    public void handleUserStop(int userId) {
+        mStateManager.handleUserStop(userId);
     }
 }

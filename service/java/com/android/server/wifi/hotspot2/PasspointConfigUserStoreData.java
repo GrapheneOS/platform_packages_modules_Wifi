@@ -19,7 +19,6 @@ package com.android.server.wifi.hotspot2;
 import android.annotation.Nullable;
 import android.app.ActivityManager;
 import android.net.wifi.hotspot2.PasspointConfiguration;
-import android.net.wifi.util.Environment;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -372,7 +371,8 @@ public class PasspointConfigUserStoreData implements WifiConfigStore.StoreData {
         if (config == null) {
             throw new XmlPullParserException("Missing Passpoint configuration");
         }
-        int creatorUserId = (Environment.isSdkNewerThanB() && Flags.multiUserWifiEnhancement())
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        int creatorUserId = Flags.multiUserWifiEnhancement()
                 ? ActivityManager.getCurrentUser() : -2;
         PasspointProvider provider =  new PasspointProvider(config, mKeyStore,
                 mWifiCarrierInfoManager,

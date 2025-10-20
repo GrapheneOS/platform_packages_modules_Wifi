@@ -205,6 +205,10 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        mMockingSession = ExtendedMockito.mockitoSession().strictness(Strictness.LENIENT)
+                .mockStatic(SubscriptionManager.class)
+                .mockStatic(Flags.class).startMocking();
+        when(Flags.monitorIntentForAllUsers()).thenReturn(false);
         mLooper = new TestLooper();
         mHandler = new Handler(mLooper.getLooper());
         when(mContext.getSystemService(CarrierConfigManager.class))
@@ -286,9 +290,6 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
         when(mCarrierConfigManager.getConfigForSubId(anyInt()))
                 .thenReturn(generateTestCarrierConfig(false));
         when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList()).thenReturn(mSubInfoList);
-        mMockingSession = ExtendedMockito.mockitoSession().strictness(Strictness.LENIENT)
-                .mockStatic(SubscriptionManager.class).startMocking();
-
         doReturn(DATA_SUBID).when(
                 () -> SubscriptionManager.getDefaultDataSubscriptionId());
         doReturn(true).when(
@@ -2607,32 +2608,25 @@ public class WifiCarrierInfoManagerTest extends WifiBaseTest {
 
     @Test
     public void testUsingRegisterReceiverForAllUsersWhenFlagEnabled() throws Exception {
-        // static mocking
-        MockitoSession session = ExtendedMockito.mockitoSession().mockStatic(
-                Flags.class).startMocking();
-        try {
-            lenient().when(Flags.monitorIntentForAllUsers()).thenReturn(true);
-            Looper.prepare();
-            mWifiCarrierInfoManager = new WifiCarrierInfoManager(mTelephonyManager,
-                    mSubscriptionManager, mWifiInjector, mFrameworkFacade, mContext,
-                    mWifiConfigStore, mHandler, mWifiMetrics,
-                    mClock, mWifiPseudonymManager);
-            verify(mContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
-                    argThat(filter -> filter.hasAction(NOTIFICATION_USER_DISMISSED_INTENT_ACTION)
-                            && filter.hasAction(NOTIFICATION_USER_ALLOWED_CARRIER_INTENT_ACTION)
-                            && filter.hasAction(NOTIFICATION_USER_DISALLOWED_CARRIER_INTENT_ACTION)
-                            && filter.hasAction(NOTIFICATION_USER_CLICKED_INTENT_ACTION)),
-                    eq(NETWORK_SETTINGS), any(Handler.class));
+        when(Flags.monitorIntentForAllUsers()).thenReturn(true);
+        Looper.prepare();
+        mWifiCarrierInfoManager = new WifiCarrierInfoManager(mTelephonyManager,
+                mSubscriptionManager, mWifiInjector, mFrameworkFacade, mContext,
+                mWifiConfigStore, mHandler, mWifiMetrics,
+                mClock, mWifiPseudonymManager);
+        verify(mContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
+                argThat(filter -> filter.hasAction(NOTIFICATION_USER_DISMISSED_INTENT_ACTION)
+                        && filter.hasAction(NOTIFICATION_USER_ALLOWED_CARRIER_INTENT_ACTION)
+                        && filter.hasAction(NOTIFICATION_USER_DISALLOWED_CARRIER_INTENT_ACTION)
+                        && filter.hasAction(NOTIFICATION_USER_CLICKED_INTENT_ACTION)),
+                eq(NETWORK_SETTINGS), any(Handler.class));
 
-            verify(mContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
-                    argThat(filter -> filter.hasAction(
-                            CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED)
-                            && filter.hasAction(
-                                    TelephonyManager.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED)),
-                    eq(null), any(Handler.class));
-        } finally {
-            session.finishMocking();
-        }
+        verify(mContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
+                argThat(filter -> filter.hasAction(
+                        CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED)
+                        && filter.hasAction(
+                                TelephonyManager.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED)),
+                eq(null), eq(null));
     }
 
 }

@@ -553,9 +553,9 @@ public final class RangingRequest implements Parcelable {
          * must be enabled on the discovery session:
          * <li>{@link android.net.wifi.aware.PublishConfig.Builder#setRangingEnabled(boolean)} for
          * publisher.</li>
-         * <li>Either {@link android.net.wifi.aware.SubscribeConfig.Builder#setMinDistanceMm(int)}
-         * or {@link android.net.wifi.aware.SubscribeConfig.Builder#setMaxDistanceMm(int)} must be
-         * set to enable ranging on subscriber </li>
+         * <li>{@link android.net.wifi.aware.SubscribeConfig.Builder#setEgressDistanceMm(int)}
+         * or {@link android.net.wifi.aware.SubscribeConfig.Builder#setIngressDistanceMm(int)} must
+         * be set to enable ranging on subscriber </li>
          *
          * @param peerHandle The peer handler of the peer Wi-Fi Aware device.
          * @return The builder, to facilitate chaining {@code builder.setXXX(..).setXXX(..)}.

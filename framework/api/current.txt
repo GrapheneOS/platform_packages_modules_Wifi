@@ -224,6 +224,7 @@ package android.net.wifi {
     field public static final int SECURITY_TYPE_WAPI_PSK = 7; // 0x7
     field public static final int SECURITY_TYPE_WEP = 1; // 0x1
     field public String SSID;
+    field @FlaggedApi("com.android.wifi.flags.multi_user_wifi_enhancement") public boolean allowAutojoin;
     field @NonNull public java.util.BitSet allowedAuthAlgorithms;
     field @NonNull public java.util.BitSet allowedGroupCiphers;
     field @NonNull public java.util.BitSet allowedGroupManagementCiphers;
@@ -239,6 +240,7 @@ package android.net.wifi {
     field @Deprecated public int priority;
     field public String providerFriendlyName;
     field public long[] roamingConsortiumIds;
+    field @FlaggedApi("com.android.wifi.flags.multi_user_wifi_enhancement") public boolean shared;
     field public int status;
     field @Deprecated public String[] wepKeys;
     field @Deprecated public int wepTxKeyIndex;
@@ -955,6 +957,7 @@ package android.net.wifi.aware {
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierOpen(@NonNull android.net.wifi.aware.PeerHandle);
     method @Deprecated public android.net.NetworkSpecifier createNetworkSpecifierPassphrase(@NonNull android.net.wifi.aware.PeerHandle, @NonNull String);
     method public void initiateBootstrappingRequest(@NonNull android.net.wifi.aware.PeerHandle, int);
+    method @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") public void initiateBootstrappingRequest(@NonNull android.net.wifi.aware.PeerHandle, int, @NonNull byte[]);
     method public void initiatePairingRequest(@NonNull android.net.wifi.aware.PeerHandle, @NonNull String, int, @Nullable String);
     method public void rejectPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle);
     method public void sendMessage(@NonNull android.net.wifi.aware.PeerHandle, int, @Nullable byte[]);
@@ -963,7 +966,8 @@ package android.net.wifi.aware {
   public class DiscoverySessionCallback {
     ctor public DiscoverySessionCallback();
     method public void onBootstrappingFailed(@NonNull android.net.wifi.aware.PeerHandle);
-    method public void onBootstrappingSucceeded(@NonNull android.net.wifi.aware.PeerHandle, int);
+    method @Deprecated @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") public void onBootstrappingSucceeded(@NonNull android.net.wifi.aware.PeerHandle, int);
+    method @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") public void onBootstrappingSucceeded(@NonNull android.net.wifi.aware.PeerHandle, int, @Nullable byte[]);
     method public void onMessageReceived(android.net.wifi.aware.PeerHandle, byte[]);
     method public void onMessageSendFailed(int);
     method public void onMessageSendSucceeded(int);
@@ -1045,6 +1049,8 @@ package android.net.wifi.aware {
 
   public final class SubscribeConfig implements android.os.Parcelable {
     method public int describeContents();
+    method @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") public int getEgressDistanceMm();
+    method @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") public int getIngressDistanceMm();
     method public int getInstantCommunicationBand();
     method @Nullable public android.net.wifi.aware.AwarePairingConfig getPairingConfig();
     method public boolean isInstantCommunicationModeEnabled();
@@ -1057,10 +1063,12 @@ package android.net.wifi.aware {
   public static final class SubscribeConfig.Builder {
     ctor public SubscribeConfig.Builder();
     method public android.net.wifi.aware.SubscribeConfig build();
+    method @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") @NonNull public android.net.wifi.aware.SubscribeConfig.Builder setEgressDistanceMm(int);
+    method @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") @NonNull public android.net.wifi.aware.SubscribeConfig.Builder setIngressDistanceMm(int);
     method @NonNull public android.net.wifi.aware.SubscribeConfig.Builder setInstantCommunicationModeEnabled(boolean, int);
     method public android.net.wifi.aware.SubscribeConfig.Builder setMatchFilter(@Nullable java.util.List<byte[]>);
-    method public android.net.wifi.aware.SubscribeConfig.Builder setMaxDistanceMm(int);
-    method public android.net.wifi.aware.SubscribeConfig.Builder setMinDistanceMm(int);
+    method @Deprecated @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") public android.net.wifi.aware.SubscribeConfig.Builder setMaxDistanceMm(int);
+    method @Deprecated @FlaggedApi("com.android.wifi.flags.aware_ingress_egress_distance") public android.net.wifi.aware.SubscribeConfig.Builder setMinDistanceMm(int);
     method @NonNull public android.net.wifi.aware.SubscribeConfig.Builder setPairingConfig(@Nullable android.net.wifi.aware.AwarePairingConfig);
     method public android.net.wifi.aware.SubscribeConfig.Builder setServiceName(@NonNull String);
     method public android.net.wifi.aware.SubscribeConfig.Builder setServiceSpecificInfo(@Nullable byte[]);
@@ -1106,6 +1114,8 @@ package android.net.wifi.aware {
     method @Nullable @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public android.net.wifi.aware.AwareResources getAvailableAwareResources();
     method @Nullable @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public android.net.wifi.aware.Characteristics getCharacteristics();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void getPairedDevices(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.util.List<java.lang.String>>);
+    method @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") @NonNull public static java.util.Map<java.lang.String,java.lang.String> getTxtRecordMap(@Nullable byte[]);
+    method @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") @NonNull public static byte[] getTxtRecordTlvBuffer(@NonNull java.util.Map<java.lang.String,java.lang.String>);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isAvailable();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isDeviceAttached();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isInstantCommunicationModeEnabled();
@@ -1298,6 +1308,7 @@ package android.net.wifi.p2p {
     method public int getNetworkId();
     method @Nullable public String getNetworkName();
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") @Nullable public android.net.wifi.p2p.WifiP2pPairingBootstrappingConfig getPairingBootstrappingConfig();
+    method @FlaggedApi("com.android.wifi.flags.set_pairing_discovery_channel_frequency") public int getPairingDiscoveryChannelFrequencyMhz();
     method @Nullable public String getPassphrase();
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") public int getPccModeConnectionType();
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") public boolean isAuthorizeConnectionFromPeerEnabled();
@@ -1334,6 +1345,7 @@ package android.net.wifi.p2p {
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setGroupOperatingFrequency(int);
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setNetworkName(@NonNull String);
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setPairingBootstrappingConfig(@NonNull android.net.wifi.p2p.WifiP2pPairingBootstrappingConfig);
+    method @FlaggedApi("com.android.wifi.flags.set_pairing_discovery_channel_frequency") @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setPairingDiscoveryChannelFrequencyMhz(int);
     method @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setPassphrase(@NonNull String);
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setPccModeConnectionType(int);
   }

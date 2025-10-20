@@ -17,6 +17,12 @@
 package com.android.server.wifi.aware;
 
 import static android.net.RouteInfo.RTN_UNICAST;
+import static android.system.OsConstants.NETLINK_ROUTE;
+
+import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_ACK;
+import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_CREATE;
+import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_REPLACE;
+import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_REQUEST;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -44,6 +50,7 @@ import android.net.wifi.util.HexEncoding;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.system.ErrnoException;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
@@ -52,6 +59,10 @@ import android.util.SparseArray;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.net.module.util.netlink.NetlinkConstants;
+import com.android.net.module.util.netlink.NetlinkUtils;
+import com.android.net.module.util.netlink.RtNetlinkNeighborMessage;
+import com.android.net.module.util.netlink.StructNdMsg;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.WifiLockManager;
 import com.android.server.wifi.hal.WifiNanIface.NanDataPathChannelCfg;
@@ -69,6 +80,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -472,7 +484,7 @@ public class WifiAwareDataPathStateManager {
             if (sVdbg) {
                 Log.v(TAG, "onDataPathRequest: network request cache = " + mNetworkRequestsCache);
             }
-            mMgr.respondToDataPathRequest(false, ndpId, "", null, false, null);
+            mMgr.respondToDataPathRequest(false, ndpId, "", null, false, null, null);
             return false;
         }
 
@@ -482,7 +494,7 @@ public class WifiAwareDataPathStateManager {
         if (nnri.interfaceName == null) {
             Log.w(TAG,
                     "onDataPathRequest: request " + networkSpecifier + " no interface available");
-            mMgr.respondToDataPathRequest(false, ndpId, "", null, false, null);
+            mMgr.respondToDataPathRequest(false, ndpId, "", null, false, null, null);
             mNetworkRequestsCache.remove(networkSpecifier);
             mNetworkFactory.letAppKnowThatRequestsAreUnavailable(nnri);
             return false;
@@ -499,7 +511,7 @@ public class WifiAwareDataPathStateManager {
                 NetworkInformationData.buildTlv(nnri.networkSpecifier.port,
                         nnri.networkSpecifier.transportProtocol),
                 nnri.networkSpecifier.isOutOfBand(),
-                nnri.networkSpecifier);
+                nnri.networkSpecifier, mac);
 
         return true;
     }
@@ -683,7 +695,7 @@ public class WifiAwareDataPathStateManager {
         return true;
     }
 
-    private void getInet6Address(NdpInfo ndpInfo, byte[] mac, String interfaceName) {
+    private void getInet6Address(NdpInfo ndpInfo, byte[] mac, NetworkInterface ni) {
         try {
             byte[] addr;
             if (ndpInfo.peerIpv6Override == null) {
@@ -701,9 +713,8 @@ public class WifiAwareDataPathStateManager {
                 addr[14] = ndpInfo.peerIpv6Override[6];
                 addr[15] = ndpInfo.peerIpv6Override[7];
             }
-            ndpInfo.peerIpv6 = Inet6Address.getByAddress(null, addr,
-                    NetworkInterface.getByName(interfaceName));
-        } catch (SocketException | UnknownHostException e) {
+            ndpInfo.peerIpv6 = Inet6Address.getByAddress(null, addr, ni);
+        } catch (UnknownHostException e) {
             if (mVerboseLoggingEnabled) {
                 Log.d(TAG, "onDataPathConfirm: error obtaining scoped IPv6 address -- " + e);
             }
@@ -711,14 +722,41 @@ public class WifiAwareDataPathStateManager {
         }
     }
 
+    private byte[] createAddNeighborRtNetlinkNeighborMessage(int ifIndex, Inet6Address ip,
+            byte[] llAddr) {
+        short flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_REPLACE | NLM_F_CREATE;
+        final RtNetlinkNeighborMessage msg = new RtNetlinkNeighborMessage.Builder()
+                .setNlMsgType(NetlinkConstants.RTM_NEWNEIGH)
+                .setNlMsgFlags(flags)
+                .setNlMsgSeq(1)
+                .setIfIndex(ifIndex)
+                .setState(StructNdMsg.NUD_PERMANENT)
+                .setDestination(ip)
+                .setLinkLayerAddress(llAddr)
+                .build();
+
+        final byte[] bytes = new byte[msg.getHeader().nlmsg_len];
+        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        byteBuffer.order(ByteOrder.nativeOrder());
+        msg.pack(byteBuffer);
+        return bytes;
+    }
+
     private void handleAddressValidation(AwareNetworkRequestInformation nnri, NdpInfo ndpInfo,
             boolean isOutOfBand, byte[] mac) {
         final NetworkCapabilities.Builder ncBuilder = new NetworkCapabilities.Builder(
                 sNetworkCapabilitiesFilter);
         LinkProperties linkProperties = new LinkProperties();
-        getInet6Address(ndpInfo, mac, nnri.interfaceName);
+        NetworkInterface networkInterface = null;
+        try {
+            networkInterface = NetworkInterface.getByName(nnri.interfaceName);
+            getInet6Address(ndpInfo, mac, networkInterface);
+        } catch (SocketException e) {
+            Log.v(TAG, "onDataPathConfirm: ACCEPT nnri=" + nnri
+                    + ": can't get network interface - " + e);
+        }
         if (!(ndpInfo.peerIpv6 != null && mNiWrapper.configureAgentProperties(nnri,
-                ncBuilder, linkProperties)
+                ncBuilder, linkProperties, networkInterface)
                 && mNiWrapper.isAddressUsable(linkProperties))) {
             if (sVdbg) {
                 Log.d(TAG, "Failed address validation");
@@ -736,6 +774,13 @@ public class WifiAwareDataPathStateManager {
             return;
         }
         mDelayNetworkValidationMap.remove(ndpInfo.ndpId);
+        int index = networkInterface == null ? 0 : networkInterface.getIndex();
+        byte[] msg = createAddNeighborRtNetlinkNeighborMessage(index, ndpInfo.peerIpv6, mac);
+        try {
+            NetlinkUtils.sendOneShotKernelMessage(NETLINK_ROUTE, msg);
+        } catch (ErrnoException e) {
+            Log.e(TAG, "Add IPv6 neighbor failed: " + e);
+        }
 
         // Network agent may already setup finished. Update peer network info.
         if (nnri.networkAgent == null) {
@@ -1667,17 +1712,10 @@ public class WifiAwareDataPathStateManager {
          * name. Delegated to enable mocking.
          */
         public boolean configureAgentProperties(AwareNetworkRequestInformation nnri,
-                NetworkCapabilities.Builder ncBuilder, LinkProperties linkProperties) {
+                NetworkCapabilities.Builder ncBuilder, LinkProperties linkProperties,
+                NetworkInterface ni) {
             // find link-local address
             InetAddress linkLocal = null;
-            NetworkInterface ni;
-            try {
-                ni = NetworkInterface.getByName(nnri.interfaceName);
-            } catch (SocketException e) {
-                Log.v(TAG, "onDataPathConfirm: ACCEPT nnri=" + nnri
-                        + ": can't get network interface - " + e);
-                return false;
-            }
             if (ni == null) {
                 Log.v(TAG, "onDataPathConfirm: ACCEPT nnri=" + nnri
                         + ": can't get network interface (null)");

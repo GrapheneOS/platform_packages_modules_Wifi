@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,27 +17,27 @@
 package android.system.wifi.mainline_supplicant;
 
 /**
- * Information for sending a USD message.
+ * The NAN pairing config.
  */
-parcelable UsdMessageInfo {
+parcelable NanPairingConfig {
     /**
-     * Identifier for this device, retrieved from |ServiceDiscoveryInfo|.
+     * Enable NAN pairing setup.
      */
-    int ownId;
+    boolean enablePairingSetup;
 
     /**
-     * Identifier for the peer device, retrieved from |ServiceDiscoveryInfo|.
+     * Enable cache NIK/NPK after NAN pairing setup.
      */
-    int peerId;
+    boolean enablePairingCache;
 
     /**
-     * MAC address for the peer device.
+     * Enable NAN pairing verification with cached NIK/NPK.
      */
-    byte[6] peerMacAddress;
+    boolean enablePairingVerification;
 
     /**
-     * Message contents. Note that the maximum message length is
-     * |UsdCapabilities.maxLocalSsiLengthBytes|.
+     * Bitmap of |NanBootstrappingMethod| values indicating the set of supported bootstrapping
+     * methods.
      */
-    byte[] message;
+    int supportedBootstrappingMethods;
 }

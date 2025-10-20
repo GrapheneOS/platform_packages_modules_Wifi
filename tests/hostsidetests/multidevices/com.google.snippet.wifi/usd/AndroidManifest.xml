@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.google.snippet.wifi.usd">
+    <uses-permission android:name="android.permission.MANAGE_WIFI_NETWORK_SELECTION"
+                     tools:ignore="ProtectedPermissions" />
+    <application>
+        <uses-library android:name="android.test.runner" />
+
+        <meta-data
+            android:name="mobly-snippets"
+            android:value="com.google.snippet.wifi.usd.WifiUsdManagerSnippet"
+            tools:replace="android:value" />
+
+    </application>
+</manifest>

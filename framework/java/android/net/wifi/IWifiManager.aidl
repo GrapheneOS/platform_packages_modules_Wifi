@@ -32,6 +32,7 @@ import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.ILocalOnlyConnectionStatusListener;
+import android.net.wifi.ILocalOnlyDisconnectionStatusListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.IMacAddressListListener;
 import android.net.wifi.IMapListener;
@@ -84,7 +85,7 @@ import com.android.modules.utils.StringParceledListSlice;
 /**
  * Interface that allows controlling and querying Wi-Fi connectivity.
  *
- * {@hide}
+ * @hide
  */
 interface IWifiManager {
     boolean isFeatureSupported(int feature);
@@ -393,6 +394,12 @@ interface IWifiManager {
 
     void removeLocalOnlyConnectionStatusListener(
             in ILocalOnlyConnectionStatusListener listener, String packageName);
+
+    void addLocalOnlyDisconnectionStatusListener(
+            in ILocalOnlyDisconnectionStatusListener listener, String packageName);
+
+    void removeLocalOnlyDisconnectionStatusListener(
+            in ILocalOnlyDisconnectionStatusListener listener, String packageName);
 
     int calculateSignalLevel(int rssi);
 

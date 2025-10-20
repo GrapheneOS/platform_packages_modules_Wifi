@@ -32,7 +32,6 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager.DeviceMobilityState;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.IBinder;
 import android.os.Message;
@@ -42,6 +41,7 @@ import androidx.annotation.Keep;
 
 import com.android.server.wifi.WifiNative.RxFateReport;
 import com.android.server.wifi.WifiNative.TxFateReport;
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.util.ActionListenerWrapper;
 
 import java.io.FileDescriptor;
@@ -80,6 +80,13 @@ public interface ClientMode {
 
     @Keep
     void disconnect();
+
+    /**
+     * Disconnect by a uid
+     * @param uid UID that triggered the disconnect
+     */
+    @Keep
+    void disconnect(int uid);
 
     void reconnect(WorkSource ws);
 
@@ -369,6 +376,11 @@ public interface ClientMode {
      * will be artificially reduced so that ConnectivityService will prefer any other connection.
      */
     void setShouldReduceNetworkScore(boolean shouldReduceNetworkScore);
+
+    /**
+     * Set whether the network should get forced to restricted.
+     */
+    void setRestrictedNetworkDebug(boolean restricted);
 
 
     /**

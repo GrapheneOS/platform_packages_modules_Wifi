@@ -208,7 +208,8 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
     public boolean initiateDataPath(short transactionId, int peerId, int channelRequestType,
             int channel, MacAddress peer, String interfaceName,
             boolean isOutOfBand, byte[] appInfo, Capabilities capabilities,
-            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId) {
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
+        boolean frameProtectionEnabled) {
         final String methodStr = "initiateDataPath";
         return validateAndCall(methodStr, false,
                 () -> initiateDataPathInternal(methodStr, transactionId, peerId, channelRequestType,
@@ -222,7 +223,8 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
      */
     public boolean respondToDataPathRequest(short transactionId, boolean accept, int ndpId,
             String interfaceName, byte[] appInfo, boolean isOutOfBand, Capabilities capabilities,
-            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId) {
+            WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
+        boolean frameProtectionEnabled) {
         final String methodStr = "respondToDataPathRequest";
         return validateAndCall(methodStr, false,
                 () -> respondToDataPathRequestInternal(methodStr, transactionId, accept, ndpId,
@@ -259,7 +261,7 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
 
     @Override
     public boolean initiateNanBootstrappingRequest(short transactionId, int peerId, MacAddress peer,
-            int method, byte[] cookie, byte pubSubId, boolean isComeBack) {
+            int method, byte[] cookie, byte pubSubId, boolean isComeBack, byte[] ssi) {
         return false;
     }
 
@@ -759,17 +761,17 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
         req.baseConfigs.disableFollowupReceivedIndication = false;
 
         req.baseConfigs.rangingRequired =
-                subscribeConfig.mMinDistanceMmSet || subscribeConfig.mMaxDistanceMmSet;
+                subscribeConfig.mEgressDistanceMmSet || subscribeConfig.mIngressDistanceMmSet;
         req.baseConfigs.configRangingIndications = 0;
-        if (subscribeConfig.mMinDistanceMmSet) {
+        if (subscribeConfig.mEgressDistanceMmSet) {
             req.baseConfigs.distanceEgressCm = (short) Math.min(
-                    subscribeConfig.mMinDistanceMm / 10, Short.MAX_VALUE);
+                    subscribeConfig.mEgressDistanceMm / 10, Short.MAX_VALUE);
             req.baseConfigs.configRangingIndications |=
                     android.hardware.wifi.V1_0.NanRangingIndication.EGRESS_MET_MASK;
         }
-        if (subscribeConfig.mMaxDistanceMmSet) {
+        if (subscribeConfig.mIngressDistanceMmSet) {
             req.baseConfigs.distanceIngressCm = (short) Math.min(
-                    subscribeConfig.mMaxDistanceMm / 10, Short.MAX_VALUE);
+                    subscribeConfig.mIngressDistanceMm / 10, Short.MAX_VALUE);
             req.baseConfigs.configRangingIndications |=
                     android.hardware.wifi.V1_0.NanRangingIndication.INGRESS_MET_MASK;
         }

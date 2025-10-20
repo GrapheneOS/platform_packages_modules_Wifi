@@ -31,20 +31,21 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
-import android.app.ActivityManager;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.MacAddress;
@@ -57,6 +58,8 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.util.Environment;
 import android.os.Build;
 import android.os.Handler;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.os.test.TestLooper;
 import android.util.SparseArray;
 
@@ -64,6 +67,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
@@ -78,6 +82,7 @@ import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -103,6 +108,7 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
     private static final MacAddress TEST_SAP_BSSID_MAC =
             MacAddress.fromString("aa:bb:cc:11:22:33");
     private static final int TEST_USER_ID = 900;
+    private static final UserHandle TEST_USER_HANDLE = UserHandle.of(TEST_USER_ID);
 
     private final int mBand25G = SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ;
     private final int mBand256G = SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ
@@ -124,6 +130,8 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
     @Mock private SoftApCapability mSoftApCapability;
     @Mock private HalDeviceManager mHalDeviceManager;
     @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
+    @Mock private UserManager mUserManager;
+    @Mock WifiPermissionsUtil mWifiPermissionsUtil;
 
     private Random mRandom;
     private MockResourceCache mResources;
@@ -145,14 +153,15 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         // static mocking
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(Flags.class, withSettings().lenient())
-                .mockStatic(ActivityManager.class, withSettings().lenient())
                 .strictness(Strictness.LENIENT)
                 .startMocking();
         mMockApplInfo.targetSdkVersion = Build.VERSION_CODES.P;
-        when(ActivityManager.getCurrentUser()).thenReturn(TEST_USER_ID);
         when(mContext.getApplicationInfo()).thenReturn(mMockApplInfo);
+        when(mWifiInjector.getUserManager()).thenReturn(mUserManager);
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(mWifiInjector.getHalDeviceManager()).thenReturn(mHalDeviceManager);
+        when(mWifiInjector.getWifiPermissionsUtil()).thenReturn(mWifiPermissionsUtil);
+        when(mWifiPermissionsUtil.getCurrentUser()).thenReturn(TEST_USER_ID);
         // Default assume true for all old test cases.
         when(mHalDeviceManager.isConcurrencyComboLoadedFromDriver()).thenReturn(true);
         /* Setup expectations for Resources to return some default settings. */
@@ -219,10 +228,12 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         WifiApConfigStore store = new WifiApConfigStore(
                 mContext, mWifiInjector, mHandler, mBackupManagerProxy,
                 mWifiConfigStore, mWifiConfigManager, mActiveModeWarden, mWifiMetrics);
-        verify(mWifiConfigStore).registerStoreData(any());
+        // When Flags.multiUserWifiEnhancement() is enabled and sdk is at least B, we will have two
+        // StoreData registered (Shared and User StoreData).
+        verify(mWifiConfigStore, atLeastOnce()).registerStoreData(any());
         ArgumentCaptor<SoftApStoreData.DataSource> dataStoreSourceArgumentCaptor =
                 ArgumentCaptor.forClass(SoftApStoreData.DataSource.class);
-        verify(mWifiInjector).makeSoftApStoreData(dataStoreSourceArgumentCaptor.capture());
+        verify(mWifiInjector).makeSharedSoftApStoreData(dataStoreSourceArgumentCaptor.capture());
         mDataStoreSource = dataStoreSourceArgumentCaptor.getValue();
         verify(mWifiSettingsConfigStore).registerChangeListener(
                 eq(WIFI_STATIC_CHIP_INFO),
@@ -1662,5 +1673,126 @@ public class WifiApConfigStoreTest extends WifiBaseTest {
         assertThat(softApConfig.getBand()).isEqualTo(SoftApConfiguration.BAND_6GHZ);
         assertTrue(WifiApConfigStore.validateApWifiConfiguration(
                 softApConfig, false, mContext, mWifiNative));
+    }
+
+    @Test
+    public void testSharedToPrivateSoftApConfigMigrationForExistingUser() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        final SoftApConfiguration expectedConfig = setupApConfig(
+                "ConfiguredAP",                   /* SSID */
+                "randomKey",                      /* preshared key */
+                SECURITY_TYPE_WPA2_PSK,           /* security type */
+                SoftApConfiguration.BAND_2GHZ,    /* AP band */
+                0,                                /* AP channel */
+                true                              /* Hidden SSID */);
+        WifiApConfigStore store = createWifiApConfigStore();
+        verify(mWifiInjector).makeUserSoftApStoreData(mDataStoreSource);
+
+        // SharedStoreData deserializes data from DE and prepares the migration cache.
+        when(mUserManager.getUserHandles(true)).thenReturn(List.of(TEST_USER_HANDLE));
+        mDataStoreSource.prepareSharedToPrivateMigrationDataHolder(expectedConfig);
+        // UserStoreData finds no data from CE and attempts to migrate.
+        mDataStoreSource.migrateFromSharedToPrivateIfNeeded();
+        verifyApConfig(expectedConfig, store.getApConfiguration());
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).saveToStore();
+
+        // When SharedStoreData resets (resets both user-session data and migration data), no
+        // migration cache will be available.
+        mDataStoreSource.resetMigrationDataHolder();
+        mDataStoreSource.reset();
+        verifyDefaultApConfig(store.getApConfiguration(), TEST_DEFAULT_AP_SSID);
+    }
+
+    @Test
+    public void testSharedToPrivateSoftApConfigMigrationNotForNewUser() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        final SoftApConfiguration expectedConfig = setupApConfig(
+                "ConfiguredAP",                   /* SSID */
+                "randomKey",                      /* preshared key */
+                SECURITY_TYPE_WPA2_PSK,           /* security type */
+                SoftApConfiguration.BAND_2GHZ,    /* AP band */
+                0,                                /* AP channel */
+                true                              /* Hidden SSID */);
+        WifiApConfigStore store = createWifiApConfigStore();
+        verify(mWifiInjector).makeUserSoftApStoreData(mDataStoreSource);
+
+        // SharedStoreData deserializes data from DE and prepares the migration cache. Make an empty
+        // list of existing users so that any users are new.
+        when(mUserManager.getUserHandles(true)).thenReturn(List.of());
+        mDataStoreSource.prepareSharedToPrivateMigrationDataHolder(expectedConfig);
+        // UserStoreData finds no data from CE and attempts to migrate.
+        mDataStoreSource.migrateFromSharedToPrivateIfNeeded();
+        verifyDefaultApConfig(store.getApConfiguration(), TEST_DEFAULT_AP_SSID);
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).saveToStore();
+    }
+
+    @Test
+    public void testUserSwitchResetsUserSessionData() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        final SoftApConfiguration expectedConfig = setupApConfig(
+                "ConfiguredAP",                   /* SSID */
+                "randomKey",                      /* preshared key */
+                SECURITY_TYPE_WPA2_PSK,           /* security type */
+                SoftApConfiguration.BAND_2GHZ,    /* AP band */
+                0,                                /* AP channel */
+                true                              /* Hidden SSID */);
+        WifiApConfigStore store = createWifiApConfigStore();
+        verify(mWifiInjector).makeUserSoftApStoreData(mDataStoreSource);
+
+        // Setup data for an existing user.
+        mDataStoreSource.fromDeserialized(expectedConfig);
+        assertEquals(expectedConfig.getPassphrase(),
+                store.getLastConfiguredTetheredApPassphraseSinceBoot());
+        verifyApConfig(expectedConfig, store.getApConfiguration());
+
+        // When switching to a new user, WifiConfigStore#handleUserSwitch will reset data for the
+        // old user before loading data for the new user. Note WifiApConfigStore#handleUserSwitch
+        // only updates the userId and is trivial for now, so it is not covered here.
+        mDataStoreSource.reset();
+        assertNull(store.getLastConfiguredTetheredApPassphraseSinceBoot());
+        assertFalse(mDataStoreSource.hasNewDataToSerialize());
+    }
+
+    @Test
+    public void testUserStopResetsUserSessionData() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        final SoftApConfiguration expectedConfig = setupApConfig(
+                "ConfiguredAP",                   /* SSID */
+                "randomKey",                      /* preshared key */
+                SECURITY_TYPE_WPA2_PSK,           /* security type */
+                SoftApConfiguration.BAND_2GHZ,    /* AP band */
+                0,                                /* AP channel */
+                true                              /* Hidden SSID */);
+        WifiApConfigStore store = createWifiApConfigStore();
+        verify(mWifiInjector).makeUserSoftApStoreData(mDataStoreSource);
+
+        // Setup data for an existing user.
+        mDataStoreSource.fromDeserialized(expectedConfig);
+        store.handleUserSwitch(TEST_USER_ID);
+        // Re-add SoftApConfiguration so that mHasNewDataToSerialize updates to true for testing.
+        store.setApConfiguration(store.getApConfiguration());
+        assertEquals(expectedConfig.getPassphrase(),
+                store.getLastConfiguredTetheredApPassphraseSinceBoot());
+        assertTrue(mDataStoreSource.hasNewDataToSerialize());
+        verifyApConfig(expectedConfig, store.getApConfiguration());
+
+        // User-stop for a non-current user does nothing.
+        store.handleUserStop(TEST_USER_ID + 1);
+        assertEquals(expectedConfig.getPassphrase(),
+                store.getLastConfiguredTetheredApPassphraseSinceBoot());
+        assertTrue(mDataStoreSource.hasNewDataToSerialize());
+        verifyApConfig(expectedConfig, store.getApConfiguration());
+
+        // User-stop for the current user.
+        store.handleUserStop(TEST_USER_ID);
+        assertNull(store.getLastConfiguredTetheredApPassphraseSinceBoot());
+        assertFalse(mDataStoreSource.hasNewDataToSerialize());
+        verifyDefaultApConfig(store.getApConfiguration(), TEST_DEFAULT_AP_SSID);
     }
 }

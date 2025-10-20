@@ -2,6 +2,15 @@
   "presubmit": [
     {
       "name": "MtsWifiTestCases"
+    },
+    {
+      "name": "GtsGmscoreHostTestCases",
+      "keywords": ["primary-device"],
+      "options" : [
+        {
+          "include-filter": "com.google.android.gts.wifi.WifiHostTest"
+        }
+      ]
     }
   ],
   "presubmit-large": [
@@ -28,6 +37,14 @@
           "exclude-annotation": "com.android.compatibility.common.util.NonMainlineTest"
         }
       ]
+    }
+  ],
+  "automotive-mumd-presubmit": [
+    {
+      "name": "CtsNetTestCases"
+    },
+    {
+      "name": "CtsNetTestCasesUpdateStatsPermission"
     }
   ],
   "wifi-mainline-presubmit": [

@@ -133,7 +133,7 @@ public final class AwarePairingConfig implements Parcelable {
 
     /**
      * Get the supported bootstrapping methods in this config. Set of the
-     * STATUS_NETWORK_SUGGESTIONS_ values.
+     * PAIRING_BOOTSTRAPPING_ values.
      */
     @BootstrappingMethod
     public int getBootstrappingMethods() {
@@ -178,6 +178,16 @@ public final class AwarePairingConfig implements Parcelable {
     public int hashCode() {
         return Objects.hash(mPairingSetup, mPairingCache, mPairingVerification,
                 mBootstrappingMethods, mCipherSuites);
+    }
+
+    @Override
+    public String toString() {
+        return "AwarePairingConfig ["
+                + "mPairingSetup=" + mPairingSetup
+                + ", mPairingCache=" + mPairingCache
+                + ", mPairingVerification=" + mPairingVerification
+                + ", mBootstrappingMethods=" + mBootstrappingMethods
+                + ", mCipherSuites=" + mCipherSuites + "]";
     }
 
     /** @hide */

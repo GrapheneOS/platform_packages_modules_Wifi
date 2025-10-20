@@ -29,6 +29,7 @@ import java.io.File;
  * Provides access to environment variables.
  *
  * Note: @hide methods copied from android.os.Environment
+ * @hide
  */
 public class Environment {
     /**

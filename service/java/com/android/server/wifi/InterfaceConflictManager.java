@@ -128,7 +128,7 @@ public class InterfaceConflictManager {
             }};
         if (Flags.monitorIntentForAllUsers()) {
             mContext.registerReceiverForAllUsers(p2pConnectionChangeReceiver,
-                    intentFilter, null, mThreadRunner.getHandler());
+                    intentFilter, null, null);
         } else {
             mContext.registerReceiver(p2pConnectionChangeReceiver, intentFilter);
         }

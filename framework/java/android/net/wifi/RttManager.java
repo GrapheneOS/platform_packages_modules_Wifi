@@ -272,13 +272,19 @@ public class RttManager {
 
             return sb.toString();
         }
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         @Override
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         @Override
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeInt(oneSidedRttSupported ? 1 : 0);
@@ -292,7 +298,10 @@ public class RttManager {
             dest.writeInt(mcVersion);
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public static final @android.annotation.NonNull Creator<RttCapabilities> CREATOR =
             new Creator<RttCapabilities>() {
             @Override
@@ -309,7 +318,10 @@ public class RttManager {
                 capabilities.mcVersion = in.readInt();
                 return capabilities;
             }
-                /** Implement the Parcelable interface {@hide} */
+                /**
+                 * Implement the Parcelable interface
+                 * @hide
+                 */
                 @Override
                 public RttCapabilities[] newArray(int size) {
                     return new RttCapabilities[size];
@@ -480,7 +492,7 @@ public class RttManager {
         }
 
         /**
-         * {@hide}
+         * @hide
          */
         public String toString() {
             StringBuilder sb = new StringBuilder();
@@ -523,13 +535,19 @@ public class RttManager {
             mParams = (params == null ? new RttParams[0] : params);
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         @Override
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         @Override
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeInt(mParams.length);
@@ -556,7 +574,10 @@ public class RttManager {
             }
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public static final @android.annotation.NonNull Creator<ParcelableRttParams> CREATOR =
                 new Creator<ParcelableRttParams>() {
                     @Override
@@ -766,7 +787,7 @@ public class RttManager {
         }
 
         /**
-         * {@hide}
+         * @hide
          */
         public String toString() {
             StringBuilder sb = new StringBuilder();
@@ -810,13 +831,19 @@ public class RttManager {
             return sb.toString();
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         @Override
         public int describeContents() {
             return 0;
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         @Override
         public void writeToParcel(Parcel dest, int flags) {
             if (mResults != null) {
@@ -859,7 +886,10 @@ public class RttManager {
             }
         }
 
-        /** Implement the Parcelable interface {@hide} */
+        /**
+         * Implement the Parcelable interface
+         * @hide
+         */
         public static final @android.annotation.NonNull Creator<ParcelableRttResults> CREATOR =
                 new Creator<ParcelableRttResults>() {
                     @Override

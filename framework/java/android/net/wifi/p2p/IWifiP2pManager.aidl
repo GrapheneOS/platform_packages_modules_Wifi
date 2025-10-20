@@ -24,7 +24,7 @@ import android.os.Messenger;
 /**
  * Interface that WifiP2pService implements
  *
- * {@hide}
+ * @hide
  */
 interface IWifiP2pManager
 {

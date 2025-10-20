@@ -16,6 +16,7 @@
 
 package android.net.wifi.aware;
 
+import static com.android.wifi.flags.Flags.FLAG_AWARE_PERIODIC_RANGING_INTERVALS;
 import static com.android.ranging.flags.Flags.FLAG_RANGING_RTT_ENABLED;
 
 import android.annotation.FlaggedApi;
@@ -77,6 +78,10 @@ public final class Characteristics implements Parcelable {
     /** @hide */
     @FlaggedApi(FLAG_RANGING_RTT_ENABLED)
     public static final String KEY_MAX_SUPPORTED_RX_CHAINS = "key_max_supported_rx_chains";
+    /** @hide */
+    @FlaggedApi(FLAG_AWARE_PERIODIC_RANGING_INTERVALS)
+    public static final String KEY_SUPPORTED_PERIODIC_RANGING_INTERVALS =
+            "key_supported_periodic_ranging_intervals";
 
     private final Bundle mCharacteristics;
 
@@ -226,6 +231,72 @@ public final class Characteristics implements Parcelable {
     @SystemApi
     public boolean isPeriodicRangingSupported() {
         return mCharacteristics.getBoolean(KEY_SUPPORT_PERIODIC_RANGING);
+    }
+
+    /** @hide */
+    @IntDef(flag = true, prefix = { "SUPPORTED_PERIODIC_RANGING_INTERVAL_" }, value = {
+            SUPPORTED_PERIODIC_RANGING_INTERVAL_NONE,
+            SUPPORTED_PERIODIC_RANGING_INTERVAL_128TU,
+            SUPPORTED_PERIODIC_RANGING_INTERVAL_256TU,
+            SUPPORTED_PERIODIC_RANGING_INTERVAL_512TU,
+            SUPPORTED_PERIODIC_RANGING_INTERVAL_1024TU,
+            SUPPORTED_PERIODIC_RANGING_INTERVAL_2048TU,
+            SUPPORTED_PERIODIC_RANGING_INTERVAL_4096TU,
+            SUPPORTED_PERIODIC_RANGING_INTERVAL_8192TU,
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface SupportedPeriodicRangingIntervals {}
+
+    /**
+     * Indicates that periodic ranging is not supported.
+     * @hide
+     */
+    @FlaggedApi(FLAG_AWARE_PERIODIC_RANGING_INTERVALS)
+    @SystemApi
+    public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_NONE = 0;
+
+    /** @hide */
+    @FlaggedApi(FLAG_AWARE_PERIODIC_RANGING_INTERVALS)
+    @SystemApi
+    public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_128TU = 1 << 0;
+    /** @hide */
+    @FlaggedApi(FLAG_AWARE_PERIODIC_RANGING_INTERVALS)
+    @SystemApi
+    public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_256TU = 1 << 1;
+    /** @hide */
+    @FlaggedApi(FLAG_AWARE_PERIODIC_RANGING_INTERVALS)
+    @SystemApi
+    public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_512TU = 1 << 2;
+    /** @hide */
+    @FlaggedApi(FLAG_AWARE_PERIODIC_RANGING_INTERVALS)
+    @SystemApi
+    public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_1024TU = 1 << 3;
+    /** @hide */
+    @FlaggedApi(FLAG_AWARE_PERIODIC_RANGING_INTERVALS)
+    @SystemApi
+    public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_2048TU = 1 << 4;
+    /** @hide */
+    @FlaggedApi(FLAG_AWARE_PERIODIC_RANGING_INTERVALS)
+    @SystemApi
+    public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_4096TU = 1 << 5;
+    /** @hide */
+    @FlaggedApi(FLAG_AWARE_PERIODIC_RANGING_INTERVALS)
+    @SystemApi
+    public static final int SUPPORTED_PERIODIC_RANGING_INTERVAL_8192TU = 1 << 6;
+
+    /**
+     * Get the supported periodic ranging intervals. The intervals are specified in Time Units (TU),
+     * as defined in the Wi-Fi Aware Specification.
+     *
+     * @return A bitmask of the supported intervals. The value will be a combination of the
+     * {@code SUPPORTED_PERIODIC_RANGING_INTERVAL_*} constants, or
+     * {@link #SUPPORTED_PERIODIC_RANGING_INTERVAL_NONE} if the feature is not supported.
+     * @hide
+     */
+    @FlaggedApi(FLAG_AWARE_PERIODIC_RANGING_INTERVALS)
+    @SystemApi
+    public @SupportedPeriodicRangingIntervals int getSupportedPeriodicRangingIntervals() {
+        return mCharacteristics.getInt(KEY_SUPPORTED_PERIODIC_RANGING_INTERVALS);
     }
 
     /** @hide */

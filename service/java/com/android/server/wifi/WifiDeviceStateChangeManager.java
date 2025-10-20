@@ -126,7 +126,7 @@ public class WifiDeviceStateChangeManager {
                 };
         if (mFeatureFlags.monitorIntentForAllUsers()) {
             mContext.registerReceiverForAllUsers(screenChangedReceiver, filter,
-                    null, mWifiThreadRunner.getHandler());
+                    null, null);
         } else {
             mContext.registerReceiver(screenChangedReceiver, filter);
         }

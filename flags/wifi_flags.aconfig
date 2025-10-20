@@ -72,17 +72,6 @@ flag {
 }
 
 flag {
-    name: "voip_detection_bugfix"
-    namespace: "wifi"
-    description: "Detect VoIP over Wifi and execute optimization"
-    bug: "295885471"
-    is_fixed_read_only: true
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "get_bssid_blocklist_api"
     is_exported: true
     namespace: "wifi"
@@ -137,17 +126,6 @@ flag {
     description: "Wi-Fi Alliance RSN Overriding feature"
     bug: "348669010"
     is_fixed_read_only: true
-}
-
-flag {
-    name: "new_uri_parsing_for_escape_character"
-    namespace: "wifi"
-    description: "New parsing logic for Zxing uri format which support escape character"
-    bug: "342706482"
-    is_fixed_read_only: true
-    metadata {
-        purpose: PURPOSE_BUGFIX
-    }
 }
 
 flag {
@@ -441,8 +419,62 @@ flag {
 }
 
 flag {
+    name: "aware_ingress_egress_distance"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to set/get ingress and egress distances"
+    bug: "399423727"
+}
+
+flag {
+    name: "local_only_disconnect_reason"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to get local-only connection disconnect reason"
+    bug: "440270888"
+}
+
+flag {
+    name: "aware_periodic_ranging_intervals"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to get supported periodic ranging intervals"
+    bug: "391159870"
+}
+
+flag {
     name: "ml_scorer_in_wifi_fw"
     namespace: "wifi"
     description: "Add ML scorer into Wi-Fi framework"
     bug: "412641160"
+}
+
+flag {
+    name: "send_service_specific_info_in_bootstrapping_request"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to send a service specific info in bootstrapping request"
+    bug: "440620121"
+}
+
+flag {
+    name: "set_pairing_discovery_channel_frequency"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to set discovery channel for pairing"
+    bug: "438011300"
+}
+
+flag {
+    name: "wifi_aware_supplicant_solution"
+    namespace: "wifi"
+    description: "Use the supplicant solution for wifi aware"
+    bug: "448421897"
+}
+flag {
+    name: "last_caller_26q2"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new reason codes for last caller tracking"
+    bug: "448479152"
 }

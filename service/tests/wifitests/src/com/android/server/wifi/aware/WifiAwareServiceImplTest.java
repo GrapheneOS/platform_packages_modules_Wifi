@@ -428,7 +428,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
                 false);
 
         SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().setServiceName(
-                "something.valid").setMaxDistanceMm(100).build();
+                "something.valid").setIngressDistanceMm(100).build();
         int clientId = doConnect();
         IWifiAwareDiscoverySessionCallback mockCallback = mock(
                 IWifiAwareDiscoverySessionCallback.class);
@@ -622,7 +622,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
     @Test
     public void testSubscribe() {
         SubscribeConfig subscribeConfig = new SubscribeConfig.Builder()
-                .setServiceName("something.valid").setMaxDistanceMm(100).build();
+                .setServiceName("something.valid").setIngressDistanceMm(100).build();
         int clientId = doConnect();
         IWifiAwareDiscoverySessionCallback mockCallback = mock(
                 IWifiAwareDiscoverySessionCallback.class);
@@ -643,7 +643,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         setTargetSdkToT();
 
         SubscribeConfig subscribeConfig = new SubscribeConfig.Builder()
-                .setServiceName("something.valid").setMaxDistanceMm(100).build();
+                .setServiceName("something.valid").setIngressDistanceMm(100).build();
         int clientId = doConnect();
         IWifiAwareDiscoverySessionCallback mockCallback = mock(
                 IWifiAwareDiscoverySessionCallback.class);
@@ -663,7 +663,7 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         doThrow(new SecurityException()).when(mWifiPermissionsUtil)
                 .enforceNearbyDevicesPermission(any(), anyBoolean(), any());
         SubscribeConfig subscribeConfig = new SubscribeConfig.Builder()
-                .setServiceName("something.valid").setMaxDistanceMm(100).build();
+                .setServiceName("something.valid").setIngressDistanceMm(100).build();
         int clientId = doConnect();
         IWifiAwareDiscoverySessionCallback mockCallback = mock(
                 IWifiAwareDiscoverySessionCallback.class);
@@ -1039,6 +1039,24 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
         assertThrows(SecurityException.class, () ->mDut.connect(mBinderMock, callingPackage,
                 callingFeatureId, mCallbackMock, null, false, mExtras, true));
 
+    }
+
+    @Test
+    public void testUserSwitch() {
+        mDut.handleUserSwitch(10);
+        verify(mAwareStateManagerMock).handleUserSwitch(10);
+    }
+
+    @Test
+    public void testUserUnlock() {
+        mDut.handleUserUnlock(10);
+        verify(mAwareStateManagerMock).handleUserUnlock(10);
+    }
+
+    @Test
+    public void testUserStop() {
+        mDut.handleUserStop(10);
+        verify(mAwareStateManagerMock).handleUserStop(10);
     }
 
     /*

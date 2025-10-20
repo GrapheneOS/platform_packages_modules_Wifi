@@ -36,7 +36,8 @@
                        com.google.android.mobly.snippet.uiautomator.UiDeviceSnippet,
                        com.google.android.mobly.snippet.uiautomator.UiObject2Snippet,
                        com.google.android.mobly.snippet.uiautomator.UiWatcherSnippet,
-                       com.google.android.mobly.snippet.bundled.TelephonySnippet"/>
+                       com.google.android.mobly.snippet.bundled.TelephonySnippet,
+                       com.google.snippet.wifi.usd.WifiUsdManagerSnippet"/>
     <meta-data
         android:name="mobly-object-converter"
         tools:replace="android:value"

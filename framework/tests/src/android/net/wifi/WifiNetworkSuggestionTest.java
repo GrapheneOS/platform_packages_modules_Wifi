@@ -1542,27 +1542,6 @@ public class WifiNetworkSuggestionTest {
     /**
      * Ensure {@link WifiNetworkSuggestion.Builder#build()} throws an exception
      * when set both {@link WifiNetworkSuggestion.Builder#setCarrierMerged(boolean)} (boolean)}
-     * to true on a network is not metered.
-     */
-    @Test(expected = IllegalStateException.class)
-    public void testSetCarrierMergedNetworkOnUnmeteredNetworkFail() {
-        assumeTrue(SdkLevel.isAtLeastS());
-
-        WifiEnterpriseConfig enterpriseConfig = new WifiEnterpriseConfig();
-        enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.TLS);
-        enterpriseConfig.setCaCertificate(FakeKeys.CA_CERT0);
-        enterpriseConfig.setDomainSuffixMatch(TEST_DOMAIN_SUFFIX_MATCH);
-        new WifiNetworkSuggestion.Builder()
-                .setSsid(TEST_SSID)
-                .setSubscriptionId(1)
-                .setWpa2EnterpriseConfig(enterpriseConfig)
-                .setCarrierMerged(true)
-                .build();
-    }
-
-    /**
-     * Ensure {@link WifiNetworkSuggestion.Builder#build()} throws an exception
-     * when set both {@link WifiNetworkSuggestion.Builder#setCarrierMerged(boolean)} (boolean)}
      * to true on a network which {@link WifiNetworkSuggestion.Builder#setSubscriptionId(int)}
      * is not set with a valid sub id.
      */

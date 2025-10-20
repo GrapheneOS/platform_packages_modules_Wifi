@@ -327,12 +327,18 @@ public class WifiP2pDevice implements Parcelable {
         return (deviceCapability & DEVICE_CAPAB_SERVICE_DISCOVERY) != 0;
     }
 
-    /** Returns true if the device is capable of invitation {@hide}*/
+    /**
+     * Returns true if the device is capable of invitation
+     * @hide
+     */
     public boolean isInvitationCapable() {
         return (deviceCapability & DEVICE_CAPAB_INVITATION_PROCEDURE) != 0;
     }
 
-    /** Returns true if the device reaches the limit. {@hide}*/
+    /**
+     * Returns true if the device reaches the limit.
+     * @hide
+     */
     public boolean isDeviceLimit() {
         return (deviceCapability & DEVICE_CAPAB_DEVICE_LIMIT) != 0;
     }
@@ -342,7 +348,10 @@ public class WifiP2pDevice implements Parcelable {
         return (groupCapability & GROUP_CAPAB_GROUP_OWNER) != 0;
     }
 
-    /** Returns true if the group reaches the limit. {@hide}*/
+    /**
+     * Returns true if the group reaches the limit.
+     * @hide
+     */
     public boolean isGroupLimit() {
         return (groupCapability & GROUP_CAPAB_GROUP_LIMIT) != 0;
     }
@@ -359,7 +368,10 @@ public class WifiP2pDevice implements Parcelable {
         status = device.status;
     }
 
-    /** Updates details obtained from supplicant @hide */
+    /**
+     * Updates details obtained from supplicant
+     * @hide
+     */
     public void updateSupplicantDetails(WifiP2pDevice device) {
         if (device == null) {
             throw new IllegalArgumentException("device is null");

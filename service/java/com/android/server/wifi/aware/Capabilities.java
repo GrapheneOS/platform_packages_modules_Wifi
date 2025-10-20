@@ -51,6 +51,8 @@ public class Capabilities {
     public boolean isPeriodicRangingSupported;
     public int maxSupportedRangingPktBandWidth;
     public int maxSupportedRxChains;
+    public int supportedPeriodicRangingIntervals =
+            Characteristics.SUPPORTED_PERIODIC_RANGING_INTERVAL_NONE;
     public int ndpSessionLimit;
 
     /**
@@ -80,6 +82,8 @@ public class Capabilities {
         bundle.putInt(Characteristics.KEY_MAX_SUPPORTED_RANGING_PKT_BANDWIDTH,
                 maxSupportedRangingPktBandWidth);
         bundle.putInt(Characteristics.KEY_MAX_SUPPORTED_RX_CHAINS, maxSupportedRxChains);
+        bundle.putInt(Characteristics.KEY_SUPPORTED_PERIODIC_RANGING_INTERVALS,
+                supportedPeriodicRangingIntervals);
         return new Characteristics(bundle);
     }
 

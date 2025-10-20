@@ -191,7 +191,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
     private int mInternalScore;
     private int mInternalScorerType;
 
-    /** {@hide} */
+    /** @hide */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(prefix = {"WME_ACCESS_CATEGORY_"}, value = {
         WME_ACCESS_CATEGORY_BE,
@@ -400,7 +400,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
         }
     }
 
-    /** {@hide} */
+    /** @hide */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(prefix = {"WIFI_PREAMBLE_"}, value = {
         WIFI_PREAMBLE_OFDM,
@@ -427,7 +427,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
     /** Invalid */
     public static final int WIFI_PREAMBLE_INVALID = -1;
 
-    /** {@hide} */
+    /** @hide */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(prefix = {"WIFI_SPATIAL_STREAMS_"}, value = {
         WIFI_SPATIAL_STREAMS_ONE,
@@ -448,7 +448,7 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
     /** Invalid */
     public static final int WIFI_SPATIAL_STREAMS_INVALID = -1;
 
-    /** {@hide} */
+    /** @hide */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(prefix = {"WIFI_BANDWIDTH_"}, value = {
         WIFI_BANDWIDTH_20_MHZ,
@@ -1192,7 +1192,10 @@ public final class WifiUsabilityStatsEntry implements Parcelable {
     /** Link stats per link */
     private final SparseArray<LinkStats> mLinkStats;
 
-    /** Constructor function {@hide} */
+    /**
+     * Constructor function
+     * @hide
+     */
     public WifiUsabilityStatsEntry(long timeStampMillis, int rssi, int linkSpeedMbps,
             long totalTxSuccess, long totalTxRetries, long totalTxBad, long totalRxSuccess,
             long totalRadioOnTimeMillis, long totalRadioTxTimeMillis, long totalRadioRxTimeMillis,

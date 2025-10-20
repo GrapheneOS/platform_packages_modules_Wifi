@@ -29,11 +29,11 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.DeviceMobilityState;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.WorkSource;
 
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.util.ActionListenerWrapper;
 
 import java.io.FileDescriptor;
@@ -61,6 +61,12 @@ public interface ClientModeDefaults extends ClientMode {
     }
 
     default void disconnect() { }
+
+    /**
+     * Disconnect by a uid
+     * @param uid UID that triggered the disconnect
+     */
+    default void disconnect(int uid) { }
 
     default void reconnect(WorkSource ws) { }
 
@@ -269,6 +275,9 @@ public interface ClientModeDefaults extends ClientMode {
 
     @Override
     default void setShouldReduceNetworkScore(boolean shouldReduceNetworkScore) { }
+
+    @Override
+    default void setRestrictedNetworkDebug(boolean restricted) { }
 
     @Override
     default void updateCapabilities() { }

@@ -133,6 +133,26 @@ public final class WifiP2pUsdBasedServiceConfig implements Parcelable {
         return sbuf.toString();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof WifiP2pUsdBasedServiceConfig)) {
+            return false;
+        }
+        WifiP2pUsdBasedServiceConfig usdServiceConfig = (WifiP2pUsdBasedServiceConfig) o;
+        return mServiceProtocolType == usdServiceConfig.mServiceProtocolType
+                && Objects.equals(mServiceName, usdServiceConfig.mServiceName)
+                && Arrays.equals(mServiceSpecificInfo, usdServiceConfig.mServiceSpecificInfo);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mServiceProtocolType, mServiceName,
+                Arrays.hashCode(mServiceSpecificInfo));
+    }
+
     /** Implement the Parcelable interface */
     public int describeContents() {
         return 0;

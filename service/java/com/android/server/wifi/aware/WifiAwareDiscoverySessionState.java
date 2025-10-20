@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.aware;
 
+import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_RESUME_INTERNAL_ERROR;
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_INTERNAL_ERROR;
 
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_24GHZ;
@@ -46,6 +47,7 @@ import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -59,6 +61,7 @@ public class WifiAwareDiscoverySessionState {
     private boolean mDbg = false;
 
     private static int sNextPeerIdToBeAllocated = 100; // used to create a unique peer ID
+    public static final int INVALID_INSTANCE_ID = 0;
 
     private final WifiAwareNativeApi mWifiAwareNativeApi;
     private int mSessionId;
@@ -73,6 +76,7 @@ public class WifiAwareDiscoverySessionState {
     private AwarePairingConfig mPairingConfig;
     private boolean mIsSuspendable;
     private boolean mIsSuspended;
+    private final HashSet<String> mPairedPeers = new HashSet<>();
 
     static class PeerInfo {
         PeerInfo(int instanceId, byte[] mac, PeerHandle peerHandle) {
@@ -158,13 +162,50 @@ public class WifiAwareDiscoverySessionState {
     }
 
     /**
-     * Check if proposed method can be fulfilled by the configure.
+     * Check if the peer is paired.
      */
-    public boolean acceptsBootstrappingMethod(int method) {
+    public boolean isPeerPaired(byte[] mac) {
+        return mPairedPeers.contains(HexEncoding.encodeToString(mac));
+    }
+
+    /**
+     * Get the matched method from the publisher
+     */
+    public int getMatchedBootstrappingMethod(int method) {
         if (mPairingConfig == null) {
-            return false;
+            return 0;
         }
-        return (mPairingConfig.getBootstrappingMethods() & method) != 0;
+        int matchingMethod = getMatchingBootstrappingMethod(method);
+        if ((mPairingConfig.getBootstrappingMethods() & matchingMethod) != 0) {
+            return matchingMethod;
+        }
+        if ((mPairingConfig.getBootstrappingMethods() & method) != 0) {
+            // keep the legacy behavior
+            return method;
+        }
+        return 0;
+    }
+
+    private static int getMatchingBootstrappingMethod(int method) {
+        return switch (method) {
+            case AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN ->
+                    AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_DISPLAY;
+            case AwarePairingConfig.PAIRING_BOOTSTRAPPING_NFC_READER ->
+                    AwarePairingConfig.PAIRING_BOOTSTRAPPING_NFC_TAG;
+            case AwarePairingConfig.PAIRING_BOOTSTRAPPING_NFC_TAG ->
+                    AwarePairingConfig.PAIRING_BOOTSTRAPPING_NFC_READER;
+            case AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_DISPLAY ->
+                    AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN;
+            case AwarePairingConfig.PAIRING_BOOTSTRAPPING_PIN_CODE_KEYPAD ->
+                    AwarePairingConfig.PAIRING_BOOTSTRAPPING_PIN_CODE_DISPLAY;
+            case AwarePairingConfig.PAIRING_BOOTSTRAPPING_PASSPHRASE_KEYPAD ->
+                    AwarePairingConfig.PAIRING_BOOTSTRAPPING_PASSPHRASE_DISPLAY;
+            case AwarePairingConfig.PAIRING_BOOTSTRAPPING_PIN_CODE_DISPLAY ->
+                    AwarePairingConfig.PAIRING_BOOTSTRAPPING_PIN_CODE_KEYPAD;
+            case AwarePairingConfig.PAIRING_BOOTSTRAPPING_PASSPHRASE_DISPLAY ->
+                    AwarePairingConfig.PAIRING_BOOTSTRAPPING_PASSPHRASE_KEYPAD;
+            default -> method;
+        };
     }
 
     /**
@@ -380,7 +421,7 @@ public class WifiAwareDiscoverySessionState {
      */
     public boolean resume(short transactionId) {
         if (!mWifiAwareNativeApi.resumeRequest(transactionId, mPubSubId)) {
-            onResumeFail(WIFI_AWARE_SUSPEND_INTERNAL_ERROR);
+            onResumeFail(WIFI_AWARE_RESUME_INTERNAL_ERROR);
             return false;
         }
         return true;
@@ -521,16 +562,17 @@ public class WifiAwareDiscoverySessionState {
      *                      match indication).
      * @param method        proposed bootstrapping method
      * @param isComeBack    If the request is for a previous comeback response
+     * @param ssi           Service specific information
      * @return True if the request send succeed.
      */
     public boolean initiateBootstrapping(short transactionId,
-            int peerId, int method, byte[] cookie, boolean isComeBack) {
+            int peerId, int method, byte[] cookie, boolean isComeBack, byte[] ssi) {
         PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
         if (peerInfo == null) {
             Log.e(TAG, "initiateBootstrapping: attempting to send pairing request to an address"
                     + " which didn't match/contact us");
             try {
-                mCallback.onBootstrappingVerificationConfirmed(peerId, false, method);
+                mCallback.onBootstrappingVerificationConfirmed(peerId, false, method, null);
             } catch (RemoteException e) {
                 Log.e(TAG, "initiateBootstrapping: RemoteException=" + e);
             }
@@ -538,10 +580,10 @@ public class WifiAwareDiscoverySessionState {
         }
 
         boolean success = mWifiAwareNativeApi.initiateBootstrapping(transactionId,
-                peerInfo.mInstanceId, peerInfo.mMac, method, cookie, mPubSubId, isComeBack);
+                peerInfo.mInstanceId, peerInfo.mMac, method, cookie, mPubSubId, isComeBack, ssi);
         if (!success) {
             try {
-                mCallback.onBootstrappingVerificationConfirmed(peerId, false, method);
+                mCallback.onBootstrappingVerificationConfirmed(peerId, false, method, null);
             } catch (RemoteException e) {
                 Log.e(TAG, "initiateBootstrapping: RemoteException=" + e);
             }
@@ -571,9 +613,8 @@ public class WifiAwareDiscoverySessionState {
             return false;
         }
 
-        boolean success = mWifiAwareNativeApi.respondToBootstrappingRequest(transactionId,
+        return mWifiAwareNativeApi.respondToBootstrappingRequest(transactionId,
                 bootstrappingId, accept, mPubSubId, method);
-        return success;
     }
 
     /**
@@ -624,8 +665,9 @@ public class WifiAwareDiscoverySessionState {
      */
     public void onMatchExpired(int requestorInstanceId) {
         int peerId = 0;
+        PeerInfo peerInfo = null;
         for (int i = 0; i < mPeerInfoByRequestorInstanceId.size(); ++i) {
-            PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.valueAt(i);
+            peerInfo = mPeerInfoByRequestorInstanceId.valueAt(i);
             if (peerInfo.mInstanceId == requestorInstanceId) {
                 peerId = mPeerInfoByRequestorInstanceId.keyAt(i);
                 mPeerInfoByRequestorInstanceId.delete(peerId);
@@ -635,6 +677,7 @@ public class WifiAwareDiscoverySessionState {
         if (peerId == 0) {
             return;
         }
+        mPairedPeers.remove(HexEncoding.encodeToString(peerInfo.mMac));
 
         try {
             mCallback.onMatchExpired(peerId);
@@ -666,11 +709,14 @@ public class WifiAwareDiscoverySessionState {
     /**
      * Event that receive the pairing request from the peer
      */
-    public void onPairingRequestReceived(int requestorInstanceId, byte[] peerMac,
-            int pairingId) {
-        int peerId = getPeerIdOrAddIfNew(requestorInstanceId, peerMac);
+    public void onPairingRequestReceived(byte[] peerMac, int pairingId) {
+        PeerHandle peerHandle = getPeerHandleFromPeerMac(peerMac);
+        if (peerHandle == null) {
+            Log.e(TAG, "Could not find Peer Handle for the pairing request");
+            return;
+        }
         try {
-            mCallback.onPairingSetupRequestReceived(peerId, pairingId);
+            mCallback.onPairingSetupRequestReceived(peerHandle.peerId, pairingId);
         } catch (RemoteException e) {
             Log.w(TAG, "onPairingRequestReceived: RemoteException (FYI): " + e);
         }
@@ -689,6 +735,10 @@ public class WifiAwareDiscoverySessionState {
             }
         } catch (RemoteException e) {
             Log.w(TAG, "onPairingConfirmReceived: RemoteException (FYI): " + e);
+        }
+        PeerInfo peerInfo = getPeerInfo(peerId);
+        if (accept) {
+            mPairedPeers.add(HexEncoding.encodeToString(peerInfo.mMac));
         }
     }
 
@@ -720,9 +770,22 @@ public class WifiAwareDiscoverySessionState {
      */
     public void onBootStrappingConfirmReceived(int peerId, boolean accept, int method) {
         try {
-            mCallback.onBootstrappingVerificationConfirmed(peerId, accept, method);
+            mCallback.onBootstrappingVerificationConfirmed(peerId, accept, method, null);
         } catch (RemoteException e) {
             Log.w(TAG, "onBootStrappingConfirmReceived: RemoteException (FYI): " + e);
+        }
+    }
+
+    /**
+     * Event that response to bootstrapping request success
+     */
+    public void onBootstrappingResponseConfirmed(int peerId, int method,
+            byte[] serviceSpecificInfo) {
+        try {
+            mCallback.onBootstrappingVerificationConfirmed(peerId, true,
+                    getMatchedBootstrappingMethod(method), serviceSpecificInfo);
+        } catch (RemoteException e) {
+            Log.w(TAG, "onBootstrappingResponseConfirmed: RemoteException (FYI): " + e);
         }
     }
 
@@ -733,9 +796,14 @@ public class WifiAwareDiscoverySessionState {
     public int getPeerIdOrAddIfNew(int requestorInstanceId, byte[] peerMac) {
         for (int i = 0; i < mPeerInfoByRequestorInstanceId.size(); ++i) {
             PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.valueAt(i);
-            if (peerInfo.mInstanceId == requestorInstanceId && Arrays.equals(peerMac,
-                    peerInfo.mMac)) {
-                return mPeerInfoByRequestorInstanceId.keyAt(i);
+            if (Arrays.equals(peerMac, peerInfo.mMac)) {
+                if (peerInfo.mInstanceId == INVALID_INSTANCE_ID) {
+                    // Update the instance ID if it was invalid.
+                    peerInfo.mInstanceId = requestorInstanceId;
+                }
+                if (peerInfo.mInstanceId == requestorInstanceId) {
+                    return peerInfo.mPeerHandle.peerId;
+                }
             }
         }
 

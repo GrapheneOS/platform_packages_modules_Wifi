@@ -1,0 +1,37 @@
+<!-- Copyright (C) 2025 The Android Open Source Project
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+         http://www.apache.org/licenses/LICENSE-2.0
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<configuration description="Test config for Wi-Fi USD multi-device tests">
+    <option name="test-suite-tag" value="cts-v-host" />
+    <option name="config-descriptor:metadata" key="component" value="wifi" />
+    <option name="config-descriptor:metadata" key="parameter" value="not_instant_app" />
+    <option name="config-descriptor:metadata" key="parameter" value="not_multi_abi" />
+    <option name="config-descriptor:metadata" key="parameter" value="secondary_user" />
+
+    <device name="AndroidDevice">
+        <target_preparer class="AndroidDeviceFeaturesCheckDecorator">
+            <option name="required_feature" value="android.hardware.wifi" />
+        </target_preparer>
+        <target_preparer class="AndroidInstallAppsDecorator" />
+    </device>
+    <device name="AndroidDevice">
+        <target_preparer class="AndroidDeviceFeaturesCheckDecorator">
+            <option name="required_feature" value="android.hardware.wifi" />
+        </target_preparer>
+        <target_preparer class="AndroidInstallAppsDecorator" />
+    </device>
+
+    <test class="MoblyAospPackageTest" />
+
+    <option name="mobly_pkg" key="file" value="WifiUsdTests" />
+    <option name="build_apk" key="file" value="wifi_mobly_snippet.apk" />
+    <option name="build_apk" key="file" value="mobly-bundled-snippets.apk" />
+</configuration>

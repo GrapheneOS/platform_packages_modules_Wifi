@@ -57,6 +57,7 @@ import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_5_WITH_DFS_6_60_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
+import static android.os.Process.INVALID_UID;
 import static android.os.Process.WIFI_UID;
 import static android.os.Process.myUid;
 
@@ -162,6 +163,7 @@ import android.net.wifi.IInterfaceCreationInfoCallback;
 import android.net.wifi.ILastCallerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.ILocalOnlyConnectionStatusListener;
+import android.net.wifi.ILocalOnlyDisconnectionStatusListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.IMacAddressListListener;
 import android.net.wifi.IMapListener;
@@ -466,6 +468,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock IScanResultsCallback mScanResultsCallback;
     @Mock ISuggestionConnectionStatusListener mSuggestionConnectionStatusListener;
     @Mock ILocalOnlyConnectionStatusListener mLocalOnlyConnectionStatusListener;
+    @Mock ILocalOnlyDisconnectionStatusListener mLocalOnlyDisconnectionStatusListener;
     @Mock ISuggestionUserApprovalStatusListener mSuggestionUserApprovalStatusListener;
     @Mock IOnWifiActivityEnergyInfoListener mOnWifiActivityEnergyInfoListener;
     @Mock ISubsystemRestartCallback mSubsystemRestartCallback;
@@ -925,6 +928,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
      */
     @Test
     public void testSetWifiEnabledMetricsPrivilegedApp() throws Exception {
+        when(mFeatureFlags.localOnlyDisconnectReason()).thenReturn(true);
         when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
                 anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
@@ -935,8 +939,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
         InOrder inorder = inOrder(mWifiMetrics);
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, true));
         mLooper.dispatchAll();
+        verify(mWifiNetworkFactory, never()).onDisconnectionExpected(anyInt(), anyBoolean());
         assertTrue(mWifiServiceImpl.setWifiEnabled(TEST_PACKAGE_NAME, false));
         mLooper.dispatchAll();
+        verify(mWifiNetworkFactory).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISABLE_WIFI, true);
         verify(mWifiConnectivityManager).setAutoJoinEnabledExternal(true, false);
         inorder.verify(mWifiMetrics).logUserActionEvent(UserActionEvent.EVENT_TOGGLE_WIFI_ON);
         inorder.verify(mWifiMetrics).incrementNumWifiToggles(eq(true), eq(true));
@@ -6327,7 +6334,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
         assertTrue(mWifiServiceImpl.disconnect(TEST_PACKAGE_NAME));
         mLooper.dispatchAll();
-        verify(mClientModeManager).disconnect();
+        verify(mClientModeManager).disconnect(Process.myUid());
+        verify(mLastCallerInfoManager).put(eq(WifiManager.API_DISCONNECT), anyInt(), anyInt(),
+                anyInt(), eq(TEST_PACKAGE_NAME), anyBoolean());
     }
 
     /**
@@ -6340,6 +6349,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verifyCheckChangePermission(TEST_PACKAGE_NAME);
         verify(mClientModeManager, never()).disconnect();
+        verify(mClientModeManager, never()).disconnect(anyInt());
     }
 
     /**
@@ -6358,6 +6368,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
         }
         verifyCheckChangePermission(TEST_PACKAGE_NAME);
         verify(mClientModeManager, never()).disconnect();
+        verify(mClientModeManager, never()).disconnect(anyInt());
+        verify(mLastCallerInfoManager, never()).put(eq(WifiManager.API_DISCONNECT), anyInt(),
+                anyInt(), anyInt(), any(), anyBoolean());
     }
 
     @Test
@@ -7936,6 +7949,54 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConnectivityManager, times(1))
                 .setDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
         verifyNoMoreInteractions(mWifiConnectivityManager);
+    }
+
+    @Test
+    public void setDeviceMobilityStateMobilityDetectionAppUidIsInvalid() {
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(INVALID_UID);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(false);
+
+        mWifiServiceImpl.setDeviceMobilityState(DEVICE_MOBILITY_STATE_STATIONARY);
+        mLooper.dispatchAll();
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(INVALID_UID);
+    }
+
+    @Test
+    public void setDeviceMobilityStateMobilityDetectionAppUidIsValid() {
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(INVALID_UID);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+
+        mWifiServiceImpl.setDeviceMobilityState(DEVICE_MOBILITY_STATE_STATIONARY);
+        mLooper.dispatchAll();
+
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(Binder.getCallingUid());
+        verify(mWifiConnectivityManager).setDeviceMobilityState(DEVICE_MOBILITY_STATE_STATIONARY);
+        mWifiServiceImpl.setDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
+        mLooper.dispatchAll();
+        verify(mWifiConnectivityManager).setDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
+    }
+
+    @Test
+    public void setDeviceMobilityStateIgnoredWhenAppUidDoesNotMatch() {
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(INVALID_UID);
+        when(mWifiPermissionsUtil.checkManageWifiNetworkSelectionPermission(anyInt()))
+                .thenReturn(true);
+        mWifiServiceImpl.setDeviceMobilityState(DEVICE_MOBILITY_STATE_STATIONARY);
+        mLooper.dispatchAll();
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(Binder.getCallingUid());
+        verify(mWifiConnectivityManager)
+                .setDeviceMobilityState(DEVICE_MOBILITY_STATE_STATIONARY);
+
+        // Set the uid to a different value to simulate a different app setting the state.
+        mWifiServiceImpl.mMobilityDetectionAppUid++;
+        mWifiServiceImpl.setDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
+        mLooper.dispatchAll();
+
+        verify(mWifiConnectivityManager, never())
+                .setDeviceMobilityState(DEVICE_MOBILITY_STATE_HIGH_MVMT);
+        assertThat(mWifiServiceImpl.mMobilityDetectionAppUid).isEqualTo(Binder.getCallingUid() + 1);
     }
 
     /**
@@ -12202,6 +12263,56 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 () -> mWifiServiceImpl.getChannelData(listener, TEST_PACKAGE_NAME, mExtras));
     }
 
+    @Test
+    public void testAddLocalOnlyDisconnectionStatusListener() {
+        // Verify null not accepted for addLocalOnlyDisconnectionStatusListener
+        assertThrows(NullPointerException.class, () -> mWifiServiceImpl
+                .addLocalOnlyDisconnectionStatusListener(null, TEST_PACKAGE_NAME));
+        assertThrows(NullPointerException.class, () -> mWifiServiceImpl
+                .addLocalOnlyDisconnectionStatusListener(mLocalOnlyDisconnectionStatusListener,
+                        null));
+
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(false);
+        assertThrows(SecurityException.class, () -> mWifiServiceImpl
+                .addLocalOnlyDisconnectionStatusListener(mLocalOnlyDisconnectionStatusListener,
+                        TEST_PACKAGE_NAME));
+
+        // verify addLocalOnlyDisconnectionStatusListener callable with permission
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(true);
+        mWifiServiceImpl.addLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkFactory).addLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME);
+    }
+
+    @Test
+    public void testRemoveLocalOnlyDisconnectionStatusListener() {
+        // Verify null not accepted for removeLocalOnlyDisconnectionStatusListener
+        assertThrows(NullPointerException.class, () -> mWifiServiceImpl
+                .removeLocalOnlyDisconnectionStatusListener(null, TEST_PACKAGE_NAME));
+        assertThrows(NullPointerException.class, () -> mWifiServiceImpl
+                .removeLocalOnlyDisconnectionStatusListener(mLocalOnlyDisconnectionStatusListener,
+                        null));
+
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(false);
+        assertThrows(SecurityException.class, () -> mWifiServiceImpl
+                .removeLocalOnlyDisconnectionStatusListener(mLocalOnlyDisconnectionStatusListener,
+                        TEST_PACKAGE_NAME));
+
+        // verify removeLocalOnlyDisconnectionStatusListener callable with permission
+        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
+                anyInt())).thenReturn(true);
+        mWifiServiceImpl.removeLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME);
+        mLooper.dispatchAll();
+        verify(mWifiNetworkFactory).removeLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME);
+    }
+
     /**
      * Test register callback without ACCESS_WIFI_STATE permission.
      */
@@ -13945,5 +14056,33 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mWifiServiceImpl.getSupportedInterfaceNames(listener);
         mLooper.dispatchAll();
         inOrder.verify(listener).onResult(List.of("wlan0"));
+    }
+
+    @Test
+    public void testHandleUserSwitchStopUnlockWhenFlagEnabled() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        final int userId = 10;
+        mWifiServiceImpl.handleUserSwitch(userId);
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).handleUserSwitch(userId);
+        verify(mActiveModeWarden).handleUserSwitch(userId);
+        verify(mWifiApConfigStore).handleUserSwitch(userId);
+        verify(mWifiNotificationManager).createNotificationChannels();
+        verify(mWifiNetworkSuggestionsManager).resetNotification();
+        verify(mWifiCarrierInfoManager).resetNotification();
+        verify(mOpenNetworkNotifier).clearPendingNotification(false);
+        verify(mWakeupController).resetNotification();
+
+        mWifiServiceImpl.handleUserUnlock(userId);
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).handleUserUnlock(userId);
+        verify(mActiveModeWarden).handleUserUnlock(userId);
+
+        mWifiServiceImpl.handleUserStop(userId);
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).handleUserStop(userId);
+        verify(mActiveModeWarden).handleUserStop(userId);
+        verify(mWifiApConfigStore).handleUserStop(userId);
     }
 }

@@ -129,11 +129,12 @@ public class WifiNanIfaceHidlImplTest extends WifiBaseTest {
                 "XXX").setRangingEnabled(true).build();
         SubscribeConfig subDefault = new SubscribeConfig.Builder().setServiceName("XXX").build();
         SubscribeConfig subWithMin = new SubscribeConfig.Builder().setServiceName(
-                "XXX").setMinDistanceMm(minDistanceMm).build();
+                "XXX").setEgressDistanceMm(minDistanceMm).build();
         SubscribeConfig subWithMax = new SubscribeConfig.Builder().setServiceName(
-                "XXX").setMaxDistanceMm(maxDistanceMm).build();
+                "XXX").setIngressDistanceMm(maxDistanceMm).build();
         SubscribeConfig subWithMinMax = new SubscribeConfig.Builder().setServiceName(
-                "XXX").setMinDistanceMm(minDistanceMm).setMaxDistanceMm(maxDistanceMm).build();
+                "XXX").setEgressDistanceMm(minDistanceMm).setIngressDistanceMm(
+                maxDistanceMm).build();
 
         mDut.publish(tid, pid, pubDefault, null);
         mDut.publish(tid, pid, pubWithRanging, null);
@@ -622,7 +623,7 @@ public class WifiNanIfaceHidlImplTest extends WifiBaseTest {
         }
 
         mDut.initiateDataPath(tid, peerId, channelRequestType, channel, peer, interfaceName,
-                isOutOfBand, appInfo, CAP, securityConfig, (byte) 0);
+                isOutOfBand, appInfo, CAP, securityConfig, (byte) 0, false);
 
         verify(mIWifiNanIface).initiateDataPathRequest(eq(tid), captor.capture());
 
@@ -696,7 +697,7 @@ public class WifiNanIfaceHidlImplTest extends WifiBaseTest {
         }
 
         mDut.respondToDataPathRequest(tid, accept, ndpId, interfaceName,
-                appInfo, isOutOfBand, CAP, securityConfig, (byte) 0);
+                appInfo, isOutOfBand, CAP, securityConfig, (byte) 0, false);
 
         verify(mIWifiNanIface).respondToDataPathIndicationRequest(eq(tid), captor.capture());
 

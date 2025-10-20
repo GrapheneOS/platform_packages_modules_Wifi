@@ -16,9 +16,12 @@
 
 package com.android.server.wifi;
 
+import static com.android.server.wifi.WifiConfigurationTestUtil.TEST_UID;
+
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import android.app.ActivityManager;
 import android.app.test.MockAnswerUtil;
 import android.app.test.TestAlarmManager;
 import android.content.Context;
@@ -41,6 +44,7 @@ import com.android.server.wifi.util.ArrayUtils;
 import com.android.server.wifi.util.EncryptedData;
 import com.android.server.wifi.util.WifiConfigStoreEncryptionUtil;
 import com.android.server.wifi.util.XmlUtil;
+import com.android.wifi.flags.Flags;
 
 import org.junit.After;
 import org.junit.Before;
@@ -172,6 +176,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                     + "<byte-array name=\"IV\" num=\"0\"></byte-array>\n"
                     + "</DppNetAccessKey>\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
+                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -269,8 +274,11 @@ public class WifiConfigStoreTest extends WifiBaseTest {
         mUserStoreData = new MockStoreData(WifiConfigStore.STORE_FILE_USER_GENERAL);
 
         mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(ActivityManager.class, withSettings().lenient())
+                .mockStatic(Flags.class, withSettings().lenient())
                 .mockStatic(WifiMigration.class, withSettings().lenient())
                 .startMocking();
+        when(ActivityManager.getCurrentUser()).thenReturn(UserHandle.getUserId(TEST_UID));
         when(WifiMigration.convertAndRetrieveSharedConfigStoreFile(anyInt())).thenReturn(null);
         when(WifiMigration.convertAndRetrieveUserConfigStoreFile(anyInt(), any())).thenReturn(null);
     }
@@ -501,7 +509,9 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                 openNetwork.shared, Environment.isSdkNewerThanB()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 openNetwork.creatorUid, openNetwork.creatorName,
-                openNetwork.getRandomizedMacAddress(), openNetwork.subscriptionId);
+                openNetwork.getRandomizedMacAddress(), openNetwork.subscriptionId,
+                Environment.isSdkNewerThanB()
+                        ? "int name=\"CreatorUserId\" value=\"0\" />\n" : "");
         byte[] xmlBytes = xmlString.getBytes(StandardCharsets.UTF_8);
         mUserStore.storeRawDataToWrite(xmlBytes);
 
@@ -530,6 +540,8 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                 WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
         openNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
         openNetwork.subscriptionId = TEST_SUB_ID;
+        int testUserId = UserHandle.getUserId(TEST_UID);
+        openNetwork.setCreatorUserId(testUserId);
         List<WifiConfiguration> userConfigs = new ArrayList<>();
         userConfigs.add(openNetwork);
         networkList.setConfigurations(userConfigs);
@@ -538,10 +550,12 @@ public class WifiConfigStoreTest extends WifiBaseTest {
         String xmlString = String.format(TEST_DATA_XML_STRING_FORMAT,
                 openNetwork.getKey().replaceAll("\"", "&quot;"),
                 openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, Environment.isSdkNewerThanB()
+                openNetwork.shared, Flags.multiUserWifiEnhancement()
                         ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
                 openNetwork.creatorUid, openNetwork.creatorName,
-                openNetwork.getRandomizedMacAddress(), openNetwork.subscriptionId);
+                openNetwork.getRandomizedMacAddress(), openNetwork.subscriptionId,
+                Environment.isSdkNewerThanB()
+                        ? "<int name=\"CreatorUserId\" value=\"" + testUserId + "\" />\n" : "");
 
         mWifiConfigStore.write();
         // Verify the user store content.

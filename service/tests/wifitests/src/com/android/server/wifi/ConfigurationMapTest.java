@@ -22,6 +22,7 @@ import static com.android.server.wifi.TestUtil.createCapabilityBitset;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
@@ -428,5 +429,71 @@ public class ConfigurationMapTest extends WifiBaseTest {
         config.networkId = 5;
         mConfigs.put(config);
         assertNull(mConfigs.getByScanResultForCurrentUser(scanResult));
+    }
+
+    /**
+     * Verifies that getConfigsByScanResultForCurrentUser returns an empty list when no networks
+     * match.
+     */
+    @Test
+    public void testGetConfigsByScanResultForCurrentUser_noMatch() {
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+        ScanResult scanResult = createScanResultForNetwork(config);
+        // Change the network security type and the old scan result should not match now.
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        mConfigs.put(config);
+        assertTrue(mConfigs.getConfigsByScanResultForCurrentUser(scanResult).isEmpty());
+    }
+
+    /**
+     * Verifies that getConfigsByScanResultForCurrentUser returns a list with a single network when
+     * one network matches.
+     */
+    @Test
+    public void testGetConfigsByScanResultForCurrentUser_singleMatch() {
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+        config.networkId = 1;
+        mConfigs.put(config);
+        ScanResult scanResult = createScanResultForNetwork(config);
+        List<WifiConfiguration> matchedConfigs =
+                mConfigs.getConfigsByScanResultForCurrentUser(scanResult);
+        assertEquals(1, matchedConfigs.size());
+        assertEquals(config.networkId, matchedConfigs.get(0).networkId);
+    }
+
+    /**
+     * Verifies that getConfigsByScanResultForCurrentUser returns a list with multiple networks
+     * when multiple networks match.
+     */
+    @Test
+    public void testGetConfigsByScanResultForCurrentUser_multipleMatches() {
+        WifiConfiguration config1 = WifiConfigurationTestUtil.createOpenNetwork();
+        config1.networkId = 1;
+        mConfigs.put(config1);
+
+        WifiConfiguration config2 = WifiConfigurationTestUtil.createOpenNetwork();
+        config2.networkId = 2;
+        config2.SSID = config1.SSID; // Same SSID and security.
+        mConfigs.put(config2);
+
+        ScanResult scanResult = createScanResultForNetwork(config1);
+        List<WifiConfiguration> matchedConfigs =
+                mConfigs.getConfigsByScanResultForCurrentUser(scanResult);
+        assertEquals(2, matchedConfigs.size());
+
+        Set<Integer> networkIds = new HashSet<>();
+        for (WifiConfiguration config : matchedConfigs) {
+            networkIds.add(config.networkId);
+        }
+        assertTrue(networkIds.contains(config1.networkId));
+        assertTrue(networkIds.contains(config2.networkId));
+    }
+
+    /**
+     * Verifies that getConfigsByScanResultForCurrentUser returns null for a null scan result.
+     */
+    @Test
+    public void testGetConfigsByScanResultForCurrentUser_nullScanResult() {
+        assertNull(mConfigs.getConfigsByScanResultForCurrentUser(null));
     }
 }

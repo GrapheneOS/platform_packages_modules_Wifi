@@ -24,28 +24,34 @@ import com.android.server.wifi.ml_connected_scorer.MlModelParams.RandomForestMod
 
 /** Factory for the different ml models for predicting wifi usability scores. */
 public class WifiUsabilityClassifierFactory {
+    WifiContext mWifiContext;
     RandomForestModule mRandomForestModule;
+    RandomForestClassifier mRandomForestClassifier;
 
-    public WifiUsabilityClassifierFactory(RandomForestModule randomForestModule) {
+    public WifiUsabilityClassifierFactory(WifiContext wifiContext,
+            RandomForestModule randomForestModule) {
+        mWifiContext = wifiContext;
         mRandomForestModule = randomForestModule;
     }
 
     /**
      * Get a {@link WifiUsabilityClassifier} for the modelId.
-     * @param wifiContext used to get the raw resource
      * @param modelId ID of the model
      * @return a WifiUsabilityClassifier for the modelId
      */
-    public @Nullable WifiUsabilityClassifier getModel(WifiContext wifiContext, int modelId) {
+    public @Nullable WifiUsabilityClassifier getClassifier(int modelId) {
         switch (modelId) {
             case Constants.RANDOM_FOREST_MODEL_ID:
-                RandomForestModel randomForestModel =
-                        mRandomForestModule.getRandomForestParams(wifiContext);
-                if (randomForestModel != null) {
-                    return new RandomForestClassifier(randomForestModel,
-                          Constants.RANDOM_FOREST_MODEL_ID);
+                if (mRandomForestClassifier == null) {
+                    RandomForestModel randomForestModel =
+                            mRandomForestModule.getRandomForestParams(mWifiContext);
+                    if (randomForestModel != null) {
+                        mRandomForestClassifier = new RandomForestClassifier(randomForestModel,
+                            Constants.RANDOM_FOREST_MODEL_ID);
+                    }
                 }
-                // fall through
+                return mRandomForestClassifier;
+            // fall through
             default:
                 Log.e(Constants.TAG, "Failed to find model id: " + modelId);
                 return null;

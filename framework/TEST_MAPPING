@@ -26,5 +26,15 @@
     {
       "name": "FrameworksWifiTests"
     }
+  ],
+  "wear-cts-postsubmit": [
+    {
+      "name": "CtsWifiTestCases",
+      "options": [
+        {
+          "include-filter": "android.net.wifi.cts.WifiManagerTest"
+        }
+      ]
+    }
   ]
 }

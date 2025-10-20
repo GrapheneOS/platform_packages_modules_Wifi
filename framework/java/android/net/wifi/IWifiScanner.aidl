@@ -25,7 +25,7 @@ import android.net.wifi.IScanDataListener;
 import android.net.wifi.IWifiScannerListener;
 
 /**
- * {@hide}
+ * @hide
  */
 interface IWifiScanner
 {

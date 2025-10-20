@@ -42,7 +42,6 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.DeviceMobilityState;
 import android.net.wifi.hotspot2.IProvisioningCallback;
 import android.net.wifi.hotspot2.OsuProvider;
-import android.net.wifi.nl80211.DeviceWiphyCapabilities;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -73,6 +72,7 @@ import com.android.server.wifi.WifiNative.InterfaceCallback;
 import com.android.server.wifi.WifiNative.InterfaceEventCallback;
 import com.android.server.wifi.WifiNative.RxFateReport;
 import com.android.server.wifi.WifiNative.TxFateReport;
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.util.ActionListenerWrapper;
 import com.android.server.wifi.util.StateMachineObituary;
 import com.android.wifi.resources.R;
@@ -1410,6 +1410,11 @@ public class ConcreteClientModeManager implements ClientModeManager {
     }
 
     @Override
+    public void disconnect(int uid) {
+        getClientMode().disconnect(uid);
+    }
+
+    @Override
     public void reconnect(WorkSource ws) {
         getClientMode().reconnect(ws);
     }
@@ -1713,6 +1718,11 @@ public class ConcreteClientModeManager implements ClientModeManager {
     public void setShouldReduceNetworkScore(boolean shouldReduceNetworkScore) {
         mShouldReduceNetworkScore = shouldReduceNetworkScore;
         getClientMode().setShouldReduceNetworkScore(shouldReduceNetworkScore);
+    }
+
+    @Override
+    public void setRestrictedNetworkDebug(boolean restricted) {
+        getClientMode().setRestrictedNetworkDebug(restricted);
     }
 
     @Override

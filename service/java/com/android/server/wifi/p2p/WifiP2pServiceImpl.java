@@ -3738,7 +3738,15 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 mUserOperatingChannel = 0;
                 mCoexUnsafeChannels.clear();
                 if (mTetheringManager != null) {
-                    mTetheringManager.unregisterTetheringEventCallback(mTetheringEventCallback);
+                    try {
+                        mTetheringManager.unregisterTetheringEventCallback(mTetheringEventCallback);
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        // This can happen if the callback somehow removed from tethering module or
+                        // if the tethering service is not available during teardown.
+                        // It is safe to ignore.
+                        Log.w(TAG, "Exception while unregistering tethering callback: e = "
+                                + e);
+                    }
                 }
             }
         }
@@ -5762,6 +5770,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                         break;
                     }
                     case WifiP2pMonitor
+                            .P2P_PROV_DISC_SHOW_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT:
+                    case WifiP2pMonitor
                             .P2P_PROV_DISC_ENTER_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT:
                     case WifiP2pMonitor
                             .P2P_PROV_DISC_PAIRING_BOOTSTRAPPING_OPPORTUNISTIC_REQ_EVENT: {
@@ -5769,25 +5779,6 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             if (processProvisionDiscoveryRequestForV2ConnectionOnGroupOwner(
                                     (WifiP2pProvDiscEvent) message.obj)) {
                                 smTransition(this, mUserAuthorizingJoinState);
-                            }
-                        } else {
-                            if (mVerboseLoggingEnabled) {
-                                logd("Ignore provision discovery for GC");
-                            }
-                        }
-                        break;
-                    }
-                    case WifiP2pMonitor
-                            .P2P_PROV_DISC_SHOW_PAIRING_BOOTSTRAPPING_PIN_OR_PASSPHRASE_EVENT: {
-                        // According to section 3.2.3 in SPEC, only GO can handle group join.
-                        // Multiple groups is not supported, ignore this discovery for GC.
-                        if (mGroup.isGroupOwner()) {
-                            WifiP2pProvDiscEvent provDisc = (WifiP2pProvDiscEvent) message.obj;
-                            if (processProvisionDiscoveryRequestForV2ConnectionOnGroupOwner(
-                                    provDisc)) {
-                                notifyP2pProvDiscShowPinOrPasswordRequestForV2Connection();
-                                mWifiNative.authorizeConnectRequestOnGroupOwner(mSavedPeerConfig,
-                                        mGroup.getInterface());
                             }
                         } else {
                             if (mVerboseLoggingEnabled) {
