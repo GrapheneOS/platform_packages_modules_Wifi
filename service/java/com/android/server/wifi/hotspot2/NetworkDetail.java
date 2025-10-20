@@ -498,12 +498,15 @@ public class NetworkDetail {
 
             // Add the current link to the list of links if not empty
             if (!mAffiliatedMloLinks.isEmpty()) {
-                MloLink link = new MloLink();
-                link.setApMacAddress(MacAddress.fromString(bssid));
-                link.setChannel(ScanResult.convertFrequencyMhzToChannelIfSupported(mPrimaryFreq));
-                link.setBand(ScanResult.toBand(mPrimaryFreq));
-                link.setLinkId(mMloLinkId);
-                mAffiliatedMloLinks.add(link);
+                if (!isLinkIdInAffiliatedLinks(mMloLinkId)) {
+                    MloLink link = new MloLink();
+                    link.setApMacAddress(MacAddress.fromString(bssid));
+                    link.setChannel(
+                            ScanResult.convertFrequencyMhzToChannelIfSupported(mPrimaryFreq));
+                    link.setBand(ScanResult.toBand(mPrimaryFreq));
+                    link.setLinkId(mMloLinkId);
+                    mAffiliatedMloLinks.add(link);
+                }
             }
         }
 
@@ -528,6 +531,15 @@ public class NetworkDetail {
                     + ", SupportedRates: " + supportedRates.toString()
                     + " ExtendedSupportedRates: " + extendedSupportedRates.toString());
         }
+    }
+
+    private boolean isLinkIdInAffiliatedLinks(int linkId) {
+        for (MloLink affiliatedLink : mAffiliatedMloLinks) {
+            if (affiliatedLink.getLinkId() == linkId) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

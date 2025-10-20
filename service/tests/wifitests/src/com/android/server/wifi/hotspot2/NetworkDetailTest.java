@@ -96,7 +96,9 @@ public class NetworkDetailTest extends WifiBaseTest {
         assertNotNull(networkDetail.getMldMacAddress());
         assertEquals(TEST_AP_MLD_MAC_ADDRESS, networkDetail.getMldMacAddress().toString());
         assertEquals(1, networkDetail.getMloLinkId());
-        assertEquals(3, networkDetail.getAffiliatedMloLinks().size());
+        // Expect 2 unique links. The RNR IE provides link IDs {1, 2, 1}, which are
+        // de-duplicated to {1, 2}.
+        assertEquals(2, networkDetail.getAffiliatedMloLinks().size());
     }
 
     /**
@@ -132,6 +134,46 @@ public class NetworkDetailTest extends WifiBaseTest {
                 (byte) 0x00,  (byte) 0x08, (byte) 0x03, (byte) 0x00,    // Second Link Info
                 (byte) 0x00,  (byte) 0x00, (byte) 0x00, (byte) 0x00     //
         };
+        NetworkDetail networkDetail = new NetworkDetail(TEST_BSSID, ies,
+                Collections.emptyList(), 5745);
+
+        assertNotNull(networkDetail.getMldMacAddress());
+        assertEquals(TEST_AP_MLD_MAC_ADDRESS, networkDetail.getMldMacAddress().toString());
+        assertEquals(1, networkDetail.getMloLinkId());
+        // Expect 2 unique links from RNR (link IDs 1 and 2). The links from the Multi-Link IE
+        // are not used to populate the affiliated MLO links in this scenario.
+        assertEquals(2, networkDetail.getAffiliatedMloLinks().size());
+    }
+
+    /**
+     * Verify that when creating a NetworkDetail from a ScanResult with MultiLink IE and RNR IE,
+     * and the current link ID is already present in the affiliated MLO links from RNR, it is not
+     * added again.
+     */
+    @Test
+    public void verifyFromScanResultRnrMultiIeDuplicateLinks() throws Exception {
+        InformationElement[] ies = new InformationElement[2];
+
+        // RNR IE with a link that has link ID 1
+        ies[0] = new InformationElement();
+        ies[0].id = InformationElement.EID_RNR;
+        ies[0].bytes = new byte[] {
+                (byte) 0x00,  (byte) 0x04, (byte) 81,   (byte) 11,   // First TBTT Info
+                (byte) 0x00,  (byte) 0x00, (byte) 0x01, (byte) 0x00, //  First Set (Link ID 1)
+                (byte) 0x10,  (byte) 0x04, (byte) 120,  (byte) 149,  // Second TBTT Info
+                (byte) 0x00,  (byte) 0x00, (byte) 0x02, (byte) 0x00, //  First Set (Link ID 2)
+                (byte) 0x00,  (byte) 0x22, (byte) 0x01, (byte) 0x00  //  Second Set (Link ID 1)
+        };
+
+        // Multi-Link IE with current link ID 1
+        ies[1] = new InformationElement();
+        ies[1].id = InformationElement.EID_EXTENSION_PRESENT;
+        ies[1].idExt = InformationElement.EID_EXT_MULTI_LINK;
+        ies[1].bytes = new byte[] {
+                (byte) 0x10,  (byte) 0x00,                              // Control
+                (byte) 0x08,  (byte) 0x02, (byte) 0x34, (byte) 0x56,    // Common Info
+                (byte) 0x78,  (byte) 0x9A, (byte) 0xBC, (byte) 0x01    // Current Link ID 1
+        };
 
         NetworkDetail networkDetail = new NetworkDetail(TEST_BSSID, ies,
                 Collections.emptyList(), 5745);
@@ -139,7 +181,9 @@ public class NetworkDetailTest extends WifiBaseTest {
         assertNotNull(networkDetail.getMldMacAddress());
         assertEquals(TEST_AP_MLD_MAC_ADDRESS, networkDetail.getMldMacAddress().toString());
         assertEquals(1, networkDetail.getMloLinkId());
-        assertEquals(3, networkDetail.getAffiliatedMloLinks().size());
+        // Expect 2 unique links from RNR (link IDs 1 and 2).
+        // The current link ID is 1, which is already present, so the total unique links is 2.
+        assertEquals(2, networkDetail.getAffiliatedMloLinks().size());
     }
 
     /**
