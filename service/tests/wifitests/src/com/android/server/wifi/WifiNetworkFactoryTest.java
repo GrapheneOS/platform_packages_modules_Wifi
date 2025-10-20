@@ -3998,6 +3998,33 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         return "";
     }
 
+    @Test
+    public void testConnectedNetworkHasDisconnectListenerRegistered() throws Exception {
+        // Case 1: No network is connected
+        assertFalse(mWifiNetworkFactory.connectedNetworkHasDisconnectListenerRegistered());
+
+        // Setup a connected network request
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
+        sendNetworkRequestAndSetupForConnectionStatus(TEST_SSID_1);
+        mWifiNetworkFactory.handleConnectionAttemptEnded(
+                WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1,
+                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
+        assertTrue(mWifiNetworkFactory.acceptRequest(mNetworkRequest));
+
+        // Case 2: Network is connected, but no listener is registered
+        assertFalse(mWifiNetworkFactory.connectedNetworkHasDisconnectListenerRegistered());
+
+        // Case 3: Network is connected, and a listener is registered
+        mWifiNetworkFactory.addLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME_1);
+        assertTrue(mWifiNetworkFactory.connectedNetworkHasDisconnectListenerRegistered());
+
+        // Remove the listener and verify it returns false again
+        mWifiNetworkFactory.removeLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME_1);
+        assertFalse(mWifiNetworkFactory.connectedNetworkHasDisconnectListenerRegistered());
+    }
+
     private void setupScanData(int scanResultType, String ssid1, String ssid2, String ssid3,
             String ssid4) {
         setupScanData(mTestScanDatas, scanResultType, ssid1, ssid2, ssid3, ssid4);
