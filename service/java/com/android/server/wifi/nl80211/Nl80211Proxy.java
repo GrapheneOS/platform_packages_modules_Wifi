@@ -160,7 +160,8 @@ public class Nl80211Proxy {
         try {
             // The response may arrive in several batches, where each batch
             // can contain several individual messages.
-            while (true) {
+            boolean isDone = false;
+            while (!isDone) {
                 // Receive a batch of messages into the receive buffer.
                 ByteBuffer recvBuffer =
                         NetlinkUtils.recvMessage(
@@ -172,12 +173,17 @@ public class Nl80211Proxy {
                 if (parsedMessages == null || parsedMessages.isEmpty()) {
                     return null;
                 }
-                messages.addAll(parsedMessages);
-                // Exit the loop if any exit conditions were encountered during parsing.
-                GenericNetlinkMsg lastMsg = messages.get(messages.size() - 1);
-                if (lastMsg.isDoneMsg() || lastMsg.isErrorMsg()
-                        || !lastMsg.isFlagEnabled(StructNlMsgHdr.NLM_F_MULTI)) {
-                    break;
+
+                for (GenericNetlinkMsg msg : parsedMessages) {
+                    if (msg.isDoneMsg() || msg.isErrorMsg()) {
+                        isDone = true;
+                        break;
+                    }
+
+                    messages.add(msg);
+
+                    // Expected only a single response
+                    if (!msg.isFlagEnabled(StructNlMsgHdr.NLM_F_MULTI)) isDone = true;
                 }
             }
         } catch (ErrnoException | IllegalArgumentException | InterruptedIOException e) {
