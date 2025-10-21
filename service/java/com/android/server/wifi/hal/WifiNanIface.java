@@ -391,28 +391,30 @@ public class WifiNanIface implements WifiHal.WifiInterface {
      * See comments for {@link IWifiNanIface#publish(short, byte, PublishConfig, byte[])}
      */
     public boolean publish(short transactionId, byte publishId, PublishConfig publishConfig,
-            byte[] nik) {
+            byte[] nik, byte[] sdeaHeader) {
         return validateAndCall("publish", false,
-                () -> mWifiNanIface.publish(transactionId, publishId, publishConfig, nik));
+                () -> mWifiNanIface.publish(transactionId, publishId, publishConfig, nik,
+                        sdeaHeader));
     }
 
     /**
      * See comments for {@link IWifiNanIface#subscribe(short, byte, SubscribeConfig, byte[])}
      */
     public boolean subscribe(short transactionId, byte subscribeId,
-            SubscribeConfig subscribeConfig, byte[] nik) {
+            SubscribeConfig subscribeConfig, byte[] nik, byte[] sdeaHeader) {
         return validateAndCall("subscribe", false,
-                () -> mWifiNanIface.subscribe(transactionId, subscribeId, subscribeConfig, nik));
+                () -> mWifiNanIface.subscribe(transactionId, subscribeId, subscribeConfig, nik,
+                        sdeaHeader));
     }
 
     /**
      * See comments for {@link IWifiNanIface#sendMessage(short, byte, int, MacAddress, byte[])}
      */
     public boolean sendMessage(short transactionId, byte pubSubId, int requestorInstanceId,
-            MacAddress dest, byte[] message) {
+            MacAddress dest, byte[] message, byte[] sdeaHeader) {
         return validateAndCall("sendMessage", false,
                 () -> mWifiNanIface.sendMessage(transactionId, pubSubId, requestorInstanceId,
-                        dest, message));
+                        dest, message, sdeaHeader));
     }
 
     /**
@@ -520,10 +522,11 @@ public class WifiNanIface implements WifiHal.WifiInterface {
      * {@link IWifiNanIface#initiateNanBootstrappingRequest(short, int, MacAddress, int, byte[], byte, boolean)}
      */
     public boolean initiateBootstrapping(short transactionId, int peerId, MacAddress peer,
-            int method, byte[] cookie, byte pubSubId, boolean isComeBack, byte[] ssi) {
+            int method, byte[] cookie, byte pubSubId, boolean isComeBack, byte[] ssi,
+            byte[] sdeaHeader) {
         return validateAndCall("initiateBootstrapping", false,
                 () -> mWifiNanIface.initiateNanBootstrappingRequest(transactionId, peerId, peer,
-                        method, cookie, pubSubId, isComeBack, ssi));
+                        method, cookie, pubSubId, isComeBack, ssi, sdeaHeader));
     }
     /**
      * {@link IWifiNanIface#respondToNanBootstrappingRequest(short, int, boolean, byte, int)}
