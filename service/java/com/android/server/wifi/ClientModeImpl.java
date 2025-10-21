@@ -2014,9 +2014,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mActiveLocalOnlyDisconnectDialogHandle.dismissDialog();
             mActiveLocalOnlyDisconnectDialogHandle = null;
         }
-        // TODO: replace the SSID with the proper user friendly app name.
+        String appName = mNetworkFactory.getConnectedAppName();
         final String title = mContext.getString(R.string.wifi_disconnect_dialog_title,
-                config.SSID);
+                appName.isEmpty() ? config.SSID : appName);
         final String positiveButton = mContext.getString(
                 R.string.wifi_disconnect_dialog_positive_button);
         final String negativeButton = mContext.getString(

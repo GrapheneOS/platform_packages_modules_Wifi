@@ -1733,6 +1733,18 @@ public class WifiNetworkFactory extends NetworkFactory {
         mRegisteredCallbacks.finishBroadcast();
     }
 
+    /**
+     * Get the name of the connected app.
+     */
+    public @NonNull String getConnectedAppName() {
+        if (mConnectedSpecificNetworkRequestSpecifier == null
+                || mConnectedSpecificNetworkRequest == null) {
+            return "";
+        }
+        return getAppName(mConnectedSpecificNetworkRequest.getRequestorPackageName(),
+                mConnectedSpecificNetworkRequest.getRequestorUid()).toString();
+    }
+
     private @NonNull CharSequence getAppName(@NonNull String packageName, int uid) {
         ApplicationInfo applicationInfo = null;
         try {

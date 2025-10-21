@@ -7769,6 +7769,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mockWifiDialogManager.createLegacySimpleDialog(any(), any(), any(), any(), any(),
                 any(), any())).thenReturn(mockDialogHandle);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mockWifiDialogManager);
+        when(mWifiNetworkFactory.getConnectedAppName()).thenReturn("");
 
         WifiConfiguration newConfig = WifiConfigurationTestUtil.createOpenNetwork();
         newConfig.networkId = OTHER_NETWORK_ID;
@@ -7790,6 +7791,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 callbackCaptor.capture(),
                 any());
         verify(mockDialogHandle).launchDialog();
+        verify(mContext).getString(R.string.wifi_disconnect_dialog_title, mConnectedNetwork.SSID);
         WifiDialogManager.SimpleDialogCallback callback = callbackCaptor.getValue();
         verify(mWifiNetworkFactory, never()).onDisconnectionExpected(
                 WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION, true);
@@ -7826,6 +7828,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mockWifiDialogManager.createLegacySimpleDialog(any(), any(), any(), any(), any(),
                 any(), any())).thenReturn(mockDialogHandle);
         when(mWifiInjector.getWifiDialogManager()).thenReturn(mockWifiDialogManager);
+        when(mWifiNetworkFactory.getConnectedAppName()).thenReturn("TestAppName");
         mCmi.disconnect(TEST_UID);
         mLooper.dispatchAll();
         ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> callbackCaptor =
@@ -7839,6 +7842,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 callbackCaptor.capture(),
                 any());
         verify(mockDialogHandle).launchDialog();
+        verify(mContext).getString(R.string.wifi_disconnect_dialog_title, "TestAppName");
         WifiDialogManager.SimpleDialogCallback callback = callbackCaptor.getValue();
         verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
 
