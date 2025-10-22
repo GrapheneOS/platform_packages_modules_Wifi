@@ -343,6 +343,7 @@
     <!-- Strings for Wi-Fi disconnect confirmation dialog. -->
     <string name="wifi_disconnect_dialog_title">Disconnect <xliff:g id="app_name">%1$s</xliff:g>?</string>
     <string name="wifi_disconnect_dialog_message"> Disconnecting Wi\u2011Fi will cause <xliff:g id="app_name">%1$s</xliff:g> to disconnect. Continue? </string>
+    <string name="wifi_disconnect_dialog_new_connection_message"> Connecting to another Wi\u2011Fi network will cause <xliff:g id="app_name">%1$s</xliff:g> to disconnect. Continue? </string>
     <string name="wifi_disconnect_dialog_positive_button">Continue</string>
     <string name="wifi_disconnect_dialog_negative_button">Cancel</string>
 </resources>

@@ -1847,6 +1847,35 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     }
 
     @Test
+    public void testConnectedAppName() throws Exception {
+        // Setup a successful connection
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
+        // Mock PackageManager to return a specific app name
+        ApplicationInfo applicationInfo = new ApplicationInfo();
+        when(mPackageManager.getApplicationInfoAsUser(
+                eq(TEST_PACKAGE_NAME_1), anyInt(), any())).thenReturn(applicationInfo);
+        when(mPackageManager.getApplicationLabel(eq(applicationInfo))).thenReturn(TEST_APP_NAME);
+
+        // Connect to request 1
+        sendNetworkRequestAndSetupForConnectionStatus(TEST_SSID_1);
+        // Send network connection success indication.
+        assertNotNull(mSelectedNetwork);
+        mWifiNetworkFactory.handleConnectionAttemptEnded(
+                WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1,
+                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
+        // Resend the request from a fg service (should be accepted since it is already connected).
+        assertTrue(mWifiNetworkFactory.acceptRequest(mNetworkRequest));
+
+        // Verify that getConnectedAppName returns the correct app name
+        assertEquals(TEST_APP_NAME, mWifiNetworkFactory.getConnectedAppName());
+
+        // Disconnect the network and verify that getConnectedAppName returns an empty string
+        mWifiNetworkFactory.releaseNetworkFor(mNetworkRequest);
+        mLooper.dispatchAll();
+        assertEquals("", mWifiNetworkFactory.getConnectedAppName());
+    }
+
+    @Test
     public void testIsConnectedToConfig() throws Exception {
         // Setup a successful connection
         mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
