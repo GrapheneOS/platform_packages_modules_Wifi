@@ -49,6 +49,8 @@ import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.UiObject2;
 import androidx.test.uiautomator.Until;
 
+import com.android.compatibility.common.util.FeatureUtil;
+
 import com.google.android.mobly.snippet.Snippet;
 import com.google.android.mobly.snippet.event.EventCache;
 import com.google.android.mobly.snippet.event.SnippetEvent;
@@ -397,7 +399,7 @@ public class WifiP2pManagerSnippet implements Snippet {
             throw new WifiP2pManagerException(
                     "The connect invitation is not triggered by expected peer device.");
         }
-        Pattern pattern = Pattern.compile("(ACCEPT|OK|Accept|Connect)");
+        Pattern pattern = Pattern.compile("(ACCEPT|OK|Accept|Connect)", Pattern.CASE_INSENSITIVE);
         if (!mUiDevice.wait(Until.hasObject(By.text(pattern).clazz(Button.class)),
                 UI_ACTION_SHORT_TIMEOUT_MS)) {
             throw new WifiP2pManagerException("Accept button did not occur within timeout.");
@@ -540,6 +542,11 @@ public class WifiP2pManagerSnippet implements Snippet {
         if (mUiDevice.wait(Until.hasObject(By.res(resPattern)), UI_ACTION_LONG_TIMEOUT_MS)) {
             UiObject2 pinEntryField = mUiDevice.findObject(By.res(resPattern));
             pinEntryField.setText(pinCode);
+            if (FeatureUtil.isWatch()) {
+                // Dismiss number input dialog on Watch and wait for things to settle
+                mUiDevice.pressEnter();
+                mUiDevice.waitForIdle();
+            }
             Log.d("Entered PIN code: " + pinCode);
             return;
         }
