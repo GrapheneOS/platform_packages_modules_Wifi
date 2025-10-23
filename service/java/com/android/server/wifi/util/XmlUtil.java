@@ -413,6 +413,8 @@ public class XmlUtil {
         public static final String XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS =
                 "AllowedToUpdateByOtherUsers";
         public static final String XML_TAG_CREATOR_USER_ID = "CreatorUserId";
+        public static final String XML_TAG_ALLOWED_AUTO_JOIN_IN_ADVANCED_PROTECTION =
+                "AllowedAutoJoinInAdvancedProtection";
 
         /**
          * Write Wep Keys to the XML stream.
@@ -631,6 +633,12 @@ public class XmlUtil {
                 XmlUtil.writeNextValue(out, XML_TAG_ALLOW_UPDATE_BY_OTHER_USERS,
                         Flags.multiUserWifiEnhancement()
                         ? configuration.isAllowedToUpdateByOtherUsers() : true /* default */);
+            }
+            if (Environment.isSdkNewerThanB()
+                    && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                writeNextValue(
+                        out, XML_TAG_ALLOWED_AUTO_JOIN_IN_ADVANCED_PROTECTION,
+                        configuration.isAutoJoinInAdvancedProtectionModeEnabled());
             }
             writeSecurityParamsListToXml(out, configuration);
             XmlUtil.writeNextValue(out, XML_TAG_SEND_DHCP_HOSTNAME,
@@ -904,6 +912,7 @@ public class XmlUtil {
             boolean macRandomizationSettingExists = false;
             boolean sendDhcpHostnameExists = false;
             boolean isCreatorUserIdExists = false;
+            boolean allowedAutoJoinInAdvancedProtectionExists = false;
             byte[] dppConnector = null;
             byte[] dppCSign = null;
             byte[] dppNetAccessKey = null;
@@ -1126,6 +1135,15 @@ public class XmlUtil {
                                 configuration.setCreatorUserId((int) value);
                             }
                             break;
+                        case XML_TAG_ALLOWED_AUTO_JOIN_IN_ADVANCED_PROTECTION:
+                            allowedAutoJoinInAdvancedProtectionExists = true;
+                            if (Environment.isSdkNewerThanB()
+                                    && android.security.Flags
+                                            .aapmFeatureDisableInsecureWifiAutojoin()) {
+                                configuration.setAutoJoinInAdvancedProtectionModeEnabled(
+                                        (boolean) value);
+                            }
+                            break;
                         default:
                             Log.w(TAG, "Ignoring unknown value name found: " + valueName[0]);
                             break;
@@ -1217,6 +1235,21 @@ public class XmlUtil {
                 configuration.setCreatorUserId(userId);
             }
             configuration.convertLegacyFieldsToSecurityParamsIfNeeded();
+            if (Environment.isSdkNewerThanB()
+                    && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                if (!allowedAutoJoinInAdvancedProtectionExists) {
+                    boolean isInsecure = true;
+                    for (SecurityParams p : configuration.getSecurityParamsList()) {
+                        if (!p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OPEN)
+                                && !p.isSecurityType(WifiConfiguration.SECURITY_TYPE_WEP)
+                                && !p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OWE)) {
+                            isInsecure = false;
+                            break;
+                        }
+                    }
+                    configuration.setAutoJoinInAdvancedProtectionModeEnabled(!isInsecure);
+                }
+            }
             configuration.setDppConnectionKeys(dppConnector, dppCSign, dppNetAccessKey);
             return Pair.create(configKeyInData, configuration);
         }

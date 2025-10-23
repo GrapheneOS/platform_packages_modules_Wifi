@@ -27,6 +27,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doAnswer;
@@ -114,7 +115,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
                     + "<boolean name=\"RepeaterEnabled\" value=\"false\" />\n"
                     + "<boolean name=\"EnableWifi7\" value=\"true\" />\n"
-                    + "%s" // String after EnableWifi7 before SecurityParamsList
+                    // String after EnableWifi7 before SecurityParamsList
+                    // Where should be used when adding new tags in writeCommonElementsToXml
+                    + "%s"
                     + "<SecurityParamsList>\n"
                     + "<SecurityParams>\n"
                     + "<int name=\"SecurityType\" value=\"0\" />\n"
@@ -167,7 +170,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<byte-array name=\"DppCSignKey\" num=\"0\"></byte-array>\n"
                     + "<byte-array name=\"DppNetAccessKey\" num=\"0\"></byte-array>\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
-                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // Where is used when adding new tags in writeToXmlForConfigStore
+                    + "%s"
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -208,7 +213,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
                     + "<boolean name=\"RepeaterEnabled\" value=\"false\" />\n"
                     + "<boolean name=\"EnableWifi7\" value=\"true\" />\n"
-                    + "%s" // String after EnableWifi7 before SecurityParamsList
+                    // String after EnableWifi7 before SecurityParamsList
+                    // Where should be used when adding new tags in writeCommonElementsToXml
+                    + "%s"
                     + "<SecurityParamsList>\n"
                     + "<SecurityParams>\n"
                     + "<int name=\"SecurityType\" value=\"3\" />\n"
@@ -261,7 +268,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<byte-array name=\"DppCSignKey\" num=\"0\"></byte-array>\n"
                     + "<byte-array name=\"DppNetAccessKey\" num=\"0\"></byte-array>\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
-                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // Where is used when adding new tags in writeToXmlForConfigStore
+                    + "%s"
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -336,7 +345,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
                     + "<boolean name=\"RepeaterEnabled\" value=\"false\" />\n"
                     + "<boolean name=\"EnableWifi7\" value=\"true\" />\n"
-                    + "%s" // String after EnableWifi7 before SecurityParamsList
+                    // String after EnableWifi7 before SecurityParamsList
+                    // Where should be used when adding new tags in writeCommonElementsToXml
+                    + "%s"
                     + "<SecurityParamsList>\n"
                     + "<SecurityParams>\n"
                     + "<int name=\"SecurityType\" value=\"4\" />\n"
@@ -381,7 +392,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<byte-array name=\"DppCSignKey\" num=\"0\"></byte-array>\n"
                     + "<byte-array name=\"DppNetAccessKey\" num=\"0\"></byte-array>\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
-                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // Where is used when adding new tags in writeToXmlForConfigStore
+                    + "%s"
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -422,7 +435,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
                     + "<boolean name=\"RepeaterEnabled\" value=\"false\" />\n"
                     + "<boolean name=\"EnableWifi7\" value=\"true\" />\n"
-                    + "%s" // String after EnableWifi7 before SecurityParamsList
+                    // String after EnableWifi7 before SecurityParamsList
+                    // Where should be used when adding new tags in writeCommonElementsToXml
+                    + "%s"
                     + "<SecurityParamsList>\n"
                     + "<SecurityParams>\n"
                     + "<int name=\"SecurityType\" value=\"3\" />\n"
@@ -474,7 +489,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<byte-array name=\"DppCSignKey\" num=\"0\"></byte-array>\n"
                     + "<byte-array name=\"DppNetAccessKey\" num=\"0\"></byte-array>\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
-                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // Where is used when adding new tags in writeToXmlForConfigStore
+                    + "%s"
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -552,7 +569,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
                     + "<boolean name=\"RepeaterEnabled\" value=\"false\" />\n"
                     + "<boolean name=\"EnableWifi7\" value=\"true\" />\n"
-                    + "%s" // String after EnableWifi7 before SecurityParamsList
+                    // String after EnableWifi7 before SecurityParamsList
+                    // Where should be used when adding new tags in writeCommonElementsToXml
+                    + "%s"
                     + "<boolean name=\"Trusted\" value=\"true\" />\n"
                     + "<null name=\"BSSID\" />\n"
                     + "<int name=\"Status\" value=\"2\" />\n"
@@ -577,7 +596,9 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                     + "<int name=\"CarrierId\" value=\"-1\" />\n"
                     + "<boolean name=\"IsMostRecentlyConnected\" value=\"false\" />\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
-                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // Where is used when adding new tags in writeToXmlForConfigStore
+                    + "%s"
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -611,8 +632,12 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(ActivityManager.class, withSettings().lenient())
                 .mockStatic(Flags.class, withSettings().lenient())
+                .mockStatic(android.security.Flags.class, withSettings().lenient())
                 .strictness(Strictness.LENIENT)
                 .startMocking();
+        when(Flags.multiUserWifiEnhancement()).thenReturn(false);
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+                .thenReturn(false);
         when(mContext.getPackageManager()).thenReturn(mPackageManager);
         when(mPackageManager.getNameForUid(anyInt())).thenReturn(TEST_CREATOR_NAME);
         mNetworkListSharedStoreData = new NetworkListSharedStoreData(mContext);
@@ -636,6 +661,26 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         if (mSession != null) {
             mSession.finishMocking();
         }
+    }
+
+    private String generateTestStringForAddingNewDataInWriteCommonElementsToXml() {
+        StringBuilder sbuf = new StringBuilder();
+        if (Flags.multiUserWifiEnhancement()) {
+            sbuf.append("<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"false\" />\n");
+        }
+        if (android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+            sbuf.append(
+                    "<boolean name=\"AllowedAutoJoinInAdvancedProtection\" value=\"false\" />\n");
+        }
+        return sbuf.toString();
+    }
+
+    private String generateTestStringForAddingNewDataInWriteToXmlForConfigStore() {
+        StringBuilder sbuf = new StringBuilder();
+        if (Flags.multiUserWifiEnhancement()) {
+            sbuf.append("<int name=\"CreatorUserId\" value=\"10\" />\n");
+        }
+        return sbuf.toString();
     }
 
     /**
@@ -686,7 +731,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
         openNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
         openNetwork.meteredOverride = WifiConfiguration.METERED_OVERRIDE_NOT_METERED;
-        openNetwork.setCreatorUserId(0);
+        openNetwork.setCreatorUserId(10);
         WifiConfiguration eapNetwork = WifiConfigurationTestUtil.createWpa2Wpa3EnterpriseNetwork();
         eapNetwork.shared = shared;
         eapNetwork.creatorName = TEST_CREATOR_NAME;
@@ -694,7 +739,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
         eapNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
         eapNetwork.enterpriseConfig.setMinimumTlsVersion(WifiEnterpriseConfig.TLS_V1_3);
-        eapNetwork.setCreatorUserId(0);
+        eapNetwork.setCreatorUserId(10);
         WifiConfiguration saeNetwork = WifiConfigurationTestUtil.createSaeNetwork();
         saeNetwork.shared = shared;
         saeNetwork.creatorName = TEST_CREATOR_NAME;
@@ -702,7 +747,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
         saeNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
         saeNetwork.setSecurityParams(WifiConfiguration.SECURITY_TYPE_SAE);
-        saeNetwork.setCreatorUserId(0);
+        saeNetwork.setCreatorUserId(10);
         List<WifiConfiguration> networkList = new ArrayList<>();
         networkList.add(openNetwork);
         networkList.add(eapNetwork);
@@ -724,32 +769,29 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         String openNetworkXml = String.format(SINGLE_OPEN_NETWORK_DATA_XML_STRING_FORMAT,
                 openNetwork.getKey().replaceAll("\"", "&quot;"),
                 openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                openNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 openNetwork.creatorUid,
                 openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "");
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore());
         String eapNetworkXml = String.format(SINGLE_EAP_NETWORK_DATA_XML_STRING_FORMAT,
                 eapNetwork.getKey().replaceAll("\"", "&quot;"),
                 eapNetwork.SSID.replaceAll("\"", "&quot;"),
-                eapNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                eapNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 eapNetwork.creatorUid,
                 eapNetwork.creatorName, eapNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "",
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore(),
                 eapNetwork.enterpriseConfig.getDomainSuffixMatch(),
                 eapNetwork.enterpriseConfig.getCaPath());
         String saeNetworkXml = String.format(SINGLE_SAE_NETWORK_DATA_XML_STRING_FORMAT,
                 saeNetwork.getKey().replaceAll("\"", "&quot;"),
                 saeNetwork.SSID.replaceAll("\"", "&quot;"),
-                saeNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                saeNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 saeNetwork.creatorUid,
                 saeNetwork.creatorName, saeNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "");
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore());
         return (openNetworkXml + eapNetworkXml + saeNetworkXml).getBytes(StandardCharsets.UTF_8);
     }
 
@@ -908,12 +950,11 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         byte[] xmlData = String.format(SINGLE_OPEN_NETWORK_DATA_XML_STRING_FORMAT,
                 "InvalidConfigKey",
                 openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                openNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 openNetwork.creatorUid,
                 openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore())
             .getBytes(StandardCharsets.UTF_8);
         deserializeData(xmlData);
     }
@@ -950,8 +991,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
      */
     @Test
     public void parseNetworkWithInvalidCreatorUidResetsToSystem() throws Exception {
-        int testUserId = 999;
-        when(ActivityManager.getCurrentUser()).thenReturn(testUserId);
+        when(ActivityManager.getCurrentUser()).thenReturn(TEST_CREATOR_USER_ID);
         when(Flags.multiUserWifiEnhancement()).thenReturn(true);
         WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
         openNetwork.creatorUid = -1;
@@ -961,12 +1001,11 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         byte[] xmlData = String.format(SINGLE_OPEN_NETWORK_DATA_XML_STRING_FORMAT,
                 openNetwork.getKey().replaceAll("\"", "&quot;"),
                 openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                openNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 openNetwork.creatorUid,
                 openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore())
             .getBytes(StandardCharsets.UTF_8);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(1, deserializedNetworks.size());
@@ -997,12 +1036,11 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         byte[] xmlData = String.format(SINGLE_OPEN_NETWORK_DATA_XML_STRING_FORMAT,
                 openNetwork.getKey().replaceAll("\"", "&quot;"),
                 openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                openNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 openNetwork.creatorUid,
                 openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore())
             .getBytes(StandardCharsets.UTF_8);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(1, deserializedNetworks.size());
@@ -1028,12 +1066,11 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         byte[] xmlData = String.format(SINGLE_OPEN_NETWORK_DATA_XML_STRING_FORMAT,
                 openNetwork.getKey().replaceAll("\"", "&quot;"),
                 openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                openNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 openNetwork.creatorUid,
                 openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore())
             .getBytes(StandardCharsets.UTF_8);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(1, deserializedNetworks.size());
@@ -1053,12 +1090,11 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         byte[] xmlData = String.format(SINGLE_OPEN_NETWORK_DATA_XML_STRING_FORMAT,
                 openNetwork.getKey().replaceAll("\"", "&quot;"),
                 openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                openNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 openNetwork.creatorUid,
                 openNetwork.creatorName, openNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore())
             .getBytes(StandardCharsets.UTF_8);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(1, deserializedNetworks.size());
@@ -1083,12 +1119,11 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         String saeNetworkWithOpenAuthXml = String.format(SINGLE_SAE_NETWORK_DATA_XML_STRING_FORMAT,
                 saeNetwork.getKey().replaceAll("\"", "&quot;"),
                 saeNetwork.SSID.replaceAll("\"", "&quot;"),
-                saeNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                saeNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 saeNetwork.creatorUid,
                 saeNetwork.creatorName, saeNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "");
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore());
 
         List<WifiConfiguration> retrievedNetworkList =
                 deserializeData(saeNetworkWithOpenAuthXml.getBytes(StandardCharsets.UTF_8));
@@ -1147,12 +1182,11 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 invalidConfigKey,
                 pskNetwork.SSID.replaceAll("\"", "&quot;"),
                 pskNetwork.preSharedKey.replaceAll("\"", "&quot;"),
-                pskNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                pskNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 pskNetwork.creatorUid,
                 pskNetwork.creatorName, pskNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "")
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore())
                 .getBytes(StandardCharsets.UTF_8);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(1, deserializedNetworks.size());
@@ -1172,12 +1206,11 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 SINGLE_LEGACY_WPA3_EAP_NETWORK_DATA_XML_STRING_FORMAT,
                 malformedNetworkKey.replaceAll("\"", "&quot;"),
                 wpa3EapNetwork.SSID.replaceAll("\"", "&quot;"),
-                wpa3EapNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
+                wpa3EapNetwork.shared,
+                generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
                 wpa3EapNetwork.creatorUid,
                 wpa3EapNetwork.creatorName, wpa3EapNetwork.getRandomizedMacAddress(),
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"0\" />\n" : "",
+                generateTestStringForAddingNewDataInWriteToXmlForConfigStore(),
                 wpa3EapNetwork.enterpriseConfig.getDomainSuffixMatch(),
                 wpa3EapNetwork.enterpriseConfig.getCaPath())
                 .getBytes(StandardCharsets.UTF_8);
@@ -1298,5 +1331,27 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                         + "<byte-array name=\"EncryptedData\" num=\"\\d+\">\\d+</byte-array>\n"
                         + "<byte-array name=\"IV\" num=\"\\d+\">\\d+</byte-array>\n"
                         + "</WEPKeys>");
+    }
+
+    @Test
+    public void parseNetworkWithNonExistAutoJoinInAAPM() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+                .thenReturn(false);
+        when(ActivityManager.getCurrentUser()).thenReturn(TEST_CREATOR_USER_ID);
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        // 3 networks, open, eap, sae.
+        List<WifiConfiguration> networkList = getTestNetworksConfig(true /* shared */);
+        mNetworkListSharedStoreData.setConfigurations(networkList);
+        byte[] xmlData = getTestNetworksXmlBytes(networkList.get(0), networkList.get(1),
+                networkList.get(2));
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+                .thenReturn(true);
+        List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
+        assertEquals(3, deserializedNetworks.size());
+        assertEquals(false,
+                deserializedNetworks.get(0).isAutoJoinInAdvancedProtectionModeEnabled());
+        assertEquals(true, deserializedNetworks.get(1).isAutoJoinInAdvancedProtectionModeEnabled());
+        assertEquals(true, deserializedNetworks.get(2).isAutoJoinInAdvancedProtectionModeEnabled());
     }
 }
