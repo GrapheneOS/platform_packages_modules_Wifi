@@ -4921,8 +4921,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     }
 
     /**
-     * See {@link WifiManager#addRestrictAutoJoinToSubIdCallback(Executor,
-     * WifiManager.RestrictAutoJoinToSubIdCallback)}
+     * See {@link WifiManager#addRestrictAutoJoinToSubscriptionIdCallback(Executor,
+     * WifiManager.RestrictAutoJoinToSubscriptionIdCallback)}
      */
     public void addRestrictAutoJoinToSubIdCallback(
             @NonNull IRestrictAutoJoinToSubIdCallback callback) {
@@ -4961,7 +4961,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
 
     /**
      * See {@link WifiManager#removeRestrictAutoJoinToSubIdCallback(
-     *WifiManager.RestrictAutoJoinToSubIdCallback)}
+     *WifiManager.RestrictAutoJoinToSubscriptionIdCallback)}
      */
     public void removeRestrictAutoJoinToSubIdCallback(
             @NonNull IRestrictAutoJoinToSubIdCallback callback) {
