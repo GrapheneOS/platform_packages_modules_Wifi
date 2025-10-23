@@ -3708,10 +3708,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             stopDhcpSetup();
         }
 
-        if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()
-                && mNetworkFactory.isConnectedToConfig(getConnectedWifiConfigurationInternal())) {
-            mNetworkFactory.onDisconnectionExpected(
-                    WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
+        if (mNetworkFactory.isConnectedToConfig(getConnectedWifiConfigurationInternal())) {
+            mNetworkFactory.teardownForConnectedNetwork();
+            if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
+                mNetworkFactory.onDisconnectionExpected(
+                        WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
+            }
         }
         // The current network has already disconnected somehow. Any pending user dialog is now
         // obsolete and should be cleared.

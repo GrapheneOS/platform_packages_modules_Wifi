@@ -1490,7 +1490,7 @@ public class WifiNetworkFactory extends NetworkFactory {
     }
 
     // Invoked at the termination of current connected request processing.
-    private void teardownForConnectedNetwork() {
+    public void teardownForConnectedNetwork() {
         Log.i(TAG, "Disconnecting from network on reset");
         removeNetworkFromWifiConfigManager(mUserSelectedNetwork);
         mConnectedSpecificNetworkRequest = null;

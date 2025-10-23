@@ -2081,6 +2081,33 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
     }
 
+
+    /**
+     * Verify handling of connection success then disconnection.
+     */
+    @Test
+    public void testNetworkSpecifierHandleConnectionSuccessAndDisconnect() throws Exception {
+        sendNetworkRequestAndSetupForConnectionStatus();
+
+        // Send network connection success indication.
+        assertNotNull(mSelectedNetwork);
+        mWifiNetworkFactory.handleConnectionAttemptEnded(
+                WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1,
+                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
+
+        // Verify that we sent the connection success callback.
+        verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
+                argThat(new WifiConfigMatcher(mSelectedNetwork)));
+
+        // Now release the active network request.
+        mWifiNetworkFactory.teardownForConnectedNetwork();
+
+        verify(mWifiMetrics).incrementNetworkRequestApiNumConnectSuccessOnPrimaryIface();
+        // Ensure that we toggle auto-join state.
+        verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(true);
+        verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
+    }
+
     /**
      * Verify handling of connection success.
      */

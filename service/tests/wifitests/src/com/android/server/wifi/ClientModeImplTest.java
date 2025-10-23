@@ -6763,6 +6763,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
         mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
         mLooper.dispatchAll();
+        verify(mWifiNetworkFactory).teardownForConnectedNetwork();
         verify(mWifiNetworkFactory).onDisconnectionExpected(
                 WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
     }
