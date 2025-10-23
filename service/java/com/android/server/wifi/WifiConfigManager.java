@@ -52,6 +52,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.Process;
 import android.os.UserHandle;
@@ -1477,6 +1478,19 @@ public class WifiConfigManager {
         newInternalConfig.lastUpdated = mClock.getWallClockMillis();
         newInternalConfig.numRebootsSinceLastUse = 0;
         initRandomizedMacForInternalConfig(newInternalConfig);
+        if (Environment.isSdkNewerThanB()
+                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+            boolean isInsecure = true;
+            for (SecurityParams p : newInternalConfig.getSecurityParamsList()) {
+                if (!p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OPEN)
+                        && !p.isSecurityType(WifiConfiguration.SECURITY_TYPE_WEP)
+                        && !p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OWE)) {
+                    isInsecure = false;
+                    break;
+                }
+            }
+            newInternalConfig.setAutoJoinInAdvancedProtectionModeEnabled(!isInsecure);
+        }
         return newInternalConfig;
     }
 
