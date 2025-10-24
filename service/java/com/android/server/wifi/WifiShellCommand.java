@@ -141,6 +141,7 @@ import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.coex.CoexUtils;
 import com.android.server.wifi.hal.WifiChip;
 import com.android.server.wifi.hotspot2.NetworkDetail;
+import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.nl80211.Nl80211Native;
 import com.android.server.wifi.util.ApConfigUtil;
 import com.android.server.wifi.util.ArrayUtils;
@@ -2541,7 +2542,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 case "get-overlay-config-values":
                     mContext.getResourceCache().dump(pw);
                     return 0;
-                case "set-ssid-roaming-mode":
+                case "set-ssid-roaming-mode": {
                     String ssid = getNextArgRequired();
                     String roamingMode = getNextArgRequired();
                     String option = getNextOption();
@@ -2567,6 +2568,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
 
                     mWifiService.setPerSsidRoamingMode(wifiSsid, mode, SHELL_PACKAGE_NAME);
                     return 0;
+                }
                 case "set-scan-throttling-enabled":
                     mWifiService.setScanThrottleEnabled(
                             getNextArgRequiredTrueOrFalse("enabled", "disabled"));
@@ -2848,6 +2850,31 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                         pw.println(interfaceName);
                     }
                     return 0;
+                case "get-device-wiphy-capabilities": {
+                    String iface = getNextArgRequired();
+                    String option = getNextOption();
+                    boolean useNl80211Override = false;
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+                    DeviceWiphyCapabilities deviceWiphyCapabilities;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        deviceWiphyCapabilities = mNl80211Native.getDeviceWiphyCapabilities(iface);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    if (deviceWiphyCapabilities == null) {
+                        pw.println("Failed to get device wiphy capabilities");
+                        return -1;
+                    }
+                    pw.println(deviceWiphyCapabilities);
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -4029,6 +4056,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    disable the Wi-Fi Aware");
         pw.println("  aware-clean-paired-device");
         pw.println("    Cleared all paired devices");
+        pw.println("  get-device-wiphy-capabilities <interface>");
+        pw.println("    Gets the device wiphy capabilities of the interface.");
+        pw.println("    -n Force use nl80211 implementation.");
     }
 
     @Override

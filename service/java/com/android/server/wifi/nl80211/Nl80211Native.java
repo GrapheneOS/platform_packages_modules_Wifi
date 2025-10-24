@@ -21,6 +21,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_I
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.WifiNl80211Manager;
@@ -43,8 +44,10 @@ public class Nl80211Native {
     private boolean mVerboseLoggingEnabled;
 
     private final @NonNull Nl80211Proxy mNl80211Proxy;
+    private final @NonNull Nl80211Utils mNl80211Utils;
     private final @NonNull WifiNl80211Manager mWificondManager;
     private final boolean mUseWificond;
+    private boolean mUseNl80211Override;
     private boolean mIsInitialized;
 
     /**
@@ -120,9 +123,11 @@ public class Nl80211Native {
 
     public Nl80211Native(
             @NonNull Nl80211Proxy nl80211Proxy,
+            @NonNull Nl80211Utils nl80211Utils,
             @NonNull WifiNl80211Manager wificondManager,
             boolean useWificond) {
         mNl80211Proxy = nl80211Proxy;
+        mNl80211Utils = nl80211Utils;
         mWificondManager = wificondManager;
         mUseWificond = useWificond;
         Log.i(TAG, "useWificond: " + useWificond);
@@ -136,6 +141,7 @@ public class Nl80211Native {
     public boolean initialize() {
         if (mIsInitialized) return true;
         mIsInitialized = mNl80211Proxy.initialize();
+        mNl80211Utils.initialize();
         Log.i(TAG, "Initialization status: " + mIsInitialized);
         return mIsInitialized;
     }
@@ -145,6 +151,18 @@ public class Nl80211Native {
      */
     public boolean isInitialized() {
         return mIsInitialized;
+    }
+
+    private boolean useWificond() {
+        return mUseWificond && !mUseNl80211Override;
+    }
+
+    /**
+     * Force usage of Nl80211 implementation even if mUseWificond flag is enabled.
+     * This is intended for testing purposes.
+     */
+    public void setUseNl80211Override(boolean enabled) {
+        mUseNl80211Override = enabled;
     }
 
     /**
@@ -167,7 +185,7 @@ public class Nl80211Native {
      * Set a death handler for the wificond service.
      */
     public void setWificondOnServiceDeadCallback(@NonNull Runnable deathEventHandler) {
-        if (mUseWificond) {
+        if (useWificond()) {
             mWificondManager.setOnServiceDeadCallback(deathEventHandler);
             return;
         }
@@ -179,7 +197,7 @@ public class Nl80211Native {
      * Enable verbose logging.
      */
     public void enableVerboseLogging(boolean enable) {
-        if (mUseWificond) {
+        if (useWificond()) {
             mWificondManager.enableVerboseLogging(enable);
         }
 
@@ -232,7 +250,7 @@ public class Nl80211Native {
             @NonNull Executor executor,
             @NonNull ScanEventCallback scanCallback,
             @NonNull ScanEventCallback pnoScanCallback) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.setupInterfaceForClientMode(
                     ifaceName,
                     executor,
@@ -271,7 +289,7 @@ public class Nl80211Native {
      * set up).
      */
     public boolean tearDownClientInterface(@NonNull String ifaceName) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.tearDownClientInterface(ifaceName);
         }
 
@@ -292,7 +310,7 @@ public class Nl80211Native {
      * @return true on success.
      */
     public boolean setupInterfaceForSoftApMode(@NonNull String ifaceName) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.setupInterfaceForSoftApMode(ifaceName);
         }
 
@@ -315,7 +333,7 @@ public class Nl80211Native {
      * set up).
      */
     public boolean tearDownSoftApInterface(@NonNull String ifaceName) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.tearDownSoftApInterface(ifaceName);
         }
 
@@ -335,7 +353,7 @@ public class Nl80211Native {
      * @return Returns true on success.
      */
     public boolean tearDownInterfaces() {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.tearDownInterfaces();
         }
 
@@ -373,7 +391,7 @@ public class Nl80211Native {
             @Nullable Set<Integer> freqs,
             @Nullable List<byte[]> hiddenNetworkSSIDs,
             @Nullable Bundle extraScanningParams) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.startScan2(
                     ifaceName, scanType, freqs, hiddenNetworkSSIDs, extraScanningParams);
         }
@@ -401,7 +419,7 @@ public class Nl80211Native {
             @Nullable Set<Integer> freqs,
             @Nullable List<byte[]> hiddenNetworkSSIDs,
             @Nullable Bundle extraScanningParams) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.startScan(
                     ifaceName, scanType, freqs, hiddenNetworkSSIDs, extraScanningParams);
         }
@@ -454,7 +472,7 @@ public class Nl80211Native {
     public List<NativeScanResult> getScanResults(
             @NonNull String ifaceName,
             int scanType) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return wificondScansToNl80211NativeScans(
                     mWificondManager.getScanResults(ifaceName, scanType));
         }
@@ -494,7 +512,7 @@ public class Nl80211Native {
             @NonNull PnoSettings pnoSettings,
             @NonNull Executor executor,
             @NonNull PnoScanRequestCallback callback) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.startPnoScan(
                     ifaceName, pnoSettings.toWificondPnoSettings(), executor, callback);
         }
@@ -534,7 +552,7 @@ public class Nl80211Native {
      * set up).
      */
     public boolean stopPnoScan(@NonNull String ifaceName) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.stopPnoScan(ifaceName);
         }
 
@@ -561,7 +579,7 @@ public class Nl80211Native {
      * @param ifaceName Name of the interface on which the scan was started.
      */
     public void abortScan(@NonNull String ifaceName) {
-        if (mUseWificond) {
+        if (useWificond()) {
             mWificondManager.abortScan(ifaceName);
             return;
         }
@@ -594,7 +612,7 @@ public class Nl80211Native {
     @Deprecated
     @Nullable
     public WifiNl80211Manager.SignalPollResult wificondSignalPoll(@NonNull String ifaceName) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.signalPoll(ifaceName);
         }
 
@@ -616,7 +634,7 @@ public class Nl80211Native {
      */
     @Nullable
     public DeviceWiphyCapabilities getDeviceWiphyCapabilities(@NonNull String ifaceName) {
-        if (mUseWificond) {
+        if (useWificond()) {
             android.net.wifi.nl80211.DeviceWiphyCapabilities wificondCaps =
                     mWificondManager.getDeviceWiphyCapabilities(ifaceName);
             if (wificondCaps == null) return null;
@@ -627,10 +645,45 @@ public class Nl80211Native {
             Log.e(TAG, "ifaceName cannot be null");
             return null;
         }
-        if (!mIsInitialized) return null;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        if (!mIsInitialized) {
+            Log.e(TAG, "Service is not initialized");
+            return null;
+        }
+
+        int wiphyIndex = mNl80211Utils.getWiphyIndex(ifaceName);
+        if (wiphyIndex == -1) {
+            Log.e(TAG, "Failed to get wiphy index for " + ifaceName);
+            return null;
+        }
+
+        Log.d(TAG, "Using wiphy index " + wiphyIndex + " for " + ifaceName);
+        Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(wiphyIndex);
+        if (wiphyInfo == null) {
+            Log.e(TAG, "getDeviceWiphyCapabilities: Failed to get wiphy info for index "
+                    + wiphyIndex);
+            return null;
+        }
+
+        DeviceWiphyCapabilities capabilities = new DeviceWiphyCapabilities();
+        capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N,
+                wiphyInfo.bandInfo.is80211nSupported);
+        capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC,
+                wiphyInfo.bandInfo.is80211acSupported);
+        capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX,
+                wiphyInfo.bandInfo.is80211axSupported);
+        capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE,
+                wiphyInfo.bandInfo.is80211beSupported);
+        capabilities.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ,
+                wiphyInfo.bandInfo.is160MhzSupported);
+        capabilities.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ,
+                wiphyInfo.bandInfo.is80p80MhzSupported);
+        capabilities.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ,
+                wiphyInfo.bandInfo.is320MhzSupported);
+        capabilities.setMaxNumberTxSpatialStreams(wiphyInfo.bandInfo.maxTxStreams);
+        capabilities.setMaxNumberRxSpatialStreams(wiphyInfo.bandInfo.maxRxStreams);
+        capabilities.setMaxNumberAkms(wiphyInfo.driverCapabilities.maxNumAkmSuites);
+        return capabilities;
     }
 
     /**
@@ -649,7 +702,7 @@ public class Nl80211Native {
      */
     @NonNull
     public int[] getChannelsMhzForBand(@WifiAnnotations.WifiBandBasic int band) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.getChannelsMhzForBand(band);
         }
 
@@ -671,7 +724,7 @@ public class Nl80211Native {
      */
     @Nullable
     public TxPacketCounters getTxPacketCounters(@NonNull String ifaceName) {
-        if (mUseWificond) {
+        if (useWificond()) {
             WifiNl80211Manager.TxPacketCounters result =
                     mWificondManager.getTxPacketCounters(ifaceName);
             if (result == null) return null;
@@ -694,7 +747,7 @@ public class Nl80211Native {
      * @param ifaceName Name of the interface.
      */
     public int getMaxSsidsPerScan(@NonNull String ifaceName) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.getMaxSsidsPerScan(ifaceName);
         }
 
@@ -718,7 +771,7 @@ public class Nl80211Native {
     public boolean registerCountryCodeChangedListener(
             @NonNull Executor executor,
             @NonNull CountryCodeChangedListener listener) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.registerCountryCodeChangedListener(executor, listener);
         }
 
@@ -743,7 +796,7 @@ public class Nl80211Native {
      */
     public void unregisterCountryCodeChangedListener(
             @NonNull CountryCodeChangedListener listener) {
-        if (mUseWificond) {
+        if (useWificond()) {
             mWificondManager.unregisterCountryCodeChangedListener(listener);
             return;
         }
@@ -768,7 +821,7 @@ public class Nl80211Native {
      *                       alphanumeric.
      */
     public void notifyCountryCodeChanged(@Nullable String newCountryCode) {
-        if (mUseWificond) {
+        if (useWificond()) {
             mWificondManager.notifyCountryCodeChanged(newCountryCode);
             return;
         }
@@ -802,7 +855,7 @@ public class Nl80211Native {
             @NonNull String ifaceName,
             @NonNull Executor executor,
             @NonNull WifiNl80211Manager.SoftApCallback callback) {
-        if (mUseWificond) {
+        if (useWificond()) {
             return mWificondManager.registerApCallback(ifaceName, executor, callback);
         }
 
@@ -835,7 +888,7 @@ public class Nl80211Native {
             int mcs,
             @NonNull Executor executor,
             @NonNull WifiNl80211Manager.SendMgmtFrameCallback callback) {
-        if (mUseWificond) {
+        if (useWificond()) {
             mWificondManager.sendMgmtFrame(ifaceName, frame, mcs, executor, callback);
             return;
         }

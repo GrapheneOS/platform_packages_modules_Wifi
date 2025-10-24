@@ -274,4 +274,22 @@ public final class DeviceWiphyCapabilities {
                 mChannelWidth320MhzSupported, mMaxNumberTxSpatialStreams,
                 mMaxNumberRxSpatialStreams, mMaxNumberAkms);
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("DeviceWiphyCapabilities{");
+        sb.append("80211nSupported=").append(m80211nSupported);
+        sb.append(", 80211acSupported=").append(m80211acSupported);
+        sb.append(", 80211axSupported=").append(m80211axSupported);
+        sb.append(", 80211beSupported=").append(m80211beSupported);
+        sb.append(", channelWidth160MhzSupported=").append(mChannelWidth160MhzSupported);
+        sb.append(", channelWidth80p80MhzSupported=").append(mChannelWidth80p80MhzSupported);
+        sb.append(", channelWidth320MhzSupported=").append(mChannelWidth320MhzSupported);
+        sb.append(", maxNumberTxSpatialStreams=").append(mMaxNumberTxSpatialStreams);
+        sb.append(", maxNumberRxSpatialStreams=").append(mMaxNumberRxSpatialStreams);
+        sb.append(", maxNumberAkms=").append(mMaxNumberAkms);
+        sb.append('}');
+        return sb.toString();
+    }
 }
