@@ -82,7 +82,8 @@ public class Nl80211NativeTest {
         MockitoAnnotations.initMocks(this);
         when(mNl80211Proxy.initialize()).thenReturn(true);
         when(mNl80211Proxy.createNl80211Request(
-                NetlinkConstants.NL80211_CMD_GET_INTERFACE, StructNlMsgHdr.NLM_F_DUMP))
+                NetlinkConstants.Nl80211Commands.NL80211_CMD_GET_INTERFACE.toShort(),
+                StructNlMsgHdr.NLM_F_DUMP))
                 .thenReturn(Nl80211TestUtils.createTestMessage());
     }
 
@@ -98,7 +99,8 @@ public class Nl80211NativeTest {
     public void testGetInterfaceNames_success_returnsInterfaceNames() {
         mDut = initNl80211Native(false);
         GenericNetlinkMsg response = Nl80211TestUtils.createTestMessage();
-        response.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_IFNAME, IFACE_NAME));
+        response.addAttribute(new StructNlAttr(
+                NetlinkConstants.Nl80211Attrs.NL80211_ATTR_IFNAME.toShort(), IFACE_NAME));
         when(mNl80211Proxy.sendMessageAndReceiveResponses(any()))
                 .thenReturn(List.of(response));
         List<String> interfaceNames = mDut.getInterfaceNames();
@@ -122,7 +124,8 @@ public class Nl80211NativeTest {
     public void testGetInterfaceNames_failedToCreateRequest_returnsNull() {
         mDut = initNl80211Native(false);
         when(mNl80211Proxy.createNl80211Request(
-                NetlinkConstants.NL80211_CMD_GET_INTERFACE, StructNlMsgHdr.NLM_F_DUMP))
+                NetlinkConstants.Nl80211Commands.NL80211_CMD_GET_INTERFACE.toShort(),
+                StructNlMsgHdr.NLM_F_DUMP))
                 .thenReturn(null);
         List<String> interfaceNames = mDut.getInterfaceNames();
         assertNull(interfaceNames);

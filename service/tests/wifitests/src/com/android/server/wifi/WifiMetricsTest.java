@@ -38,6 +38,7 @@ import static com.android.server.wifi.WifiMetricsTestUtil.buildInt32Count;
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeFailureReasonCount;
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeFailureStaEvent;
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeSuccessStaEvent;
+import static com.android.server.wifi.nl80211.NetlinkConstants.Nl80211Commands.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.proto.WifiStatsLog.SCORER_PREDICTION_RESULT_REPORTED;
 import static com.android.server.wifi.proto.WifiStatsLog.SCORER_PREDICTION_RESULT_REPORTED__DEVICE_STATE__STATE_NO_CELLULAR_MODEM;
 import static com.android.server.wifi.proto.WifiStatsLog.SCORER_PREDICTION_RESULT_REPORTED__DEVICE_STATE__STATE_NO_SIM_INSERTED;
@@ -7795,7 +7796,7 @@ public class WifiMetricsTest extends WifiBaseTest {
     @Test
     public void testReportNl80211CommandResultSuccessfullyTrigger() {
         /* Test an arbitrary CMD and reason combination */
-        GenericNetlinkMsg message = new GenericNetlinkMsg(NetlinkConstants.NL80211_CMD_GET_INTERFACE,
+        GenericNetlinkMsg message = new GenericNetlinkMsg(NL80211_CMD_GET_INTERFACE.toShort(),
                 NetlinkConstants.CTRL_ATTR_FAMILY_ID, NLM_F_REQUEST, 100);
         mWifiMetrics.reportNl80211CommandResult(message,
                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__SEND_FD_UNAVAILABLE);
