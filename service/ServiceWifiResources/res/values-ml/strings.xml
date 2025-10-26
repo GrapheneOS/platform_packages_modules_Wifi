@@ -218,14 +218,10 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> കുറഞ്ഞ നിലവാരമാണ്. <xliff:g id="SSID_1">%2$s</xliff:g> എന്നതിലേക്ക് മാറണോ?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"മാറുക"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"മാറരുത്"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (94664204061356025) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (523085058096307605) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"<xliff:g id="APP_NAME">%1$s</xliff:g> വിച്ഛേദിക്കണോ?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"വൈഫൈ വിച്ഛേദിക്കുന്നത് <xliff:g id="APP_NAME">%1$s</xliff:g> വിച്ഛേദിക്കാൻ കാരണമാകും. തുടരണോ?"</string>
     <!-- no translation found for wifi_disconnect_dialog_new_connection_message (8091261552122047303) -->
     <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (81882845888322268) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_negative_button (5075682597077355859) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"തുടരുക"</string>
+    <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"റദ്ദാക്കുക"</string>
 </resources>
