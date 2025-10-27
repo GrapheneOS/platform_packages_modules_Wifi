@@ -29,6 +29,7 @@ import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_INT_MAX_SU
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGING_ENABLED;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.app.ActivityManager;
 import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
@@ -44,9 +45,11 @@ import android.net.wifi.WifiSsid;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.WifiAwareManager;
+import android.net.wifi.rtt.IProximityDetectionMacAddressCallback;
 import android.net.wifi.rtt.IRttCallback;
 import android.net.wifi.rtt.IWifiRttManager;
 import android.net.wifi.rtt.PasnConfig;
+import android.net.wifi.rtt.ProximityDetectionCharacteristics;
 import android.net.wifi.rtt.RangingRequest;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.rtt.RangingResultCallback;
@@ -54,6 +57,7 @@ import android.net.wifi.rtt.ResponderConfig;
 import android.net.wifi.rtt.ResponderLocation;
 import android.net.wifi.rtt.SecureRangingConfig;
 import android.net.wifi.rtt.WifiRttManager;
+import android.net.wifi.util.Environment;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -65,6 +69,7 @@ import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.WorkSource;
 import android.os.WorkSource.WorkChain;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseIntArray;
@@ -99,12 +104,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.Executor;
 
 /**
  * Implementation of the IWifiRttManager AIDL interface and of the RttService state manager.
  */
 public class RttServiceImpl extends IWifiRttManager.Stub {
     private static final String TAG = "RttServiceImpl";
+    // TODO set to false after testing
     private static final boolean VDBG = false; // STOPSHIP if true
     private boolean mVerboseLoggingEnabled = false;
     private boolean mVerboseHalLoggingEnabled = false;
@@ -136,6 +144,18 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     // arbitrary, larger than anything reasonable
     /* package */ static final int MAX_QUEUED_PER_UID = 20;
     private WifiConfigManager mWifiConfigManager;
+    // TODO Remove after HAL implementation
+    private boolean mIsHALProximityRangingSupported = false;
+    static final String DEFAULT_PR_DEVICE_NAME_PREFIX = "Android_PR_";
+    private String mProximityRangingDeviceName = null;
+    private MacAddress mProximityRangingRandomizedMacAddress = null;
+    /**
+     * Used for testing
+     */
+    @VisibleForTesting
+    public void setHALProximityRangingSupported(boolean value) {
+        mIsHALProximityRangingSupported = value;
+    }
 
     private final WifiRttController.RttControllerRangingResultsCallback mRangingResultsCallback =
             new WifiRttController.RttControllerRangingResultsCallback() {
@@ -343,6 +363,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         mPowerManager = mContext.getSystemService(PowerManager.class);
         mWifiConfigManager = wifiConfigManager;
         mWifiSsidTranslator = ssidTranslator;
+        if (Flags.proximityRanging() && Environment.isSdkNewerThanB()) {
+            setProximityRangingDeviceName(generateDefaultProximityRangingDeviceName());
+            setProximityRangingRandomizedMacAddress(generateProximityRangingRandomizedMacAddress());
+        }
 
         mRttServiceSynchronized.mHandler.post(() -> {
             IntentFilter intentFilter = new IntentFilter();
@@ -646,6 +670,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         enforceAccessPermission();
         enforceChangePermission();
         mWifiPermissionsUtil.checkPackage(uid, callingPackage);
+
         // check if only Aware APs are ranged.
         boolean onlyAwareApRanged = request.mRttPeers.stream().allMatch(
                 config -> config.responderType == ResponderConfig.RESPONDER_AWARE);
@@ -734,6 +759,172 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         });
     }
 
+    /**
+     * See {@link WifiRttManager#getProximityDetectionCharacteristics()}
+     */
+    @Override
+    @Nullable
+    public ProximityDetectionCharacteristics getProximityDetectionCharacteristics() {
+        enforceAccessPermission();
+        if (VDBG) {
+            Log.v(TAG, "getProximityDetectionCharacteristics:");
+        }
+        // Return early if the feature is not supported
+        if (mWifiRttController == null || !mIsHALProximityRangingSupported) {
+            return null;
+        }
+        // TODO Add a check for the AIDL capability and populate the bundle.
+        Bundle bundle = new Bundle();
+        if (VDBG) {
+            Log.v(TAG, "getProximityDetectionCharacteristics Device Name: "
+                    + mProximityRangingDeviceName);
+        }
+        // TODO Call the SupplicantWifiRttController API to get the capabilities
+        //  and converts to a ProximityDetectionCharacteristics object. Also cache the AIDL
+        //  object for future use.
+        bundle.putString(ProximityDetectionCharacteristics
+                .KEY_STRING_PROXIMITY_DETECTION_DEVICE_NAME, mProximityRangingDeviceName);
+        return new ProximityDetectionCharacteristics(bundle);
+    }
+
+    /**
+     * See {@link WifiRttManager#setProximityDetectionDeviceName(String)}
+     */
+    @Override
+    public void setProximityDetectionDeviceName(@NonNull String deviceName) {
+        final int uid = getMockableCallingUid();
+        if (!checkNetworkSettingsOrNetworkStackPermission(
+                getMockableCallingUid())) {
+            throw new SecurityException(
+                    "Uid=" + uid + " is not allowed to setProximityDetectionDeviceName");
+        }
+        if (VDBG) {
+            Log.v(TAG, "setProximityDetectionDeviceName:" + deviceName);
+        }
+        if (TextUtils.isEmpty(deviceName)) {
+            throw new IllegalArgumentException("deviceName must not be null or empty");
+        }
+        if (deviceName.length() > 32) {
+            throw new IllegalArgumentException("deviceName must not be longer than 32 bytes");
+        }
+        setProximityRangingDeviceName(deviceName);
+        // TODO Add implementation to call SupplicantWifiRttController to set device name and set
+        //  the same name in ProximityDetectionCharacteristics object.
+    }
+
+    /**
+     * See {@link WifiRttManager#getProximityDetectionRandomizedMacAddress()}
+     */
+    @Override
+    public MacAddress getProximityDetectionRandomizedMacAddress(@NonNull String callingFeatureId,
+            @NonNull String packageName, Bundle extras) {
+        Objects.requireNonNull(packageName, "packageName must not be null");
+        final int uid = getMockableCallingUid();
+        // permission checks
+        enforceRttManagementPermissions(uid, callingFeatureId, packageName,
+                extras);
+        if (VDBG) {
+            Log.v(TAG, "getProximityDetectionRandomizedMacAddress:"
+                    + mProximityRangingRandomizedMacAddress + " uid=" + uid);
+        }
+        if (mWifiRttController != null && mIsHALProximityRangingSupported) {
+            return mProximityRangingRandomizedMacAddress;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * See {@link WifiRttManager#registerProximityDetectionMacAddressCallback(Executor,
+     * WifiRttManager.ProximityDetectionMacAddressCallback)}
+     */
+    public void registerProximityDetectionMacAddressCallback(@NonNull String callingFeatureId,
+            @NonNull String packageName, @NonNull IProximityDetectionMacAddressCallback callback,
+            Bundle extras) {
+        Objects.requireNonNull(callback, "Listener must not be null");
+        Objects.requireNonNull(packageName, "packageName must not be null");
+        final int uid = getMockableCallingUid();
+        // permission checks
+        enforceRttManagementPermissions(uid, callingFeatureId, packageName, extras);
+        if (VDBG) {
+            Log.v(TAG, "registerProximityDetectionMacAddressCallback: from pid="
+                    + Binder.getCallingPid() + ", uid=" + uid);
+        }
+        // TODO Add implementation
+    }
+
+    /**
+     * See {@link WifiRttManager#unregisterProximityDetectionMacAddressCallback(
+     * WifiRttManager.ProximityDetectionMacAddressCallback)}
+     */
+    public void unregisterProximityDetectionMacAddressCallback(@NonNull String callingFeatureId,
+            @NonNull String packageName, @NonNull IProximityDetectionMacAddressCallback callback,
+            Bundle extras) {
+        Objects.requireNonNull(callback, "Listener must not be null");
+        Objects.requireNonNull(packageName, "packageName must not be null");
+        final int uid = getMockableCallingUid();
+        // permission checks
+        enforceRttManagementPermissions(uid, callingFeatureId, packageName, extras);
+        if (VDBG) {
+            Log.v(TAG, "unregisterProximityDetectionMacAddressCallback: from pid="
+                    + Binder.getCallingPid() + ", uid=" + uid);
+        }
+        // TODO Add implementation
+    }
+
+    /**
+     * Generates a default device name for Proximity Ranging based on the ANDROID_ID.
+     *
+     * @return A string representing the default device name.
+     */
+    private String generateDefaultProximityRangingDeviceName() {
+        String id = mFrameworkFacade.getSecureStringSetting(mContext,
+                Settings.Secure.ANDROID_ID);
+        if (TextUtils.isEmpty(id) || id.length() < 4) {
+            Log.w(TAG, "Could not generate default proximity ranging device name from ANDROID_ID");
+            // Fallback to a default name if ID is unavailable or too short
+            return DEFAULT_PR_DEVICE_NAME_PREFIX + "0000";
+        }
+        String postfix = id.substring(0, 4);
+        return DEFAULT_PR_DEVICE_NAME_PREFIX + postfix;
+    }
+
+    /**
+     * Sets the Proximity Ranging device name
+     */
+    private void setProximityRangingDeviceName(String deviceName) {
+        if (VDBG) Log.v(TAG, "setProximityRangingDeviceName: deviceName=" + deviceName);
+        mProximityRangingDeviceName = deviceName;
+    }
+
+    /**
+     * Generates a randomized MAC address for Proximity Ranging.
+     *
+     * @return A randomized MAC Address.
+     */
+    private MacAddress generateProximityRangingRandomizedMacAddress() {
+        if (VDBG) Log.v(TAG, "generateProximityRangingRandomizedMacAddress");
+        java.util.Random random = new java.util.Random();
+        byte[] randomMac = new byte[6];
+        random.nextBytes(randomMac);
+        /*
+         * Set the locally administered bit (the second-least significant bit in the
+         * first byte) to prevent collisions with globally unique addresses.
+         * Also, ensure the multicast bit (the least significant bit) is not set.
+         */
+        randomMac[0] |= (byte) 0x02; // Set the locally administered bit
+        randomMac[0] &= (byte) 0xFE; // Clear the multicast bit
+        return MacAddress.fromBytes(randomMac);
+    }
+
+    /**
+     * Sets the Proximity Ranging MAC Address.
+     */
+    private void setProximityRangingRandomizedMacAddress(MacAddress macAddress) {
+        if (VDBG) Log.v(TAG, "setProximityRangingRandomizedMacAddress: MAC: " + macAddress);
+        mProximityRangingRandomizedMacAddress = macAddress;
+    }
+
     private void enforceAccessPermission() {
         mContext.enforceCallingOrSelfPermission(android.Manifest.permission.ACCESS_WIFI_STATE, TAG);
     }
@@ -750,6 +941,41 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private boolean checkLocationHardware() {
         return mContext.checkCallingOrSelfPermission(android.Manifest.permission.LOCATION_HARDWARE)
                 == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Check that the UID has one of the following permissions:
+     * {@link android.Manifest.permission.NETWORK_SETTINGS}
+     * {@link android.Manifest.permission.NETWORK_STACK}
+     *
+     * @param uid the UID to check
+     * @return whether the UID has any of the above permissions
+     */
+    private boolean checkNetworkSettingsOrNetworkStackPermission(int uid) {
+        return mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
+                || mWifiPermissionsUtil.checkNetworkStackPermission(uid);
+    }
+
+    /**
+     * Enforces the necessary permissions for a caller to access RTT management APIs.
+     *
+     * @param packageName The package name of the calling application.
+     */
+    private void enforceRttManagementPermissions(int uid, @NonNull String callingFeatureId,
+            @NonNull String packageName, Bundle extras) {
+        // permission checks
+        enforceLocationHardware();
+        enforceAccessPermission();
+        enforceChangePermission();
+        mWifiPermissionsUtil.checkPackage(uid, packageName);
+        if (!mWifiPermissionsUtil.checkNearbyDevicesPermission(
+                (AttributionSource) extras.getParcelable(
+                        WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE, AttributionSource.class),
+                true, "wifi proximity ranging")) {
+            // No nearby permission. Check for location permission.
+            mWifiPermissionsUtil.enforceFineLocationPermission(
+                    packageName, callingFeatureId, uid);
+        }
     }
 
     private void sendRttStateChangedBroadcast(boolean enabled) {

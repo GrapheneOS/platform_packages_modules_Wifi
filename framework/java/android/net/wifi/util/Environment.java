@@ -119,6 +119,7 @@ public class Environment {
      * @return True if the SDK > 36
      */
     public static boolean isSdkNewerThanB() {
-        return Build.VERSION.SDK_INT > Build.VERSION_CODES.BAKLAVA;
+        return true;
+        // return Build.VERSION.SDK_INT > Build.VERSION_CODES.BAKLAVA;
     }
 }

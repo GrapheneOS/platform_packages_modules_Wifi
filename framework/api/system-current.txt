@@ -1830,6 +1830,31 @@ package android.net.wifi.p2p {
 
 package android.net.wifi.rtt {
 
+  @FlaggedApi("com.android.wifi.flags.proximity_ranging") public final class ProximityDetectionCharacteristics implements android.os.Parcelable {
+    method public int describeContents();
+    method public int getMaxNumContinuousRangingAdvertiserSessions();
+    method public int getMaxNumContinuousRangingSeekerSessions();
+    method public int getMaxSupportedPacketWidth80211mcBased();
+    method public int getMaxSupportedPacketWidthNtb();
+    method public int getMaxSupportedPreamble80211mcBased();
+    method public int getMaxSupportedPreambleNtb();
+    method public int getMinAllowedRangingInterval80211mcMillis();
+    method public int getMinAllowedRangingIntervalNtbMillis();
+    method @Nullable public String getProximityDetectionDeviceName();
+    method public boolean is80211mcBasedIstaRoleSupported();
+    method public boolean is80211mcBasedRangingSupported();
+    method public boolean is80211mcBasedRstaRoleSupported();
+    method public boolean isAuthenticatedPasnModeSupported();
+    method public boolean isConcurrentIstaRstaOperationSupported();
+    method public boolean isNtbIstaRoleSupported();
+    method public boolean isNtbNonSecureLtfRangingSupported();
+    method public boolean isNtbRstaRoleSupported();
+    method public boolean isNtbSecureLtfRangingSupported();
+    method public boolean isUnauthenticatedPasnModeSupported();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.rtt.ProximityDetectionCharacteristics> CREATOR;
+  }
+
   public final class RangingRequest implements android.os.Parcelable {
     method @NonNull public java.util.List<android.net.wifi.rtt.ResponderConfig> getRttResponders();
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public java.util.List<android.net.wifi.OuiKeyedData> getVendorData();
@@ -1884,7 +1909,12 @@ package android.net.wifi.rtt {
 
   @RestrictedForEnvironment(environments=android.annotation.RestrictedForEnvironment.ENVIRONMENT_SDK_RUNTIME, from=android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) public class WifiRttManager {
     method @RequiresPermission(allOf={android.Manifest.permission.LOCATION_HARDWARE}) public void cancelRanging(@Nullable android.os.WorkSource);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @Nullable @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public android.net.wifi.rtt.ProximityDetectionCharacteristics getProximityDetectionCharacteristics();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @Nullable @RequiresPermission(allOf={android.Manifest.permission.LOCATION_HARDWARE, android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.NEARBY_WIFI_DEVICES}, conditional=true) public android.net.MacAddress getProximityDetectionRandomizedMacAddress();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @RequiresPermission(allOf={android.Manifest.permission.LOCATION_HARDWARE, android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.NEARBY_WIFI_DEVICES}, conditional=true) public void registerProximityDetectionMacAddressCallback(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<android.net.MacAddress>);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_STACK}) public void setProximityDetectionDeviceName(@NonNull @Size(min=1, max=32) String);
     method @RequiresPermission(allOf={android.Manifest.permission.LOCATION_HARDWARE, android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.NEARBY_WIFI_DEVICES}, conditional=true) public void startRanging(@Nullable android.os.WorkSource, @NonNull android.net.wifi.rtt.RangingRequest, @NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.rtt.RangingResultCallback);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @RequiresPermission(allOf={android.Manifest.permission.LOCATION_HARDWARE, android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.NEARBY_WIFI_DEVICES}, conditional=true) public void unregisterProximityDetectionMacAddressCallback(@NonNull java.util.function.Consumer<android.net.MacAddress>);
   }
 
 }

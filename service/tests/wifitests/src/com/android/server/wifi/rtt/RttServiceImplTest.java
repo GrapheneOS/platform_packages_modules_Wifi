@@ -28,6 +28,7 @@ import static com.android.server.wifi.rtt.RttTestUtils.getDummyRangingResults;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -54,6 +55,7 @@ import android.app.test.MockAnswerUtil;
 import android.app.test.TestAlarmManager;
 import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -67,11 +69,13 @@ import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.PeerHandle;
 import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.rtt.IRttCallback;
+import android.net.wifi.rtt.ProximityDetectionCharacteristics;
 import android.net.wifi.rtt.RangingRequest;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.rtt.RangingResultCallback;
 import android.net.wifi.rtt.ResponderConfig;
 import android.net.wifi.rtt.WifiRttManager;
+import android.net.wifi.util.Environment;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -82,6 +86,7 @@ import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
+import android.provider.Settings;
 import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
@@ -89,6 +94,7 @@ import androidx.test.filters.SmallTest;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.MockResources;
 import com.android.server.wifi.SsidTranslator;
@@ -129,6 +135,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
     private static final int BACKGROUND_PROCESS_EXEC_GAP_MS = 10 * 60 * 1000;  // 10 minutes.
     private static final int MEASUREMENT_DURATION = 1000;
+    private static final String TEST_ANDROID_ID = "314Deadbeef";
 
     private RttServiceImplSpy mDut;
     private TestLooper mMockLooper;
@@ -200,6 +207,8 @@ public class RttServiceImplTest extends WifiBaseTest {
     WifiConfiguration mWifiConfiguration = new WifiConfiguration();
     @Mock
     SsidTranslator mSsidTranslator;
+    @Mock
+    FrameworkFacade mFrameworkFacade;
 
     /**
      * Using instead of spy to avoid native crash failures - possibly due to
@@ -257,6 +266,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         when(mockPermissionUtil.checkCallersLocationPermission(eq(mPackageName), eq(mFeatureId),
                 anyInt(), anyBoolean(), nullable(String.class))).thenReturn(true);
         when(mockPermissionUtil.isLocationModeEnabled()).thenReturn(true);
+        when(mockPermissionUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         when(mockRttControllerHal.rangeRequest(anyInt(), any(RangingRequest.class))).thenReturn(
                 true);
         when(mockHalDeviceManager.isStarted()).thenReturn(true);
@@ -268,6 +278,10 @@ public class RttServiceImplTest extends WifiBaseTest {
         when(mockContext.getSystemServiceName(PowerManager.class)).thenReturn(
                 Context.POWER_SERVICE);
         when(mockContext.getSystemService(PowerManager.class)).thenReturn(mMockPowerManager);
+        when(mockContext.getContentResolver()).thenReturn(mock(ContentResolver.class));
+        when(mFrameworkFacade.getSecureStringSetting(any(), eq(Settings.Secure.ANDROID_ID)))
+                .thenReturn(TEST_ANDROID_ID);
+        when(Flags.proximityRanging()).thenReturn(true);
 
         doAnswer(mBinderLinkToDeathCounter).when(mockIbinder).linkToDeath(any(), anyInt());
         doAnswer(mBinderUnlinkToDeathCounter).when(mockIbinder).unlinkToDeath(any(), anyInt());
@@ -2061,5 +2075,56 @@ public class RttServiceImplTest extends WifiBaseTest {
         verify(mockMetrics).enableVerboseLogging(anyBoolean());
         verifyNoMoreInteractions(mockRttControllerHal, mockMetrics, mockCallback,
                 mAlarmManager.getAlarmManager());
+    }
+
+    @Test
+    public void testGetProximityDetectionCharacteristics_whenDisabled_returnsNull() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        mDut.setHALProximityRangingSupported(false);
+        ProximityDetectionCharacteristics characteristics =
+                mDut.getProximityDetectionCharacteristics();
+        assertNull(characteristics);
+    }
+
+    @Test
+    public void testGetProximityDetectionCharacteristics() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        mDut.setHALProximityRangingSupported(true);
+        ProximityDetectionCharacteristics characteristics =
+                mDut.getProximityDetectionCharacteristics();
+        assertNotNull(characteristics);
+        // check that default device name is set
+        assertNotNull(characteristics.getProximityDetectionDeviceName());
+        assertTrue(characteristics.getProximityDetectionDeviceName().startsWith(
+                RttServiceImpl.DEFAULT_PR_DEVICE_NAME_PREFIX));
+    }
+
+    @Test
+    public void testSetProximityDetectionDeviceName() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        mDut.setHALProximityRangingSupported(true);
+        String deviceName = "testDevice";
+        mDut.setProximityDetectionDeviceName(deviceName);
+        ProximityDetectionCharacteristics characteristics =
+                mDut.getProximityDetectionCharacteristics();
+        assertEquals(deviceName, characteristics.getProximityDetectionDeviceName());
+    }
+
+    @Test
+    public void testGetProximityDetectionRandomizedMacAddress_whenDisabled_returnsNull() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        mDut.setHALProximityRangingSupported(false);
+        MacAddress macAddress = mDut.getProximityDetectionRandomizedMacAddress(mFeatureId,
+                mPackageName, mExtras);
+        assertNull(macAddress);
+    }
+
+    @Test
+    public void testGetProximityDetectionRandomizedMacAddress() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        mDut.setHALProximityRangingSupported(true);
+        MacAddress macAddress = mDut.getProximityDetectionRandomizedMacAddress(mFeatureId,
+                mPackageName, mExtras);
+        assertNotNull(macAddress);
     }
 }

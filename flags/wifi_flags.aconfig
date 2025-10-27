@@ -496,6 +496,14 @@ flag {
 }
 
 flag {
+    name: "proximity_ranging"
+    is_exported: true
+    namespace: "wifi"
+    description: "Wi-Fi Alliance Proximity Detection(Ranging) (PD) feature"
+    bug: "445727208"
+}
+
+flag {
     name: "feed_more_data_to_external_scorer"
     is_exported: true
     namespace: "wifi"

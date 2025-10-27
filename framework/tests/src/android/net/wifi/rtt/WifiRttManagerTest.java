@@ -23,9 +23,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -37,6 +40,7 @@ import android.net.wifi.OuiKeyedDataUtil;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.aware.PeerHandle;
+import android.net.wifi.util.Environment;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcel;
@@ -56,6 +60,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 
 /**
  * Unit test harness for WifiRttManager class.
@@ -1088,5 +1093,107 @@ public class WifiRttManagerTest {
                 copiedConfig.getChannelWidth());
         Assert.assertEquals("SecureRangingConfig should be copied",
                 mMockSecureRangingConfig, copiedConfig.getSecureRangingConfig());
+    }
+
+    @Test
+    public void testGetProximityDetectionCharacteristics() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        ProximityDetectionCharacteristics characteristics = new ProximityDetectionCharacteristics(
+                new Bundle());
+        when(mockRttService.getProximityDetectionCharacteristics()).thenReturn(characteristics);
+        assertEquals(characteristics, mDut.getProximityDetectionCharacteristics());
+        verify(mockRttService).getProximityDetectionCharacteristics();
+    }
+
+    @Test
+    public void testSetProximityDetectionDeviceName() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        String deviceName = "testDevice";
+        mDut.setProximityDetectionDeviceName(deviceName);
+        verify(mockRttService).setProximityDetectionDeviceName(deviceName);
+    }
+
+    @Test
+    public void testSetProximityDetectionDeviceNameWithNull() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        assertThrows(IllegalArgumentException.class,
+                () -> mDut.setProximityDetectionDeviceName(null));
+    }
+
+    @Test
+    public void testSetProximityDetectionDeviceNameTooLong() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        String deviceName = "thisDeviceNameIsWayTooLongToBeValidAndExceeds32Bytes";
+        assertThrows(IllegalArgumentException.class,
+                () -> mDut.setProximityDetectionDeviceName(deviceName));
+    }
+
+    @Test
+    public void testGetProximityDetectionRandomizedMacAddress() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        MacAddress macAddress = MacAddress.fromString("00:01:02:03:04:05");
+        when(mockRttService.getProximityDetectionRandomizedMacAddress(eq(featureId),
+                eq(packageName), any(Bundle.class))).thenReturn(macAddress);
+        assertEquals(macAddress, mDut.getProximityDetectionRandomizedMacAddress());
+        verify(mockRttService).getProximityDetectionRandomizedMacAddress(eq(featureId),
+                eq(packageName), any(Bundle.class));
+    }
+
+    @Test
+    public void testRegisterProximityDetectionMacAddressCallback() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        Consumer<MacAddress> callback = mock(Consumer.class);
+        mDut.registerProximityDetectionMacAddressCallback(mMockLooperExecutor, callback);
+        verify(mockRttService).registerProximityDetectionMacAddressCallback(eq(featureId),
+                eq(packageName), any(IProximityDetectionMacAddressCallback.class),
+                any(Bundle.class));
+    }
+
+    @Test
+    public void testRegisterProximityDetectionMacAddressCallbackWithNullExecutor() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        Consumer<MacAddress> callback = mock(Consumer.class);
+        assertThrows(NullPointerException.class,
+                () -> mDut.registerProximityDetectionMacAddressCallback(null, callback));
+    }
+
+    @Test
+    public void testRegisterProximityDetectionMacAddressCallbackWithNullCallback() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        assertThrows(NullPointerException.class,
+                () -> mDut.registerProximityDetectionMacAddressCallback(mMockLooperExecutor,
+                        null));
+    }
+
+    @Test
+    public void testRegisterProximityDetectionMacAddressCallbackAlreadyRegistered()
+            throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        Consumer<MacAddress> callback = mock(Consumer.class);
+        mDut.registerProximityDetectionMacAddressCallback(mMockLooperExecutor, callback);
+        verify(mockRttService, times(1)).registerProximityDetectionMacAddressCallback(
+                eq(featureId), eq(packageName), any(IProximityDetectionMacAddressCallback.class),
+                any(Bundle.class));
+    }
+
+    @Test
+    public void testUnregisterProximityDetectionMacAddressCallback() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        Consumer<MacAddress> callback = mock(Consumer.class);
+        mDut.registerProximityDetectionMacAddressCallback(mMockLooperExecutor, callback);
+        mDut.unregisterProximityDetectionMacAddressCallback(callback);
+        verify(mockRttService).unregisterProximityDetectionMacAddressCallback(eq(featureId),
+                eq(packageName), any(IProximityDetectionMacAddressCallback.class),
+                any(Bundle.class));
+    }
+
+    @Test
+    public void testUnregisterProximityDetectionMacAddressCallbackNotRegistered() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        Consumer<MacAddress> callback = mock(Consumer.class);
+        mDut.unregisterProximityDetectionMacAddressCallback(callback);
+        verify(mockRttService, never()).unregisterProximityDetectionMacAddressCallback(
+                eq(featureId), eq(packageName),
+                any(IProximityDetectionMacAddressCallback.class), any(Bundle.class));
     }
 }
