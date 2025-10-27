@@ -2899,6 +2899,71 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                 }
                 case "get-interfaces":
                     return getInterfaces(pw);
+                case "setup-client-interface": {
+                    String iface = getNextArgRequired();
+                    String option = getNextOption();
+                    boolean useNl80211Override = false;
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+                    boolean success;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        success = mNl80211Native.setupInterfaceForClientMode(iface,
+                                mContext.getMainExecutor(),
+                                new Nl80211Native.ScanEventCallback() {
+                                    @Override
+                                    public void onScanResultReady() {
+                                        Log.i(TAG, "NL80211 scan results ready.");
+                                    }
+
+                                    @Override
+                                    public void onScanFailed() {
+                                        pw.println("NL80211 scan failed.");
+                                    }
+                                },
+                                new Nl80211Native.ScanEventCallback() {
+                                    @Override
+                                    public void onScanResultReady() {
+                                        pw.println("NL80211 pno scan results ready.");
+                                    }
+
+                                    @Override
+                                    public void onScanFailed() {
+                                        pw.println("NL80211 pno scan failed.");
+                                    }
+                                });
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    pw.println("Setup interface " + (success ? "succeeded" : "failed"));
+                    return 0;
+                }
+                case "teardown-client-interface": {
+                    String iface = getNextArgRequired();
+                    String option = getNextOption();
+                    boolean useNl80211Override = false;
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+                    boolean success;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        success = mNl80211Native.tearDownClientInterface(iface);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    pw.println("Teardown interface " + (success ? "succeeded" : "failed"));
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -4115,6 +4180,15 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    -n Force use nl80211 implementation.");
         pw.println("  get-interfaces <wiphyIndex>");
         pw.println("    Lists all interfaces for the given wiphy index.");
+        pw.println("  setup-client-interface <interface>");
+        pw.println("    For debugging. Sets up an interface via"
+                + " Nl80211Native.setupInterfaceForClientMode and outputs to logcat whenever scan"
+                + " results are received.");
+        pw.println("    -n Force use nl80211 implementation.");
+        pw.println("  teardown-client-interface <interface>");
+        pw.println("    For debugging. Tears down an interface via"
+                + " Nl80211Native.teardownClientInterface");
+        pw.println("    -n Force use nl80211 implementation.");
     }
 
     @Override

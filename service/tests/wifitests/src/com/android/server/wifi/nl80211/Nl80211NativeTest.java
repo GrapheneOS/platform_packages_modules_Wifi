@@ -16,7 +16,12 @@
 
 package com.android.server.wifi.nl80211;
 
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCAN_ABORTED;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_RESULTS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_STOPPED;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -44,6 +49,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.net.module.util.netlink.StructNlMsgHdr;
+import com.android.server.wifi.util.NetdWrapper;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -65,10 +71,12 @@ import java.util.concurrent.Executor;
 public class Nl80211NativeTest {
     private Nl80211Native mDut;
     private static final String IFACE_NAME = "wlan0";
+    private static final int IFACE_INDEX = 3;
     private static final String COUNTRY_CODE = "US";
 
     @Mock Nl80211Proxy mNl80211Proxy;
     @Mock Nl80211Utils mNl80211Utils;
+    @Mock NetdWrapper mNetdWrapper;
     @Mock WifiNl80211Manager mWificondManager;
     @Mock Executor mExecutor;
     @Mock Nl80211Native.ScanEventCallback mScanCallback;
@@ -80,6 +88,10 @@ public class Nl80211NativeTest {
     @Mock Nl80211Native.CountryCodeChangedListener mCountryCodeChangedListener;
     @Mock Runnable mDeathEventHandler;
 
+    ArgumentCaptor<Nl80211BroadcastMonitor.Nl80211BroadcastCallback>
+            mNl80211BroadcastCallbackCaptor =
+            ArgumentCaptor.forClass(Nl80211BroadcastMonitor.Nl80211BroadcastCallback.class);
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -90,10 +102,154 @@ public class Nl80211NativeTest {
     }
 
     private Nl80211Native initNl80211Native(boolean useWificond) {
-        Nl80211Native nl80211Native =
-                new Nl80211Native(mNl80211Proxy, mNl80211Utils, mWificondManager, useWificond);
+        Nl80211Native nl80211Native = new Nl80211Native(mNl80211Proxy, mNl80211Utils, mNetdWrapper,
+                mWificondManager, useWificond);
         nl80211Native.initialize();
         return nl80211Native;
+    }
+
+    /** Test that a scan result event invokes the correct callback. */
+    @Test
+    public void testBroadcastEvent_onNewScanResults_invokesScanCallback() {
+        mDut = initNl80211Native(false);
+        // Setup interface to register some scan callbacks that are driven by the broadcast.
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        Nl80211Utils.InterfaceInfo expectedInfo = new Nl80211Utils.InterfaceInfo(
+                IFACE_INDEX, 0, IFACE_NAME, new byte[6]);
+        interfaces.add(expectedInfo);
+        when(mNl80211Utils.getInterfaces(0)).thenReturn(interfaces);
+        mDut.setupInterfaceForClientMode(IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_NEW_SCAN_RESULTS),
+                mNl80211BroadcastCallbackCaptor.capture());
+        GenericNetlinkMsg genericNetlinkMessage = mock(GenericNetlinkMsg.class);
+        when(genericNetlinkMessage.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX))
+                .thenReturn(IFACE_INDEX);
+
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(NL80211_CMD_NEW_SCAN_RESULTS,
+                genericNetlinkMessage);
+
+        // Verify the registered scan callbacks are called.
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(runnableCaptor.capture());
+        runnableCaptor.getValue().run();
+        verify(mScanCallback).onScanResultReady();
+        verify(mPnoScanCallback, never()).onScanResultReady();
+    }
+
+    /** Test that a scan aborted event invokes the correct callback. */
+    @Test
+    public void testBroadcastEvent_onScanAborted_invokesScanCallback() {
+        // Required for onScanFailed(int);
+        assumeTrue(SdkLevel.isAtLeastU());
+
+        mDut = initNl80211Native(false);
+        // Setup interface to register some scan callbacks that are driven by the broadcast.
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        Nl80211Utils.InterfaceInfo expectedInfo = new Nl80211Utils.InterfaceInfo(
+                IFACE_INDEX, 0, IFACE_NAME, new byte[6]);
+        interfaces.add(expectedInfo);
+        when(mNl80211Utils.getInterfaces(0)).thenReturn(interfaces);
+        mDut.setupInterfaceForClientMode(IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_SCAN_ABORTED),
+                mNl80211BroadcastCallbackCaptor.capture());
+        GenericNetlinkMsg genericNetlinkMessage = mock(GenericNetlinkMsg.class);
+        when(genericNetlinkMessage.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX))
+                .thenReturn(IFACE_INDEX);
+
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(NL80211_CMD_SCAN_ABORTED,
+                genericNetlinkMessage);
+
+        // Verify the registered scan callbacks are called.
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(runnableCaptor.capture());
+        runnableCaptor.getValue().run();
+        verify(mScanCallback).onScanFailed(WifiScanner.REASON_ABORT);
+        verify(mPnoScanCallback, never()).onScanFailed();
+    }
+
+    /** Test that a PNO scan result event invokes the correct callback. */
+    @Test
+    public void testBroadcastEvent_onSchedScanResults_invokesPnoScanCallback() {
+        mDut = initNl80211Native(false);
+        // Setup interface to register some scan callbacks that are driven by the broadcast.
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        Nl80211Utils.InterfaceInfo expectedInfo = new Nl80211Utils.InterfaceInfo(
+                IFACE_INDEX, 0, IFACE_NAME, new byte[6]);
+        interfaces.add(expectedInfo);
+        when(mNl80211Utils.getInterfaces(0)).thenReturn(interfaces);
+        mDut.setupInterfaceForClientMode(IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_SCHED_SCAN_RESULTS),
+                mNl80211BroadcastCallbackCaptor.capture());
+        GenericNetlinkMsg genericNetlinkMessage = mock(GenericNetlinkMsg.class);
+        when(genericNetlinkMessage.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX))
+                .thenReturn(IFACE_INDEX);
+
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(NL80211_CMD_SCHED_SCAN_RESULTS,
+                genericNetlinkMessage);
+
+        // Verify the registered scan callbacks are called.
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(runnableCaptor.capture());
+        runnableCaptor.getValue().run();
+        verify(mPnoScanCallback).onScanResultReady();
+        verify(mScanCallback, never()).onScanResultReady();
+    }
+
+    /** Test that a PNO scan stopped event invokes the correct callback. */
+    @Test
+    public void testBroadcastEvent_onSchedScanStopped_invokesPnoScanCallback() {
+        mDut = initNl80211Native(false);
+        // Setup interface to register some scan callbacks that are driven by the broadcast.
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        Nl80211Utils.InterfaceInfo expectedInfo = new Nl80211Utils.InterfaceInfo(
+                IFACE_INDEX, 0, IFACE_NAME, new byte[6]);
+        interfaces.add(expectedInfo);
+        when(mNl80211Utils.getInterfaces(0)).thenReturn(interfaces);
+        mDut.setupInterfaceForClientMode(IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_SCHED_SCAN_STOPPED),
+                mNl80211BroadcastCallbackCaptor.capture());
+        GenericNetlinkMsg genericNetlinkMessage = mock(GenericNetlinkMsg.class);
+        when(genericNetlinkMessage.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX))
+                .thenReturn(IFACE_INDEX);
+
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(NL80211_CMD_SCHED_SCAN_STOPPED,
+                genericNetlinkMessage);
+
+        // Verify the registered scan callbacks are called.
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(runnableCaptor.capture());
+        runnableCaptor.getValue().run();
+        verify(mPnoScanCallback).onScanFailed();
+        verify(mScanCallback, never()).onScanFailed();
+    }
+
+    /** Test that an event for an unknown interface is ignored. */
+    @Test
+    public void testBroadcastEvent_forUnknownInterface_doesNothing() {
+        mDut = initNl80211Native(false);
+        // Setup interface to register some scan callbacks that are driven by the broadcast.
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        Nl80211Utils.InterfaceInfo expectedInfo = new Nl80211Utils.InterfaceInfo(
+                IFACE_INDEX, 0, IFACE_NAME, new byte[6]);
+        interfaces.add(expectedInfo);
+        when(mNl80211Utils.getInterfaces(0)).thenReturn(interfaces);
+        mDut.setupInterfaceForClientMode(
+                IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_NEW_SCAN_RESULTS),
+                mNl80211BroadcastCallbackCaptor.capture());
+        GenericNetlinkMsg genericNetlinkMessage = mock(GenericNetlinkMsg.class);
+        when(genericNetlinkMessage.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX))
+                .thenReturn(IFACE_INDEX + 1); // Different ifIndex
+
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(NL80211_CMD_NEW_SCAN_RESULTS,
+                genericNetlinkMessage);
+
+        verify(mExecutor, never()).execute(any());
     }
 
     /** Test that {@link Nl80211Native#getInterfaceNames()} returns the expected value. */
@@ -128,11 +284,75 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testSetupInterfaceForClientMode_throwsException() {
+    public void testSetupInterfaceForClientMode_success() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.setupInterfaceForClientMode(
-                        IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        Nl80211Utils.InterfaceInfo expectedInfo = new Nl80211Utils.InterfaceInfo(
+                0, 0, IFACE_NAME, new byte[6]);
+        interfaces.add(expectedInfo);
+        when(mNl80211Utils.getInterfaces(0)).thenReturn(interfaces);
+
+        assertTrue(mDut.setupInterfaceForClientMode(
+                IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+        assertEquals(1, mDut.getClientInterfaceInfos().size());
+        Nl80211Native.ClientInterfaceInfo clientInterfaceInfo =
+                mDut.getClientInterfaceInfos().get(IFACE_NAME);
+        assertNotNull(clientInterfaceInfo);
+        assertEquals(IFACE_NAME, clientInterfaceInfo.ifName);
+        assertEquals(mExecutor, clientInterfaceInfo.scanCallbackExecutor);
+        assertEquals(mScanCallback, clientInterfaceInfo.scanEventCallback);
+        assertEquals(mPnoScanCallback, clientInterfaceInfo.pnoScanEventCallback);
+    }
+
+    @Test
+    public void testTearDownClientInterface() {
+        mDut = initNl80211Native(false);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        Nl80211Utils.InterfaceInfo expectedInfo = new Nl80211Utils.InterfaceInfo(
+                0, 0, IFACE_NAME, new byte[6]);
+        interfaces.add(expectedInfo);
+        when(mNl80211Utils.getInterfaces(0)).thenReturn(interfaces);
+
+        assertTrue(mDut.setupInterfaceForClientMode(
+                IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+        assertEquals(1, mDut.getClientInterfaceInfos().size());
+
+        assertTrue(mDut.tearDownClientInterface(IFACE_NAME));
+        assertEquals(0, mDut.getClientInterfaceInfos().size());
+        assertNull(mDut.getClientInterfaceInfos().get(IFACE_NAME));
+    }
+
+    @Test
+    public void testSetupInterfaceForClientMode_getWiphyIndexFails() {
+        mDut = initNl80211Native(false);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(-1);
+
+        assertEquals(false, mDut.setupInterfaceForClientMode(
+                IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+    }
+
+    @Test
+    public void testSetupInterfaceForClientMode_getInterfacesFails() {
+        mDut = initNl80211Native(false);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        when(mNl80211Utils.getInterfaces(0)).thenReturn(null);
+
+        assertEquals(false, mDut.setupInterfaceForClientMode(
+                IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+    }
+
+    @Test
+    public void testSetupInterfaceForClientMode_interfaceNotFound() {
+        mDut = initNl80211Native(false);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        interfaces.add(new Nl80211Utils.InterfaceInfo(0, 0, "anotheriface", new byte[6]));
+        when(mNl80211Utils.getInterfaces(0)).thenReturn(interfaces);
+
+        assertEquals(false, mDut.setupInterfaceForClientMode(
+                IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
     }
 
     @Test
@@ -141,13 +361,6 @@ public class Nl80211NativeTest {
         when(mWificondManager.tearDownClientInterface(IFACE_NAME)).thenReturn(true);
         assertTrue(mDut.tearDownClientInterface(IFACE_NAME));
         verify(mWificondManager).tearDownClientInterface(IFACE_NAME);
-    }
-
-    @Test
-    public void testTearDownClientInterface_throwsException() {
-        mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.tearDownClientInterface(IFACE_NAME));
     }
 
     @Test
@@ -474,8 +687,8 @@ public class Nl80211NativeTest {
 
     @Test
     public void testGetDeviceWiphyCapabilities_notInitialized() {
-        Nl80211Native nl80211Native =
-                new Nl80211Native(mNl80211Proxy, mNl80211Utils, mWificondManager, false);
+        Nl80211Native nl80211Native = new Nl80211Native(mNl80211Proxy, mNl80211Utils, mNetdWrapper,
+                mWificondManager, false);
         assertNull(nl80211Native.getDeviceWiphyCapabilities(IFACE_NAME));
     }
 

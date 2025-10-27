@@ -16,6 +16,12 @@
 
 package com.android.server.wifi.nl80211;
 
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCAN_ABORTED;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_RESULTS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_STOPPED;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.wifi.ScanResult;
@@ -23,13 +29,16 @@ import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
+import android.util.ArrayMap;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.wifi.util.NetdWrapper;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
@@ -40,12 +49,96 @@ public class Nl80211Native {
     private static final String TAG = "Nl80211Native";
     private boolean mVerboseLoggingEnabled;
 
+    /**
+     * Wrapper class to store all the information for a client mode interface.
+     */
+    @VisibleForTesting
+    static class ClientInterfaceInfo {
+        public final @NonNull String ifName;
+        public final int ifIndex;
+        public final @NonNull Executor scanCallbackExecutor;
+        public final @NonNull ScanEventCallback scanEventCallback;
+        public final @NonNull ScanEventCallback pnoScanEventCallback;
+
+        ClientInterfaceInfo(@NonNull String ifName, int ifIndex, @NonNull Executor executor,
+                @NonNull ScanEventCallback scanCallback,
+                @NonNull ScanEventCallback pnoScanCallback) {
+            this.ifName = ifName;
+            this.ifIndex = ifIndex;
+            this.scanCallbackExecutor = executor;
+            this.scanEventCallback = scanCallback;
+            this.pnoScanEventCallback = pnoScanCallback;
+        }
+    }
+
     private final @NonNull Nl80211Proxy mNl80211Proxy;
     private final @NonNull Nl80211Utils mNl80211Utils;
+    private final @NonNull NetdWrapper mNetdWrapper;
     private final @NonNull WifiNl80211Manager mWificondManager;
     private final boolean mUseWificond;
     private boolean mUseNl80211Override;
     private boolean mIsInitialized;
+    private final Map<String, ClientInterfaceInfo> mClientInterfaceInfos = new ArrayMap<>();
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mNl80211BroadcastCallback =
+            (type, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: cmd=" + message.getCommand());
+                }
+
+                Integer ifindex = message.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
+                if (ifindex == null) {
+                    Log.e(TAG, "Received NL80211 broadcast event without ifindex");
+                    return;
+                }
+
+                // Find the interface by ifIndex
+                ClientInterfaceInfo clientIfaceInfo = null;
+                for (ClientInterfaceInfo info : mClientInterfaceInfos.values()) {
+                    if (info.ifIndex == ifindex) {
+                        clientIfaceInfo = info;
+                        break;
+                    }
+                }
+
+                if (clientIfaceInfo == null) {
+                    // Not an interface we're managing, or ifIndex lookup failed.
+                    return;
+                }
+
+                Executor executor = clientIfaceInfo.scanCallbackExecutor;
+                ScanEventCallback scanCallback = clientIfaceInfo.scanEventCallback;
+                ScanEventCallback pnoScanCallback = clientIfaceInfo.pnoScanEventCallback;
+
+                switch (type) {
+                    case NL80211_CMD_NEW_SCAN_RESULTS:
+                        if (scanCallback != null) {
+                            executor.execute(() -> scanCallback.onScanResultReady());
+                        }
+                        break;
+                    case NL80211_CMD_SCAN_ABORTED:
+                        if (scanCallback != null) {
+                            // onScanFailed() is missing to match wificond implementation.
+                            executor.execute(() -> scanCallback.onScanFailed(
+                                    WifiScanner.REASON_ABORT));
+                        }
+                        break;
+                    case NL80211_CMD_SCHED_SCAN_RESULTS:
+                        if (pnoScanCallback != null) {
+                            executor.execute(() -> pnoScanCallback.onScanResultReady());
+                        }
+                        break;
+                    case NL80211_CMD_SCHED_SCAN_STOPPED:
+                        if (pnoScanCallback != null) {
+                            executor.execute(() -> pnoScanCallback.onScanFailed());
+                            // onScanFailed(int) is missing to match wificond implementation.
+                        }
+                        break;
+                    default:
+                        Log.e(TAG, "Received unhandled event: " + type);
+                        break;
+                }
+            };
 
     /**
      * Specifies a scan type: single scan initiated by the framework. Can be used in
@@ -100,10 +193,12 @@ public class Nl80211Native {
     public Nl80211Native(
             @NonNull Nl80211Proxy nl80211Proxy,
             @NonNull Nl80211Utils nl80211Utils,
+            @NonNull NetdWrapper netdWrapper,
             @NonNull WifiNl80211Manager wificondManager,
             boolean useWificond) {
         mNl80211Proxy = nl80211Proxy;
         mNl80211Utils = nl80211Utils;
+        mNetdWrapper = netdWrapper;
         mWificondManager = wificondManager;
         mUseWificond = useWificond;
         Log.i(TAG, "useWificond: " + useWificond);
@@ -118,6 +213,7 @@ public class Nl80211Native {
         if (mIsInitialized) return true;
         mIsInitialized = mNl80211Proxy.initialize();
         mNl80211Utils.initialize();
+
         Log.i(TAG, "Initialization status: " + mIsInitialized);
         return mIsInitialized;
     }
@@ -242,8 +338,39 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path for setting up client interface
-        throw new UnsupportedOperationException();
+        int wiphyIndex = mNl80211Utils.getWiphyIndex(ifaceName);
+        if (wiphyIndex == -1) {
+            Log.e(TAG, "Failed to get wiphy index for " + ifaceName);
+            return false;
+        }
+
+        List<Nl80211Utils.InterfaceInfo> interfaces = mNl80211Utils.getInterfaces(wiphyIndex);
+        if (interfaces == null) {
+            Log.e(TAG, "Failed to get interfaces for wiphy " + wiphyIndex);
+            return false;
+        }
+
+        Nl80211Utils.InterfaceInfo foundInterface = null;
+        for (Nl80211Utils.InterfaceInfo info : interfaces) {
+            if (ifaceName.equals(info.name)) {
+                foundInterface = info;
+                break;
+            }
+        }
+        if (foundInterface == null) {
+            Log.e(TAG, "Interface " + ifaceName + " not found for wiphy " + wiphyIndex);
+            return false;
+        }
+
+        mNetdWrapper.setInterfaceUp(ifaceName);
+
+        if (mClientInterfaceInfos.isEmpty()) {
+            registerScanCallbacks();
+        }
+        mClientInterfaceInfos.put(ifaceName,
+                new ClientInterfaceInfo(ifaceName, foundInterface.ifIndex, executor,
+                        scanCallback, pnoScanCallback));
+        return true;
     }
 
     /**
@@ -265,8 +392,35 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path for tearing down client interface
-        throw new UnsupportedOperationException();
+        mNetdWrapper.setInterfaceDown(ifaceName);
+        mClientInterfaceInfos.remove(ifaceName);
+        if (mClientInterfaceInfos.isEmpty()) {
+            unregisterScanCallbacks();
+        }
+
+        return true;
+    }
+
+    private void registerScanCallbacks() {
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_NEW_SCAN_RESULTS,
+                mNl80211BroadcastCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCAN_ABORTED,
+                mNl80211BroadcastCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCHED_SCAN_RESULTS,
+                mNl80211BroadcastCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCHED_SCAN_STOPPED,
+                mNl80211BroadcastCallback);
+    }
+
+    private void unregisterScanCallbacks() {
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_NEW_SCAN_RESULTS,
+                mNl80211BroadcastCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCAN_ABORTED,
+                mNl80211BroadcastCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCHED_SCAN_RESULTS,
+                mNl80211BroadcastCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCHED_SCAN_STOPPED,
+                mNl80211BroadcastCallback);
     }
 
     /**
@@ -856,5 +1010,14 @@ public class Nl80211Native {
     @Nullable
     public List<Nl80211Utils.InterfaceInfo> getInterfaces(int wiphyIndex) {
         return mNl80211Utils.getInterfaces(wiphyIndex);
+    }
+
+    /**
+     * Returns client interfaces set up by {@link #setupInterfaceForClientMode(String, Executor,
+     * ScanEventCallback, ScanEventCallback)}.
+     */
+    @VisibleForTesting
+    public Map<String, ClientInterfaceInfo> getClientInterfaceInfos() {
+        return mClientInterfaceInfos;
     }
 }
