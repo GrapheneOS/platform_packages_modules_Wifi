@@ -541,10 +541,36 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testGetMaxSsidsPerScan_throwsException() {
+    public void testGetMaxSsidsPerScan_success() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.getMaxSsidsPerScan(IFACE_NAME));
+        final int maxSsids = 16;
+        Nl80211Utils.ScanCapabilities scanCaps = new Nl80211Utils.ScanCapabilities(
+                maxSsids, 0, 0, 0, 0, 0);
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
+                new Nl80211Utils.BandInfo(),
+                scanCaps,
+                mock(Nl80211Utils.WiphyFeatures.class),
+                mock(Nl80211Utils.DriverCapabilities.class));
+
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        when(mNl80211Utils.getWiphyInfo(0)).thenReturn(wiphyInfo);
+
+        assertEquals(maxSsids, mDut.getMaxSsidsPerScan(IFACE_NAME));
+    }
+
+    @Test
+    public void testGetMaxSsidsPerScan_getWiphyIndexFails() {
+        mDut = initNl80211Native(false);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(-1);
+        assertEquals(0, mDut.getMaxSsidsPerScan(IFACE_NAME));
+    }
+
+    @Test
+    public void testGetMaxSsidsPerScan_getWiphyInfoFails() {
+        mDut = initNl80211Native(false);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        when(mNl80211Utils.getWiphyInfo(0)).thenReturn(null);
+        assertEquals(0, mDut.getMaxSsidsPerScan(IFACE_NAME));
     }
 
     @Test

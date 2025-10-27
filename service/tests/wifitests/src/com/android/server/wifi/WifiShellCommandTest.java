@@ -1279,6 +1279,67 @@ public class WifiShellCommandTest extends WifiBaseTest {
     }
 
     @Test
+    public void testGetMaxScanSsids_success() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        when(mNl80211Native.getMaxSsidsPerScan("wlan0")).thenReturn(10);
+        assertEquals(
+                0,
+                mWifiShellCommand.exec(
+                        new Binder(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new String[] {"get-max-scan-ssids", "wlan0"}));
+        verify(mNl80211Native).getMaxSsidsPerScan("wlan0");
+    }
+
+    @Test
+    public void testGetMaxScanSsids_withNl80211Override() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        when(mNl80211Native.getMaxSsidsPerScan("wlan0")).thenReturn(10);
+        assertEquals(
+                0,
+                mWifiShellCommand.exec(
+                        new Binder(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new String[] {"get-max-scan-ssids", "wlan0", "-n"}));
+        verify(mNl80211Native).setUseNl80211Override(true);
+        verify(mNl80211Native).getMaxSsidsPerScan("wlan0");
+        verify(mNl80211Native).setUseNl80211Override(false);
+    }
+
+    @Test
+    public void testGetMaxScanSsids_failed() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        when(mNl80211Native.getMaxSsidsPerScan("wlan0")).thenReturn(-1);
+        assertEquals(
+                0,
+                mWifiShellCommand.exec(
+                        new Binder(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new String[] {"get-max-scan-ssids", "wlan0"}));
+        verify(mNl80211Native).getMaxSsidsPerScan("wlan0");
+    }
+
+    @Test
+    public void testGetMaxScanSsids_missingArg() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        assertEquals(
+                -1,
+                mWifiShellCommand.exec(
+                        new Binder(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new String[] {"get-max-scan-ssids"}));
+        verify(mNl80211Native, never()).getMaxSsidsPerScan(any());
+    }
+
+    @Test
     public void testListInterfaceNames_success() {
         BinderUtil.setUid(Process.ROOT_UID);
         when(mNl80211Native.getInterfaceNames()).thenReturn(List.of("wlan0"));

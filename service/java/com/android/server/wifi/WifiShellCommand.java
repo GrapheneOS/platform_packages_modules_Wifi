@@ -2875,6 +2875,27 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     pw.println(deviceWiphyCapabilities);
                     return 0;
                 }
+                case "get-max-scan-ssids": {
+                    String iface = getNextArgRequired();
+                    String option = getNextOption();
+                    boolean useNl80211Override = false;
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+                    int maxScanSsids;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        maxScanSsids = mNl80211Native.getMaxSsidsPerScan(iface);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    pw.println(maxScanSsids);
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -4058,6 +4079,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    Cleared all paired devices");
         pw.println("  get-device-wiphy-capabilities <interface>");
         pw.println("    Gets the device wiphy capabilities of the interface.");
+        pw.println("    -n Force use nl80211 implementation.");
+        pw.println("  get-max-scan-ssids <interface>");
+        pw.println("    Gets the max scan ssids of the interface.");
         pw.println("    -n Force use nl80211 implementation.");
     }
 

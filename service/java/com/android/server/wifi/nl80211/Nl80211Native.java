@@ -745,6 +745,7 @@ public class Nl80211Native {
      * Get the max number of SSIDs that the driver supports per scan.
      *
      * @param ifaceName Name of the interface.
+     * @return max number of scan SSIDs, or 0 upon error.
      */
     public int getMaxSsidsPerScan(@NonNull String ifaceName) {
         if (useWificond()) {
@@ -757,8 +758,19 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return 0;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        int wiphyIndex = mNl80211Utils.getWiphyIndex(ifaceName);
+        if (wiphyIndex == -1) {
+            Log.e(TAG, "Failed to get wiphy index for " + ifaceName);
+            return 0;
+        }
+
+        Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(wiphyIndex);
+        if (wiphyInfo == null) {
+            Log.e(TAG, "Failed to get wiphy info for index " + wiphyIndex);
+            return 0;
+        }
+
+        return wiphyInfo.scanCapabilities.maxNumScanSsids;
     }
 
     /**
