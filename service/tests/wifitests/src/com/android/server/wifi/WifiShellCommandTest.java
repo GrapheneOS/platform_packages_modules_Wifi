@@ -79,6 +79,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.nl80211.Nl80211Native;
+import com.android.server.wifi.nl80211.Nl80211Utils;
 
 import org.junit.After;
 import org.junit.Before;
@@ -1449,5 +1450,45 @@ public class WifiShellCommandTest extends WifiBaseTest {
                         new FileDescriptor(),
                         new String[] {"get-device-wiphy-capabilities"}));
         verify(mNl80211Native, never()).getDeviceWiphyCapabilities(any());
+    }
+
+    @Test
+    public void testGetInterfaces() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final int wiphyIndex = 0;
+        final String ifaceName = "wlan0";
+        final int ifaceIndex = 2;
+        final byte[] macAddress = new byte[] {0x00, 0x11, 0x22, 0x33, 0x44, 0x55};
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        interfaces.add(new Nl80211Utils.InterfaceInfo(
+                ifaceIndex, wiphyIndex, ifaceName, macAddress));
+        when(mNl80211Native.getInterfaces(wiphyIndex)).thenReturn(interfaces);
+
+        assertEquals(
+                0,
+                mWifiShellCommand.exec(
+                        new Binder(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new String[] {"get-interfaces", String.valueOf(wiphyIndex)}));
+        verify(mNl80211Native).getInterfaces(wiphyIndex);
+    }
+
+    @Test
+    public void testGetInterfaces_noInterfaces() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final int wiphyIndex = 0;
+        when(mNl80211Native.getInterfaces(wiphyIndex)).thenReturn(null);
+
+        assertEquals(
+                0,
+                mWifiShellCommand.exec(
+                        new Binder(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new String[] {"get-interfaces", String.valueOf(wiphyIndex)}));
+        verify(mNl80211Native).getInterfaces(wiphyIndex);
     }
 }

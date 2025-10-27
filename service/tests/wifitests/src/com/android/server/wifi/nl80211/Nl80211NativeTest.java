@@ -16,7 +16,6 @@
 
 package com.android.server.wifi.nl80211;
 
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFNAME;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -44,7 +43,6 @@ import android.os.Bundle;
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
-import com.android.net.module.util.netlink.StructNlAttr;
 import com.android.net.module.util.netlink.StructNlMsgHdr;
 
 import org.junit.Before;
@@ -102,33 +100,18 @@ public class Nl80211NativeTest {
     @Test
     public void testGetInterfaceNames_success_returnsInterfaceNames() {
         mDut = initNl80211Native(false);
-        GenericNetlinkMsg response = Nl80211TestUtils.createTestMessage();
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, IFACE_NAME));
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(any()))
-                .thenReturn(List.of(response));
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        interfaces.add(new Nl80211Utils.InterfaceInfo(1, 0, IFACE_NAME, new byte[6]));
+        when(mNl80211Utils.getInterfaces(anyInt())).thenReturn(interfaces);
         List<String> interfaceNames = mDut.getInterfaceNames();
         assertEquals(List.of(IFACE_NAME), interfaceNames);
     }
 
-    /** Test that {@link Nl80211Native#getInterfaceNames()} returns null if the response is null. */
+    /** Test that {@link Nl80211Native#getInterfaceNames()} returns null on failure. */
     @Test
-    public void testGetInterfaceNames_failedToReceiveResponses_returnsNull() {
+    public void testGetInterfaceNames_failure_returnsNull() {
         mDut = initNl80211Native(false);
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(any())).thenReturn(null);
-        List<String> interfaceNames = mDut.getInterfaceNames();
-        assertNull(interfaceNames);
-    }
-
-    /**
-     * Test that {@link Nl80211Native#getInterfaceNames()} returns null if the request failed to
-     * create.
-     */
-    @Test
-    public void testGetInterfaceNames_failedToCreateRequest_returnsNull() {
-        mDut = initNl80211Native(false);
-        when(mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
-                StructNlMsgHdr.NLM_F_DUMP))
-                .thenReturn(null);
+        when(mNl80211Utils.getInterfaces(anyInt())).thenReturn(null);
         List<String> interfaceNames = mDut.getInterfaceNames();
         assertNull(interfaceNames);
     }

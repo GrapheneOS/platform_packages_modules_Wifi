@@ -251,5 +251,22 @@ public class GenericNetlinkMsgTest {
         assertNull(msg.getAttributeValueAsByteArray(
                 (short) (Nl80211TestUtils.TEST_ATTRIBUTE_ID + 1)));
     }
+
+    /**
+     * Test that {@link GenericNetlinkMsg#getAttributeValueAsString(short)} can retrieve a
+     * string attribute.
+     */
+    @Test
+    public void testGetAttributeValueAsString() {
+        GenericNetlinkMsg msg = Nl80211TestUtils.createTestMessage();
+        String testValue = "hello world";
+        StructNlAttr attribute = new StructNlAttr(Nl80211TestUtils.TEST_ATTRIBUTE_ID, testValue);
+        msg.addAttribute(attribute);
+
+        assertEquals(testValue,
+                msg.getAttributeValueAsString(Nl80211TestUtils.TEST_ATTRIBUTE_ID));
+        assertNull(msg.getAttributeValueAsString(
+                (short) (Nl80211TestUtils.TEST_ATTRIBUTE_ID + 1)));
+    }
 }
 

@@ -160,6 +160,19 @@ public class GenericNetlinkMsg {
     }
 
     /**
+     * Retrieve the value of a string attribute, if it exists.
+     *
+     * @param attributeId of the attribute to retrieve
+     * @return value if it exists, or null if an error was encountered
+     */
+    @Nullable
+    public String getAttributeValueAsString(short attributeId) {
+        StructNlAttr attribute = getAttribute(attributeId);
+        if (attribute == null) return null;
+        return attribute.getValueAsString();
+    }
+
+    /**
      * Retrieve the inner attributes from a nested attribute.
      *
      * @param outerAttribute containing nested inner attributes

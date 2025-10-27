@@ -143,6 +143,7 @@ import com.android.server.wifi.hal.WifiChip;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.nl80211.Nl80211Native;
+import com.android.server.wifi.nl80211.Nl80211Utils;
 import com.android.server.wifi.util.ApConfigUtil;
 import com.android.server.wifi.util.ArrayUtils;
 
@@ -2896,6 +2897,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     pw.println(maxScanSsids);
                     return 0;
                 }
+                case "get-interfaces":
+                    return getInterfaces(pw);
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -3378,6 +3381,33 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             pw.println("Link probe timed out");
         } else {
             pw.println(msg);
+        }
+        return 0;
+    }
+
+    private int getInterfaces(PrintWriter pw) {
+        int wiphyIndex = -1;
+        String wiphyArg = getNextArg();
+        if (wiphyArg != null) {
+            try {
+                wiphyIndex = Integer.parseInt(wiphyArg);
+            } catch (NumberFormatException e) {
+                pw.println("Invalid wiphyIndex specified.");
+                return -1;
+            }
+        }
+
+        List<Nl80211Utils.InterfaceInfo> interfaces =
+                mNl80211Native.getInterfaces(wiphyIndex);
+        if (interfaces == null || interfaces.isEmpty()) {
+            pw.println("No interfaces found.");
+        } else {
+            pw.println("Interfaces:");
+            for (Nl80211Utils.InterfaceInfo iface : interfaces) {
+                pw.println("  " + iface.name + ": ifIndex=" + iface.ifIndex
+                        + ", wiphyIndex=" + iface.wiphyIndex
+                        + ", macAddress=" + MacAddress.fromBytes(iface.macAddress));
+            }
         }
         return 0;
     }
@@ -4083,6 +4113,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  get-max-scan-ssids <interface>");
         pw.println("    Gets the max scan ssids of the interface.");
         pw.println("    -n Force use nl80211 implementation.");
+        pw.println("  get-interfaces <wiphyIndex>");
+        pw.println("    Lists all interfaces for the given wiphy index.");
     }
 
     @Override

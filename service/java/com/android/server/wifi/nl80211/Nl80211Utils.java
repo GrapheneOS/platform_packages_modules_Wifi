@@ -16,6 +16,9 @@
 
 package com.android.server.wifi.nl80211;
 
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFNAME;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_EXT_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_FEATURE_FLAGS;
@@ -198,6 +201,23 @@ public class Nl80211Utils {
             this.scanCapabilities = scanCapabilities;
             this.wiphyFeatures = wiphyFeatures;
             this.driverCapabilities = driverCapabilities;
+        }
+    }
+
+    public static class InterfaceInfo {
+        public final int ifIndex;
+        public final int wiphyIndex;
+        @NonNull
+        public final String name;
+        @NonNull
+        public final byte[] macAddress;
+
+        public InterfaceInfo(int ifIndex, int wiphyIndex, @NonNull String name,
+                @NonNull byte[] macAddress) {
+            this.ifIndex = ifIndex;
+            this.wiphyIndex = wiphyIndex;
+            this.name = name;
+            this.macAddress = macAddress;
         }
     }
 
@@ -793,6 +813,59 @@ public class Nl80211Utils {
             return false;
         }
         return (extFeatureFlags[bytePos] & (1 << bitPos)) != 0;
+    }
+
+    /**
+     * Gets information about all interfaces associated with a given wiphy.
+     * @param wiphyIndex The index of the wiphy device, or -1 to query all wiphys.
+     * @return A list of {@link InterfaceInfo} objects, or null on failure.
+     */
+    @Nullable
+    public List<InterfaceInfo> getInterfaces(int wiphyIndex) {
+        GenericNetlinkMsg request;
+        if (wiphyIndex != -1) {
+            StructNlAttr wiphyIndexAttr = new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex);
+            request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
+                    StructNlMsgHdr.NLM_F_DUMP,
+                    wiphyIndexAttr);
+        } else {
+            request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
+                    StructNlMsgHdr.NLM_F_DUMP);
+        }
+
+        if (request == null) {
+            Log.e(TAG, "Failed to create GET_INTERFACE request");
+            return null;
+        }
+
+        List<GenericNetlinkMsg> responses = mNl80211Proxy.sendMessageAndReceiveResponses(request);
+        if (responses == null) {
+            Log.e(TAG, "Failed to get interface info");
+            return null;
+        }
+
+        List<InterfaceInfo> interfaceInfos = new ArrayList<>();
+        for (GenericNetlinkMsg response : responses) {
+            if (response.getCommand() != NetlinkConstants.NL80211_CMD_NEW_INTERFACE) {
+                Log.e(TAG, "Wrong command in response to GET_INTERFACE: "
+                        + response.getCommand());
+                continue;
+            }
+
+            Integer replyWiphyIndex = response.getAttributeValueAsInteger(NL80211_ATTR_WIPHY);
+            Integer ifIndex = response.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
+            String ifName = response.getAttributeValueAsString(NL80211_ATTR_IFNAME);
+            byte[] macAddress = response.getAttributeValueAsByteArray(NL80211_ATTR_MAC);
+
+            if (ifIndex == null || ifName == null || macAddress == null) {
+                Log.w(TAG, "Malformed NEW_INTERFACE response: missing attributes");
+                continue;
+            }
+
+            interfaceInfos.add(new InterfaceInfo(ifIndex, replyWiphyIndex, ifName, macAddress));
+        }
+
+        return interfaceInfos;
     }
 
     /**

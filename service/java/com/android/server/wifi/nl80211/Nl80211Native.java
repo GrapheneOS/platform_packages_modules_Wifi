@@ -16,9 +16,6 @@
 
 package com.android.server.wifi.nl80211;
 
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFNAME;
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
-
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.wifi.ScanResult;
@@ -28,7 +25,7 @@ import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.android.net.module.util.netlink.StructNlMsgHdr;
+import com.android.internal.annotations.VisibleForTesting;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -216,22 +213,12 @@ public class Nl80211Native {
      */
     public @Nullable List<String> getInterfaceNames() {
         if (!mIsInitialized) return null;
-        GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
-                StructNlMsgHdr.NLM_F_DUMP);
-        if (request == null) {
-            Log.e(TAG, "Failed to create Nl80211 request");
-            return null;
-        }
-        List<GenericNetlinkMsg> responses = mNl80211Proxy.sendMessageAndReceiveResponses(request);
-        if (responses == null) {
-            Log.e(TAG, "Failed to get interface names");
-            return null;
-        }
+        List<Nl80211Utils.InterfaceInfo> ifaceInfo = mNl80211Utils.getInterfaces(-1);
+        if (ifaceInfo == null) return null;
+
         List<String> interfaceNames = new ArrayList<>();
-        for (GenericNetlinkMsg response : responses) {
-            if (response.getAttribute(NL80211_ATTR_IFNAME) != null) {
-                interfaceNames.add(response.getAttribute(NL80211_ATTR_IFNAME).getValueAsString());
-            }
+        for (Nl80211Utils.InterfaceInfo info : ifaceInfo) {
+            interfaceNames.add(info.name);
         }
         return interfaceNames;
     }
@@ -908,5 +895,16 @@ public class Nl80211Native {
         // TODO (b/394409845): Remove all instances of sendMgmtFrame since it should be unused now.
         Log.wtf(TAG, "sendMgmtFrame was called even though we don't expect any users!");
         throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Gets information about all interfaces associated with a given wiphy.
+     * @param wiphyIndex The index of the wiphy device.
+     * @return A list of {@link Nl80211Utils.InterfaceInfo} objects, or null on failure.
+     */
+    @VisibleForTesting
+    @Nullable
+    public List<Nl80211Utils.InterfaceInfo> getInterfaces(int wiphyIndex) {
+        return mNl80211Utils.getInterfaces(wiphyIndex);
     }
 }
