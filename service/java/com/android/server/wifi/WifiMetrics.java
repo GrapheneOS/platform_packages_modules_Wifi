@@ -785,6 +785,7 @@ public class WifiMetrics {
 
         private int mValidationCount = 0;
         private boolean mHasReportedValidationResult = false;
+        private int mRssi;
     }
 
     /**
@@ -795,7 +796,8 @@ public class WifiMetrics {
             int status,
             long l3ConnectedStateTimestamp,
             long lastValidationTimestamp,
-            boolean captivePortalDetected) {
+            boolean captivePortalDetected,
+            int rssi) {
         SessionData currentSession = mCurrentConnectionSessionPerIface.get(ifaceName);
         if (currentSession != null) {
             currentSession.mValidationInfo.mStatus = status;
@@ -803,6 +805,7 @@ public class WifiMetrics {
             currentSession.mValidationInfo.mLastValidationTimestamp = lastValidationTimestamp;
             currentSession.mValidationInfo.mValidationCount += 1;
             currentSession.mValidationInfo.mCaptivePortalDetected = captivePortalDetected;
+            currentSession.mValidationInfo.mRssi = rssi;
         }
     }
 
@@ -830,7 +833,8 @@ public class WifiMetrics {
                     status,
                     wifiNetworkValidationDurationMillis,
                     currentSession.mValidationInfo.mValidationCount,
-                    currentSession.mValidationInfo.mCaptivePortalDetected);
+                    currentSession.mValidationInfo.mCaptivePortalDetected,
+                    currentSession.mValidationInfo.mRssi);
         }
     }
 

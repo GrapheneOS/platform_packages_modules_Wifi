@@ -5749,7 +5749,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
             mWifiMetrics.setLastValidationInfo(
                     mInterfaceName, status, mL3ConnectedStateTimestamp, validationTimestamp,
-                    captivePortalDetected);
+                    captivePortalDetected, mWifiInfo.getRssi());
             if (status == NetworkAgent.VALIDATION_STATUS_VALID) {
                 // Log vaidation success for each connection session
                 mWifiMetrics.reportWifiValidationResult(mInterfaceName, status);
