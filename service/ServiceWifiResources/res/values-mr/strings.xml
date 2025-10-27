@@ -222,8 +222,7 @@
     <skip />
     <!-- no translation found for wifi_disconnect_dialog_message (523085058096307605) -->
     <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (8091261552122047303) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"दुसऱ्या वाय-फाय नेटवर्कशी कनेक्ट केल्यामुळे <xliff:g id="APP_NAME">%1$s</xliff:g> डिस्कनेक्ट होईल. पुढे सुरू ठेवायचे आहे का?"</string>
     <!-- no translation found for wifi_disconnect_dialog_positive_button (81882845888322268) -->
     <skip />
     <!-- no translation found for wifi_disconnect_dialog_negative_button (5075682597077355859) -->
