@@ -19,11 +19,13 @@ package android.net.wifi.usd;
 import android.annotation.FlaggedApi;
 import android.annotation.SystemApi;
 import android.net.wifi.flags.Flags;
+import android.net.wifi.util.Environment;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -49,6 +51,9 @@ public final class Characteristics implements Parcelable {
     public static final String KEY_MAX_NUM_PUBLISH_SESSIONS = "key_max_num_publish_session";
     /** @hide */
     public static final String KEY_MAX_NUM_SUBSCRIBE_SESSIONS = "key_max_num_subscribe_session";
+    /** @hide */
+    public static final String KEY_BOOLEAN_FINDING_PROXIMITY_DETECTION_DEVICES_SUPPORTED =
+            "key_finding_proximity_detection_devices_supported";
 
 
     /** @hide : should not be created by apps */
@@ -128,6 +133,21 @@ public final class Characteristics implements Parcelable {
      */
     public int getMaxNumberOfSubscribeSessions() {
         return mCharacteristics.getInt(KEY_MAX_NUM_SUBSCRIBE_SESSIONS);
+    }
+
+    /**
+     * Returns true if the device supports finding the proximity detection capable
+     * devices via USD.
+     * @return true if supported, false otherwise.
+     */
+    @RequiresApi(37)
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    public boolean isFindingProximityDetectionDevicesSupported() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mCharacteristics.getBoolean(
+                KEY_BOOLEAN_FINDING_PROXIMITY_DETECTION_DEVICES_SUPPORTED);
     }
 
     @Override

@@ -1982,18 +1982,26 @@ package android.net.wifi.usd {
     method public int getMaxNumberOfSubscribeSessions();
     method public int getMaxServiceNameLength();
     method public int getMaxServiceSpecificInfoLength();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public boolean isFindingProximityDetectionDevicesSupported();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.usd.Characteristics> CREATOR;
   }
 
   @FlaggedApi("android.net.wifi.flags.usd") public abstract class Config {
     method @Nullable public int[] getOperatingFrequenciesMhz();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public java.util.List<byte[]> getPeerDeviceIdentityKeys();
     method @NonNull public java.util.List<byte[]> getRxMatchFilter();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @Nullable public byte[] getSelfDeviceIdentityKey();
     method @NonNull public byte[] getServiceName();
     method public int getServiceProtoType();
     method @Nullable public byte[] getServiceSpecificInfo();
     method @IntRange(from=0) public int getTtlSeconds();
     method @NonNull public java.util.List<byte[]> getTxMatchFilter();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public boolean isProximityRangingEnabled();
+    field @FlaggedApi("com.android.wifi.flags.proximity_ranging") public static final int PUBLISH_TYPE_SOLICITED = 2; // 0x2
+    field @FlaggedApi("com.android.wifi.flags.proximity_ranging") public static final int PUBLISH_TYPE_SOLICITED_AND_UNSOLICITED = 0; // 0x0
+    field @FlaggedApi("com.android.wifi.flags.proximity_ranging") public static final int PUBLISH_TYPE_UNSOLICITED = 1; // 0x1
+    field @FlaggedApi("com.android.wifi.flags.proximity_ranging") public static final String SERVICE_NAME_ANY = "android.net.wifi.usd.ANY_SERVICE";
     field public static final int SERVICE_PROTO_TYPE_CSA_MATTER = 1; // 0x1
     field public static final int SERVICE_PROTO_TYPE_GENERIC = 0; // 0x0
     field public static final int SUBSCRIBE_TYPE_ACTIVE = 1; // 0x1
@@ -2003,7 +2011,9 @@ package android.net.wifi.usd {
   }
 
   @FlaggedApi("android.net.wifi.flags.usd") public class DiscoveryResult {
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @Nullable public byte[] getDeviceIdentityKey();
     method public int getPeerId();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @Nullable public android.net.wifi.usd.ProximityRangingInfo getProximityRangingInfo();
     method public int getServiceProtoType();
     method @Nullable public byte[] getServiceSpecificInfo();
     method public boolean isFsdEnabled();
@@ -2012,14 +2022,58 @@ package android.net.wifi.usd {
   @FlaggedApi("android.net.wifi.flags.usd") public static final class DiscoveryResult.Builder {
     ctor public DiscoveryResult.Builder(int);
     method @NonNull public android.net.wifi.usd.DiscoveryResult build();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.usd.DiscoveryResult.Builder setDeviceIdentityKey(@Nullable byte[]);
     method @NonNull public android.net.wifi.usd.DiscoveryResult.Builder setFsdEnabled(boolean);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.usd.DiscoveryResult.Builder setProximityRangingInfo(@Nullable android.net.wifi.usd.ProximityRangingInfo);
     method @NonNull public android.net.wifi.usd.DiscoveryResult.Builder setServiceProtoType(int);
     method @NonNull public android.net.wifi.usd.DiscoveryResult.Builder setServiceSpecificInfo(@NonNull byte[]);
+  }
+
+  @FlaggedApi("com.android.wifi.flags.proximity_ranging") public final class ProximityRangingInfo implements android.os.Parcelable {
+    method public int describeContents();
+    method @NonNull public String getDeviceName();
+    method public int getMaxSupportedPacketWidth80211mcBased();
+    method public int getMaxSupportedPacketWidthNtb();
+    method public int getMaxSupportedPreamble80211mcBased();
+    method public int getMaxSupportedPreambleNtb();
+    method public boolean is6GHzSupported();
+    method public boolean is80211mcBasedIstaRoleSupported();
+    method public boolean is80211mcBasedRangingSupported();
+    method public boolean is80211mcBasedRstaRoleSupported();
+    method public boolean isAuthenticatedPasnModeSupported();
+    method public boolean isNtbIstaRoleSupported();
+    method public boolean isNtbNonSecureLtfRangingSupported();
+    method public boolean isNtbRstaRoleSupported();
+    method public boolean isNtbSecureLtfRangingSupported();
+    method public boolean isUnauthenticatedPasnModeSupported();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.usd.ProximityRangingInfo> CREATOR;
+  }
+
+  public static final class ProximityRangingInfo.Builder {
+    ctor public ProximityRangingInfo.Builder();
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo build();
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder set6GHzSupported(boolean);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder set80211mcBasedIstaRoleSupported(boolean);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder set80211mcBasedRangingSupported(boolean);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder set80211mcBasedRstaRoleSupported(boolean);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setAuthenticatedPasnModeSupported(boolean);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setDeviceName(@NonNull String);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setMaxSupportedPacketWidth80211mcBased(int);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setMaxSupportedPacketWidthNtb(int);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setMaxSupportedPreamble80211mcBased(int);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setMaxSupportedPreambleNtb(int);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setNtbIstaRoleSupported(boolean);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setNtbNonSecureLtfRangingSupported(boolean);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setNtbRstaRoleSupported(boolean);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setNtbSecureLtfRangingSupported(boolean);
+    method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder setUnauthenticatedPasnModeSupported(boolean);
   }
 
   @FlaggedApi("android.net.wifi.flags.usd") public final class PublishConfig extends android.net.wifi.usd.Config implements android.os.Parcelable {
     method public int describeContents();
     method @IntRange(from=0) public int getAnnouncementPeriodMillis();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public int getPublishType();
     method public int getSolicitedTransmissionType();
     method public boolean isEventsEnabled();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
@@ -2032,7 +2086,11 @@ package android.net.wifi.usd {
     method @NonNull public android.net.wifi.usd.PublishConfig.Builder setAnnouncementPeriodMillis(@IntRange(from=0) int);
     method @NonNull public android.net.wifi.usd.PublishConfig.Builder setEventsEnabled(boolean);
     method @NonNull public android.net.wifi.usd.PublishConfig.Builder setOperatingFrequenciesMhz(@NonNull int[]);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.usd.PublishConfig.Builder setPeerDeviceIdentityKeys(@NonNull java.util.List<byte[]>);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.usd.PublishConfig.Builder setProximityRangingEnabled(boolean);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.usd.PublishConfig.Builder setPublishType(int);
     method @NonNull public android.net.wifi.usd.PublishConfig.Builder setRxMatchFilter(@NonNull java.util.List<byte[]>);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.usd.PublishConfig.Builder setSelfDeviceIdentityKey(@NonNull byte[]);
     method @NonNull public android.net.wifi.usd.PublishConfig.Builder setServiceProtoType(int);
     method @NonNull public android.net.wifi.usd.PublishConfig.Builder setServiceSpecificInfo(@NonNull byte[]);
     method @NonNull public android.net.wifi.usd.PublishConfig.Builder setSolicitedTransmissionType(int);
@@ -2079,9 +2137,12 @@ package android.net.wifi.usd {
     ctor public SubscribeConfig.Builder(@NonNull String);
     method @NonNull public android.net.wifi.usd.SubscribeConfig build();
     method @NonNull public android.net.wifi.usd.SubscribeConfig.Builder setOperatingFrequenciesMhz(@NonNull int[]);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.usd.SubscribeConfig.Builder setPeerDeviceIdentityKeys(@NonNull java.util.List<byte[]>);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.usd.SubscribeConfig.Builder setProximityRangingEnabled(boolean);
     method @NonNull public android.net.wifi.usd.SubscribeConfig.Builder setQueryPeriodMillis(@IntRange(from=0) int);
     method @NonNull public android.net.wifi.usd.SubscribeConfig.Builder setRecommendedOperatingFrequenciesMhz(@NonNull int[]);
     method @NonNull public android.net.wifi.usd.SubscribeConfig.Builder setRxMatchFilter(@NonNull java.util.List<byte[]>);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.usd.SubscribeConfig.Builder setSelfDeviceIdentityKey(@NonNull byte[]);
     method @NonNull public android.net.wifi.usd.SubscribeConfig.Builder setServiceProtoType(int);
     method @NonNull public android.net.wifi.usd.SubscribeConfig.Builder setServiceSpecificInfo(@NonNull byte[]);
     method @NonNull public android.net.wifi.usd.SubscribeConfig.Builder setSubscribeType(int);
