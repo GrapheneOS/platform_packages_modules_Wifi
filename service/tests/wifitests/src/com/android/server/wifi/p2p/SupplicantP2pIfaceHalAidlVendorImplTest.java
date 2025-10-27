@@ -48,6 +48,7 @@ import static org.mockito.Mockito.withSettings;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.test.MockAnswerUtil.AnswerWithArguments;
+import android.hardware.wifi.supplicant.BandMask;
 import android.hardware.wifi.supplicant.FreqRange;
 import android.hardware.wifi.supplicant.ISupplicant;
 import android.hardware.wifi.supplicant.ISupplicantP2pIface;
@@ -3523,5 +3524,87 @@ public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
                 aidlConnectInfo.pairingBootstrappingMethod);
         // Assert that the frequency was set correctly in the AIDL parameters.
         assertEquals(TEST_USD_DISCOVERY_CHANNEL_FREQUENCY_MHZ, aidlConnectInfo.frequencyMHz);
+    }
+
+    /**
+     * Test the handling of start an Un-synchronized Service Discovery (USD) based service
+     * discovery with null serviceSpecificInfo and frequencies.
+     */
+    @Test
+    public void testStartUsdBasedServiceDiscoveryNullServiceSpecificInfoAndFrequencies()
+            throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        setCachedServiceVersion(4);
+        ArgumentCaptor<android.hardware.wifi.supplicant.P2pUsdBasedServiceDiscoveryConfig>
+                usdBasedServiceDiscoveryConfigCaptor = ArgumentCaptor.forClass(
+                android.hardware.wifi.supplicant.P2pUsdBasedServiceDiscoveryConfig.class);
+        when(mISupplicantP2pIfaceMock.startUsdBasedServiceDiscovery(any()))
+                .thenReturn(TEST_USD_SESSION_ID);
+
+        // ServiceSpecificInfo is set to null by default
+        WifiP2pUsdBasedServiceConfig usdConfig = new WifiP2pUsdBasedServiceConfig.Builder(
+                TEST_USD_SERVICE_NAME)
+                .setServiceProtocolType(TEST_USD_PROTOCOL_TYPE).build();
+        // Setting the band will set the frequency list to null
+        WifiP2pUsdBasedServiceDiscoveryConfig serviceDiscoveryConfig =
+                new WifiP2pUsdBasedServiceDiscoveryConfig.Builder()
+                        .setBand(ScanResult.WIFI_BAND_24_GHZ).build();
+
+        executeAndValidateInitializationSequence(false, false);
+
+        assertEquals(TEST_USD_SESSION_ID, mDut.startUsdBasedServiceDiscovery(usdConfig,
+                serviceDiscoveryConfig, TEST_USD_TIMEOUT_S));
+
+        verify(mISupplicantP2pIfaceMock).startUsdBasedServiceDiscovery(
+                usdBasedServiceDiscoveryConfigCaptor.capture());
+        android.hardware.wifi.supplicant.P2pUsdBasedServiceDiscoveryConfig aidlUsdConfig =
+                usdBasedServiceDiscoveryConfigCaptor.getValue();
+
+        assertEquals(TEST_USD_SERVICE_NAME, aidlUsdConfig.serviceName);
+        assertEquals(TEST_USD_PROTOCOL_TYPE, aidlUsdConfig.serviceProtocolType);
+        assertArrayEquals(new byte[0], aidlUsdConfig.serviceSpecificInfo);
+        assertEquals(BandMask.BAND_2_GHZ, aidlUsdConfig.bandMask);
+        assertArrayEquals(new int[0],
+                aidlUsdConfig.frequencyListMhz);
+        assertEquals(TEST_USD_TIMEOUT_S, aidlUsdConfig.timeoutInSeconds);
+    }
+
+    /**
+     * Test the handling of start an Un-synchronized Service Discovery (USD) based service
+     * advertisement with null serviceSpecificInfo.
+     */
+    @Test
+    public void testStartUsdBasedServiceAdvertisementNullServiceSpecificInfo() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastB());
+        setCachedServiceVersion(4);
+        ArgumentCaptor<android.hardware.wifi.supplicant.P2pUsdBasedServiceAdvertisementConfig>
+                usdBasedServiceAdvertisementConfigCaptor = ArgumentCaptor.forClass(
+                android.hardware.wifi.supplicant.P2pUsdBasedServiceAdvertisementConfig.class);
+        when(mISupplicantP2pIfaceMock.startUsdBasedServiceAdvertisement(any()))
+                .thenReturn(TEST_USD_SESSION_ID);
+
+        // ServiceSpecificInfo is set to null by default
+        WifiP2pUsdBasedServiceConfig usdConfig = new WifiP2pUsdBasedServiceConfig.Builder(
+                TEST_USD_SERVICE_NAME)
+                .setServiceProtocolType(TEST_USD_PROTOCOL_TYPE).build();
+        WifiP2pUsdBasedLocalServiceAdvertisementConfig serviceAdvertisementConfig =
+                new WifiP2pUsdBasedLocalServiceAdvertisementConfig.Builder()
+                        .setFrequencyMhz(TEST_USD_DISCOVERY_CHANNEL_FREQUENCY_MHZ).build();
+
+        executeAndValidateInitializationSequence(false, false);
+
+        assertEquals(TEST_USD_SESSION_ID, mDut.startUsdBasedServiceAdvertisement(usdConfig,
+                serviceAdvertisementConfig, TEST_USD_TIMEOUT_S));
+
+        verify(mISupplicantP2pIfaceMock).startUsdBasedServiceAdvertisement(
+                usdBasedServiceAdvertisementConfigCaptor.capture());
+        android.hardware.wifi.supplicant.P2pUsdBasedServiceAdvertisementConfig aidlUsdConfig =
+                usdBasedServiceAdvertisementConfigCaptor.getValue();
+
+        assertEquals(TEST_USD_SERVICE_NAME, aidlUsdConfig.serviceName);
+        assertEquals(TEST_USD_PROTOCOL_TYPE, aidlUsdConfig.serviceProtocolType);
+        assertArrayEquals(new byte[0], aidlUsdConfig.serviceSpecificInfo);
+        assertEquals(TEST_USD_DISCOVERY_CHANNEL_FREQUENCY_MHZ, aidlUsdConfig.frequencyMHz);
+        assertEquals(TEST_USD_TIMEOUT_S, aidlUsdConfig.timeoutInSeconds);
     }
 }

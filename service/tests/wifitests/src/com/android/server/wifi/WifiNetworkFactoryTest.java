@@ -1847,6 +1847,35 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
     }
 
     @Test
+    public void testConnectedAppName() throws Exception {
+        // Setup a successful connection
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
+        // Mock PackageManager to return a specific app name
+        ApplicationInfo applicationInfo = new ApplicationInfo();
+        when(mPackageManager.getApplicationInfoAsUser(
+                eq(TEST_PACKAGE_NAME_1), anyInt(), any())).thenReturn(applicationInfo);
+        when(mPackageManager.getApplicationLabel(eq(applicationInfo))).thenReturn(TEST_APP_NAME);
+
+        // Connect to request 1
+        sendNetworkRequestAndSetupForConnectionStatus(TEST_SSID_1);
+        // Send network connection success indication.
+        assertNotNull(mSelectedNetwork);
+        mWifiNetworkFactory.handleConnectionAttemptEnded(
+                WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1,
+                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
+        // Resend the request from a fg service (should be accepted since it is already connected).
+        assertTrue(mWifiNetworkFactory.acceptRequest(mNetworkRequest));
+
+        // Verify that getConnectedAppName returns the correct app name
+        assertEquals(TEST_APP_NAME, mWifiNetworkFactory.getConnectedAppName());
+
+        // Disconnect the network and verify that getConnectedAppName returns an empty string
+        mWifiNetworkFactory.releaseNetworkFor(mNetworkRequest);
+        mLooper.dispatchAll();
+        assertEquals("", mWifiNetworkFactory.getConnectedAppName());
+    }
+
+    @Test
     public void testIsConnectedToConfig() throws Exception {
         // Setup a successful connection
         mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
@@ -2045,6 +2074,33 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
 
         // Now release the active network request.
         mWifiNetworkFactory.releaseNetworkFor(mNetworkRequest);
+
+        verify(mWifiMetrics).incrementNetworkRequestApiNumConnectSuccessOnPrimaryIface();
+        // Ensure that we toggle auto-join state.
+        verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(true);
+        verify(mWifiConnectivityManager).setSpecificNetworkRequestInProgress(false);
+    }
+
+
+    /**
+     * Verify handling of connection success then disconnection.
+     */
+    @Test
+    public void testNetworkSpecifierHandleConnectionSuccessAndDisconnect() throws Exception {
+        sendNetworkRequestAndSetupForConnectionStatus();
+
+        // Send network connection success indication.
+        assertNotNull(mSelectedNetwork);
+        mWifiNetworkFactory.handleConnectionAttemptEnded(
+                WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1,
+                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
+
+        // Verify that we sent the connection success callback.
+        verify(mNetworkRequestMatchCallback).onUserSelectionConnectSuccess(
+                argThat(new WifiConfigMatcher(mSelectedNetwork)));
+
+        // Now release the active network request.
+        mWifiNetworkFactory.teardownForConnectedNetwork();
 
         verify(mWifiMetrics).incrementNetworkRequestApiNumConnectSuccessOnPrimaryIface();
         // Ensure that we toggle auto-join state.
@@ -3996,6 +4052,33 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         }
         fail("Invalid scan result type " + scanResultType);
         return "";
+    }
+
+    @Test
+    public void testConnectedNetworkHasDisconnectListenerRegistered() throws Exception {
+        // Case 1: No network is connected
+        assertFalse(mWifiNetworkFactory.connectedNetworkHasDisconnectListenerRegistered());
+
+        // Setup a connected network request
+        mockPackageImportance(TEST_PACKAGE_NAME_1, true, true);
+        sendNetworkRequestAndSetupForConnectionStatus(TEST_SSID_1);
+        mWifiNetworkFactory.handleConnectionAttemptEnded(
+                WifiMetrics.ConnectionEvent.FAILURE_NONE, mSelectedNetwork, TEST_BSSID_1,
+                WifiMetricsProto.ConnectionEvent.FAILURE_REASON_UNKNOWN);
+        assertTrue(mWifiNetworkFactory.acceptRequest(mNetworkRequest));
+
+        // Case 2: Network is connected, but no listener is registered
+        assertFalse(mWifiNetworkFactory.connectedNetworkHasDisconnectListenerRegistered());
+
+        // Case 3: Network is connected, and a listener is registered
+        mWifiNetworkFactory.addLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME_1);
+        assertTrue(mWifiNetworkFactory.connectedNetworkHasDisconnectListenerRegistered());
+
+        // Remove the listener and verify it returns false again
+        mWifiNetworkFactory.removeLocalOnlyDisconnectionStatusListener(
+                mLocalOnlyDisconnectionStatusListener, TEST_PACKAGE_NAME_1);
+        assertFalse(mWifiNetworkFactory.connectedNetworkHasDisconnectListenerRegistered());
     }
 
     private void setupScanData(int scanResultType, String ssid1, String ssid2, String ssid3,

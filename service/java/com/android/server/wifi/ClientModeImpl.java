@@ -709,6 +709,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private final WifiPseudonymManager.PseudonymUpdatingListener mPseudonymUpdatingListener;
 
     private final ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
+    private WifiDialogManager.DialogHandle mActiveLocalOnlyDisconnectDialogHandle = null;
 
     @VisibleForTesting
     public static final String X509_CERTIFICATE_EXPIRED_ERROR_STRING = "certificate has expired";
@@ -1504,6 +1505,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 + packageName + ", forceReconnect = " + forceReconnect + ", isUserSelected = "
                 + mIsUserSelected + ", attributionTag = " + attributionTag);
         updateSaeAutoUpgradeFlagForUserSelectNetwork(netId);
+        WifiConfiguration connectedConfig = getConnectedWifiConfigurationInternal();
         if (!forceReconnect && (mLastNetworkId == netId || mTargetNetworkId == netId)) {
             // We're already connecting/connected to the user specified network, don't trigger a
             // reconnection unless it was forced.
@@ -1538,37 +1540,53 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             // Not used.
                         }
                     }, mWifiThreadRunner).launchDialog();
+        } else if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()
+                && isPrimary()
+                && mIsUserSelected
+                && connectedConfig != null
+                && mNetworkFactory.isConnectedToConfig(connectedConfig)
+                && mNetworkFactory.connectedNetworkHasDisconnectListenerRegistered()) {
+            // Special case of user switching away from an active WifiNetworkSpecifier connection.
+            // Pop up dialog to warn user
+            Runnable onConnectApproved = () -> {
+                continueConnectToUserSelectNetwork(connectedConfig, attributionTag, netId, uid);
+            };
+            launchLocalOnlyDisconnectExpectedDialog(connectedConfig,
+                    mContext.getString(
+                            R.string.wifi_disconnect_dialog_new_connection_message,
+                            connectedConfig.SSID),
+                    onConnectApproved);
         } else {
-            boolean isUserSelectedBeforeOverride = mIsUserSelected;
-            if (mIsUserSelected && ATTRIBUTION_TAG_DISALLOW_CONNECT_CHOICE.equals(attributionTag)) {
-                mIsUserSelected = false;
-                logd("connectToUserSelectNetwork attributionTag override to disable user selected");
-            }
-            mWifiConnectivityManager.prepareForForcedConnection(netId);
-            if (UserHandle.getAppId(uid) == Process.SYSTEM_UID) {
-                mWifiMetrics.setNominatorForNetwork(netId,
-                        WifiMetricsProto.ConnectionEvent.NOMINATOR_MANUAL);
-            }
-            if (isPrimary()) {
-                WifiConfiguration config = getConnectedWifiConfigurationInternal();
-                if (config != null && getClientRoleForMetrics(config)
-                        == WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_LOCAL_ONLY) {
-                    // User manually trigger switch from a local-only network to primary.
-                    // Temporarily block re-connection to the local-only network to avoid app
-                    // automatically connecting back to it.
-                    mWifiConfigManager.userTemporarilyDisabledNetwork(config.SSID,
-                            Process.WIFI_UID);
-                }
-                if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
-                    if (mNetworkFactory.isConnectedToConfig(config)) {
-                        mNetworkFactory.onDisconnectionExpected(
-                                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION,
-                                isUserSelectedBeforeOverride);
-                    }
-                }
-            }
-            startConnectToNetwork(netId, uid, SUPPLICANT_BSSID_ANY);
+            continueConnectToUserSelectNetwork(connectedConfig, attributionTag, netId, uid);
         }
+    }
+
+    private void continueConnectToUserSelectNetwork(WifiConfiguration connectedConfig,
+            String attributionTag, int netId, int uid) {
+        if (mNetworkFactory.isConnectedToConfig(connectedConfig)) {
+            if (mIsUserSelected) {
+                // User manually trigger switch from a local-only network to primary.
+                // Temporarily block re-connection to the local-only network to avoid app
+                // automatically connecting back to it.
+                mWifiConfigManager.userTemporarilyDisabledNetwork(connectedConfig.SSID,
+                        Process.WIFI_UID);
+            }
+            if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
+                mNetworkFactory.onDisconnectionExpected(
+                        WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION,
+                        mIsUserSelected);
+            }
+        }
+        if (mIsUserSelected && ATTRIBUTION_TAG_DISALLOW_CONNECT_CHOICE.equals(attributionTag)) {
+            mIsUserSelected = false;
+            logd("connectToUserSelectNetwork attributionTag override to disable user selected");
+        }
+        mWifiConnectivityManager.prepareForForcedConnection(netId);
+        if (UserHandle.getAppId(uid) == Process.SYSTEM_UID) {
+            mWifiMetrics.setNominatorForNetwork(netId,
+                    WifiMetricsProto.ConnectionEvent.NOMINATOR_MANUAL);
+        }
+        startConnectToNetwork(netId, uid, SUPPLICANT_BSSID_ANY);
     }
 
     /**
@@ -1989,6 +2007,52 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_GENERIC);
     }
 
+    private void launchLocalOnlyDisconnectExpectedDialog(WifiConfiguration config,
+            String message,
+            Runnable onApprovedMessage) {
+        if (mActiveLocalOnlyDisconnectDialogHandle != null) {
+            mActiveLocalOnlyDisconnectDialogHandle.dismissDialog();
+            mActiveLocalOnlyDisconnectDialogHandle = null;
+        }
+        String appName = mNetworkFactory.getConnectedAppName();
+        final String title = mContext.getString(R.string.wifi_disconnect_dialog_title,
+                appName.isEmpty() ? config.SSID : appName);
+        final String positiveButton = mContext.getString(
+                R.string.wifi_disconnect_dialog_positive_button);
+        final String negativeButton = mContext.getString(
+                R.string.wifi_disconnect_dialog_negative_button);
+        WifiDialogManager.DialogHandle dialogHandle = mWifiInjector.getWifiDialogManager()
+                .createLegacySimpleDialog(
+                        title, message, positiveButton, negativeButton, null,
+                        new WifiDialogManager.SimpleDialogCallback() {
+                            @Override
+                            public void onPositiveButtonClicked() {
+                                onApprovedMessage.run();
+                            }
+                            @Override
+                            public void onNegativeButtonClicked() {
+                                // Do nothing.
+                            }
+                            @Override
+                            public void onNeutralButtonClicked() {
+                                // Not used.
+                            }
+                            @Override
+                            public void onCancelled() {
+                                // Do nothing.
+                            }
+                        }, mWifiThreadRunner);
+        dialogHandle.launchDialog();
+        mActiveLocalOnlyDisconnectDialogHandle = dialogHandle;
+    }
+
+    private void cleanupUserDisconnectDialog() {
+        if (mActiveLocalOnlyDisconnectDialogHandle != null) {
+            mActiveLocalOnlyDisconnectDialogHandle.dismissDialog();
+            mActiveLocalOnlyDisconnectDialogHandle = null;
+        }
+    }
+
     /**
      * Special version of disconnect for handling API call of {@link WifiManager#disconnect()}
      * @param uid calling app uid
@@ -1998,9 +2062,26 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             boolean isUserTriggered = mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
                     || mWifiPermissionsUtil.checkNetworkSetupWizardPermission(uid);
             WifiConfiguration config = getConnectedWifiConfigurationInternal();
-            if (mNetworkFactory.isConnectedToConfig(config)) {
-                // TODO (b/449257685): Add dialog to ask for user confirmation if this is user
-                // triggered.
+            boolean isConnectedToLocalOnlyNetwork = mNetworkFactory.isConnectedToConfig(config);
+            boolean connectedNetworkHasDisconnectListenerRegistered =
+                    mNetworkFactory.connectedNetworkHasDisconnectListenerRegistered();
+            if (isUserTriggered && isConnectedToLocalOnlyNetwork
+                    && connectedNetworkHasDisconnectListenerRegistered) {
+                Runnable onUserApprovedAction = () -> {
+                    if (mNetworkFactory.isConnectedToConfig(config)) {
+                        mNetworkFactory.onDisconnectionExpected(
+                                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API,
+                                true);
+                    }
+                    disconnect();
+                };
+                launchLocalOnlyDisconnectExpectedDialog(config,
+                        mContext.getString(R.string.wifi_disconnect_dialog_message,
+                                config.SSID),
+                        onUserApprovedAction);
+                return;
+            }
+            if (isConnectedToLocalOnlyNetwork) {
                 mNetworkFactory.onDisconnectionExpected(
                         WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API,
                         isUserTriggered);
@@ -3627,11 +3708,16 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             stopDhcpSetup();
         }
 
-        if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()
-                && mNetworkFactory.isConnectedToConfig(getConnectedWifiConfigurationInternal())) {
-            mNetworkFactory.onDisconnectionExpected(
-                    WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
+        if (mNetworkFactory.isConnectedToConfig(getConnectedWifiConfigurationInternal())) {
+            mNetworkFactory.teardownForConnectedNetwork();
+            if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
+                mNetworkFactory.onDisconnectionExpected(
+                        WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
+            }
         }
+        // The current network has already disconnected somehow. Any pending user dialog is now
+        // obsolete and should be cleared.
+        cleanupUserDisconnectDialog();
 
         // DISASSOC_AP_BUSY could be received in both after L3 connection is successful or right
         // after BSSID association if the AP can't accept more stations.

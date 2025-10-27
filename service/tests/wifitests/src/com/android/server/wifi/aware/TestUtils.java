@@ -30,7 +30,7 @@ public class TestUtils {
         private final SparseIntArray mTransactionIds = new SparseIntArray();
 
         MonitoredWifiAwareNativeApi() {
-            super(null); // doesn't matter - mocking parent
+            super(null, null); // doesn't matter - mocking parent
         }
 
         private void addTransactionId(int transactionId) {

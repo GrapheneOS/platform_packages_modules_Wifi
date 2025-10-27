@@ -118,6 +118,7 @@ import com.android.server.wifi.hotspot2.PasspointManager;
 import com.android.server.wifi.hotspot2.PasspointMatch;
 import com.android.server.wifi.hotspot2.PasspointProvider;
 import com.android.server.wifi.hotspot2.Utils;
+import com.android.server.wifi.nl80211.GenericNetlinkMsg;
 import com.android.server.wifi.p2p.WifiP2pMetrics;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
@@ -11006,5 +11007,22 @@ public class WifiMetrics {
 
     public void setLastThreadDeviceRole(int deviceRole) {
         mLastThreadDeviceRole = deviceRole;
+    }
+
+    /**
+     * Log when NL80211 is called for tracking success or failure
+     *
+     * @param message NL80211 command message.
+     * @param reason success or failure reason of the NL80211 calls.
+     */
+    public void reportNl80211CommandResult(GenericNetlinkMsg message, int reason) {
+        if (message == null) {
+            WifiStatsLog.write(WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
+                    WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__COMMAND_ID__NL80211_CMD_UNSPECIFIED,
+                    reason);
+        } else {
+            WifiStatsLog.write(WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
+                    message.genNlHeader.command, reason);
+        }
     }
 }

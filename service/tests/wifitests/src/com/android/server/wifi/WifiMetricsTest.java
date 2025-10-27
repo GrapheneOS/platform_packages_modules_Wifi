@@ -23,6 +23,7 @@ import static android.net.wifi.WifiUsabilityStatsEntry.SCORER_TYPE_INVALID;
 import static android.net.wifi.WifiUsabilityStatsEntry.SCORER_TYPE_ML;
 import static android.net.wifi.WifiUsabilityStatsEntry.SCORER_TYPE_VELOCITY;
 
+import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_REQUEST;
 import static com.android.server.wifi.WifiMetrics.convertPreambleTypeEnumToUsabilityStatsType;
 import static com.android.server.wifi.WifiMetricsTestUtil.assertDeviceMobilityStatePnoScanStatsEqual;
 import static com.android.server.wifi.WifiMetricsTestUtil.assertExperimentProbeCountsEqual;
@@ -37,6 +38,7 @@ import static com.android.server.wifi.WifiMetricsTestUtil.buildInt32Count;
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeFailureReasonCount;
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeFailureStaEvent;
 import static com.android.server.wifi.WifiMetricsTestUtil.buildLinkProbeSuccessStaEvent;
+import static com.android.server.wifi.nl80211.NetlinkConstants.Nl80211Commands.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.proto.WifiStatsLog.SCORER_PREDICTION_RESULT_REPORTED;
 import static com.android.server.wifi.proto.WifiStatsLog.SCORER_PREDICTION_RESULT_REPORTED__DEVICE_STATE__STATE_NO_CELLULAR_MODEM;
 import static com.android.server.wifi.proto.WifiStatsLog.SCORER_PREDICTION_RESULT_REPORTED__DEVICE_STATE__STATE_NO_SIM_INSERTED;
@@ -128,6 +130,8 @@ import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.hotspot2.PasspointManager;
 import com.android.server.wifi.hotspot2.PasspointMatch;
 import com.android.server.wifi.hotspot2.PasspointProvider;
+import com.android.server.wifi.nl80211.GenericNetlinkMsg;
+import com.android.server.wifi.nl80211.NetlinkConstants;
 import com.android.server.wifi.p2p.WifiP2pMetrics;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
@@ -7773,6 +7777,34 @@ public class WifiMetricsTest extends WifiBaseTest {
             assertEquals("Conversion failed for input type: " + inputType, expectedOutputType,
                     actualUsabilityPreambleType);
         }
+
+    }
+
+    @Test
+    public void testReportNl80211CommandResultWithNullMessage() {
+        /* null message */
+        GenericNetlinkMsg message = null;
+        mWifiMetrics.reportNl80211CommandResult(message,
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__SEND_NLMSG_NULL);
+
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__COMMAND_ID__NL80211_CMD_UNSPECIFIED,
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__SEND_NLMSG_NULL));
+    }
+
+    @Test
+    public void testReportNl80211CommandResultSuccessfullyTrigger() {
+        /* Test an arbitrary CMD and reason combination */
+        GenericNetlinkMsg message = new GenericNetlinkMsg(NL80211_CMD_GET_INTERFACE.toShort(),
+                NetlinkConstants.CTRL_ATTR_FAMILY_ID, NLM_F_REQUEST, 100);
+        mWifiMetrics.reportNl80211CommandResult(message,
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__SEND_FD_UNAVAILABLE);
+
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__COMMAND_ID__NL80211_CMD_GET_INTERFACE,
+                WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__SEND_FD_UNAVAILABLE));
 
     }
 }

@@ -136,12 +136,12 @@ public class WifiNanIfaceHidlImplTest extends WifiBaseTest {
                 "XXX").setEgressDistanceMm(minDistanceMm).setIngressDistanceMm(
                 maxDistanceMm).build();
 
-        mDut.publish(tid, pid, pubDefault, null);
-        mDut.publish(tid, pid, pubWithRanging, null);
-        mDut.subscribe(tid, pid, subDefault, null);
-        mDut.subscribe(tid, pid, subWithMin, null);
-        mDut.subscribe(tid, pid, subWithMax, null);
-        mDut.subscribe(tid, pid, subWithMinMax, null);
+        mDut.publish(tid, pid, pubDefault, null, null);
+        mDut.publish(tid, pid, pubWithRanging, null, null);
+        mDut.subscribe(tid, pid, subDefault, null, null);
+        mDut.subscribe(tid, pid, subWithMin, null, null);
+        mDut.subscribe(tid, pid, subWithMax, null, null);
+        mDut.subscribe(tid, pid, subWithMinMax, null, null);
 
         verify(mIWifiNanIface, times(2)).startPublishRequest(eq(tid), pubCaptor.capture());
         verify(mIWifiNanIface, times(4)).startSubscribeRequest(eq(tid), subCaptor.capture());

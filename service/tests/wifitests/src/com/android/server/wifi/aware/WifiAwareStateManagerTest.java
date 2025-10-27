@@ -173,9 +173,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     private Random mRandomNg = new Random(15687);
     private WifiAwareStateManager mDut;
     @Mock private WifiAwareNativeManager mMockNativeManager;
+    @Mock private Context mMockContext;
     @Spy private TestUtils.MonitoredWifiAwareNativeApi mMockNative =
             new TestUtils.MonitoredWifiAwareNativeApi();
-    @Mock private Context mMockContext;
     @Mock private AppOpsManager mMockAppOpsManager;
     @Mock private WifiAwareMetrics mAwareMetricsMock;
     @Mock private WifiPermissionsUtil mWifiPermissionsUtil;

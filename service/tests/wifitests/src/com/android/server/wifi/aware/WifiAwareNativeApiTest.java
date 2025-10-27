@@ -32,8 +32,13 @@ import static org.mockito.Mockito.when;
 
 import androidx.test.filters.SmallTest;
 
+import android.net.wifi.WifiContext;
+import android.net.wifi.util.WifiResourceCache;
+
+import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.hal.WifiNanIface;
+import com.android.wifi.resources.R;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -53,8 +58,11 @@ import java.io.PrintWriter;
 public class WifiAwareNativeApiTest extends WifiBaseTest {
     @Mock WifiAwareNativeManager mWifiAwareNativeManagerMock;
     @Mock WifiNanIface mWifiNanIfaceMock;
+    @Mock WifiContext mWifiContextMock;
 
     @Rule public ErrorCollector collector = new ErrorCollector();
+    private final MockResources mMockResources = new MockResources();
+    private WifiResourceCache mWifiResourceCache;
 
     private WifiAwareNativeApi mDut;
 
@@ -65,7 +73,10 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
     public void setup() throws Exception {
         MockitoAnnotations.initMocks(this);
         when(mWifiAwareNativeManagerMock.getWifiNanIface()).thenReturn(mWifiNanIfaceMock);
-        mDut = new WifiAwareNativeApi(mWifiAwareNativeManagerMock);
+        when(mWifiContextMock.getResources()).thenReturn(mMockResources);
+        mWifiResourceCache = new WifiResourceCache(mWifiContextMock);
+        when(mWifiContextMock.getResourceCache()).thenReturn(mWifiResourceCache);
+        mDut = new WifiAwareNativeApi(mWifiAwareNativeManagerMock, mWifiContextMock);
         mDut.enableVerboseLogging(true, true);
     }
 
@@ -186,4 +197,39 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
 
         collector.checkThat(mDut.onCommand(parentShellMock), equalTo(expectSuccess ? 0 : -1));
     }
+
+    @Test
+    public void testPublish() {
+        mMockResources.setBoolean(R.bool.config_wifiAwareSdeaHeaderFromFramework, true);
+        mDut.publish((short) 1, (byte) 0x01, null, null);
+        verify(mWifiNanIfaceMock).publish(eq((short) 1), eq((byte) 0x01), eq(null), eq(null),
+                eq(WifiAwareNativeApi.SDEA_HEADER));
+    }
+
+    @Test
+    public void testSubscribe() {
+        mMockResources.setBoolean(R.bool.config_wifiAwareSdeaHeaderFromFramework, true);
+        mDut.subscribe((short) 1, (byte) 0x01, null, null);
+        verify(mWifiNanIfaceMock).subscribe(eq((short) 1), eq((byte) 0x01), eq(null), eq(null),
+                eq(WifiAwareNativeApi.SDEA_HEADER));
+    }
+
+    @Test
+    public void testBootstrappingRequest() {
+        mMockResources.setBoolean(R.bool.config_wifiAwareSdeaHeaderFromFramework, true);
+        mDut.initiateBootstrapping((short) 1, 1, new byte[6], 1, new byte[16], (byte) 1, false,
+                new byte[16]);
+        verify(mWifiNanIfaceMock).initiateBootstrapping(eq((short) 1), eq(1), any(), eq(1), any(),
+                eq((byte) 1), eq(false), any(), eq(WifiAwareNativeApi.SDEA_HEADER));
+    }
+
+    @Test
+    public void testMessageSend() {
+        mMockResources.setBoolean(R.bool.config_wifiAwareSdeaHeaderFromFramework, true);
+        mDut.sendMessage((short) 1, (byte) 1, 1, new byte[6], new byte[16], 1);
+        verify(mWifiNanIfaceMock).sendMessage(eq((short) 1), eq((byte) 1), eq(1), any(), any(),
+                eq(WifiAwareNativeApi.SDEA_HEADER));
+    }
+
 }
+

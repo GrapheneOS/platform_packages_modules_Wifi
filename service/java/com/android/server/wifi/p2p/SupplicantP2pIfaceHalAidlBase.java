@@ -25,12 +25,12 @@ import android.annotation.SuppressLint;
 import android.hardware.wifi.supplicant.BandMask;
 import android.hardware.wifi.supplicant.DebugLevel;
 import android.hardware.wifi.supplicant.FreqRange;
-import android.hardware.wifi.supplicant.IfaceInfo;
-import android.hardware.wifi.supplicant.IfaceType;
 import android.hardware.wifi.supplicant.ISupplicant;
 import android.hardware.wifi.supplicant.ISupplicantP2pIface;
 import android.hardware.wifi.supplicant.ISupplicantP2pIfaceCallback;
 import android.hardware.wifi.supplicant.ISupplicantP2pNetwork;
+import android.hardware.wifi.supplicant.IfaceInfo;
+import android.hardware.wifi.supplicant.IfaceType;
 import android.hardware.wifi.supplicant.KeyMgmtMask;
 import android.hardware.wifi.supplicant.MiracastMode;
 import android.hardware.wifi.supplicant.P2pAddGroupConfigurationParams;
@@ -2960,8 +2960,9 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
                 aidlUsdBasedServiceDiscoveryConfig.serviceName = usdServiceConfig.getServiceName();
                 aidlUsdBasedServiceDiscoveryConfig.serviceProtocolType = usdServiceConfig
                         .getServiceProtocolType();
-                aidlUsdBasedServiceDiscoveryConfig.serviceSpecificInfo = usdServiceConfig
-                        .getServiceSpecificInfo();
+                aidlUsdBasedServiceDiscoveryConfig.serviceSpecificInfo =
+                        usdServiceConfig.getServiceSpecificInfo() != null
+                                ? usdServiceConfig.getServiceSpecificInfo() : new byte[0];
                 if (discoveryConfig.getBand() != ScanResult.UNSPECIFIED) {
                     aidlUsdBasedServiceDiscoveryConfig.bandMask =
                             scanResultBandMaskToSupplicantHalWifiBandMask(
@@ -2971,6 +2972,9 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
                 }
                 aidlUsdBasedServiceDiscoveryConfig.frequencyListMhz = discoveryConfig
                         .getFrequenciesMhz();
+                aidlUsdBasedServiceDiscoveryConfig.frequencyListMhz =
+                        discoveryConfig.getFrequenciesMhz() != null
+                                ? discoveryConfig.getFrequenciesMhz() : new int[0];
                 aidlUsdBasedServiceDiscoveryConfig.timeoutInSeconds = timeoutInSeconds;
                 return mISupplicantP2pIface.startUsdBasedServiceDiscovery(
                         aidlUsdBasedServiceDiscoveryConfig);
@@ -3036,8 +3040,9 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
                 aidlServiceAdvertisementConfig.serviceName = usdServiceConfig.getServiceName();
                 aidlServiceAdvertisementConfig.serviceProtocolType = usdServiceConfig
                         .getServiceProtocolType();
-                aidlServiceAdvertisementConfig.serviceSpecificInfo = usdServiceConfig
-                        .getServiceSpecificInfo();
+                aidlServiceAdvertisementConfig.serviceSpecificInfo =
+                        usdServiceConfig.getServiceSpecificInfo() != null
+                                ? usdServiceConfig.getServiceSpecificInfo() : new byte[0];
                 aidlServiceAdvertisementConfig.frequencyMHz = advertisementConfig.getFrequencyMhz();
                 aidlServiceAdvertisementConfig.timeoutInSeconds = timeoutInSeconds;
                 return mISupplicantP2pIface.startUsdBasedServiceAdvertisement(

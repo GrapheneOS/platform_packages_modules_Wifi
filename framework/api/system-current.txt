@@ -763,7 +763,7 @@ package android.net.wifi {
     method @FlaggedApi("com.android.wifi.flags.local_only_disconnect_reason") @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION}) public void addLocalOnlyDisconnectionStatusListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.LocalOnlyDisconnectionStatusListener);
     method @RequiresPermission(android.Manifest.permission.WIFI_UPDATE_USABILITY_STATS_SCORE) public void addOnWifiUsabilityStatsListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.OnWifiUsabilityStatsListener);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addQosPolicies(@NonNull java.util.List<android.net.wifi.QosPolicyParams>, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.util.List<java.lang.Integer>>);
-    method @FlaggedApi("com.android.wifi.flags.restrict_autojoin_callback_api") @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void addRestrictAutoJoinToSubIdCallback(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.RestrictAutoJoinToSubIdCallback);
+    method @FlaggedApi("com.android.wifi.flags.restrict_autojoin_callback_api") @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void addRestrictAutoJoinToSubscriptionIdCallback(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.RestrictAutoJoinToSubscriptionIdCallback);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void addWifiLowLatencyLockListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiLowLatencyLockListener);
     method @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS) public void addWifiNetworkStateChangedListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiNetworkStateChangedListener);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void addWifiVerboseLoggingStatusChangedListener(@NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.WifiVerboseLoggingStatusChangedListener);
@@ -842,7 +842,7 @@ package android.net.wifi {
     method @FlaggedApi("com.android.wifi.flags.local_only_disconnect_reason") @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.REQUEST_COMPANION_PROFILE_AUTOMOTIVE_PROJECTION}) public void removeLocalOnlyDisconnectionStatusListener(@NonNull android.net.wifi.WifiManager.LocalOnlyDisconnectionStatusListener);
     method @RequiresPermission(android.Manifest.permission.WIFI_UPDATE_USABILITY_STATS_SCORE) public void removeOnWifiUsabilityStatsListener(@NonNull android.net.wifi.WifiManager.OnWifiUsabilityStatsListener);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.MANAGE_WIFI_NETWORK_SELECTION}) public void removeQosPolicies(@NonNull int[]);
-    method @FlaggedApi("com.android.wifi.flags.restrict_autojoin_callback_api") @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void removeRestrictAutoJoinToSubIdCallback(@NonNull android.net.wifi.WifiManager.RestrictAutoJoinToSubIdCallback);
+    method @FlaggedApi("com.android.wifi.flags.restrict_autojoin_callback_api") @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void removeRestrictAutoJoinToSubscriptionIdCallback(@NonNull android.net.wifi.WifiManager.RestrictAutoJoinToSubscriptionIdCallback);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public void removeWifiLowLatencyLockListener(@NonNull android.net.wifi.WifiManager.WifiLowLatencyLockListener);
     method public void removeWifiNetworkStateChangedListener(@NonNull android.net.wifi.WifiManager.WifiNetworkStateChangedListener);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void removeWifiVerboseLoggingStatusChangedListener(@NonNull android.net.wifi.WifiManager.WifiVerboseLoggingStatusChangedListener);
@@ -1093,7 +1093,7 @@ package android.net.wifi {
     field public static final int REMOVE_PNO_CALLBACK_UNREGISTERED = 2; // 0x2
   }
 
-  @FlaggedApi("com.android.wifi.flags.restrict_autojoin_callback_api") public static interface WifiManager.RestrictAutoJoinToSubIdCallback {
+  @FlaggedApi("com.android.wifi.flags.restrict_autojoin_callback_api") public static interface WifiManager.RestrictAutoJoinToSubscriptionIdCallback {
     method public void onRestrictionStarted(int);
     method public void onRestrictionStopped();
   }
