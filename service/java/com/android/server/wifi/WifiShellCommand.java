@@ -509,6 +509,11 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     + " targetBssid=" + targetBssid);
         }
 
+        @Override
+        public void onL3DataStallSuspected(int sessionId) {
+            Log.i(TAG, "onL3DataStallSuspected:" + " sessionId=" + sessionId);
+        }
+
         public Integer getSessionId() {
             return mSessionId;
         }
