@@ -59,9 +59,12 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.wifi.ScanResult;
+import android.util.ArrayMap;
 import android.util.Log;
 import android.util.Pair;
+import android.util.SparseArray;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.net.module.util.netlink.StructNlAttr;
 import com.android.net.module.util.netlink.StructNlMsgHdr;
 
@@ -198,6 +201,10 @@ public class Nl80211Utils {
         }
     }
 
+    private final Map<String, Integer> mCachedWiphyIndexes = new ArrayMap<>();
+    // TODO(b/394409845): The cached band info must be refreshed when the country code changes.
+    private final SparseArray<WiphyInfo> mCachedWiphyInfo = new SparseArray<>();
+
     public Nl80211Utils(@NonNull Nl80211Proxy nl80211Proxy) {
         mNl80211Proxy = Objects.requireNonNull(nl80211Proxy);
     }
@@ -223,6 +230,10 @@ public class Nl80211Utils {
      */
     @Nullable
     public WiphyInfo getWiphyInfo(int wiphyIndex) {
+        if (mCachedWiphyInfo.contains(wiphyIndex)) {
+            return mCachedWiphyInfo.get(wiphyIndex);
+        }
+
         List<GenericNetlinkMsg> responses;
         if (isSplitWiphyDumpSupported()) {
             StructNlAttr wiphyIndexAttr = new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex);
@@ -263,7 +274,14 @@ public class Nl80211Utils {
                 return null;
             }
         }
-        return parseWiphyInfo(responses);
+
+        WiphyInfo info = parseWiphyInfo(responses);
+        if (info != null) {
+            mCachedWiphyInfo.put(wiphyIndex, info);
+            return info;
+        }
+
+        return null;
     }
 
     /**
@@ -273,6 +291,11 @@ public class Nl80211Utils {
      */
     public int getWiphyIndex(@NonNull String ifaceName) {
         Objects.requireNonNull(ifaceName);
+
+        if (mCachedWiphyIndexes.containsKey(ifaceName)) {
+            return mCachedWiphyIndexes.get(ifaceName);
+        }
+
         int ifIndex;
         try {
             NetworkInterface netIface = NetworkInterface.getByName(ifaceName);
@@ -313,6 +336,7 @@ public class Nl80211Utils {
             }
             Integer wiphyIndex = response.getAttributeValueAsInteger(NL80211_ATTR_WIPHY);
             if (wiphyIndex != null) {
+                mCachedWiphyIndexes.put(ifaceName, wiphyIndex);
                 return wiphyIndex;
             }
         }
@@ -769,5 +793,14 @@ public class Nl80211Utils {
             return false;
         }
         return (extFeatureFlags[bytePos] & (1 << bitPos)) != 0;
+    }
+
+    /**
+     * Clears the internal wiphy information caches.
+     */
+    @VisibleForTesting
+    public void clearWiphyInfoCaches() {
+        mCachedWiphyInfo.clear();
+        mCachedWiphyIndexes.clear();
     }
 }

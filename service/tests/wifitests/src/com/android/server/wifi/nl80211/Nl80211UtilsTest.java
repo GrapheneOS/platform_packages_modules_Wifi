@@ -48,6 +48,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -381,11 +383,39 @@ public class Nl80211UtilsTest {
     }
 
     @Test
-    public void testGetWiphyInfo_splitDump_failure_nullResponse() {
-        setupProtocolFeaturesResponse(NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP);
+    public void testGetWiphyInfoCachesResult() {
         mNl80211Utils.initialize();
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_WIPHY))
-                .thenReturn(null);
-        assertNull(mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX));
+        GenericNetlinkMsg response = createBasicWiphyInfoPacket();
+        response.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        response.addAttribute(createWiphyBandsAttribute());
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY))
+                .thenReturn(response);
+
+        Nl80211Utils.WiphyInfo info1 = mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX);
+        Nl80211Utils.WiphyInfo info2 = mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX);
+
+        verify(mNl80211Proxy, times(1))
+                .sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY);
+        assertEquals(info1, info2);
+    }
+
+    @Test
+    public void testClearWiphyInfoCaches() {
+        mNl80211Utils.initialize();
+        GenericNetlinkMsg response = createBasicWiphyInfoPacket();
+        response.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        response.addAttribute(createWiphyBandsAttribute());
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY))
+                .thenReturn(response);
+
+        mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX);
+        verify(mNl80211Proxy, times(1))
+                .sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY);
+
+        mNl80211Utils.clearWiphyInfoCaches();
+
+        mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX);
+        verify(mNl80211Proxy, times(2))
+                .sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY);
     }
 }
