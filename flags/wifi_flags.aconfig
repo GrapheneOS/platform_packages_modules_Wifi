@@ -485,3 +485,11 @@ flag {
     description: "Migrate wificond functionality to direct nl80211 commands"
     bug: "394409845"
 }
+
+flag {
+    name: "feed_more_data_to_external_scorer"
+    is_exported: true
+    namespace: "wifi"
+    description: "Feed the L2/L3 data stall and pre-evaluation data to external scorer for reference"
+    bug: "446298612"
+}
