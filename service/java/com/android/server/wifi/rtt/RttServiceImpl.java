@@ -17,6 +17,7 @@
 package com.android.server.wifi.rtt;
 
 import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE;
+import static android.net.wifi.rtt.ResponderConfig.RESPONDER_STA;
 import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_LCI;
 import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_LCR;
 import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_NTB_INITIATOR;
@@ -30,6 +31,7 @@ import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_VERBOSE_LOGGI
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
@@ -45,6 +47,8 @@ import android.net.wifi.WifiSsid;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.WifiAwareManager;
+import android.net.wifi.rtt.ContinuousRangingResultCallback;
+import android.net.wifi.rtt.IContinuousRangingResultCallback;
 import android.net.wifi.rtt.IProximityDetectionMacAddressCallback;
 import android.net.wifi.rtt.IRttCallback;
 import android.net.wifi.rtt.IWifiRttManager;
@@ -144,6 +148,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     // arbitrary, larger than anything reasonable
     /* package */ static final int MAX_QUEUED_PER_UID = 20;
     private WifiConfigManager mWifiConfigManager;
+    static final int MAX_ALLOWED_PEERS_PER_CONTINUOUS_RANGING_REQUEST = 1;
     // TODO Remove after HAL implementation
     private boolean mIsHALProximityRangingSupported = false;
     static final String DEFAULT_PR_DEVICE_NAME_PREFIX = "Android_PR_";
@@ -870,6 +875,93 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                     + Binder.getCallingPid() + ", uid=" + uid);
         }
         // TODO Add implementation
+    }
+
+    /**
+     * See {@link WifiRttManager#startContinuousRanging(WorkSource,
+     * RangingRequest, java.util.concurrent.Executor, ContinuousRangingResultCallback)}
+     */
+    @SuppressLint("NewApi")
+    @Override
+    public void startContinuousRanging(IBinder binder, String callingPackage,
+            String callingFeatureId, WorkSource workSource, RangingRequest request,
+            IContinuousRangingResultCallback callback, Bundle extras) {
+        Objects.requireNonNull(binder, "binder must not be null");
+        Objects.requireNonNull(callback, "Callback must not be null");
+        Objects.requireNonNull(callingPackage, "packageName must not be null");
+        if (VDBG) {
+            Log.v(TAG, "startContinuousRanging: binder=" + binder + ", callingPackage="
+                    + callingPackage + ", workSource=" + workSource + ", request=" + request
+                    + ", callback=" + callback);
+        }
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException("ContinuousRanging API is not supported");
+        }
+        if (request == null || request.mRttPeers == null || request.mRttPeers.size() == 0) {
+            throw new IllegalArgumentException("Request must not be null or empty");
+        }
+        for (ResponderConfig responder : request.mRttPeers) {
+            if (responder == null) {
+                throw new IllegalArgumentException("Request must not contain null Responders");
+            }
+        }
+
+        if (!isAvailable()) {
+            try {
+                callback.onRangingFailure(
+                        RangingResultCallback.STATUS_CODE_FAIL_RTT_NOT_AVAILABLE);
+            } catch (RemoteException e) {
+                Log.e(TAG, "startContinuousRanging: disabled, callback failed -- " + e);
+            }
+            return;
+        }
+        // permission checks
+        enforceRttManagementPermissions(getMockableCallingUid(), callingFeatureId, callingPackage,
+                extras);
+
+        // TODO check if PD is supported
+
+        if (request.mRttPeers.size() != MAX_ALLOWED_PEERS_PER_CONTINUOUS_RANGING_REQUEST) {
+            // TODO send an error code
+            throw new IllegalArgumentException("Request must only contain one Responder");
+        }
+        ResponderConfig responder = request.mRttPeers.getFirst();
+        if (responder.responderType != RESPONDER_STA) {
+            // TODO send an error code
+            throw new IllegalArgumentException("Responder type must be RESPONDER_STA");
+        }
+        if (responder.getMacAddress() == null && responder.getUsdPeerId() <= 0) {
+            // TODO send an error code
+            throw new IllegalArgumentException("Responder must have MAC address or USD peer ID");
+        }
+        if (responder.getSecureRangingConfig() == null) {
+            // TODO send an error code
+            throw new IllegalArgumentException("Responder must have secure ranging config");
+        }
+        if (responder.getProximityDetectionConfig() == null) {
+            // TODO send an error code
+            throw new IllegalArgumentException("Responder must have proximity detection config");
+        }
+        // TODO remove after testing
+        Log.i(TAG, "startContinuousRanging: responder=" + responder);
+        try {
+            callback.onRangingFailure(
+                    ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
+        } catch (RemoteException e) {
+            Log.e(TAG, "startContinuousRanging: disabled, callback failed -- " + e);
+        }
+        // TODO Add implementation
+    }
+
+    /**
+     * See {@link WifiRttManager#stopContinuousRanging(WorkSource)}
+     */
+    @Override
+    public void stopContinuousRanging(WorkSource workSource) {
+        if (VDBG) {
+            Log.i(TAG, "stopContinuousRanging");
+        }
+        // TODO: Add implementation
     }
 
     /**

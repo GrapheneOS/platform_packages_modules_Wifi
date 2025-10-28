@@ -30,6 +30,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -68,6 +69,8 @@ import android.net.wifi.aware.IWifiAwareMacAddressProvider;
 import android.net.wifi.aware.MacAddrMapping;
 import android.net.wifi.aware.PeerHandle;
 import android.net.wifi.aware.WifiAwareManager;
+import android.net.wifi.rtt.ContinuousRangingResultCallback;
+import android.net.wifi.rtt.IContinuousRangingResultCallback;
 import android.net.wifi.rtt.IRttCallback;
 import android.net.wifi.rtt.ProximityDetectionCharacteristics;
 import android.net.wifi.rtt.RangingRequest;
@@ -2126,5 +2129,55 @@ public class RttServiceImplTest extends WifiBaseTest {
         MacAddress macAddress = mDut.getProximityDetectionRandomizedMacAddress(mFeatureId,
                 mPackageName, mExtras);
         assertNotNull(macAddress);
+    }
+
+    @Test
+    public void testStartContinuousRangingSuccess() throws RemoteException {
+        assumeTrue(Environment.isSdkNewerThanB());
+        mDut.setHALProximityRangingSupported(true);
+        RangingRequest request = RttTestUtils.getDummyContinuousRangingRequest();
+        IContinuousRangingResultCallback callback = mock(IContinuousRangingResultCallback.class);
+
+        mDut.startContinuousRanging(mockIbinder, mPackageName, mFeatureId, null, request,
+                callback, mExtras);
+        mMockLooper.dispatchAll();
+
+        // No exception should be thrown
+        // TODO Implement the rest of the test after adding AIDL changes and
+        //  framework implementation
+        verify(callback).onRangingFailure(
+                ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
+    }
+
+    @Test
+    public void testStartContinuousRangingWithInvalidRequest() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        mDut.setHALProximityRangingSupported(true);
+        IContinuousRangingResultCallback callback = mock(IContinuousRangingResultCallback.class);
+
+        // Null request
+        assertThrows(IllegalArgumentException.class,
+                () -> mDut.startContinuousRanging(mockIbinder, mPackageName, mFeatureId, null,
+                        null, callback, mExtras));
+
+        // Empty request
+        RangingRequest emptyRequest = new RangingRequest.Builder().build();
+        assertThrows(IllegalArgumentException.class,
+                () -> mDut.startContinuousRanging(mockIbinder, mPackageName, mFeatureId, null,
+                        emptyRequest, callback, mExtras));
+
+        // Non-STA responder
+        RangingRequest nonStaRequest = RttTestUtils.getDummyRangingRequest((byte) 1);
+        assertThrows(IllegalArgumentException.class,
+                () -> mDut.startContinuousRanging(mockIbinder, mPackageName, mFeatureId, null,
+                        nonStaRequest, callback, mExtras));
+    }
+
+    @Test
+    public void testStopContinuousRanging() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        mDut.setHALProximityRangingSupported(true);
+        mDut.stopContinuousRanging(null);
+        // No exception should be thrown
     }
 }

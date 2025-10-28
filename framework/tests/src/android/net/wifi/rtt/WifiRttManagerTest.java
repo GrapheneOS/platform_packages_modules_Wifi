@@ -40,6 +40,7 @@ import android.net.wifi.OuiKeyedDataUtil;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.aware.PeerHandle;
+import android.net.wifi.usd.DiscoveryResult;
 import android.net.wifi.util.Environment;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -58,6 +59,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -82,7 +84,7 @@ public class WifiRttManagerTest {
 
     // Define some constants for test values
     private static final MacAddress TEST_MAC_ADDRESS = MacAddress.fromString("00:11:22:33:44:55");
-    private static final int TEST_RESPONDER_TYPE = ResponderConfig.RESPONDER_STA;
+    private static final int TEST_RESPONDER_TYPE = ResponderConfig.RESPONDER_AP;
     private static final boolean TEST_SUPPORTS_80211MC = false;
     private static final boolean TEST_SUPPORTS_80211AZ_NTB = true;
     private static final int TEST_CHANNEL_WIDTH_SCAN_RESULT = ScanResult.CHANNEL_WIDTH_80MHZ;
@@ -1195,5 +1197,198 @@ public class WifiRttManagerTest {
         verify(mockRttService, never()).unregisterProximityDetectionMacAddressCallback(
                 eq(featureId), eq(packageName),
                 any(IProximityDetectionMacAddressCallback.class), any(Bundle.class));
+    }
+
+    // New tests for Proximity Detection Ranging APIs
+
+    private static final int TEST_USD_PEER_ID = 1;
+    private static final byte[] TEST_DEV_IK = new byte[16];
+    private static final byte[] TEST_PMK = new byte[32];
+
+    static {
+        Arrays.fill(TEST_DEV_IK, (byte) 0x0A);
+        Arrays.fill(TEST_PMK, (byte) 0x0B);
+    }
+
+    private DiscoveryResult createTestDiscoveryResult() {
+        return new DiscoveryResult.Builder(TEST_USD_PEER_ID)
+                .setDeviceIdentityKey(TEST_DEV_IK)
+                .build();
+    }
+
+    private ProximityDetectionConfig createTestProximityDetectionConfig() {
+        return new ProximityDetectionConfig.Builder(ProximityDetectionConfig
+                .RANGING_SERVICE_ROLE_SEEKER)
+                .setDiscoveryChannelFrequencyMhz(TEST_FREQUENCY_MHZ)
+                .build();
+    }
+
+    private SecureRangingConfig createTestSecureRangingConfig() {
+        PasnConfig pasnConfig = new PasnConfig.Builder(PasnConfig.AKM_SAE,
+                PasnConfig.CIPHER_GCMP_128)
+                .setPmk(TEST_PMK)
+                .setProximityDetectionSeekerDeviceIdentityKey(TEST_DEV_IK)
+                .build();
+        return new SecureRangingConfig.Builder(pasnConfig).build();
+    }
+
+    @Test
+    public void testAddWifiUsdPeerToRangingRequest() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        DiscoveryResult discoveryResult = createTestDiscoveryResult();
+        ProximityDetectionConfig pdConfig = createTestProximityDetectionConfig();
+        SecureRangingConfig secureRangingConfig = createTestSecureRangingConfig();
+
+        RangingRequest request = new RangingRequest.Builder()
+                .addWifiUsdPeer(discoveryResult, pdConfig, secureRangingConfig)
+                .build();
+
+        assertNotNull(request);
+        assertEquals(1, request.getWifiUsdPeers().size());
+        ResponderConfig usdPeer = request.getWifiUsdPeers().get(0);
+        assertEquals(TEST_USD_PEER_ID, usdPeer.getUsdPeerId());
+        assertEquals(pdConfig, usdPeer.getProximityDetectionConfig());
+        assertEquals(secureRangingConfig, usdPeer.getSecureRangingConfig());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddWifiUsdPeerWithNullDiscoveryResult() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        ProximityDetectionConfig pdConfig = createTestProximityDetectionConfig();
+        SecureRangingConfig secureRangingConfig = createTestSecureRangingConfig();
+        new RangingRequest.Builder().addWifiUsdPeer(null, pdConfig, secureRangingConfig);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddWifiUsdPeerWithNullProximityDetectionConfig() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        DiscoveryResult discoveryResult = createTestDiscoveryResult();
+        SecureRangingConfig secureRangingConfig = createTestSecureRangingConfig();
+        new RangingRequest.Builder().addWifiUsdPeer(discoveryResult, null, secureRangingConfig);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddWifiUsdPeerWithNullSecureRangingConfig() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        DiscoveryResult discoveryResult = createTestDiscoveryResult();
+        ProximityDetectionConfig pdConfig = createTestProximityDetectionConfig();
+        new RangingRequest.Builder().addWifiUsdPeer(discoveryResult, pdConfig, null);
+    }
+
+    @Test
+    public void testRangingResultWithProximityDetectionFields() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        long availabilityWindowDuration = 1000L;
+        long nominalTime = 500L;
+
+        RangingResult result = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setAvailabilityWindowDurationMillis(availabilityWindowDuration)
+                .setNominalTimeMillis(nominalTime)
+                .build();
+
+        assertNotNull(result);
+        assertEquals(TEST_USD_PEER_ID, result.getUsdPeerId());
+        assertEquals(availabilityWindowDuration, result.getAvailabilityWindowDurationMillis());
+        assertEquals(nominalTime, result.getNominalTimeMillis());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRangingResultBuilderWithInvalidUsdPeerId() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new RangingResult.Builder().setUsdPeerId(-2);
+    }
+
+    @Test
+    public void testResponderConfigFromProximityDetectionPeer() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        DiscoveryResult discoveryResult = createTestDiscoveryResult();
+        ProximityDetectionConfig pdConfig = createTestProximityDetectionConfig();
+        SecureRangingConfig secureRangingConfig = createTestSecureRangingConfig();
+
+        ResponderConfig responder = ResponderConfig.fromProximityDetectionPeer(
+                discoveryResult, pdConfig, secureRangingConfig);
+
+        assertNotNull(responder);
+        // This is a placeholder. The actual implementation will populate fields.
+        // For now, we just check that it returns a non-null object.
+    }
+
+    @Test
+    public void testResponderConfigBuilderWithProximityDetectionConfig() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        ProximityDetectionConfig pdConfig = createTestProximityDetectionConfig();
+        ResponderConfig responder = new ResponderConfig.Builder()
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setProximityDetectionConfig(pdConfig)
+                .build();
+
+        assertNotNull(responder);
+        assertEquals(pdConfig, responder.getProximityDetectionConfig());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testResponderConfigBuilderWithNullProximityDetectionConfig() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new ResponderConfig.Builder()
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setProximityDetectionConfig(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testResponderConfigBuilderWithNoIdentifier() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new ResponderConfig.Builder().build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testResponderConfigBuilderWithMultipleIdentifiers() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new ResponderConfig.Builder()
+                .setMacAddress(TEST_MAC_ADDRESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testResponderConfigBuilderWithStaResponderAndNoProximityDetectionConfig() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new ResponderConfig.Builder()
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setResponderType(ResponderConfig.RESPONDER_STA)
+                .build();
+    }
+
+    @Test
+    public void testStartContinuousRangingSuccess() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        RangingRequest request = new RangingRequest.Builder()
+                .addWifiUsdPeer(createTestDiscoveryResult(), createTestProximityDetectionConfig(),
+                        createTestSecureRangingConfig()).build();
+        ContinuousRangingResultCallback callbackMock = mock(ContinuousRangingResultCallback.class);
+
+        mDut.startContinuousRanging(null, request, mMockLooperExecutor, callbackMock);
+
+        verify(mockRttService).startContinuousRanging(any(IBinder.class), eq(packageName),
+                eq(featureId), eq(null), eq(request),
+                any(IContinuousRangingResultCallback.class), any(Bundle.class));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testStartContinuousRangingWithNullCallback() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        RangingRequest request = new RangingRequest.Builder()
+                .addWifiUsdPeer(createTestDiscoveryResult(), createTestProximityDetectionConfig(),
+                        createTestSecureRangingConfig())
+                .build();
+        mDut.startContinuousRanging(null, request, mMockLooperExecutor, null);
+    }
+
+    @Test
+    public void testStopContinuousRanging() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        mDut.stopContinuousRanging(null);
+        verify(mockRttService).stopContinuousRanging(any());
     }
 }

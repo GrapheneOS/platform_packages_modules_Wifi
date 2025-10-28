@@ -589,4 +589,112 @@ public class WifiRttManager {
             }
         }
     }
+
+    /**
+     * Initiate a continuous/periodic request to range to a set of devices specified in the
+     * {@link RangingRequest}.
+     * Results will be returned in the {@link ContinuousRangingResultCallback} set of callbacks.
+     * <p>
+     * Only one continuous ranging session can be active at a time. If an ongoing session
+     * exists, this request will fail and an {@code onRangingFailure()} callback with
+     * {@code STATUS_BUSY} will be delivered. The existing session must be explicitly
+     * terminated by calling {@link #stopContinuousRanging(WorkSource)}.
+     * <p>
+     * The application need to have the following permissions:
+     * {@link android.Manifest.permission#LOCATION_HARDWARE},
+     * {@link android.Manifest.permission#ACCESS_WIFI_STATE},
+     * {@link android.Manifest.permission#CHANGE_WIFI_STATE},
+     * and {@link android.Manifest.permission#NEARBY_WIFI_DEVICES} with
+     *     android:usesPermissionFlags="neverForLocation", or
+     *     {@link android.Manifest.permission#ACCESS_FINE_LOCATION}.
+     *
+     * @param workSource A mechanism to specify an alternative work-source for the request.
+     * @param request  A request specifying a set of devices whose distance measurements are
+     *                 requested.
+     * @param executor The Executor on which to run the callback.
+     * @param callback A callback for the result of the ranging request.
+     *
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    @RequiresPermission(allOf = {LOCATION_HARDWARE, ACCESS_FINE_LOCATION, CHANGE_WIFI_STATE,
+            ACCESS_WIFI_STATE, NEARBY_WIFI_DEVICES}, conditional = true)
+    public void startContinuousRanging(@Nullable WorkSource workSource,
+            @NonNull RangingRequest request,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull ContinuousRangingResultCallback callback) {
+        if (VDBG) {
+            Log.v(TAG, "startContinuousRanging: workSource=" + workSource + ", request=" + request
+                    + ", callback=" + callback + ", executor=" + executor);
+        }
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(callback);
+
+        Binder binder = new Binder();
+        try {
+            Bundle extras = new Bundle();
+            extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                    mContext.getAttributionSource());
+            mService.startContinuousRanging(binder, mContext.getOpPackageName(),
+                    mContext.getAttributionTag(), workSource, request,
+                    new IContinuousRangingResultCallback.Stub() {
+                        @Override
+                        @RequiresNoPermission
+                        public void onRangingFailure(int code) {
+                            clearCallingIdentity();
+                            executor.execute(() -> callback.onRangingFailure(code));
+                        }
+
+                        @Override
+                        @RequiresNoPermission
+                        public void onRangingResults(List<RangingResult> results) {
+                            clearCallingIdentity();
+                            executor.execute(() -> callback.onRangingResults(results));
+                        }
+
+                        @Override
+                        @RequiresNoPermission
+                        public void onRangingStopped(int reason) {
+                            clearCallingIdentity();
+                            executor.execute(() -> callback.onRangingStopped(reason));
+                        }
+                    }, extras);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Stop all continuous ranging requests for the specified work sources. The requests have been
+     * requested using {@link #startContinuousRanging(WorkSource, RangingRequest, Executor,
+     * ContinuousRangingResultCallback)}. This method will cause the
+     * {@link ContinuousRangingResultCallback#onRangingStopped(int)} method to be invoked.
+     * Calling this when no continuous session is active has no effect.
+     *
+     * @param workSource The work-sources of the requesters.
+     *
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    @RequiresPermission(allOf = {LOCATION_HARDWARE})
+    public void stopContinuousRanging(@Nullable WorkSource workSource) {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        if (VDBG) {
+            Log.v(TAG, "stopContinuousRanging: workSource=" + workSource);
+        }
+        try {
+            mService.stopContinuousRanging(workSource);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
 }

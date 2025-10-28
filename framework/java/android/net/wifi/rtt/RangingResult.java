@@ -134,6 +134,10 @@ public final class RangingResult implements Parcelable {
     private final int mSecureHeLtfProtocolVersion;
     private final byte[] mPasnComebackCookie;
     private final long mPasnComebackAfterMillis;
+    private final long mAvailabilityWindowDurationMillis;
+    private final long mNominalTimeMillis;
+    private final int mUsdPeerId;
+
 
     /**
      * Builder class used to construct {@link RangingResult} objects.
@@ -170,6 +174,10 @@ public final class RangingResult implements Parcelable {
         private  int mSecureHeLtfProtocolVersion;
         private byte[] mPasnComebackCookie = null;
         private long mPasnComebackAfterMillis = UNSPECIFIED;
+        private long mAvailabilityWindowDurationMillis = UNSPECIFIED;
+        private long mNominalTimeMillis = UNSPECIFIED;
+        private int mUsdPeerId = UNSPECIFIED;
+
 
         /**
          * Constructs a Builder with default values (see {@link Builder}).
@@ -217,6 +225,9 @@ public final class RangingResult implements Parcelable {
                 mPasnComebackCookie = other.mPasnComebackCookie.clone();
                 mPasnComebackAfterMillis = other.mPasnComebackAfterMillis;
             }
+            mAvailabilityWindowDurationMillis = other.mAvailabilityWindowDurationMillis;
+            mNominalTimeMillis = other.mNominalTimeMillis;
+            mUsdPeerId = other.mUsdPeerId;
             mVendorData = new ArrayList<>(other.mVendorData);
         }
 
@@ -678,21 +689,84 @@ public final class RangingResult implements Parcelable {
         }
 
         /**
+         * Sets the availability window duration in milliseconds for proximity detection.
+         * See {@link #getAvailabilityWindowDurationMillis()}. If not set, the default
+         * value is {@link RangingResult#UNSPECIFIED}.
+         *
+         * @param availabilityWindowDurationMillis The duration of the availability window in ms.
+         *                                         Must be a positive value.
+         * @return The builder to facilitate chaining.
+         */
+        @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setAvailabilityWindowDurationMillis(
+                @IntRange(from = 0) long availabilityWindowDurationMillis) {
+            if (availabilityWindowDurationMillis < 0
+                    && availabilityWindowDurationMillis != UNSPECIFIED) {
+                throw new IllegalArgumentException(
+                        "Availability window duration must be a non-negative value");
+            }
+            mAvailabilityWindowDurationMillis = availabilityWindowDurationMillis;
+            return this;
+        }
+
+        /**
+         * Sets the nominal time between availability windows in milliseconds for proximity
+         * detection. See {@link #getNominalTimeMillis()}. If not set, the default
+         * value is {@link RangingResult#UNSPECIFIED}.
+         *
+         * @param nominalTimeMillis The nominal time between windows in ms. Must be a
+         *                          positive value.
+         * @return The builder to facilitate chaining.
+         */
+        @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setNominalTimeMillis(@IntRange(from = 0) long nominalTimeMillis) {
+            if (nominalTimeMillis < 0 && nominalTimeMillis != UNSPECIFIED) {
+                throw new IllegalArgumentException(
+                        "Nominal time between windows must be a non-negative value");
+            }
+            mNominalTimeMillis = nominalTimeMillis;
+            return this;
+        }
+
+        /**
+         * Sets the USD peer identifier for the ranging result.
+         *
+         * @param usdPeerId The peer ID of the USD responder.
+         * @return The builder to facilitate chaining.
+         */
+        @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setUsdPeerId(int usdPeerId) {
+            if (usdPeerId < 0 && usdPeerId != UNSPECIFIED) {
+                throw new IllegalArgumentException("Peer ID must be non-negative or UNSPECIFIED");
+            }
+            mUsdPeerId = usdPeerId;
+            return this;
+        }
+
+        /**
          * Build {@link RangingResult}
          * @return an instance of {@link RangingResult}
          */
         @FlaggedApi(Flags.FLAG_ANDROID_V_WIFI_API)
         @NonNull
         public RangingResult build() {
-            if (mMac == null && mPeerHandle == null) {
-                throw new IllegalArgumentException("Either MAC address or Peer handle is needed");
-            }
+            validatePeerIdentifier();
             if (mIs80211azNtbMeasurement && mIs80211mcMeasurement) {
                 throw new IllegalArgumentException(
                         "A ranging result cannot use both IEEE 802.11mc and IEEE 802.11az "
                                 + "measurements simultaneously");
             }
             return new RangingResult(this);
+        }
+
+        private void validatePeerIdentifier() {
+            if (mMac == null && mPeerHandle == null && mUsdPeerId == UNSPECIFIED) {
+                throw new IllegalArgumentException(
+                        "Either MAC address, Peer handle, or USD Peer ID is needed");
+            }
         }
     }
 
@@ -728,6 +802,9 @@ public final class RangingResult implements Parcelable {
         mSecureHeLtfProtocolVersion = builder.mSecureHeLtfProtocolVersion;
         mPasnComebackCookie = builder.mPasnComebackCookie;
         mPasnComebackAfterMillis = builder.mPasnComebackAfterMillis;
+        mAvailabilityWindowDurationMillis = builder.mAvailabilityWindowDurationMillis;
+        mNominalTimeMillis = builder.mNominalTimeMillis;
+        mUsdPeerId = builder.mUsdPeerId;
     }
 
     /**
@@ -752,7 +829,7 @@ public final class RangingResult implements Parcelable {
     }
 
     /**
-     * @return The PeerHandle of the device whose reange measurement was requested. Will correspond
+     * @return The PeerHandle of the device whose range measurement was requested. Will correspond
      * to the PeerHandle of the devices requested using
      * {@link RangingRequest.Builder#addWifiAwarePeer(PeerHandle)}.
      * <p>
@@ -760,6 +837,23 @@ public final class RangingResult implements Parcelable {
      */
     @Nullable public PeerHandle getPeerHandle() {
         return mPeerHandle;
+    }
+
+    /**
+     * Returns the USD peer identifier of the device whose range measurement was requested.
+     * <p>
+     * This value is non-negative if the responder is a USD peer and the range request was placed
+     * using {@link RangingRequest.Builder#addWifiUsdPeer(DiscoveryResult, ProximityDetectionConfig,
+     * SecureRangingConfig)}.
+     * The peer ID is an opaque identifier for a specific USD peer discovered
+     * during USD discovery operations and obtained from the {@link DiscoveryResult#getPeerId()}
+     *
+     * @return Will return a positive peer ID for results corresponding to requests issued using
+     * a USD peer ID, otherwise {@link #UNSPECIFIED} is returned.
+     */
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    public int getUsdPeerId() {
+        return mUsdPeerId;
     }
 
     /**
@@ -1183,6 +1277,38 @@ public final class RangingResult implements Parcelable {
         return mPasnComebackAfterMillis;
     }
 
+    /**
+     * Gets availability window between measurements in milliseconds for
+     * proximity detection measurements.
+     * P2P Proximity Ranging uses two additional time parameters to
+     * coordinate availability duration called Availability Windows
+     * (AW). These are the Nominal Time and AW Duration that coordinate
+     * the time window period, and the start time of the time window
+     * period respectively. During AWs the ISTA and RSTA devices shall
+     * be available to exchange N successful FTM measurements instances
+     * where N equal the negotiated Meas Per AW. The ISTA indicates its
+     * preference for an AW duration and nominal time interval in the
+     * P2P Proximity Ranging Availability subelement, and the RSTA
+     * assigns the values used during the FTM session.
+     * The start of an AW duration is Nominal Time from the 1st
+     * successful measurement instance of the previous AW. The 1st AW
+     * occurs Nominal Time from the beginning of the 1st measurement
+     * instance following the initial FTM negotiation.
+     */
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    public long getAvailabilityWindowDurationMillis() {
+        return mAvailabilityWindowDurationMillis;
+    }
+
+    /**
+     * Get the nominal duration between adjacent availability window in
+     * milliseconds for proximity detection measurements.
+     */
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    public long getNominalTimeMillis() {
+        return mNominalTimeMillis;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -1232,6 +1358,9 @@ public final class RangingResult implements Parcelable {
         dest.writeLong(mPasnComebackAfterMillis);
         dest.writeByteArray(mPasnComebackCookie);
         dest.writeInt(mSecureHeLtfProtocolVersion);
+        dest.writeLong(mAvailabilityWindowDurationMillis);
+        dest.writeLong(mNominalTimeMillis);
+        dest.writeInt(mUsdPeerId);
     }
 
     public static final @android.annotation.NonNull Creator<RangingResult> CREATOR =
@@ -1279,6 +1408,9 @@ public final class RangingResult implements Parcelable {
                             .setPasnComebackAfterMillis(in.readLong())
                             .setPasnComebackCookie(in.createByteArray())
                             .setSecureHeLtfProtocolVersion(in.readInt());
+                    builder.setAvailabilityWindowDurationMillis(in.readLong())
+                            .setNominalTimeMillis(in.readLong())
+                            .setUsdPeerId(in.readInt());
                     return builder.build();
                 }
             };
@@ -1289,7 +1421,8 @@ public final class RangingResult implements Parcelable {
         return new StringBuilder("RangingResult: [status=").append(mStatus)
                 .append(", mac=").append(mMac)
                 .append(", peerHandle=").append(
-                        mPeerHandle == null ? "<null>" : mPeerHandle.peerId)
+                        mPeerHandle == null ? "<null>" : mPeerHandle.peerId).append(
+                        ", usdPeerId=").append(mUsdPeerId)
                 .append(", distanceMm=").append(mDistanceMm)
                 .append(", distanceStdDevMm=").append(mDistanceStdDevMm)
                 .append(", rssi=").append(mRssi)
@@ -1317,6 +1450,9 @@ public final class RangingResult implements Parcelable {
                 .append(", isSecureHeLtfEnabled=").append(mIsSecureHeLtfEnabled)
                 .append(", pasnComebackCookie=").append(Arrays.toString(mPasnComebackCookie))
                 .append(", pasnComebackAfterMillis=").append(mPasnComebackAfterMillis)
+                .append(", availabilityWindowDurationMillis=")
+                .append(mAvailabilityWindowDurationMillis)
+                .append(", nominalTimeMillis=").append(mNominalTimeMillis)
                 .append("]").toString();
     }
 
@@ -1356,7 +1492,10 @@ public final class RangingResult implements Parcelable {
                 && mIsRangingFrameProtected == lhs.mIsRangingFrameProtected
                 && mIsSecureHeLtfEnabled == lhs.isSecureHeLtfEnabled()
                 && mPasnComebackAfterMillis == lhs.mPasnComebackAfterMillis
-                && Arrays.equals(mPasnComebackCookie, lhs.mPasnComebackCookie);
+                && Arrays.equals(mPasnComebackCookie, lhs.mPasnComebackCookie)
+                && mAvailabilityWindowDurationMillis == lhs.mAvailabilityWindowDurationMillis
+                && mNominalTimeMillis == lhs.mNominalTimeMillis
+                && mUsdPeerId == lhs.mUsdPeerId;
 
     }
 
@@ -1369,6 +1508,7 @@ public final class RangingResult implements Parcelable {
                 mNtbMinMeasurementTime, mNtbMaxMeasurementTime, mI2rTxLtfRepetitions,
                 mR2iTxLtfRepetitions, mNumTxSpatialStreams, mNumRxSpatialStreams, mVendorData,
                 mIsRangingAuthenticated, mIsRangingFrameProtected, mIsSecureHeLtfEnabled,
-                mPasnComebackAfterMillis, Arrays.hashCode(mPasnComebackCookie));
+                mPasnComebackAfterMillis, Arrays.hashCode(mPasnComebackCookie),
+                mAvailabilityWindowDurationMillis, mNominalTimeMillis, mUsdPeerId);
     }
 }

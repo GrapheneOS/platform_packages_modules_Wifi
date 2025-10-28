@@ -17,6 +17,7 @@
 package android.net.wifi.rtt;
 
 import android.net.MacAddress;
+import android.net.wifi.rtt.IContinuousRangingResultCallback;
 import android.net.wifi.rtt.IProximityDetectionMacAddressCallback;
 import android.net.wifi.rtt.IRttCallback;
 import android.net.wifi.rtt.ProximityDetectionCharacteristics;
@@ -44,4 +45,8 @@ interface IWifiRttManager {
     void unregisterProximityDetectionMacAddressCallback(in String callingFeatureId,
             in String callingPackage, in IProximityDetectionMacAddressCallback callback,
             in Bundle extras);
+    void startContinuousRanging(in IBinder binder, in String callingPackage,
+            in String callingFeatureId, in WorkSource workSource, in RangingRequest request,
+            in IContinuousRangingResultCallback callback, in Bundle extras);
+    void stopContinuousRanging(in WorkSource workSource);
 }
