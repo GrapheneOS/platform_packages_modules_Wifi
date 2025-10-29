@@ -218,13 +218,9 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> ही गुणवत्ता कमी आहे. <xliff:g id="SSID_1">%2$s</xliff:g> वर स्विच करायचे आहे का?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"स्विच करा"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"स्विच करू नका"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (94664204061356025) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (523085058096307605) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"<xliff:g id="APP_NAME">%1$s</xliff:g> डिस्कनेक्ट करायचे आहे का?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"वाय-फाय डिस्कनेक्ट केल्यामुळे <xliff:g id="APP_NAME">%1$s</xliff:g> डिस्कनेक्ट होईल. पुढे सुरू ठेवायचे आहे का?"</string>
     <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"दुसऱ्या वाय-फाय नेटवर्कशी कनेक्ट केल्यामुळे <xliff:g id="APP_NAME">%1$s</xliff:g> डिस्कनेक्ट होईल. पुढे सुरू ठेवायचे आहे का?"</string>
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (81882845888322268) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_negative_button (5075682597077355859) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"पुढे सुरू ठेवा"</string>
+    <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"रद्द करा"</string>
 </resources>

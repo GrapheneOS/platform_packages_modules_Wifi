@@ -218,8 +218,8 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"جودة شبكة \"<xliff:g id="SSID_0">%1$s</xliff:g>\" منخفضة. هل تريد التبديل إلى \"<xliff:g id="SSID_1">%2$s</xliff:g>\"؟"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"تبديل"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"عدم التبديل"</string>
-    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"إلغاء الربط بـ \"<xliff:g id="APP_NAME">%1$s</xliff:g>\"؟"</string>
-    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"‏سيؤدي قطع اتصال Wi‑Fi إلى إلغاء ربط تطبيق\"<xliff:g id="APP_NAME">%1$s</xliff:g>\". متابعة الإجراء؟"</string>
+    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"قطع اتصال \"<xliff:g id="APP_NAME">%1$s</xliff:g>\"؟"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"‏سيؤدي قطع اتصال Wi‑Fi إلى قطع اتصال تطبيق \"<xliff:g id="APP_NAME">%1$s</xliff:g>\" أيضًا. متابعة الإجراء؟"</string>
     <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"‏سيؤدي الاتصال بشبكة Wi-Fi أخرى إلى قطع اتصال \"<xliff:g id="APP_NAME">%1$s</xliff:g>\". المتابعة؟"</string>
     <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"متابعة"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"إلغاء"</string>
