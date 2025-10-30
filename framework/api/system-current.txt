@@ -1149,6 +1149,7 @@ package android.net.wifi {
   }
 
   public static interface WifiManager.WifiConnectedNetworkScorer {
+    method @FlaggedApi("com.android.wifi.flags.feed_more_data_to_external_scorer") public default void onL3DataStallSuspected(int);
     method public default void onNetworkSwitchAccepted(int, int, @NonNull String);
     method public default void onNetworkSwitchRejected(int, int, @NonNull String);
     method public void onSetScoreUpdateObserver(@NonNull android.net.wifi.WifiManager.ScoreUpdateObserver);
