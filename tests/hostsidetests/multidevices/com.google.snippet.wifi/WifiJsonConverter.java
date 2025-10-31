@@ -19,6 +19,7 @@ package com.google.snippet.wifi;
 import android.net.MacAddress;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiNetworkSuggestion;
 
 import androidx.annotation.NonNull;
@@ -68,6 +69,9 @@ public final class WifiJsonConverter {
         }
         if (object instanceof WifiNetworkSuggestion) {
             return serializeWifiNetworkSuggestion((WifiNetworkSuggestion) object);
+        }
+        if (object instanceof WifiInfo) {
+            return serializeWifiInfo((WifiInfo) object);
         }
         throw new JSONException(
             "Unsupported object type: " + object.getClass().getName());
@@ -139,6 +143,20 @@ public final class WifiJsonConverter {
         result.put("PMF", data.requirePmf);
         result.put("CarrierId", data.carrierId);
         result.put("SubscriptionId", data.subscriptionId);
+        return result;
+    }
+
+    private static JSONObject serializeWifiInfo(WifiInfo data)
+            throws JSONException {
+        JSONObject result = new JSONObject();
+        result.put("bssid", data.getBSSID());
+        result.put("ssid", trimQuotationMarks(data.getSSID()));
+        result.put("hiddenSSID", data.getHiddenSSID());
+        result.put("macAddress", data.getMacAddress());
+        result.put("networkId", data.getNetworkId());
+        result.put("rssi", data.getRssi());
+        result.put("linkSpeed", data.getLinkSpeed());
+        result.put("frequency", data.getFrequency());
         return result;
     }
 
