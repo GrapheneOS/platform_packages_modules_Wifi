@@ -105,9 +105,7 @@ import android.net.wifi.usd.SubscribeConfig;
 import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.IBinder.DeathRecipient;
 import android.os.RemoteException;
-import android.os.ServiceManager;
 import android.os.ServiceSpecificException;
 import android.text.TextUtils;
 import android.util.Log;
@@ -122,6 +120,7 @@ import com.android.server.wifi.usd.UsdRequestManager;
 import com.android.server.wifi.util.HalAidlUtil;
 import com.android.server.wifi.util.NativeUtil;
 
+import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -4272,5 +4271,15 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
     @Nullable
     public UsdNativeManager.UsdEventsCallback getUsdEventsCallback() {
         return mUsdEventsCallback;
+    }
+
+    /**
+     * Dump information about the internal state
+     *
+     * @param pw PrintWriter to write the dump to
+     */
+    public void dump(PrintWriter pw) {
+        pw.println("mISupplicant: " + (mISupplicant != null));
+        pw.println("ifaces: " + mISupplicantStaIfaces.keySet());
     }
 }

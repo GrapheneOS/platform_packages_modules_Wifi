@@ -19,8 +19,11 @@ package com.android.server.wifi;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.validateMockitoUsage;
@@ -53,6 +56,8 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
+
+import java.io.PrintWriter;
 
 /**
  * Unit tests for {@link SupplicantStaIfaceHalAidlMainlineImpl}.
@@ -261,5 +266,15 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
         ExtendedMockito.doReturn(false).when(() -> Environment
                                                   .isMainlineSupplicantBinaryInWifiApex());
         assertFalse(SupplicantStaIfaceHalAidlMainlineImpl.isServiceAvailable(mContext));
+    }
+
+    /**
+     * Test that we can call {@link SupplicantStaIfaceHalAidlMainlineImpl#dump(PrintWriter)}
+     */
+    @Test
+    public void testDump() {
+        PrintWriter pw = mock(PrintWriter.class);
+        mDut.dump(pw);
+        verify(pw, atLeastOnce()).println(anyString());
     }
 }

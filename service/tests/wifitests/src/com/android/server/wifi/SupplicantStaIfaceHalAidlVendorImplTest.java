@@ -45,6 +45,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -152,6 +153,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 import org.mockito.stubbing.Answer;
 
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -3521,5 +3523,15 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
                 .broadcastAuthenticationFailureEvent(any(), anyInt(), anyInt(), any(), any());
         verify(mWifiMonitor).broadcastNetworkDisconnectionEvent(
                 eq(WLAN0_IFACE_NAME), eq(true), eq(3), any(), eq(BSSID));
+    }
+
+    /**
+     * Test that we can call {@link SupplicantStaIfaceHalAidlVendorImpl#dump(PrintWriter)}
+     */
+    @Test
+    public void testDump() {
+        PrintWriter pw = mock(PrintWriter.class);
+        mDut.dump(pw);
+        verify(pw, atLeastOnce()).println(anyString());
     }
 }
