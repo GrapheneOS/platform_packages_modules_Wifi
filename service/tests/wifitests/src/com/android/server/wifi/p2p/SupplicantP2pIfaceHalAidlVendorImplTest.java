@@ -207,7 +207,7 @@ public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
         }
 
         @Override
-        protected IBinder getServiceBinderMockable() {
+        protected IBinder getCurrentServiceBinderMockable() {
             return mServiceBinderMock;
         }
     }
