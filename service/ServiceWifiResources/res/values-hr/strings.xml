@@ -220,8 +220,7 @@
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Ne prebacuj"</string>
     <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"Želite li prekinuti vezu s aplikacijom <xliff:g id="APP_NAME">%1$s</xliff:g>?"</string>
     <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"Ako prekinete vezu s Wi-Fijem, prekinut će se veza s aplikacijom <xliff:g id="APP_NAME">%1$s</xliff:g>. Želite li nastaviti?"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (8091261552122047303) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"Ako se povežete s drugom Wi-Fi mrežom, uređaj <xliff:g id="APP_NAME">%1$s</xliff:g> prekinut će vezu. Želite li nastaviti?"</string>
     <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"Nastavi"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Odustani"</string>
 </resources>

@@ -218,13 +218,9 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> es de baja calidad. ¿Quieres cambiar a <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Cambiar"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"No cambiar"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (94664204061356025) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (523085058096307605) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"¿Quieres desconectar <xliff:g id="APP_NAME">%1$s</xliff:g>?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"Si desconectas la red Wi-Fi, se desconectará <xliff:g id="APP_NAME">%1$s</xliff:g>. ¿Quieres continuar?"</string>
     <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"Si te conectas a otra red Wi-Fi, se desconectará <xliff:g id="APP_NAME">%1$s</xliff:g>. ¿Quieres continuar?"</string>
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (81882845888322268) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_negative_button (5075682597077355859) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"Continuar"</string>
+    <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Cancelar"</string>
 </resources>

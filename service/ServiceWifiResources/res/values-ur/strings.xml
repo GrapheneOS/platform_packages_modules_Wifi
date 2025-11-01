@@ -220,8 +220,7 @@
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"سوئچ نہ کریں"</string>
     <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"‫<xliff:g id="APP_NAME">%1$s</xliff:g> کو غیر منسلک کریں؟"</string>
     <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"‏‫Wi‑Fi کو غیر منسلک کرنے سے <xliff:g id="APP_NAME">%1$s</xliff:g> غیر منسلک ہو جائے گا۔ جاری رکھیں؟"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (8091261552122047303) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"‏دوسرے Wi‑Fi نیٹ ورک سے منسلک ہونے کی وجہ سے <xliff:g id="APP_NAME">%1$s</xliff:g> غیر منسلک ہو جائے گا۔ جاری رکھیں؟"</string>
     <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"جاری رکھیں"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"منسوخ کریں"</string>
 </resources>
