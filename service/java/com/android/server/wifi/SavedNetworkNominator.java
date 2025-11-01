@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.util.Environment;
 import android.telephony.TelephonyManager;
 import android.util.LocalLog;
 import android.util.Pair;
@@ -43,19 +44,22 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
     private final WifiPseudonymManager mWifiPseudonymManager;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
     private final WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
+    private final WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
 
     SavedNetworkNominator(WifiConfigManager configManager,
             LocalLog localLog,
             WifiCarrierInfoManager wifiCarrierInfoManager,
             WifiPseudonymManager wifiPseudonymManager,
             WifiPermissionsUtil wifiPermissionsUtil,
-            WifiNetworkSuggestionsManager wifiNetworkSuggestionsManager) {
+            WifiNetworkSuggestionsManager wifiNetworkSuggestionsManager,
+            WifiDeviceStateChangeManager wifiDeviceStateChangeManager) {
         mWifiConfigManager = configManager;
         mLocalLog = localLog;
         mWifiCarrierInfoManager = wifiCarrierInfoManager;
         mWifiPseudonymManager = wifiPseudonymManager;
         mWifiPermissionsUtil = wifiPermissionsUtil;
         mWifiNetworkSuggestionsManager = wifiNetworkSuggestionsManager;
+        mWifiDeviceStateChangeManager = wifiDeviceStateChangeManager;
     }
 
     private void localLog(String log) {
@@ -125,6 +129,7 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
                 }
                 matchedNetworkCandidates = List.of(candidate);
             }
+            boolean isAapmEnabled = mWifiDeviceStateChangeManager.isAapmEnabled();
             for (WifiConfiguration network : matchedNetworkCandidates) {
                 if (network == null) {
                     continue;
@@ -139,6 +144,14 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
                 // Ignore networks that the user has disallowed auto-join for.
                 if (!network.allowAutojoin) {
                     localLog("Ignoring auto join disabled SSID: " + network.SSID);
+                    continue;
+                }
+
+                if (Environment.isSdkNewerThanB()
+                        && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()
+                        && isAapmEnabled
+                        && !network.isAutoJoinInAdvancedProtectionModeEnabled()) {
+                    localLog("Ignoring auto join disabled on AAP SSID: " + network.SSID);
                     continue;
                 }
 

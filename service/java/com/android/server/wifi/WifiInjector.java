@@ -508,10 +508,11 @@ public class WifiInjector {
         mPasspointManager.setPasspointNetworkNominateHelper(mNominateHelper);
         mSavedNetworkNominator = new SavedNetworkNominator(
                 mWifiConfigManager, mConnectivityLocalLog, mWifiCarrierInfoManager,
-                mWifiPseudonymManager, mWifiPermissionsUtil, mWifiNetworkSuggestionsManager);
+                mWifiPseudonymManager, mWifiPermissionsUtil, mWifiNetworkSuggestionsManager,
+                mWifiDeviceStateChangeManager);
         mNetworkSuggestionNominator = new NetworkSuggestionNominator(mWifiNetworkSuggestionsManager,
                 mWifiConfigManager, mConnectivityLocalLog, mWifiCarrierInfoManager,
-                mWifiPseudonymManager, mWifiMetrics);
+                mWifiPseudonymManager, mWifiMetrics, mWifiDeviceStateChangeManager);
 
         mWifiMetrics.setPasspointManager(mPasspointManager);
         WifiChannelUtilization wifiChannelUtilizationConnected =

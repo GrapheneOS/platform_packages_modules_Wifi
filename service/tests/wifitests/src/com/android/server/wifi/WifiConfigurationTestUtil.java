@@ -743,6 +743,8 @@ public class WifiConfigurationTestUtil {
             assertEquals(expected.isAllowedToUpdateByOtherUsers(),
                     actual.isAllowedToUpdateByOtherUsers());
         }
+        assertEquals(expected.isAutoJoinInAdvancedProtectionModeEnabled(),
+                    actual.isAutoJoinInAdvancedProtectionModeEnabled());
     }
 
 
@@ -814,6 +816,8 @@ public class WifiConfigurationTestUtil {
             assertEquals(expected.isAllowedToUpdateByOtherUsers(),
                     actual.isAllowedToUpdateByOtherUsers());
         }
+        assertEquals(expected.isAutoJoinInAdvancedProtectionModeEnabled(),
+                    actual.isAutoJoinInAdvancedProtectionModeEnabled());
     }
 
     /**

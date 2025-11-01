@@ -111,7 +111,9 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                     + "<int name=\"NumRebootsSinceLastUse\" value=\"0\" />\n"
                     + "<boolean name=\"RepeaterEnabled\" value=\"false\" />\n"
                     + "<boolean name=\"EnableWifi7\" value=\"true\" />\n"
-                    + "%s" // String after EnableWifi7 before SecurityParamsList
+                    // String after EnableWifi7 before SecurityParamsList
+                    // Where should be used when adding new tags in writeCommonElementsToXml
+                    + "%s"
                     + "<SecurityParamsList>\n"
                     + "<SecurityParams>\n"
                     + "<int name=\"SecurityType\" value=\"0\" />\n"
@@ -176,7 +178,9 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                     + "<byte-array name=\"IV\" num=\"0\"></byte-array>\n"
                     + "</DppNetAccessKey>\n"
                     + "<int name=\"PersistentMacRandomizationSeed\" value=\"0\" />\n"
-                    + "%s" // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // String after PersistentMacRandomizationSeed before /WifiConfiguration
+                    // Where is used when adding new tags in writeToXmlForConfigStore
+                    + "%s"
                     + "</WifiConfiguration>\n"
                     + "<NetworkStatus>\n"
                     + "<string name=\"SelectionStatus\">NETWORK_SELECTION_ENABLED</string>\n"
@@ -272,12 +276,15 @@ public class WifiConfigStoreTest extends WifiBaseTest {
 
         mSharedStoreData = new MockStoreData(WifiConfigStore.STORE_FILE_SHARED_GENERAL);
         mUserStoreData = new MockStoreData(WifiConfigStore.STORE_FILE_USER_GENERAL);
-
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(ActivityManager.class, withSettings().lenient())
                 .mockStatic(Flags.class, withSettings().lenient())
                 .mockStatic(WifiMigration.class, withSettings().lenient())
+                .mockStatic(android.security.Flags.class, withSettings().lenient())
                 .startMocking();
+        when(Flags.multiUserWifiEnhancement()).thenReturn(false);
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+                .thenReturn(false);
         when(ActivityManager.getCurrentUser()).thenReturn(UserHandle.getUserId(TEST_UID));
         when(WifiMigration.convertAndRetrieveSharedConfigStoreFile(anyInt())).thenReturn(null);
         when(WifiMigration.convertAndRetrieveUserConfigStoreFile(anyInt(), any())).thenReturn(null);
@@ -481,6 +488,27 @@ public class WifiConfigStoreTest extends WifiBaseTest {
         assertNull(mUserStoreData.getData());
     }
 
+    private String generateTestStringForAddingNewDataInWriteCommonElementsToXml() {
+        StringBuilder sbuf = new StringBuilder();
+        if (Flags.multiUserWifiEnhancement()) {
+            sbuf.append("<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"false\" />\n");
+        }
+        if (Environment.isSdkNewerThanB()
+                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+            sbuf.append(
+                    "<boolean name=\"AllowedAutoJoinInAdvancedProtection\" value=\"false\" />\n");
+        }
+        return sbuf.toString();
+    }
+
+    private String generateTestStringForAddingNewDataInWriteToXmlForConfigStore() {
+        StringBuilder sbuf = new StringBuilder();
+        if (Flags.multiUserWifiEnhancement()) {
+            sbuf.append("<int name=\"CreatorUserId\" value=\"10\" />\n");
+        }
+        return sbuf.toString();
+    }
+
     /**
      * Verify that a store file contained WiFi configuration store data (network list and
      * deleted ephemeral SSID list) using the predefined test XML data is read and parsed
@@ -493,31 +521,50 @@ public class WifiConfigStoreTest extends WifiBaseTest {
         // Setup network list.
         NetworkListStoreData networkList = new NetworkListUserStoreData(mContext);
         mWifiConfigStore.registerStoreData(networkList);
-        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
-        openNetwork.creatorName = TEST_CREATOR_NAME;
-        openNetwork.setIpConfiguration(
-                WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
-        openNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
-        List<WifiConfiguration> userConfigs = new ArrayList<>();
-        openNetwork.subscriptionId = TEST_SUB_ID;
-        userConfigs.add(openNetwork);
 
+        // Changing flag value and run the testing,
+        // first boolean for flag: multiUserWifiEnhancement
+        // second boolean for flag: aapmFeatureDisableInsecureWifiAutojoin
+        boolean[][] testFlagStatusInAndroidC =
+                {{false, false}, {false, true}, {true, false}, {true, true}};
         // Setup user store XML bytes.
-        String xmlString = String.format(TEST_DATA_XML_STRING_FORMAT,
-                openNetwork.getKey().replaceAll("\"", "&quot;"),
-                openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, Environment.isSdkNewerThanB()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
-                openNetwork.creatorUid, openNetwork.creatorName,
-                openNetwork.getRandomizedMacAddress(), openNetwork.subscriptionId,
-                Environment.isSdkNewerThanB()
-                        ? "int name=\"CreatorUserId\" value=\"0\" />\n" : "");
-        byte[] xmlBytes = xmlString.getBytes(StandardCharsets.UTF_8);
-        mUserStore.storeRawDataToWrite(xmlBytes);
+        for (int i = 0; i < testFlagStatusInAndroidC.length; i++) {
+            when(Flags.multiUserWifiEnhancement()).thenReturn(testFlagStatusInAndroidC[i][0]);
+            when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+                    .thenReturn(testFlagStatusInAndroidC[i][1]);
+            WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+            openNetwork.creatorName = TEST_CREATOR_NAME;
+            openNetwork.setIpConfiguration(
+                    WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
+            openNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
+            List<WifiConfiguration> userConfigs = new ArrayList<>();
+            openNetwork.subscriptionId = TEST_SUB_ID;
+            // Always configure to non-default value to make sure logic is correct.
+            if (Flags.multiUserWifiEnhancement()) {
+                openNetwork.setCreatorUserId(10);
+                openNetwork.setAllowedToUpdateByOtherUsers(false);
+            }
+            if (Environment.isSdkNewerThanB()
+                    && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                openNetwork.setAutoJoinInAdvancedProtectionModeEnabled(false);
+            }
+            userConfigs.clear();
+            userConfigs.add(openNetwork);
+            String xmlString = String.format(TEST_DATA_XML_STRING_FORMAT,
+                    openNetwork.getKey().replaceAll("\"", "&quot;"),
+                    openNetwork.SSID.replaceAll("\"", "&quot;"),
+                    openNetwork.shared,
+                    generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
+                    openNetwork.creatorUid, openNetwork.creatorName,
+                    openNetwork.getRandomizedMacAddress(), openNetwork.subscriptionId,
+                    generateTestStringForAddingNewDataInWriteToXmlForConfigStore());
+            byte[] xmlBytes = xmlString.getBytes(StandardCharsets.UTF_8);
+            mUserStore.storeRawDataToWrite(xmlBytes);
 
-        mWifiConfigStore.switchUserStoresAndRead(mUserStores);
-        WifiConfigurationTestUtil.assertConfigurationsEqualForConfigStore(
-                userConfigs, networkList.getConfigurations());
+            mWifiConfigStore.switchUserStoresAndRead(mUserStores);
+            WifiConfigurationTestUtil.assertConfigurationsEqualForConfigStore(
+                    userConfigs, networkList.getConfigurations());
+        }
     }
 
     /**
@@ -528,38 +575,50 @@ public class WifiConfigStoreTest extends WifiBaseTest {
      */
     @Test
     public void testWriteWifiConfigStoreData() throws Exception {
-        // Setup user store.
+        // Changing flag value and run the testing,
+        // first boolean for flag: multiUserWifiEnhancement
+        // second boolean for flag: aapmFeatureDisableInsecureWifiAutojoin
         mWifiConfigStore.switchUserStoresAndRead(mUserStores);
-
-        // Setup network list store data.
         NetworkListStoreData networkList = new NetworkListUserStoreData(mContext);
         mWifiConfigStore.registerStoreData(networkList);
-        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenOweNetwork();
-        openNetwork.creatorName = TEST_CREATOR_NAME;
-        openNetwork.setIpConfiguration(
-                WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
-        openNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
-        openNetwork.subscriptionId = TEST_SUB_ID;
-        int testUserId = UserHandle.getUserId(TEST_UID);
-        openNetwork.setCreatorUserId(testUserId);
         List<WifiConfiguration> userConfigs = new ArrayList<>();
-        userConfigs.add(openNetwork);
-        networkList.setConfigurations(userConfigs);
-
-        // Setup expected XML bytes.
-        String xmlString = String.format(TEST_DATA_XML_STRING_FORMAT,
-                openNetwork.getKey().replaceAll("\"", "&quot;"),
-                openNetwork.SSID.replaceAll("\"", "&quot;"),
-                openNetwork.shared, Flags.multiUserWifiEnhancement()
-                        ? "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"true\" />\n" : "",
-                openNetwork.creatorUid, openNetwork.creatorName,
-                openNetwork.getRandomizedMacAddress(), openNetwork.subscriptionId,
-                Environment.isSdkNewerThanB()
-                        ? "<int name=\"CreatorUserId\" value=\"" + testUserId + "\" />\n" : "");
-
-        mWifiConfigStore.write();
-        // Verify the user store content.
-        assertEquals(xmlString, new String(mUserStore.getStoreBytes()));
+        boolean[][] testFlagStatusInAndroidC =
+                {{false, false}, {false, true}, {true, false}, {true, true}};
+        for (int i = 0; i < testFlagStatusInAndroidC.length; i++) {
+            when(Flags.multiUserWifiEnhancement()).thenReturn(testFlagStatusInAndroidC[i][0]);
+            when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+                    .thenReturn(testFlagStatusInAndroidC[i][1]);
+            WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenOweNetwork();
+            openNetwork.creatorName = TEST_CREATOR_NAME;
+            openNetwork.setIpConfiguration(
+                    WifiConfigurationTestUtil.createDHCPIpConfigurationWithNoProxy());
+            openNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
+            openNetwork.subscriptionId = TEST_SUB_ID;
+            // Always configure to non-default value to make sure logic is correct.
+            if (Flags.multiUserWifiEnhancement()) {
+                openNetwork.setCreatorUserId(10);
+                openNetwork.setAllowedToUpdateByOtherUsers(false);
+            }
+            if (android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                openNetwork.setAutoJoinInAdvancedProtectionModeEnabled(false);
+            }
+            // Setup network list store data.
+            userConfigs.clear();
+            userConfigs.add(openNetwork);
+            networkList.setConfigurations(userConfigs);
+            // Setup expected XML bytes.
+            String xmlString = String.format(TEST_DATA_XML_STRING_FORMAT,
+                    openNetwork.getKey().replaceAll("\"", "&quot;"),
+                    openNetwork.SSID.replaceAll("\"", "&quot;"),
+                    openNetwork.shared,
+                    generateTestStringForAddingNewDataInWriteCommonElementsToXml(),
+                    openNetwork.creatorUid, openNetwork.creatorName,
+                    openNetwork.getRandomizedMacAddress(), openNetwork.subscriptionId,
+                    generateTestStringForAddingNewDataInWriteToXmlForConfigStore());
+            mWifiConfigStore.write();
+            // Verify the user store content.
+            assertEquals(xmlString, new String(mUserStore.getStoreBytes()));
+        }
     }
 
     /**
