@@ -391,6 +391,11 @@ public class WifiConfigManager {
     private int mCurrentUserId = UserHandle.SYSTEM.getIdentifier();
 
     /**
+     * Whether the current user stop completed.
+     */
+    private boolean mIsCurrentUserStopHandled = false;
+
+    /**
      * Whether the forground user is an admin user.
      */
     private boolean mIsCurrentUserAdmin = false;
@@ -3618,13 +3623,19 @@ public class WifiConfigManager {
             mPendingUnlockStoreRead = true;
             return new HashSet<>();
         }
-        if (mUserManager.isUserUnlockingOrUnlocked(UserHandle.of(mCurrentUserId))) {
-            writeBufferedData();
+        Set<Integer> removedNetworkIds = new HashSet<>();
+        // This check is to avoid clearing user data by writing an empty buffer to disk
+        // if handleUserStop was already called for the current user.
+        if (!mIsCurrentUserStopHandled) {
+            if (mUserManager.isUserUnlockingOrUnlocked(UserHandle.of(mCurrentUserId))) {
+                writeBufferedData();
+            }
+            // Remove any private networks of the old user before switching the userId.
+            removedNetworkIds = clearInternalDataForUser(mCurrentUserId);
         }
-        // Remove any private networks of the old user before switching the userId.
-        Set<Integer> removedNetworkIds = clearInternalDataForUser(mCurrentUserId);
         mConfiguredNetworks.setNewUser(userId);
         mCurrentUserId = userId;
+        mIsCurrentUserStopHandled = false;
         // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         if (mFeatureFlags.multiUserWifiEnhancement()) {
             Context userContext = mContext.createContextAsUser(UserHandle.of(userId), 0);
@@ -3691,6 +3702,9 @@ public class WifiConfigManager {
                 && mUserManager.isUserUnlockingOrUnlocked(UserHandle.of(mCurrentUserId))) {
             writeBufferedData();
             clearInternalDataForUser(mCurrentUserId);
+            if (mFeatureFlags.multiUserWifiEnhancement()) {
+                mIsCurrentUserStopHandled = true;
+            }
         }
     }
 
