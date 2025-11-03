@@ -97,6 +97,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * Abstract base class for the Supplicant P2P Iface HAL AIDL implementations.
  * Native calls sending requests to the P2P Hals, and callbacks for receiving P2P events.
  */
 public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfaceHal {
@@ -122,7 +123,7 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
     protected ISupplicant mISupplicant = null;
     protected ISupplicantP2pIface mISupplicantP2pIface = null;
     private final WifiP2pMonitor mMonitor;
-    private final WifiInjector mWifiInjector;
+    protected final WifiInjector mWifiInjector;
     private ISupplicantP2pIfaceCallback mCallback = null;
     private int mServiceVersion = -1;
     protected CountDownLatch mWaitForDeathLatch;
@@ -358,7 +359,7 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
         }
     }
 
-    private void handleServiceSpecificException(ServiceSpecificException e, String methodStr) {
+    protected void handleServiceSpecificException(ServiceSpecificException e, String methodStr) {
         synchronized (mLock) {
             Log.e(TAG, "ISupplicantP2pIface." + methodStr + " failed with "
                     + "service specific exception: ", e);
