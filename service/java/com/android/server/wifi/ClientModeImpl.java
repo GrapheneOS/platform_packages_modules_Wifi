@@ -1567,10 +1567,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (mNetworkFactory.isConnectedToConfig(connectedConfig)) {
             if (mIsUserSelected) {
                 // User manually trigger switch from a local-only network to primary.
-                // Temporarily block re-connection to the local-only network to avoid app
+                // If app is not getting notified of the user explicit disconnect,
+                // temporarily block re-connection to the local-only network to avoid app
                 // automatically connecting back to it.
-                mWifiConfigManager.userTemporarilyDisabledNetwork(connectedConfig.SSID,
-                        Process.WIFI_UID);
+                if (!com.android.wifi.flags.Flags.localOnlyDisconnectReason()
+                        || !mNetworkFactory.connectedNetworkHasDisconnectListenerRegistered()) {
+                    mWifiConfigManager.userTemporarilyDisabledNetwork(connectedConfig.SSID,
+                            Process.WIFI_UID);
+                }
             }
             if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
                 mNetworkFactory.onDisconnectionExpected(
@@ -2066,8 +2070,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             boolean isConnectedToLocalOnlyNetwork = mNetworkFactory.isConnectedToConfig(config);
             boolean connectedNetworkHasDisconnectListenerRegistered =
                     mNetworkFactory.connectedNetworkHasDisconnectListenerRegistered();
-            if (isUserTriggered && isConnectedToLocalOnlyNetwork
+            if (isUserTriggered && config != null && isConnectedToLocalOnlyNetwork
                     && connectedNetworkHasDisconnectListenerRegistered) {
+                mWifiConfigManager.userEnabledNetwork(config.networkId);
                 Runnable onUserApprovedAction = () -> {
                     if (mNetworkFactory.isConnectedToConfig(config)) {
                         mNetworkFactory.onDisconnectionExpected(

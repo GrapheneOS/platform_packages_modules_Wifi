@@ -7809,6 +7809,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         // User clicks positive button.
         callback.onPositiveButtonClicked();
         mLooper.dispatchAll();
+        verify(mWifiConfigManager, never()).userTemporarilyDisabledNetwork(any(), anyInt());
         verify(mWifiNetworkFactory).onDisconnectionExpected(
                 WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION, true);
         verify(mWifiConnectivityManager, times(2)).prepareForForcedConnection(anyInt());
@@ -7842,6 +7843,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 any(),
                 callbackCaptor.capture(),
                 any());
+        verify(mWifiConfigManager).userEnabledNetwork(mConnectedNetwork.networkId);
         verify(mockDialogHandle).launchDialog();
         verify(mContext).getString(R.string.wifi_disconnect_dialog_title, "TestAppName");
         WifiDialogManager.SimpleDialogCallback callback = callbackCaptor.getValue();
@@ -7852,11 +7854,15 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         // disconnect() should not be called again.
         verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
+        verify(mWifiNetworkFactory, never()).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API, true);
 
         // User clicks positive button.
         callback.onPositiveButtonClicked();
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+        verify(mWifiNetworkFactory).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API, true);
     }
 
     @Test
