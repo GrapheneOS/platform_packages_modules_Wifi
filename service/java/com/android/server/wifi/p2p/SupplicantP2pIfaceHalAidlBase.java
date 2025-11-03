@@ -91,6 +91,8 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -123,6 +125,7 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
     private final WifiInjector mWifiInjector;
     private ISupplicantP2pIfaceCallback mCallback = null;
     private int mServiceVersion = -1;
+    protected CountDownLatch mWaitForDeathLatch;
 
     public SupplicantP2pIfaceHalAidlBase(WifiP2pMonitor monitor, WifiInjector wifiInjector) {
         mMonitor = monitor;
@@ -135,12 +138,6 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
      */
     @Override
     public abstract boolean initialize();
-
-    /**
-     * Terminate the supplicant daemon & wait for its death.
-     */
-    @Override
-    public abstract void terminate();
 
     /**
      * Signals whether initialization started successfully.
@@ -325,14 +322,7 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
     }
 
     @VisibleForTesting
-    protected IBinder getServiceBinderMockable() {
-        synchronized (mLock) {
-            if (mISupplicant == null) {
-                return null;
-            }
-            return mISupplicant.asBinder();
-        }
-    }
+    protected abstract IBinder getCurrentServiceBinderMockable();
 
     /**
      * Returns false if mISupplicant is null and logs failure message
@@ -3214,6 +3204,38 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
             default:
                 throw new IllegalArgumentException(
                         "Invalid WPS config method: " + configMethod);
+        }
+    }
+
+    /**
+     * Terminate the supplicant daemon & wait for its death.
+     */
+    @Override
+    public void terminate() {
+        synchronized (mLock) {
+            final String methodStr = "terminate";
+            if (!checkSupplicantAndLogFailure(methodStr)) {
+                return;
+            }
+            Log.i(TAG, "Terminate supplicant service");
+            try {
+                mWaitForDeathLatch = new CountDownLatch(1);
+                mISupplicant.terminate();
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            }
+        }
+
+        // Wait for death recipient to confirm the service death.
+        try {
+            if (!mWaitForDeathLatch.await(WAIT_FOR_DEATH_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                Log.w(TAG, "Timed out waiting for confirmation of supplicant death");
+                supplicantServiceDiedHandler();
+            } else {
+                Log.d(TAG, "Got service death confirmation");
+            }
+        } catch (InterruptedException e) {
+            Log.w(TAG, "Failed to wait for supplicant death");
         }
     }
 

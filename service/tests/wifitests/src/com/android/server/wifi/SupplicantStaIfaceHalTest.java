@@ -59,14 +59,15 @@ import java.util.Map;
 
 /**
  * Unit tests for {@link SupplicantStaIfaceHal}, which functions as a wrapper for either HIDL or
- * AIDL (vendor) implementation of the Supplicant STA Iface HAL, depending on which service is
- * available. Test the initialization logic and verify that calls to all public methods are
- * forwarded to the actual implementation.
+ * AIDL (vendor or mainline) implementation of the Supplicant STA Iface HAL, depending on which
+ * service is available. Test the initialization logic and verify that calls to all public methods
+ * are forwarded to the actual implementation.
  */
 public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     private SupplicantStaIfaceHalSpy mDut;
     private @Mock SupplicantStaIfaceHalHidlImpl mStaIfaceHalHidlMock;
     private @Mock SupplicantStaIfaceHalAidlVendorImpl mStaIfaceHalAidlMock;
+    private @Mock SupplicantStaIfaceHalAidlMainlineImpl mStaIfaceHalAidlMainlineMock;
     private @Mock WifiNative.SupplicantDeathEventHandler mSupplicantHalDeathHandler;
     private @Mock Context mContext;
     private @Mock WifiMonitor mWifiMonitor;
@@ -112,6 +113,20 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     }
 
     /**
+     * Implementation of SupplicantStaIfaceHalSpy that uses the AIDL Mainline mock internally.
+     */
+    private class SupplicantStaIfaceHalMainlineSpy extends SupplicantStaIfaceHalSpy {
+        SupplicantStaIfaceHalMainlineSpy() {
+            super();
+        }
+
+        @Override
+        protected ISupplicantStaIfaceHal createStaIfaceHalMockable()  {
+            return mStaIfaceHalAidlMainlineMock;
+        }
+    }
+
+    /**
      * Implementation of SupplicantStaIfaceHalSpy that uses the HIDL mock internally
      * rather than the default AIDL mock.
      */
@@ -153,6 +168,19 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
         when(mStaIfaceHalAidlMock.initialize()).thenReturn(shouldSucceed);
         assertEquals(shouldSucceed, mDut.initialize());
         verify(mStaIfaceHalAidlMock).initialize();
+        verify(mStaIfaceHalAidlMainlineMock, never()).initialize();
+        verify(mStaIfaceHalHidlMock, never()).initialize();
+    }
+
+    /**
+     * Initialize SupplicantStaIfaceHal with the AIDL Mainline implementation.
+     */
+    private void initializeWithAidlMainlineImpl(boolean shouldSucceed) {
+        mDut = new SupplicantStaIfaceHalMainlineSpy();
+        when(mStaIfaceHalAidlMainlineMock.initialize()).thenReturn(shouldSucceed);
+        assertEquals(shouldSucceed, mDut.initialize());
+        verify(mStaIfaceHalAidlMainlineMock).initialize();
+        verify(mStaIfaceHalAidlMock, never()).initialize();
         verify(mStaIfaceHalHidlMock, never()).initialize();
     }
 
@@ -163,8 +191,9 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
         mDut = new SupplicantStaIfaceHidlHalSpy();
         when(mStaIfaceHalHidlMock.initialize()).thenReturn(shouldSucceed);
         assertEquals(shouldSucceed, mDut.initialize());
-        verify(mStaIfaceHalAidlMock, never()).initialize();
         verify(mStaIfaceHalHidlMock).initialize();
+        verify(mStaIfaceHalAidlMock, never()).initialize();
+        verify(mStaIfaceHalAidlMainlineMock, never()).initialize();
     }
 
     /**
@@ -173,6 +202,14 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     @Test
     public void testInitSuccessAidlVendor() {
         initializeWithAidlVendorImpl(true);
+    }
+
+    /**
+     * Tests successful initialization with the AIDL Mainline implementation.
+     */
+    @Test
+    public void testInitSuccessAidlMainline() {
+        initializeWithAidlMainlineImpl(true);
     }
 
     /**
@@ -189,6 +226,14 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     @Test
     public void testInitFailureAidlVendor() {
         initializeWithAidlVendorImpl(false);
+    }
+
+    /**
+     * Tests failed initialization with the AIDL Mainline implementation.
+     */
+    @Test
+    public void testInitFailureAidlMainline() {
+        initializeWithAidlMainlineImpl(false);
     }
 
     /**

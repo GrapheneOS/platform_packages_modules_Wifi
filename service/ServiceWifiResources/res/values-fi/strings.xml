@@ -218,14 +218,9 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> on heikkolaatuinen. Otetaanko <xliff:g id="SSID_1">%2$s</xliff:g> käyttöön?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Vaihda"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Älä vaihda"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (94664204061356025) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (523085058096307605) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (8091261552122047303) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (81882845888322268) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_negative_button (5075682597077355859) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"Katkaistaanko yhteys (<xliff:g id="APP_NAME">%1$s</xliff:g>)?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"Jos Wi-Fi-yhteys katkaistaan, <xliff:g id="APP_NAME">%1$s</xliff:g> katkaisee yhteyden. Jatketaanko?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"Jos yhdistät toiseen Wi-Fi-verkkoon, <xliff:g id="APP_NAME">%1$s</xliff:g> katkaisee yhteyden. Jatketaanko?"</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"Jatka"</string>
+    <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Peru"</string>
 </resources>

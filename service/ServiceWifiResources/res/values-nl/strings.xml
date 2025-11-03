@@ -218,14 +218,9 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> is van lage kwaliteit. Overschakelen naar <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Overschakelen"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Niet overschakelen"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (94664204061356025) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (523085058096307605) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (8091261552122047303) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (81882845888322268) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_negative_button (5075682597077355859) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"Verbinding met <xliff:g id="APP_NAME">%1$s</xliff:g> verbreken?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"Als je de wifi-verbinding verbreekt, wordt de verbinding met <xliff:g id="APP_NAME">%1$s</xliff:g> verbroken. Doorgaan?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"Als je verbinding maakt met een ander wifi-netwerk, wordt de verbinding met <xliff:g id="APP_NAME">%1$s</xliff:g> verbroken. Doorgaan?"</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"Doorgaan"</string>
+    <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Annuleren"</string>
 </resources>

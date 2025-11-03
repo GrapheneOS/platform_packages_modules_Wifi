@@ -218,14 +218,9 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> 品質不佳，是否要切換至 <xliff:g id="SSID_1">%2$s</xliff:g>？"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"切換"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"不要切換"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (94664204061356025) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (523085058096307605) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (8091261552122047303) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (81882845888322268) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_negative_button (5075682597077355859) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"要中斷與「<xliff:g id="APP_NAME">%1$s</xliff:g>」的連線嗎？"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"中斷 Wi-Fi 連線會導致「<xliff:g id="APP_NAME">%1$s</xliff:g>」中斷連線。要繼續嗎？"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"連線至其他 Wi‑Fi 網路會導致「<xliff:g id="APP_NAME">%1$s</xliff:g>」中斷連線。要繼續嗎？"</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"繼續"</string>
+    <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"取消"</string>
 </resources>

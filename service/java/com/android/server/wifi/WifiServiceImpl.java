@@ -1095,8 +1095,10 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                                             "User removed broadcast received with no user handle");
                                     return;
                                 }
-                                mWifiConfigManager
-                                        .removeNetworksForUser(userHandle.getIdentifier());
+                                mWifiThreadRunner.post(() ->
+                                    mWifiConfigManager
+                                            .removeNetworksForUser(userHandle.getIdentifier()),
+                                            TAG + "#handleUserRemoved");
                             } else if (BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED
                                     .equals(action)) {
                                 int state = intent.getIntExtra(
@@ -1104,20 +1106,24 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                                         BluetoothAdapter.STATE_DISCONNECTED);
                                 boolean isConnected =
                                         state != BluetoothAdapter.STATE_DISCONNECTED;
-                                mWifiGlobals.setBluetoothConnected(isConnected);
-                                for (ClientModeManager cmm :
-                                        mActiveModeWarden.getClientModeManagers()) {
-                                    cmm.onBluetoothConnectionStateChanged();
-                                }
+                                mWifiThreadRunner.post(() -> {
+                                    mWifiGlobals.setBluetoothConnected(isConnected);
+                                    for (ClientModeManager cmm :
+                                            mActiveModeWarden.getClientModeManagers()) {
+                                        cmm.onBluetoothConnectionStateChanged();
+                                    }
+                                }, TAG + "#handleBluetoothConnectionStateChanged");
                             } else if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
                                 int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
                                         BluetoothAdapter.STATE_OFF);
                                 boolean isEnabled = state != BluetoothAdapter.STATE_OFF;
-                                mWifiGlobals.setBluetoothEnabled(isEnabled);
-                                for (ClientModeManager cmm :
-                                        mActiveModeWarden.getClientModeManagers()) {
-                                    cmm.onBluetoothConnectionStateChanged();
-                                }
+                                mWifiThreadRunner.post(() -> {
+                                    mWifiGlobals.setBluetoothEnabled(isEnabled);
+                                    for (ClientModeManager cmm :
+                                            mActiveModeWarden.getClientModeManagers()) {
+                                        cmm.onBluetoothConnectionStateChanged();
+                                    }
+                                }, TAG + "#handleBluetoothStateChanged");
                             } else if (PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED
                                     .equals(action)) {
                                 handleIdleModeChanged();
@@ -1125,8 +1131,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                         }
                     },
                     intentFilter,
-                    null,
-                    new Handler(mWifiHandlerThread.getLooper()));
+                    null, null);
             registerBroadcastReceiver(
                     new BroadcastReceiver() {
                         @Override
@@ -1349,7 +1354,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                         doScan = true;
                     }
                 }
-                mActiveModeWarden.onIdleModeChanged(idle);
+                mWifiThreadRunner.post(() ->
+                    mActiveModeWarden.onIdleModeChanged(idle), TAG + "#handleIdleModeChanged");
             }
         }
         if (doScan) {

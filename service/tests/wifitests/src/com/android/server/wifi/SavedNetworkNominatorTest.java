@@ -68,7 +68,10 @@ public class SavedNetworkNominatorTest extends WifiBaseTest {
         mStaticMockSession = mockitoSession().strictness(Strictness.LENIENT)
                 .mockStatic(WifiInjector.class)
                 .mockStatic(Flags.class)
+                .mockStatic(android.security.Flags.class)
                 .startMocking();
+        lenient().when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+                .thenReturn(true);
         lenient().when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
         when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
@@ -82,7 +85,8 @@ public class SavedNetworkNominatorTest extends WifiBaseTest {
         mLocalLog = new LocalLog(512);
         mSavedNetworkNominator = new SavedNetworkNominator(mWifiConfigManager,
                 mLocalLog, mWifiCarrierInfoManager,
-                mWifiPseudonymManager, mWifiPermissionsUtil, mWifiNetworkSuggestionsManager);
+                mWifiPseudonymManager, mWifiPermissionsUtil, mWifiNetworkSuggestionsManager,
+                mWifiDeviceStateChangeManager);
         when(mWifiCarrierInfoManager.isSimReady(anyInt())).thenReturn(true);
         when(mWifiCarrierInfoManager.getBestMatchSubscriptionId(any())).thenReturn(VALID_SUBID);
         when(mWifiCarrierInfoManager.requiresImsiEncryption(VALID_SUBID)).thenReturn(true);
@@ -120,6 +124,7 @@ public class SavedNetworkNominatorTest extends WifiBaseTest {
     @Mock private PasspointNetworkNominateHelper mPasspointNetworkNominateHelper;
     @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
     @Mock private WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
+    @Mock private WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
     private @Mock WifiInjector mWifiInjector;
     private @Mock ActiveModeWarden mActiveModeWarden;
     private @Mock ClientModeManager mPrimaryClientModeManager;
@@ -561,5 +566,53 @@ public class SavedNetworkNominatorTest extends WifiBaseTest {
                 mOnConnectableListener);
         verify(mOnConnectableListener).onConnectable(scanDetail1, configuration1);
         verify(mOnConnectableListener).onConnectable(scanDetail1, configuration2);
+    }
+
+    /**
+     * Verifies that auto-join is correctly handled based on the
+     * isAutoJoinInAdvancedProtectionModeEnabled flag when AAPM is active.
+     * 1. If AAPM is off, auto-join should be allowed regardless of the flag.
+     * 2. If AAPM is on and the flag is false, auto-join should be disallowed.
+     * 3. If AAPM is on and the flag is true, auto-join should be allowed.
+     */
+    @Test
+    public void testAapmModeAndAllowedAutoJoinInAdvancedProtection() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        String[] ssids = {"\"test1\""};
+        String[] bssids = {"6c:f3:7f:ae:8c:f3"};
+        int[] freqs = {2470};
+        String[] caps = {"[ESS]"};
+        int[] levels = {RSSI_LEVEL};
+        int[] securities = {SECURITY_NONE};
+
+        ScanDetailsAndWifiConfigs scanDetailsAndConfigs =
+                WifiNetworkSelectorTestUtil.setupScanDetailsAndConfigStore(ssids, bssids,
+                        freqs, caps, levels, securities, mWifiConfigManager, mClock);
+        List<ScanDetail> scanDetails = scanDetailsAndConfigs.getScanDetails();
+        WifiConfiguration[] savedConfigs = scanDetailsAndConfigs.getWifiConfigs();
+
+        // Test auto-join is allowed when AAPM is off.
+        when(mWifiDeviceStateChangeManager.isAapmEnabled()).thenReturn(false);
+        savedConfigs[0].setAutoJoinInAdvancedProtectionModeEnabled(false);
+        mSavedNetworkNominator.nominateNetworks(
+                scanDetails, null, false, true, true, Collections.emptySet(),
+                mOnConnectableListener);
+        verify(mOnConnectableListener).onConnectable(any(), any());
+        reset(mOnConnectableListener);
+
+        // Test auto-join is not allowed when AAPM is on and auto-join is disallowed.
+        when(mWifiDeviceStateChangeManager.isAapmEnabled()).thenReturn(true);
+        mSavedNetworkNominator.nominateNetworks(
+                scanDetails, null, false, true, true, Collections.emptySet(),
+                mOnConnectableListener);
+        verify(mOnConnectableListener, never()).onConnectable(any(), any());
+        reset(mOnConnectableListener);
+
+        // Test auto-join is allowed when AAPM is on and auto-join is allowed.
+        savedConfigs[0].setAutoJoinInAdvancedProtectionModeEnabled(true);
+        mSavedNetworkNominator.nominateNetworks(
+                scanDetails, null, false, true, true, Collections.emptySet(),
+                mOnConnectableListener);
+        verify(mOnConnectableListener).onConnectable(any(), any());
     }
 }

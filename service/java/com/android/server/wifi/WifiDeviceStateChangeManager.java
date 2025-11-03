@@ -131,8 +131,7 @@ public class WifiDeviceStateChangeManager {
             mContext.registerReceiver(screenChangedReceiver, filter);
         }
         handleScreenStateChanged(mPowerManager.isInteractive());
-        if (Environment.isSdkAtLeastB() && mFeatureFlags.wepDisabledInApm()
-                && isAapmApiFlagEnabled()) {
+        if (Environment.isSdkAtLeastB() && isAapmApiFlagEnabled()) {
             mAdvancedProtectionManager =
                     mContext.getSystemService(AdvancedProtectionManager.class);
             if (mAdvancedProtectionManager != null) {
@@ -155,6 +154,19 @@ public class WifiDeviceStateChangeManager {
     @VisibleForTesting
     public boolean isAapmApiFlagEnabled() {
         return Flags.aapmApi();
+    }
+
+    /**
+     * Checks if advanced protection is enabled on the device.
+     *
+     * @return {@code true} if advanced protection is enabled, {@code false} otherwise.
+     */
+    @SuppressLint("NewApi")
+    public boolean isAapmEnabled() {
+        if (Environment.isSdkAtLeastB() && mAdvancedProtectionManager != null) {
+            return mAdvancedProtectionManager.isAdvancedProtectionEnabled();
+        }
+        return false;
     }
     /**
      * Register a state change callback. When the state is changed, caller with receive the callback

@@ -295,6 +295,7 @@ public class WifiRttControllerAidlImpl implements IWifiRttController {
                     .setUnverifiedResponderLocation(responderLocation)
                     .setRangingTimestampMillis(
                             rttResult.timeStampInUs / WifiRttController.CONVERSION_US_TO_MS)
+                    .setRetryAfterDurationMillis(rttResult.retryAfterDuration * 1000)
                     .set80211mcMeasurement(rttResult.type == RttType.TWO_SIDED_11MC)
                     .setMeasurementChannelFrequencyMHz(rttResult.channelFreqMHz)
                     .setMeasurementBandwidth(halToFrameworkChannelBandwidth(rttResult.packetBw))

@@ -26,15 +26,11 @@ import android.util.Log;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiNative;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
 /**
  * Implementation of Supplicant P2P Iface HAL using the vendor AIDL service.
  */
 public class SupplicantP2pIfaceHalAidlVendorImpl extends SupplicantP2pIfaceHalAidlBase {
     private static final String TAG = "SupplicantP2pIfaceHalAidlVendorImpl";
-    private CountDownLatch mWaitForDeathLatch;
     private final DeathRecipient mSupplicantDeathRecipient =
             () -> {
                 Log.d(TAG, "ISupplicant/ISupplicantP2pIface died");
@@ -72,7 +68,7 @@ public class SupplicantP2pIfaceHalAidlVendorImpl extends SupplicantP2pIfaceHalAi
             Log.i(TAG, "Obtained ISupplicant binder.");
 
             try {
-                IBinder serviceBinder = getServiceBinderMockable();
+                IBinder serviceBinder = getCurrentServiceBinderMockable();
                 if (serviceBinder == null) {
                     return false;
                 }
@@ -85,35 +81,13 @@ public class SupplicantP2pIfaceHalAidlVendorImpl extends SupplicantP2pIfaceHalAi
         }
     }
 
-    /**
-     * Terminate the supplicant daemon & wait for its death.
-     */
     @Override
-    public void terminate() {
+    protected IBinder getCurrentServiceBinderMockable() {
         synchronized (mLock) {
-            final String methodStr = "terminate";
-            if (!checkSupplicantAndLogFailure(methodStr)) {
-                return;
+            if (mISupplicant == null) {
+                return null;
             }
-            Log.i(TAG, "Terminate supplicant service");
-            try {
-                mWaitForDeathLatch = new CountDownLatch(1);
-                mISupplicant.terminate();
-            } catch (RemoteException e) {
-                handleRemoteException(e, methodStr);
-            }
-        }
-
-        // Wait for death recipient to confirm the service death.
-        try {
-            if (!mWaitForDeathLatch.await(WAIT_FOR_DEATH_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                Log.w(TAG, "Timed out waiting for confirmation of supplicant death");
-                supplicantServiceDiedHandler();
-            } else {
-                Log.d(TAG, "Got service death confirmation");
-            }
-        } catch (InterruptedException e) {
-            Log.w(TAG, "Failed to wait for supplicant death");
+            return mISupplicant.asBinder();
         }
     }
 

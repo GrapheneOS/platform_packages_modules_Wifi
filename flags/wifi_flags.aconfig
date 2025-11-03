@@ -471,10 +471,34 @@ flag {
     description: "Use the supplicant solution for wifi aware"
     bug: "448421897"
 }
+
+flag {
+    name: "rtt_busy_try_later_api"
+    is_exported: true
+    namespace: "wifi"
+    description: "Adds a new RTT status code for when the peer is busy and a method to get the retry duration."
+    bug: "407453160"
+}
+
 flag {
     name: "last_caller_26q2"
     is_exported: true
     namespace: "wifi"
     description: "Add new reason codes for last caller tracking"
     bug: "448479152"
+}
+
+flag {
+    name: "wificond_to_nl80211_migration"
+    namespace: "wifi"
+    description: "Migrate wificond functionality to direct nl80211 commands"
+    bug: "394409845"
+}
+
+flag {
+    name: "feed_more_data_to_external_scorer"
+    is_exported: true
+    namespace: "wifi"
+    description: "Feed the L2/L3 data stall and pre-evaluation data to external scorer for reference"
+    bug: "446298612"
 }

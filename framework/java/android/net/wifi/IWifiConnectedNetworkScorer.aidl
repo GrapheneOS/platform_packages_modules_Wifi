@@ -35,4 +35,6 @@ oneway interface IWifiConnectedNetworkScorer
     void onNetworkSwitchAccepted(int sessionId, int targetNetworkId, String targetBssid);
 
     void onNetworkSwitchRejected(int sessionId, int targetNetworkId, String targetBssid);
+
+    void onL3DataStallSuspected(int sessionId);
 }

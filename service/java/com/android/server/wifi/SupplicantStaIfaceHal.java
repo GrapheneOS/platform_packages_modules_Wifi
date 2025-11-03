@@ -904,14 +904,22 @@ public class SupplicantStaIfaceHal {
     @VisibleForTesting
     protected ISupplicantStaIfaceHal createStaIfaceHalMockable() {
         synchronized (mLock) {
-            // Prefer AIDL Vendor implementation if service is declared.
-            if (SupplicantStaIfaceHalAidlVendorImpl.serviceDeclared()) {
-                Log.i(TAG, "Initializing SupplicantStaIfaceHal using AIDL implementation.");
+            // Prefer AIDL Mainline implementation if service is declared.
+            if (SupplicantStaIfaceHalAidlMainlineImpl.isServiceAvailable(mContext)) {
+                Log.i(TAG, "Initializing SupplicantStaIfaceHal using AIDL Mainline implementation");
+                return new SupplicantStaIfaceHalAidlMainlineImpl(mContext, mWifiMonitor,
+                        mEventHandler, mClock, mWifiMetrics, mWifiGlobals, mSsidTranslator,
+                        mWifiInjector);
+
+            } else if (SupplicantStaIfaceHalAidlVendorImpl.serviceDeclared()) {
+                // Fallback to the AIDL Vendor implementation if service is declared.
+                Log.i(TAG, "Initializing SupplicantStaIfaceHal using AIDL Vendor implementation.");
                 return new SupplicantStaIfaceHalAidlVendorImpl(mContext, mWifiMonitor,
                         mEventHandler, mClock, mWifiMetrics, mWifiGlobals, mSsidTranslator,
                         mWifiInjector);
 
             } else if (SupplicantStaIfaceHalHidlImpl.serviceDeclared()) {
+                // Fallback to the HIDL implementation if service is declared.
                 Log.i(TAG, "Initializing SupplicantStaIfaceHal using HIDL implementation.");
                 return new SupplicantStaIfaceHalHidlImpl(mContext, mWifiMonitor, mFrameworkFacade,
                         mEventHandler, mClock, mWifiMetrics, mWifiGlobals, mSsidTranslator);

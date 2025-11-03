@@ -33,7 +33,7 @@
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"Tillad"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"Nej tak"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"Opret forbindelse til <xliff:g id="CARRIERNAME">%s</xliff:g>-Wi-Fi"</string>
-    <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"Disse netværk kræver et SIM-id, der kan bruges til at spore enhedens lokation"</string>
+    <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"Disse netværk kræver et SIM-kort-id, der kan bruges til at spore enhedens lokation"</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"Opret forbindelse"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"Opret ikke forbindelse"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_title" msgid="4407415300707014525">"Vil du bekræfte forbindelsen?"</string>
@@ -218,14 +218,9 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> er af dårlig kvalitet. Vil du skifte til <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Skift"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Skift ikke"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (94664204061356025) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (523085058096307605) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (8091261552122047303) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (81882845888322268) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_negative_button (5075682597077355859) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"Vil du fjerne tilknytningen til <xliff:g id="APP_NAME">%1$s</xliff:g>?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"Hvis du afbryder Wi-Fi-forbindelsen, fjernes tilknytningen til <xliff:g id="APP_NAME">%1$s</xliff:g>. Vil du fortsætte?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"Hvis du opretter forbindelse til et andet Wi-Fi-netværk, afbrydes forbindelsen til <xliff:g id="APP_NAME">%1$s</xliff:g>. Vil du fortsætte?"</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"Fortsæt"</string>
+    <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Annuller"</string>
 </resources>

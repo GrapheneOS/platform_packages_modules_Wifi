@@ -968,8 +968,8 @@ public class RttManager {
      *
      * @param params  -- RTT request Parameters
      * @param listener -- Call back to inform RTT result
-     * @exception throw IllegalArgumentException when params are illegal
-     *            throw IllegalStateException when RttCapabilities do not exist
+     * @throws IllegalArgumentException when params are illegal
+     * @throws IllegalStateException when RttCapabilities do not exist
      */
     @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE)
     public void startRanging(RttParams[] params, RttListener listener) {
@@ -1260,4 +1260,3 @@ public class RttManager {
         mRttCapabilities.secureRttSupported = false;
     }
 }
-

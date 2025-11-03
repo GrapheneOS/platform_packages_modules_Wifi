@@ -254,10 +254,10 @@ public class Nl80211ProxyTest {
                 .thenReturn(genericNetlinkMsgToByteBuffer(errorResponse))
                 .thenReturn(genericNetlinkMsgToByteBuffer(extraResponse));
         GenericNetlinkMsg requestMsg = Nl80211TestUtils.createTestMessage();
-        List<GenericNetlinkMsg> receivedResponses = mDut.sendMessageAndReceiveResponses(requestMsg);
-        assertEquals(1, receivedResponses.size());
-        assertTrue(errorResponse.equals(receivedResponses.get(0)));
 
+        List<GenericNetlinkMsg> receivedResponses = mDut.sendMessageAndReceiveResponses(requestMsg);
+
+        assertTrue(receivedResponses.isEmpty());
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
                 Nl80211TestUtils.TEST_COMMAND + 15,
@@ -292,12 +292,12 @@ public class Nl80211ProxyTest {
                 .thenReturn(genericNetlinkMessagesToByteBuffer(response1, response2))
                 .thenReturn(genericNetlinkMsgToByteBuffer(doneResponse));
         GenericNetlinkMsg requestMsg = Nl80211TestUtils.createTestMessage();
+
         List<GenericNetlinkMsg> receivedResponses = mDut.sendMessageAndReceiveResponses(requestMsg);
-        assertEquals(3, receivedResponses.size());
+
+        assertEquals(2, receivedResponses.size());
         assertTrue(response1.equals(receivedResponses.get(0)));
         assertTrue(response2.equals(receivedResponses.get(1)));
-        assertTrue(doneResponse.equals(receivedResponses.get(2)));
-
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
                 Nl80211TestUtils.TEST_COMMAND + 17,

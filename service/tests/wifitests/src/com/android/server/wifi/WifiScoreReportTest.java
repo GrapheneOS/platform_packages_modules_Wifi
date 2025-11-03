@@ -193,6 +193,9 @@ public class WifiScoreReportTest extends WifiBaseTest {
         public void onNetworkSwitchRejected(
                 int sessionId, int targetNetworkId, String targetBssid) {
         }
+        @Override
+        public void onL3DataStallSuspected(int sessionId) {
+        }
     }
 
     @Parameterized.Parameter(0)

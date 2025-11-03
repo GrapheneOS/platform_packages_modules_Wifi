@@ -365,8 +365,11 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(WifiInjector.class, withSettings().lenient())
                 .mockStatic(WifiConfigStore.class, withSettings().lenient())
+                .mockStatic(android.security.Flags.class, withSettings().lenient())
                 .strictness(Strictness.LENIENT)
                 .startMocking();
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+                .thenReturn(false);
         when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
         when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
@@ -8750,5 +8753,27 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         }
         assertTrue(networkIds.contains(openNetwork1.networkId));
         assertTrue(networkIds.contains(openNetwork2.networkId));
+    }
+
+    @Test
+    public void testAapmFeatureDisableInsecureWifiAutojoin() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
+
+        // Test with a secure network type
+        WifiConfiguration secureConfig = WifiConfigurationTestUtil.createPskNetwork();
+        NetworkUpdateResult secureResult = addNetworkToWifiConfigManager(secureConfig);
+        assertTrue(secureResult.isSuccess());
+        WifiConfiguration retrievedSecureConfig =
+                mWifiConfigManager.getConfiguredNetwork(secureResult.getNetworkId());
+        assertTrue(retrievedSecureConfig.isAutoJoinInAdvancedProtectionModeEnabled());
+
+        // Test with an insecure network type
+        WifiConfiguration insecureConfig = WifiConfigurationTestUtil.createOpenNetwork();
+        NetworkUpdateResult insecureResult = addNetworkToWifiConfigManager(insecureConfig);
+        assertTrue(insecureResult.isSuccess());
+        WifiConfiguration retrievedInsecureConfig =
+                mWifiConfigManager.getConfiguredNetwork(insecureResult.getNetworkId());
+        assertFalse(retrievedInsecureConfig.isAutoJoinInAdvancedProtectionModeEnabled());
     }
 }
