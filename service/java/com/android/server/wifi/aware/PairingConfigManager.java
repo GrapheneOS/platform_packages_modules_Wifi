@@ -19,6 +19,10 @@ package com.android.server.wifi.aware;
 import android.net.wifi.util.HexEncoding;
 import android.util.Log;
 
+import com.android.server.wifi.WifiConfigStore;
+import com.android.server.wifi.WifiInjector;
+import com.android.wifi.flags.FeatureFlags;
+
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -30,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 
@@ -39,7 +44,7 @@ import javax.crypto.spec.SecretKeySpec;
 /**
  * The manager to store and maintain the NAN identity key and NPK/NIK caching
  */
-public class PairingConfigManager {
+public class PairingConfigManager implements PairingConfigManagerData.DataSource {
 
     private static final String TAG = "AwarePairingManager";
 
@@ -71,6 +76,24 @@ public class PairingConfigManager {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof PairingSecurityAssociationInfo)) return false;
+            PairingSecurityAssociationInfo that = (PairingSecurityAssociationInfo) o;
+            return Arrays.equals(mPeerNik, that.mPeerNik)
+                    && Arrays.equals(mNpk, that.mNpk)
+                    && mAkm == that.mAkm
+                    && Arrays.equals(mLocalNik, that.mLocalNik)
+                    && mCipherSuite == that.mCipherSuite;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(mPeerNik), Arrays.hashCode(mNpk), mAkm,
+                    Arrays.hashCode(mLocalNik), mCipherSuite);
+        }
+
+        @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append("PairingSecurityAssociationInfo{");
@@ -94,7 +117,26 @@ public class PairingConfigManager {
     private final Map<String, byte[]> mAliasToNikMap = new HashMap<>();
     private final Map<String, PairingSecurityAssociationInfo> mAliasToSecurityInfoMap =
             new HashMap<>();
-    public PairingConfigManager() {
+    private final WifiInjector mWifiInjector;
+    private boolean mHasNewDataToSerialize = false;
+    private final FeatureFlags mFeatureFlags;
+
+    public PairingConfigManager(WifiInjector wifiInjector) {
+        mWifiInjector = wifiInjector;
+        mFeatureFlags = mWifiInjector.getDeviceConfigFacade().getFeatureFlags();
+        if (mFeatureFlags.multiUserWifiEnhancement()) {
+            wifiInjector.getWifiConfigStore().registerStoreData(
+                    new PairingConfigManagerData(this));
+        }
+    }
+
+    private void saveToStore() {
+        if (!mFeatureFlags.multiUserWifiEnhancement()) {
+            return;
+        }
+        if (!mWifiInjector.getWifiConfigManager().saveToStore()) {
+            Log.w(TAG, "Failed to save to store");
+        }
     }
 
     private byte[] createRandomNik() {
@@ -120,6 +162,8 @@ public class PairingConfigManager {
 
         byte[] nik = createRandomNik();
         mPackageNameToNikMap.put(packageName, nik);
+        mHasNewDataToSerialize = true;
+        saveToStore();
         return nik;
     }
 
@@ -181,21 +225,26 @@ public class PairingConfigManager {
         pairedDevices.add(alias);
         mAliasToNikMap.put(alias, info.mPeerNik);
         mAliasToSecurityInfoMap.put(alias, info);
+        mHasNewDataToSerialize = true;
+        saveToStore();
     }
 
     /**
      * Remove all the caches related to the target calling App
      */
     public void removePackage(String packageName) {
-        mPackageNameToNikMap.remove(packageName);
-        Set<String> aliasSet = mPerAppPairedAliasMap.remove(packageName);
-        if (aliasSet == null) {
+        if (mPackageNameToNikMap.remove(packageName) == null) {
             return;
         }
-        for (String alias : aliasSet) {
-            mAliasToNikMap.remove(alias);
-            mAliasToSecurityInfoMap.remove(alias);
+        Set<String> aliasSet = mPerAppPairedAliasMap.remove(packageName);
+        if (aliasSet != null) {
+            for (String alias : aliasSet) {
+                mAliasToNikMap.remove(alias);
+                mAliasToSecurityInfoMap.remove(alias);
+            }
         }
+        mHasNewDataToSerialize = true;
+        saveToStore();
     }
 
     /**
@@ -207,6 +256,8 @@ public class PairingConfigManager {
         if (mPerAppPairedAliasMap.containsKey(packageName)) {
             mPerAppPairedAliasMap.get(packageName).remove(alias);
         }
+        mHasNewDataToSerialize = true;
+        saveToStore();
     }
 
     /**
@@ -220,9 +271,65 @@ public class PairingConfigManager {
         return new ArrayList<>(aliasSet);
     }
 
+    @Override
+    public Map<String, byte[]> getPackageNameToNikMap() {
+        return mPackageNameToNikMap;
+    }
+
+    @Override
+    public void setPackageNameToNikMap(Map<String, byte[]> packageNameTOnikMap) {
+        mPackageNameToNikMap.clear();
+        mPackageNameToNikMap.putAll(packageNameTOnikMap);
+    }
+
+    @Override
+    public Map<String, Set<String>> getPerAppPairedAliasMap() {
+        return mPerAppPairedAliasMap;
+    }
+
+    @Override
+    public void setPerAppPairedAliasMap(Map<String, Set<String>> perAppPairedAliasMap) {
+        mPerAppPairedAliasMap.clear();
+        mPerAppPairedAliasMap.putAll(perAppPairedAliasMap);
+    }
+
+    @Override
+    public Map<String, byte[]> getAliasToNikMap() {
+        return mAliasToNikMap;
+    }
+
+    @Override
+    public void setAliasToNikMap(Map<String, byte[]> aliasToNikMap) {
+        mAliasToNikMap.clear();
+        mAliasToNikMap.putAll(aliasToNikMap);
+    }
+
+    @Override
+    public Map<String, PairingSecurityAssociationInfo> getAliasToSecurityInfoMap() {
+        return mAliasToSecurityInfoMap;
+    }
+
+    @Override
+    public void setAliasToSecurityInfoMap(
+            Map<String, PairingSecurityAssociationInfo> aliasToSecurityInfoMap) {
+        mAliasToSecurityInfoMap.clear();
+        mAliasToSecurityInfoMap.putAll(aliasToSecurityInfoMap);
+    }
+
+    @Override
+    public boolean hasNewDataToSerialize() {
+        return mHasNewDataToSerialize;
+    }
+
+    @Override
+    public void serializeComplete() {
+        mHasNewDataToSerialize = false;
+    }
+
     /**
      * Reset all the caches
      */
+    @Override
     public void reset() {
         mPackageNameToNikMap.clear();
         mPerAppPairedAliasMap.clear();
