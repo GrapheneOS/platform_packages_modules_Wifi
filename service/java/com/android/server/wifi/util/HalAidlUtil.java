@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.hardware.wifi.WifiChannelWidthInMhz;
 import android.hardware.wifi.common.OuiKeyedData;
 import android.hardware.wifi.supplicant.KeyMgmtMask;
+import android.hardware.wifi.supplicant.WifiTechnology;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiConfiguration;
@@ -164,5 +165,20 @@ public class HalAidlUtil {
             default:
                 return ScanResult.CHANNEL_WIDTH_20MHZ;
         }
+    }
+
+    /**
+     * Convert HAL wifi technology to framework enum
+     */
+    @WifiAnnotations.WifiStandard
+    public static int getWifiStandardFromHal(int technology) {
+        return switch (technology) {
+            case WifiTechnology.EHT -> ScanResult.WIFI_STANDARD_11BE;
+            case WifiTechnology.HE -> ScanResult.WIFI_STANDARD_11AX;
+            case WifiTechnology.VHT -> ScanResult.WIFI_STANDARD_11AC;
+            case WifiTechnology.HT -> ScanResult.WIFI_STANDARD_11N;
+            case WifiTechnology.LEGACY -> ScanResult.WIFI_STANDARD_LEGACY;
+            default -> ScanResult.WIFI_STANDARD_UNKNOWN;
+        };
     }
 }

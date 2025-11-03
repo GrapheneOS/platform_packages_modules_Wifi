@@ -5373,6 +5373,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 mWifiP2pMetrics.startGroupEvent(mGroup);
             }
 
+            @SuppressLint("NewApi")
             @Override
             public boolean processMessageImpl(Message message) {
                 logSmMessage(getName(), message);
@@ -5399,6 +5400,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             if (SdkLevel.isAtLeastV() && device.getIpAddress() != null) {
                                 mGroup.setClientIpAddress(interfaceMacAddress,
                                         device.getIpAddress());
+                            }
+                            if (Environment.isSdkNewerThanB()
+                                    && mFeatureFlags.wifiP2pConnectionInfo()) {
+                                mGroup.setClientConnectionInfo(deviceAddress,
+                                        device.getWifiP2pConnectionInfo());
                             }
                             mPeers.updateStatus(deviceAddress, WifiP2pDevice.CONNECTED);
                             if (mVerboseLoggingEnabled) logd(getName() + " ap sta connected");

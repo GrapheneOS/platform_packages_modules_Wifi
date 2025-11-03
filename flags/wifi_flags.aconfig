@@ -496,6 +496,14 @@ flag {
 }
 
 flag {
+    name: "wifi_p2p_connection_info"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to get connection capabilities of current P2P connection"
+    bug: "345584464"
+}
+
+flag {
     name: "proximity_ranging"
     is_exported: true
     namespace: "wifi"

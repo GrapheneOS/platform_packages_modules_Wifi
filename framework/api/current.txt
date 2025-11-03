@@ -1350,6 +1350,17 @@ package android.net.wifi.p2p {
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") @NonNull public android.net.wifi.p2p.WifiP2pConfig.Builder setPccModeConnectionType(int);
   }
 
+  @FlaggedApi("com.android.wifi.flags.wifi_p2p_connection_info") public final class WifiP2pConnectionInfo implements android.os.Parcelable {
+    ctor public WifiP2pConnectionInfo(int, int, int, int);
+    method public int describeContents();
+    method public int getChannelWidth();
+    method public int getRxNss();
+    method public int getTxNss();
+    method public int getWifiStandard();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.p2p.WifiP2pConnectionInfo> CREATOR;
+  }
+
   public class WifiP2pDevice implements android.os.Parcelable {
     ctor public WifiP2pDevice();
     ctor public WifiP2pDevice(android.net.wifi.p2p.WifiP2pDevice);
@@ -1357,6 +1368,7 @@ package android.net.wifi.p2p {
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @Nullable public java.net.InetAddress getIpAddress();
     method @NonNull public java.util.List<android.net.wifi.ScanResult.InformationElement> getVendorElements();
     method @Nullable public android.net.wifi.p2p.WifiP2pWfdInfo getWfdInfo();
+    method @FlaggedApi("com.android.wifi.flags.wifi_p2p_connection_info") @Nullable public android.net.wifi.p2p.WifiP2pConnectionInfo getWifiP2pConnectionInfo();
     method public boolean isGroupOwner();
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") public boolean isOpportunisticBootstrappingMethodSupported();
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") public boolean isPassphraseDisplayBootstrappingMethodSupported();
@@ -1429,6 +1441,7 @@ package android.net.wifi.p2p {
     method public android.net.wifi.p2p.WifiP2pDevice getOwner();
     method public String getPassphrase();
     method @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") public int getSecurityType();
+    method @FlaggedApi("com.android.wifi.flags.wifi_p2p_connection_info") @Nullable public android.net.wifi.p2p.WifiP2pConnectionInfo getWifiP2pGroupClientConnectionInfo();
     method public boolean isGroupOwner();
     method public void writeToParcel(android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.p2p.WifiP2pGroup> CREATOR;
