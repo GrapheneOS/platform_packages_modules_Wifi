@@ -344,7 +344,7 @@ public class WifiManagerTest {
             }
 
             @Override
-            public void onRestrictionStopped() {
+            public void onRestrictionsStopped() {
                 mRunnable.run();
             }
         };

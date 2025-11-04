@@ -8097,9 +8097,9 @@ public class WifiManager {
         void onRestrictionStarted(int subscriptionId);
 
         /**
-         * Called when the Wi-Fi auto-join restriction to subscription ID has stopped.
+         * Called when the Wi-Fi auto-join restriction to all subscription IDs have stopped.
          */
-        void onRestrictionStopped();
+        void onRestrictionsStopped();
     }
 
     /**
@@ -8128,11 +8128,11 @@ public class WifiManager {
         }
 
         @Override
-        public void onRestrictionStopped() {
+        public void onRestrictionsStopped() {
             Log.i(TAG, "RestrictAutoJoinToSubIdCallbackProxy:"
-                    + " onRestrictionStopped");
+                    + " onRestrictionsStopped");
             Binder.clearCallingIdentity();
-            mExecutor.execute(() -> mCallback.onRestrictionStopped());
+            mExecutor.execute(() -> mCallback.onRestrictionsStopped());
         }
     }
 

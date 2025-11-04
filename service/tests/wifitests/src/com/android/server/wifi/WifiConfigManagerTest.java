@@ -5684,7 +5684,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertFalse(mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(
                 visibleNetwork));
         assertFalse(mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(otherNetwork));
-        verify(mOnRestrictAutoJoinToSubIdCallback).onRestrictionStopped();
+        verify(mOnRestrictAutoJoinToSubIdCallback).onRestrictionsStopped();
     }
 
     /**

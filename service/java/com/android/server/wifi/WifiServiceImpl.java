@@ -796,14 +796,15 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                     }
 
                     @Override
-                    public void onRestrictionStopped() {
+                    public void onRestrictionsStopped() {
                         int itemCount = mRestrictAutoJoinToSubIdCallbacks.beginBroadcast();
                         for (int i = 0; i < itemCount; i++) {
                             try {
                                 mRestrictAutoJoinToSubIdCallbacks.getBroadcastItem(i)
-                                        .onRestrictionStopped();
+                                        .onRestrictionsStopped();
                             } catch (RemoteException e) {
-                                Log.e(TAG, "IRestrictAutoJoinToSubIdCallback.onRestrictionStopped:"
+                                Log.e(TAG,
+                                        "IRestrictAutoJoinToSubIdCallback.onRestrictionsStopped:"
                                         + " remote exception -- " + e);
                             }
                         }
@@ -4956,7 +4957,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 }
             } else {
                 try {
-                    callback.onRestrictionStopped();
+                    callback.onRestrictionsStopped();
                 } catch (RemoteException e) {
                     Log.e(TAG, "addRestrictAutoJoinToSubIdCallback: remote exception -- "
                             + e);

@@ -9653,7 +9653,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         // Verify initial value
-        verify(mRestrictAutoJoinToSubIdCallbackProxy).onRestrictionStopped();
+        verify(mRestrictAutoJoinToSubIdCallbackProxy).onRestrictionsStopped();
 
         // Verify changed value
         mOnRestrictAutoJoinToSubIdCallback.onRestrictionStarted(TEST_SUB_ID);
@@ -9664,9 +9664,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         // Verify no value sent after removing listener
-        mOnRestrictAutoJoinToSubIdCallback.onRestrictionStopped();
+        mOnRestrictAutoJoinToSubIdCallback.onRestrictionsStopped();
         verify(mRestrictAutoJoinToSubIdCallbackProxy, times(1))
-                .onRestrictionStopped();
+                .onRestrictionsStopped();
     }
 
     /**
