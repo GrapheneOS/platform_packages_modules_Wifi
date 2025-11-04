@@ -4686,6 +4686,7 @@ public class WifiNative {
         pw.println("mIsLocationModeEnabled: " + mIsLocationModeEnabled);
         pw.println("mLastLocationModeEnabledTimeMs: " + mLastLocationModeEnabledTimeMs);
         mHostapdHal.dump(pw);
+        mSupplicantStaIfaceHal.dump(pw);
     }
 
     //---------------------------------------------------------------------------------

@@ -26,8 +26,9 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -51,6 +52,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -1316,5 +1318,15 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
     @Test
     public void testSetEapAnonymousIdentityWithNotUpdateToNativeService() {
         verifySetEapAnonymousIdentity(false);
+    }
+
+    /**
+     * Test that we can call {@link SupplicantStaIfaceHal#dump(PrintWriter)}
+     */
+    @Test
+    public void testDump() {
+        PrintWriter pw = mock(PrintWriter.class);
+        mDut.dump(pw);
+        verify(pw, atLeastOnce()).println(anyString());
     }
 }

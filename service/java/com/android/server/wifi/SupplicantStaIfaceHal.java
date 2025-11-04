@@ -32,6 +32,7 @@ import android.util.Range;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.usd.UsdRequestManager;
 
+import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.net.InetAddress;
@@ -2584,6 +2585,19 @@ public class SupplicantStaIfaceHal {
             }
             return mStaIfaceHal.sendUsdMessage(interfaceName, ownId, peerId, peerMacAddress,
                     message);
+        }
+    }
+
+    /**
+     * Dump information about the internal state
+     *
+     * @param pw PrintWriter to write the dump to
+     */
+    protected void dump(PrintWriter pw) {
+        pw.println("Dump of " + TAG);
+        pw.println("Implemented: " + (mStaIfaceHal != null));
+        if (mStaIfaceHal != null) {
+            mStaIfaceHal.dump(pw);
         }
     }
 }

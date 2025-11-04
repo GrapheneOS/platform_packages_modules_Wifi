@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -94,6 +95,7 @@ import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 import org.mockito.stubbing.Answer;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -2073,5 +2075,17 @@ public class WifiNativeTest extends WifiBaseTest {
         assertEquals(USD_MAX_MATCH_FILTER_LEN, halUsdCapabilities.maxMatchFilterLengthBytes);
         assertEquals(USD_MAX_NUM_PUBLISH_SESSIONS, halUsdCapabilities.maxNumPublishSessions);
         assertEquals(USD_MAX_NUM_SUBSCRIBE_SESSIONS, halUsdCapabilities.maxNumSubscribeSessions);
+    }
+
+    /**
+     * Test that we can call {@link WifiNative#dump(PrintWriter)}
+     */
+    @Test
+    public void testDump() {
+        PrintWriter pw = mock(PrintWriter.class);
+        mWifiNative.dump(pw);
+        verify(pw, atLeastOnce()).println(anyString());
+        verify(mHostapdHal).dump(any());
+        verify(mStaIfaceHal).dump(any());
     }
 }
