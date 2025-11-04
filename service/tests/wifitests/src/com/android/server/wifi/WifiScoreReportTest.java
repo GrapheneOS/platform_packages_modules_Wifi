@@ -46,6 +46,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
@@ -1928,5 +1929,52 @@ public class WifiScoreReportTest extends WifiBaseTest {
         when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
         mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
         verify(mWifiConnectedNetworkScorer, never()).onStart(any());
+    }
+
+    @Test
+    public void verifyOnL3DataStallSuspectedIsCalled() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+
+        mWifiScoreReport.onL3DataStallSuspected();
+
+        verify(mWifiConnectedNetworkScorer).onL3DataStallSuspected(anyInt());
+    }
+
+    @Test
+    public void verifyOnL3DataStallSuspectedIsNotCalledWithoutScorer() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+
+        mWifiScoreReport.onL3DataStallSuspected();
+
+        verify(mWifiConnectedNetworkScorer, never()).onL3DataStallSuspected(anyInt());
+    }
+
+    @Test
+    public void verifyOnL3DataStallSuspectedIsNotCalledAfterClear() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+        mWifiScoreReport.clearWifiConnectedNetworkScorer();
+
+        mWifiScoreReport.onL3DataStallSuspected();
+
+        verify(mWifiConnectedNetworkScorer, never()).onL3DataStallSuspected(anyInt());
+    }
+
+    @Test
+    public void verifyOnL3DataStallSuspectedIsNotCalledAfterRemoteException() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        doThrow(new RemoteException("Something went wrong!"))
+                .when(mWifiConnectedNetworkScorer).onL3DataStallSuspected(anyInt());
+
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+        mWifiScoreReport.onL3DataStallSuspected();
+        verify(mWifiConnectedNetworkScorer).onL3DataStallSuspected(anyInt());
+
+        mWifiScoreReport.onL3DataStallSuspected();
+        verifyNoMoreInteractions(mWifiConnectedNetworkScorer);
     }
 }
