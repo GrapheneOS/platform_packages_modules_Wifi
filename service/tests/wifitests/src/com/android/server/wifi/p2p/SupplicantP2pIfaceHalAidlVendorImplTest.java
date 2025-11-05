@@ -197,8 +197,8 @@ public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
     private static final byte[] TEST_DIR_TAG = {11, 22, 33, 44, 55, 66, 77, 88};
 
     private class SupplicantP2pIfaceHalSpy extends SupplicantP2pIfaceHalAidlVendorImpl {
-        SupplicantP2pIfaceHalSpy() {
-            super(mWifiMonitor, mWifiInjector);
+        SupplicantP2pIfaceHalSpy(WifiP2pMonitor monitor, WifiInjector wifiInjector) {
+            super(monitor, wifiInjector);
         }
 
         @Override
@@ -215,7 +215,7 @@ public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        mDut = new SupplicantP2pIfaceHalSpy();
+        mDut = new SupplicantP2pIfaceHalSpy(mWifiMonitor, mWifiInjector);
         setCachedServiceVersion(mServiceVersion);
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(Flags.class, withSettings().lenient())
