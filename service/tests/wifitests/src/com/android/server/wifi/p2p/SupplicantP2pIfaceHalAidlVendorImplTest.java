@@ -222,6 +222,7 @@ public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
                 .mockStatic(WifiMigration.class, withSettings().lenient())
                 .startMocking();
         when(Flags.wifiDirectR2()).thenReturn(true);
+        when(Flags.multiUserWifiEnhancement()).thenReturn(false);
     }
 
     @After
@@ -266,7 +267,7 @@ public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequence(false, false);
 
         // Trying setting up the p2p interface again & ensure it fails.
-        assertFalse(mDut.setupIface(mIfaceName));
+        assertFalse(mDut.setupIface(mIfaceName, 0));
         verifyNoMoreInteractions(mISupplicantMock);
     }
 
@@ -2804,13 +2805,18 @@ public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
                 eq(0x00FFFFFF), eq(0x0501A8C0), eq(0x0801A8C0));
     }
 
+    private void executeAndValidateInitializationSequence(boolean causeRemoteException,
+            boolean getNullInterface) throws Exception {
+        executeAndValidateInitializationSequence(causeRemoteException, getNullInterface, false);
+    }
+
     /**
      * Calls initialize and addP2pInterface to mock the startup sequence.
      * The two arguments will each trigger a different failure in addP2pInterface
      * when set to true.
      */
     private void executeAndValidateInitializationSequence(boolean causeRemoteException,
-            boolean getNullInterface) throws Exception {
+            boolean getNullInterface, boolean shouldPassUserId) throws Exception {
         boolean shouldSucceed = !causeRemoteException && !getNullInterface;
         // Setup addP2pInterface mock answers
         if (causeRemoteException) {
@@ -2829,7 +2835,13 @@ public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
         assertTrue(mDut.isInitializationComplete());
 
         // Now setup the iface.
-        assertEquals(shouldSucceed, mDut.setupIface(mIfaceName));
+        assertEquals(shouldSucceed, mDut.setupIface(mIfaceName, 0));
+        if (shouldPassUserId) {
+            verify(mISupplicantMock).setCurrentUserIdentity(eq(0));
+        } else {
+            // No setCurrentUserIdentity since default flag is false.
+            verify(mISupplicantMock, never()).setCurrentUserIdentity(anyInt());
+        }
         verify(mISupplicantMock).addP2pInterface(anyString());
         if (!causeRemoteException && !getNullInterface) {
             verify(mISupplicantP2pIfaceMock).registerCallback(
@@ -3606,5 +3618,16 @@ public class SupplicantP2pIfaceHalAidlVendorImplTest extends WifiBaseTest {
         assertArrayEquals(new byte[0], aidlUsdConfig.serviceSpecificInfo);
         assertEquals(TEST_USD_DISCOVERY_CHANNEL_FREQUENCY_MHZ, aidlUsdConfig.frequencyMHz);
         assertEquals(TEST_USD_TIMEOUT_S, aidlUsdConfig.timeoutInSeconds);
+    }
+
+    /**
+     * Test that setupIface passes the user ID to supplicant when the feature flag is enabled.
+     */
+    @Test
+    public void testSetupIfacePassUserIdToSupplicant() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        setCachedServiceVersion(5);
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
+        executeAndValidateInitializationSequence(false, false, true);
     }
 }
