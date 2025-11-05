@@ -6766,7 +6766,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     /**
      * Retrieve the data to be backed to save the current state.
      *
-     * @return  Raw byte stream of the data to be backed up.
+     * @return Raw byte stream of the data to be backed up.
      */
     @Override
     public byte[] retrieveBackupData() {
@@ -6774,8 +6774,11 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         mLog.info("retrieveBackupData uid=%").c(Binder.getCallingUid()).flush();
         Log.d(TAG, "Retrieving backup data");
         List<WifiConfiguration> wifiConfigurations = mWifiThreadRunner.call(
-                () -> mWifiConfigManager.getConfiguredNetworksWithPasswords(), null,
-                TAG + "#retrieveBackupData");
+                // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+                () -> mFeatureFlags.multiUserWifiEnhancement()
+                        ? mWifiConfigManager.getConfiguredNetworksCreatedByCurrentUserWithPassword()
+                        : mWifiConfigManager.getConfiguredNetworksWithPasswords(),
+                null, TAG + "#retrieveBackupData");
         byte[] backupData =
                 mWifiBackupRestore.retrieveBackupDataFromConfigurations(wifiConfigurations);
         Log.d(TAG, "Retrieved backup data");
