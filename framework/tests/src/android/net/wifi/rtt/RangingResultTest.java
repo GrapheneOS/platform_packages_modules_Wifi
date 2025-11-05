@@ -171,4 +171,95 @@ public class RangingResultTest {
         assertTrue(toString.contains("status=0"));
         assertTrue(toString.contains("mac=00:11:22:33:44:55"));
     }
+
+    private static final int TEST_USD_PEER_ID = 123;
+    private static final long TEST_AVAILABILITY_WINDOW_DURATION_MILLIS = 1000L;
+    private static final long TEST_NOMINAL_TIME_MILLIS = 500L;
+
+    @Test
+    public void testBuilderAndGettersWithProximityDetection() {
+        RangingResult result = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setAvailabilityWindowDurationMillis(TEST_AVAILABILITY_WINDOW_DURATION_MILLIS)
+                .setNominalTimeMillis(TEST_NOMINAL_TIME_MILLIS)
+                .build();
+
+        assertEquals(TEST_USD_PEER_ID, result.getUsdPeerId());
+        assertEquals(TEST_AVAILABILITY_WINDOW_DURATION_MILLIS, result
+                .getAvailabilityWindowDurationMillis());
+        assertEquals(TEST_NOMINAL_TIME_MILLIS, result.getNominalTimeMillis());
+    }
+
+    @Test
+    public void testParcelableRoundTripWithProximityDetection() {
+        RangingResult originalResult = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setAvailabilityWindowDurationMillis(TEST_AVAILABILITY_WINDOW_DURATION_MILLIS)
+                .setNominalTimeMillis(TEST_NOMINAL_TIME_MILLIS)
+                .build();
+
+        Parcel parcel = Parcel.obtain();
+        originalResult.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+
+        RangingResult fromParcel = RangingResult.CREATOR.createFromParcel(parcel);
+        assertEquals(originalResult, fromParcel);
+        assertEquals(originalResult.hashCode(), fromParcel.hashCode());
+    }
+
+    @Test
+    public void testEqualsAndHashCodeWithProximityDetection() {
+        RangingResult result1 = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .build();
+        RangingResult result2 = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .build();
+        RangingResult result3 = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID + 1)
+                .build();
+
+        assertEquals(result1, result2);
+        assertEquals(result1.hashCode(), result2.hashCode());
+        assertNotEquals(result1, result3);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuilderWithInvalidUsdPeerId() {
+        new RangingResult.Builder().setUsdPeerId(-2);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuilderWithNoIdentifier() {
+        new RangingResult.Builder().build();
+    }
+
+    @Test
+    public void testBuilderWithMultipleIdentifiers() {
+        new RangingResult.Builder()
+                .setMacAddress(MacAddress.fromString("00:11:22:33:44:55"))
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .build();
+    }
+
+    @Test
+    public void testToStringWithProximityDetection() {
+        RangingResult result = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setAvailabilityWindowDurationMillis(TEST_AVAILABILITY_WINDOW_DURATION_MILLIS)
+                .setNominalTimeMillis(TEST_NOMINAL_TIME_MILLIS)
+                .build();
+
+        String toString = result.toString();
+        assertTrue(toString.contains("usdPeerId=" + TEST_USD_PEER_ID));
+        assertTrue(toString.contains("availabilityWindowDurationMillis="
+                + TEST_AVAILABILITY_WINDOW_DURATION_MILLIS));
+        assertTrue(toString.contains("nominalTimeMillis=" + TEST_NOMINAL_TIME_MILLIS));
+    }
 }

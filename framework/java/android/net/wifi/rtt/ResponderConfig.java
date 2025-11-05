@@ -32,9 +32,14 @@ import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.aware.PeerHandle;
+import android.net.wifi.usd.DiscoveryResult;
+import android.net.wifi.usd.ProximityRangingInfo;
+import android.net.wifi.util.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
+
+import androidx.annotation.RequiresApi;
 
 import com.android.wifi.flags.Flags;
 
@@ -203,6 +208,11 @@ public final class ResponderConfig implements Parcelable {
     @Nullable public final PeerHandle peerHandle;
 
     /**
+     * The peer identifier of a USD Responder. Will be -1 if not used.
+     * @hide
+     */
+    private final int mUsdPeerId;
+    /**
      * The device type of the Responder.
      * @hide
      */
@@ -265,6 +275,7 @@ public final class ResponderConfig implements Parcelable {
     private long mNtbMinMeasurementTime = DEFAULT_NTB_MIN_TIME_BETWEEN_MEASUREMENTS_MICROS;
     private long mNtbMaxMeasurementTime = DEFAULT_NTB_MAX_TIME_BETWEEN_MEASUREMENTS_MICROS;
     private final SecureRangingConfig mSecureRangingConfig;
+    private final ProximityDetectionConfig mProximityDetectionConfig;
 
     /**
      * Constructs Responder configuration from the builder
@@ -272,9 +283,11 @@ public final class ResponderConfig implements Parcelable {
      * @hide
      */
     public ResponderConfig(Builder builder) {
-        if (builder.mMacAddress == null && builder.mPeerHandle == null) {
+        if (builder.mMacAddress == null && builder.mPeerHandle == null
+                && builder.mUsdPeerId == -1) {
             throw new IllegalArgumentException(
-                    "Invalid ResponderConfig - must specify a MAC address or Peer handle");
+                    "Invalid ResponderConfig - must specify a MAC address or Peer handle"
+                            + " or USD peer ID");
         }
         this.macAddress = builder.mMacAddress;
         this.peerHandle = builder.mPeerHandle;
@@ -289,6 +302,8 @@ public final class ResponderConfig implements Parcelable {
         this.mNtbMinMeasurementTime = builder.mNtbMinMeasurementTime;
         this.mNtbMaxMeasurementTime = builder.mNtbMaxMeasurementTime;
         this.mSecureRangingConfig = builder.mSecureRangingConfig;
+        this.mUsdPeerId = builder.mUsdPeerId;
+        this.mProximityDetectionConfig = builder.mProximityDetectionConfig;
     }
 
     /**
@@ -338,6 +353,8 @@ public final class ResponderConfig implements Parcelable {
         this.mNtbMinMeasurementTime = DEFAULT_NTB_MIN_TIME_BETWEEN_MEASUREMENTS_MICROS;
         this.mNtbMaxMeasurementTime = DEFAULT_NTB_MAX_TIME_BETWEEN_MEASUREMENTS_MICROS;
         this.mSecureRangingConfig = null;
+        this.mUsdPeerId = -1;
+        this.mProximityDetectionConfig = null;
     }
 
     /**
@@ -382,6 +399,8 @@ public final class ResponderConfig implements Parcelable {
         this.mNtbMinMeasurementTime = DEFAULT_NTB_MIN_TIME_BETWEEN_MEASUREMENTS_MICROS;
         this.mNtbMaxMeasurementTime = DEFAULT_NTB_MAX_TIME_BETWEEN_MEASUREMENTS_MICROS;
         this.mSecureRangingConfig = null;
+        this.mUsdPeerId = -1;
+        this.mProximityDetectionConfig = null;
     }
 
     /**
@@ -429,6 +448,8 @@ public final class ResponderConfig implements Parcelable {
         this.mNtbMinMeasurementTime = DEFAULT_NTB_MIN_TIME_BETWEEN_MEASUREMENTS_MICROS;
         this.mNtbMaxMeasurementTime = DEFAULT_NTB_MAX_TIME_BETWEEN_MEASUREMENTS_MICROS;
         this.mSecureRangingConfig = null;
+        this.mUsdPeerId = -1;
+        this.mProximityDetectionConfig = null;
     }
 
     /**
@@ -574,6 +595,49 @@ public final class ResponderConfig implements Parcelable {
                 .build();
     }
 
+    /**
+     * Creates a {@link ResponderConfig} for a peer discovered via USD.
+     * <p>
+     * This method constructs the necessary responder configuration by combining the peer's
+     * capabilities, obtained from the {@code peerInfo}, with the local device's capabilities,
+     * proximity detection configuration, from {@code config} and the required security credentials
+     * from {@code secureRangingConfig}.
+     *
+     * @param peerInfo The {@link DiscoveryResult} for the peer, obtained via USD.
+     * @param config The {@link ProximityDetectionConfig} for the current session.
+     * @param secureRangingConfig The {@link SecureRangingConfig} containing the security
+     *                            credentials for authentication.
+     * @return A new {@link ResponderConfig} instance for the proximity detection peer.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    @NonNull
+    public static ResponderConfig fromProximityDetectionPeer(
+            @NonNull DiscoveryResult peerInfo,
+            @NonNull ProximityDetectionConfig config,
+            @NonNull SecureRangingConfig secureRangingConfig) {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        Objects.requireNonNull(peerInfo, "peerInfo must not be null");
+        Objects.requireNonNull(config, "config must not be null");
+        Objects.requireNonNull(secureRangingConfig, "secureRangingConfig must not be null");
+        ProximityRangingInfo rangingInfo = peerInfo.getProximityRangingInfo();
+        boolean is11azSupported = (rangingInfo != null)
+                && (rangingInfo.isNtbSecureLtfRangingSupported()
+                || rangingInfo.isNtbNonSecureLtfRangingSupported());
+        //TODO implementation
+        return new ResponderConfig.Builder()
+                .setUsdPeerId(peerInfo.getPeerId())
+                .setResponderType(ResponderConfig.RESPONDER_STA)
+                .set80211azNtbSupported(is11azSupported)
+                .setProximityDetectionConfig(config)
+                .setSecureRangingConfig(secureRangingConfig)
+                .build();
+    }
+
     private static boolean isResponderTypeSupported(@ResponderType int responderType) {
         switch (responderType) {
             case RESPONDER_AP:
@@ -596,8 +660,13 @@ public final class ResponderConfig implements Parcelable {
      * @hide
      */
     public boolean isValid(boolean awareSupported) {
+        int identifierCount = 0;
+        if (macAddress != null) identifierCount++;
+        if (peerHandle != null) identifierCount++;
+        if (mUsdPeerId != -1) identifierCount++;
+
         if (!isResponderTypeSupported(responderType)) return false;
-        if (macAddress == null && peerHandle == null || macAddress != null && peerHandle != null) {
+        if (identifierCount != 1) {
             return false;
         }
         if (!awareSupported && responderType == RESPONDER_AWARE) {
@@ -638,6 +707,24 @@ public final class ResponderConfig implements Parcelable {
         return peerHandle;
     }
 
+    /**
+     * Returns the USD peer identifier of the responder.
+     * <p>
+     * This value is non-negative if the responder is a USD peer and was configured
+     * using a peer ID (via {@link ResponderConfig.Builder#setUsdPeerId(int)}).
+     * The peer ID is an opaque identifier for a specific USD peer discovered
+     * during USD discovery operations.
+     *
+     * @return The peer ID of the USD responder, or {@code -1} if not set.
+     */
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    public int getUsdPeerId() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mUsdPeerId;
+    }
     /**
      * @return true if the Responder supports the 802.11mc protocol, false otherwise.
      */
@@ -758,12 +845,31 @@ public final class ResponderConfig implements Parcelable {
     public SecureRangingConfig getSecureRangingConfig() {
         return mSecureRangingConfig;
     }
+
+    /**
+     * Get the proximity detection configuration.
+     *
+     * @return Proximity detection configuration. Returns null for non-proximity detection ranging.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    @Nullable
+    public ProximityDetectionConfig getProximityDetectionConfig() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mProximityDetectionConfig;
+    }
+
     /**
      * Builder class used to construct {@link ResponderConfig} objects.
      */
     public static final class Builder {
         private MacAddress mMacAddress;
         private PeerHandle mPeerHandle;
+        private int mUsdPeerId = -1;
         private @ResponderType int mResponderType = RESPONDER_AP;
         private boolean mSupports80211Mc = true;
         private boolean mSupports80211azNtb = false;
@@ -775,6 +881,7 @@ public final class ResponderConfig implements Parcelable {
         private long mNtbMinMeasurementTime = DEFAULT_NTB_MIN_TIME_BETWEEN_MEASUREMENTS_MICROS;
         private long mNtbMaxMeasurementTime = DEFAULT_NTB_MAX_TIME_BETWEEN_MEASUREMENTS_MICROS;
         private SecureRangingConfig mSecureRangingConfig = null;
+        private ProximityDetectionConfig mProximityDetectionConfig = null;
 
         /**
          * Default constructor for the Builder.
@@ -805,6 +912,8 @@ public final class ResponderConfig implements Parcelable {
             this.mNtbMinMeasurementTime = config.mNtbMinMeasurementTime;
             this.mNtbMaxMeasurementTime = config.mNtbMaxMeasurementTime;
             this.mSecureRangingConfig = config.mSecureRangingConfig;
+            this.mUsdPeerId = config.mUsdPeerId;
+            this.mProximityDetectionConfig = config.mProximityDetectionConfig;
         }
 
         /**
@@ -857,6 +966,30 @@ public final class ResponderConfig implements Parcelable {
         @NonNull
         public Builder setPeerHandle(@Nullable PeerHandle peerHandle) {
             this.mPeerHandle = peerHandle;
+            return this;
+        }
+
+        /**
+         * Sets the USD peer ID.
+         * <p>
+         * Use this method to identify the peer when the peer is discovered over
+         * USD channel.
+         * The peer id is a unique identifier for an USD peer obtained
+         * through Wi-Fi USD discovery processes (See obtained from {@link
+         * DiscoveryResult#getPeerId()}.
+         *
+         * @param peerId Peer ID of the USD peer
+         * @return the builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @RequiresApi(37)
+        @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setUsdPeerId(int peerId) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            this.mUsdPeerId = peerId;
             return this;
         }
 
@@ -1064,17 +1197,34 @@ public final class ResponderConfig implements Parcelable {
         }
 
         /**
+         * Set the proximity detection configuration for measuring the peer-to-peer
+         * distance.
+         *
+         * @param pdConfig See {@link ProximityDetectionConfig }
+
+         * @return Builder for chaining.
+         * @hide
+         */
+        @RequiresApi(37)
+        @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+        @SystemApi
+        @NonNull
+        public Builder setProximityDetectionConfig(@NonNull ProximityDetectionConfig pdConfig) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            Objects.requireNonNull(pdConfig, "pdConfig cannot be null");
+            mProximityDetectionConfig = pdConfig;
+            return this;
+        }
+
+        /**
          * Build {@link ResponderConfig} given the current configurations made on the builder.
          * @return an instance of {@link ResponderConfig}
          */
         @NonNull
         public ResponderConfig build() {
-            if ((mMacAddress == null && mPeerHandle == null)
-                    || (mMacAddress != null && mPeerHandle != null)) {
-                throw new IllegalArgumentException(
-                        "Invalid ResponderConfig - must specify a MAC address or peer handle but "
-                                + "not both");
-            }
+            validatePeerIdentifier();
             if (mSupports80211azNtb && !isHeSupported(mPreamble)) {
                 throw new IllegalArgumentException(
                         "IEEE 802.11az responder must support HE preamble");
@@ -1086,7 +1236,24 @@ public final class ResponderConfig implements Parcelable {
                 mChannelWidth = CHANNEL_WIDTH_20MHZ;
                 mPreamble = PREAMBLE_HT;
             }
+            if (mResponderType == RESPONDER_STA && mProximityDetectionConfig == null) {
+                throw new IllegalArgumentException(
+                        "Proximity detection configuration must be set for STA responder");
+            }
             return new ResponderConfig(this);
+        }
+
+        private void validatePeerIdentifier() {
+            int identifierCount = 0;
+            if (mMacAddress != null) identifierCount++;
+            if (mPeerHandle != null) identifierCount++;
+            if (mUsdPeerId != -1) identifierCount++;
+
+            if (identifierCount != 1) {
+                throw new IllegalArgumentException(
+                        "Invalid ResponderConfig - must specify exactly one of: MAC address, "
+                                + "peer handle, or USD peer ID");
+            }
         }
     }
 
@@ -1124,6 +1291,10 @@ public final class ResponderConfig implements Parcelable {
         dest.writeLong(mNtbMinMeasurementTime);
         dest.writeLong(mNtbMaxMeasurementTime);
         dest.writeParcelable(mSecureRangingConfig, flags);
+        if (Environment.isSdkNewerThanB()) {
+            dest.writeInt(mUsdPeerId);
+            dest.writeParcelable(mProximityDetectionConfig, flags);
+        }
     }
 
     public static final @android.annotation.NonNull Creator<ResponderConfig> CREATOR = new Creator<ResponderConfig>() {
@@ -1164,8 +1335,16 @@ public final class ResponderConfig implements Parcelable {
             if (secureRangingConfig != null) {
                 builder.setSecureRangingConfig(secureRangingConfig);
             }
+            if (Environment.isSdkNewerThanB()) {
+                builder.setUsdPeerId(in.readInt());
+                ProximityDetectionConfig pdConfig = in.readParcelable(
+                        ProximityDetectionConfig.class.getClassLoader(),
+                        ProximityDetectionConfig.class);
+                if (pdConfig != null) {
+                    builder.setProximityDetectionConfig(pdConfig);
+                }
+            }
             return new ResponderConfig(builder);
-
         }
     };
 
@@ -1189,20 +1368,24 @@ public final class ResponderConfig implements Parcelable {
                 && supports80211azNtb == lhs.supports80211azNtb
                 && mNtbMinMeasurementTime == lhs.mNtbMinMeasurementTime
                 && mNtbMaxMeasurementTime == lhs.mNtbMaxMeasurementTime
-                && Objects.equals(mSecureRangingConfig, lhs.mSecureRangingConfig);
+                && Objects.equals(mSecureRangingConfig, lhs.mSecureRangingConfig)
+                && mUsdPeerId == lhs.mUsdPeerId
+                && Objects.equals(mProximityDetectionConfig, lhs.mProximityDetectionConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(macAddress, peerHandle, responderType, supports80211mc, channelWidth,
                 frequency, centerFreq0, centerFreq1, preamble, supports80211azNtb,
-                mNtbMinMeasurementTime, mNtbMaxMeasurementTime, mSecureRangingConfig);
+                mNtbMinMeasurementTime, mNtbMaxMeasurementTime, mSecureRangingConfig, mUsdPeerId,
+                mProximityDetectionConfig);
     }
 
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer("ResponderConfig: macAddress=").append(macAddress)
                 .append(", peerHandle=").append(peerHandle == null ? "<null>" : peerHandle.peerId)
+                .append(", usdPeerId=").append(mUsdPeerId)
                 .append(", responderType=").append(responderType)
                 .append(", supports80211mc=").append(supports80211mc)
                 .append(", channelWidth=").append(channelWidth)
@@ -1216,6 +1399,9 @@ public final class ResponderConfig implements Parcelable {
 
         if (mSecureRangingConfig != null) {
             sb.append(", mSecureRangingConfig=").append(mSecureRangingConfig);
+        }
+        if (mProximityDetectionConfig != null) {
+            sb.append(", mProximityDetectionConfig=").append(mProximityDetectionConfig);
         }
 
         return sb.toString();

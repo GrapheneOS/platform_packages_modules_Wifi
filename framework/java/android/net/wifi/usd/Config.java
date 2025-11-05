@@ -24,6 +24,10 @@ import android.annotation.Nullable;
 import android.annotation.SystemApi;
 import android.net.wifi.aware.TlvBufferUtils;
 import android.net.wifi.flags.Flags;
+import android.net.wifi.util.Environment;
+import android.os.Parcel;
+
+import androidx.annotation.RequiresApi;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -87,6 +91,53 @@ public abstract class Config {
     public static final int SUBSCRIBE_TYPE_ACTIVE = 1;
 
     /**
+     * Publish type.
+     *
+     * @hide
+     */
+    @IntDef({PUBLISH_TYPE_DEFAULT_SOLICITED_AND_UNSOLICITED,
+            PUBLISH_TYPE_SOLICITED_AND_UNSOLICITED,
+            PUBLISH_TYPE_UNSOLICITED,
+            PUBLISH_TYPE_SOLICITED })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface PublishType {
+    }
+
+    /**
+     * Default publish type used internally.
+     *
+     * @hide
+     */
+    public static final int PUBLISH_TYPE_DEFAULT_SOLICITED_AND_UNSOLICITED = 0;
+
+    /**
+     * Defines a solicited and unsolicited publish session. In this mode, the device periodically
+     * broadcasts "publish" packets to advertise its service. This allows passive subscribers,
+     * which only listen for advertisements, to discover it.
+     * And the device also listens for "subscribe" packets from active subscribers. When it
+     * receives a matching service, it will respond directly to that subscriber, typically with a
+     * unicast packet.
+     * This is the default behavior for a publish session if no other type is specified.
+     */
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    public static final int PUBLISH_TYPE_SOLICITED_AND_UNSOLICITED =
+            PUBLISH_TYPE_DEFAULT_SOLICITED_AND_UNSOLICITED;
+
+    /**
+     * Defines an unsolicited publish session - a publish session where the publisher is
+     * advertising itself by broadcasting on-the-air.
+     */
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    public static final int PUBLISH_TYPE_UNSOLICITED = 1;
+
+    /**
+     * Defines a solicited publish session - a publish session which is silent, waiting for a
+     * matching active subscribe session - and responding to it in unicast.
+     */
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    public static final int PUBLISH_TYPE_SOLICITED = 2;
+
+    /**
      * Service Protocol Type.
      *
      * @hide
@@ -108,6 +159,29 @@ public abstract class Config {
      */
     public static final int SERVICE_PROTO_TYPE_CSA_MATTER = 1;
 
+    /**
+     * A special service name used to subscribe to any and all services that have enabled Proximity
+     * Detection.
+     * <p>
+     * When a subscriber uses this service name, it will discover any publisher that has enabled
+     * ranging via {@link PublishConfig.Builder#setProximityRangingEnabled(boolean)},
+     * regardless of the publisher's actual service name.
+     * <p>
+     * This constant should be passed to the {@link SubscribeConfig.Builder} constructor to
+     * initiate a discovery session for all nearby proximity-aware devices.
+     *
+     * <pre>{@code
+     * SubscribeConfig config = new SubscribeConfig.Builder(Config.SERVICE_NAME_ANY)
+     *     .setProximityRangingEnabled(true)
+     *     .build();
+     * }</pre>
+     *
+     * @see SubscribeConfig.Builder#Builder(String)
+     */
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    public static final String SERVICE_NAME_ANY =
+            "android.net.wifi.usd.ANY_SERVICE";
+
     private final byte[] mServiceName;
     private final int mTtlSeconds;
     @ServiceProtoType
@@ -116,13 +190,18 @@ public abstract class Config {
     private final byte[] mRxMatchFilterTlv;
     private final byte[] mServiceSpecificInfo;
     private final int[] mOperatingFrequencies;
+    private final boolean mEnableRanging;
+    private final byte[] mSelfDevIk;
+    private final List<byte[]> mPeerDevIks;
 
     /**
      * @hide
      */
     public Config(@NonNull byte[] serviceName, int ttlSeconds, int serviceProtoType,
             @Nullable byte[] txMatchFilterTlv, @Nullable byte[] rxMatchFilterTlv,
-            @Nullable byte[] serviceSpecificInfo, @Nullable int[] operatingFrequencies) {
+            @Nullable byte[] serviceSpecificInfo, @Nullable int[] operatingFrequencies,
+            boolean enableRanging, @Nullable byte[] selfDevIk,
+            @Nullable List<byte[]> peerDevIks) {
         mServiceName = serviceName;
         mTtlSeconds = ttlSeconds;
         mServiceProtoType = serviceProtoType;
@@ -130,6 +209,9 @@ public abstract class Config {
         mRxMatchFilterTlv = rxMatchFilterTlv;
         mServiceSpecificInfo = serviceSpecificInfo;
         mOperatingFrequencies = operatingFrequencies;
+        mEnableRanging = enableRanging;
+        mSelfDevIk = selfDevIk;
+        mPeerDevIks = peerDevIks;
     }
 
     /**
@@ -244,36 +326,164 @@ public abstract class Config {
         return mOperatingFrequencies;
     }
 
+    /**
+     * Returns whether ranging is enabled for this publish session.
+     * See {@link PublishConfig.Builder#setProximityRangingEnabled(boolean)}.
+     */
+    @RequiresApi(37)
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    public boolean isProximityRangingEnabled() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mEnableRanging;
+    }
+
+    /**
+     * This Proximity Ranging device's identity key (devIK) required for authenticated PASN mode in
+     * proximity ranging.
+     * <p>
+     * As per the specification, a device seeking proximity ranging with Authenticated mode PASN
+     * security setup (section 4.2) shall use the configured Device Identity-Key (DevIK) as a long
+     * term device identity to create a DIRA attribute (PR Device Identity Resolution attribute
+     * section 3.2.8) and include it in the USD service discovery frames the device sends. When a
+     * Device receives a DIRA from another P2P Device, it derives a set of Tag values based on the
+     * cached DevIKs of all known peers for proximity ranging. If a derived Tag value matches the
+     * Tag value in the received DIRA, the Device identifies the transmitter of the DIRA as a known
+     * peer.
+     *
+     * @return The 16-byte device identity key, or {@code null} if not set.
+     *
+     */
+    @RequiresApi(37)
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    @Nullable
+    public byte[] getSelfDeviceIdentityKey() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mSelfDevIk;
+    }
+
+    /**
+     * List of peer device's device identity key
+     * <p>
+     * When the USD protocol engine receives the DIRA attribute, it goes through this list of
+     * DevIKs and verify if it's a known peer. If it's a known peer, the devIk will be added in the
+     * discovery result.
+     *
+     * @return a list of 16 byte device identity key array or empty list if not set.
+     */
+    @RequiresApi(37)
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    @NonNull
+    public List<byte[]> getPeerDeviceIdentityKeys() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mPeerDevIks == null ? java.util.Collections.emptyList() : mPeerDevIks;
+    }
+
+    /**
+     * @return The list of peer device identity keys, which may be null.
+     * @hide
+     */
+    @Nullable
+    List<byte[]> getPeerDeviceIdentityKeysInternal() {
+        return mPeerDevIks;
+    }
+
+    /** @hide */
+    protected static void writePeerDevIksToParcel(@NonNull Parcel dest,
+            @Nullable List<byte[]> peerDevIks) {
+        if (peerDevIks == null) {
+            dest.writeInt(-1); // Write -1 to signify a null list
+            return;
+        }
+        dest.writeInt(peerDevIks.size());
+        for (byte[] key : peerDevIks) {
+            dest.writeByteArray(key);
+        }
+    }
+
+    /** @hide */
+    protected static List<byte[]> readPeerDevIksFromParcel(@NonNull Parcel in) {
+        int size = in.readInt();
+        if (size < 0) {
+            return null;
+        }
+        List<byte[]> list = new java.util.ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            list.add(in.createByteArray());
+        }
+        return list;
+    }
+
     @Override
     public String toString() {
         return "Config{" + "mServiceName=" + Arrays.toString(mServiceName) + ", mTtlSeconds="
                 + mTtlSeconds + ", mServiceProtoType=" + mServiceProtoType + ", mTxMatchFilterTlv="
                 + Arrays.toString(mTxMatchFilterTlv) + ", mRxMatchFilterTlv=" + Arrays.toString(
                 mRxMatchFilterTlv) + ", mServiceSpecificInfo=" + Arrays.toString(
-                mServiceSpecificInfo) + ", mOperatingFrequencies=" + Arrays.toString(
-                mOperatingFrequencies) + '}';
+                mServiceSpecificInfo) + ", mOperatingFrequencies="
+                + Arrays.toString(mOperatingFrequencies)
+                + ", mEnableRanging=" + mEnableRanging
+                + ", mSelfDevIk=" + Arrays.toString(mSelfDevIk)
+                + ", mPeerDevIks=" + mPeerDevIks + '}';
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Config config)) return false;
-        return mTtlSeconds == config.mTtlSeconds && mServiceProtoType == config.mServiceProtoType
-                && Arrays.equals(mServiceName, config.mServiceName)
-                && Arrays.equals(mTxMatchFilterTlv, config.mTxMatchFilterTlv)
-                && Arrays.equals(mRxMatchFilterTlv, config.mRxMatchFilterTlv)
-                && Arrays.equals(mServiceSpecificInfo, config.mServiceSpecificInfo)
-                && Arrays.equals(mOperatingFrequencies, config.mOperatingFrequencies);
+
+        // Compare all primitive and single-array fields first
+        if (mTtlSeconds != config.mTtlSeconds
+                || mServiceProtoType != config.mServiceProtoType
+                || mEnableRanging != config.mEnableRanging
+                || !Arrays.equals(mServiceName, config.mServiceName)
+                || !Arrays.equals(mTxMatchFilterTlv, config.mTxMatchFilterTlv)
+                || !Arrays.equals(mRxMatchFilterTlv, config.mRxMatchFilterTlv)
+                || !Arrays.equals(mServiceSpecificInfo, config.mServiceSpecificInfo)
+                || !Arrays.equals(mOperatingFrequencies, config.mOperatingFrequencies)
+                || !Arrays.equals(mSelfDevIk, config.mSelfDevIk)) {
+            return false;
+        }
+
+        // Perform a deep comparison for the list of byte arrays
+        if (mPeerDevIks == null && config.mPeerDevIks == null) {
+            return true;
+        }
+        if (mPeerDevIks == null || config.mPeerDevIks == null
+                || mPeerDevIks.size() != config.mPeerDevIks.size()) {
+            return false;
+        }
+        for (int i = 0; i < mPeerDevIks.size(); i++) {
+            if (!Arrays.equals(mPeerDevIks.get(i), config.mPeerDevIks.get(i))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(mTtlSeconds, mServiceProtoType);
+        int result = Objects.hash(mTtlSeconds, mServiceProtoType, mEnableRanging);
         result = 31 * result + Arrays.hashCode(mServiceName);
         result = 31 * result + Arrays.hashCode(mTxMatchFilterTlv);
         result = 31 * result + Arrays.hashCode(mRxMatchFilterTlv);
         result = 31 * result + Arrays.hashCode(mServiceSpecificInfo);
         result = 31 * result + Arrays.hashCode(mOperatingFrequencies);
+        result = 31 * result + Arrays.hashCode(mSelfDevIk);
+
+        // Manually calculate a deep hash code for the List<byte[]>
+        if (mPeerDevIks != null) {
+            for (byte[] peerIk : mPeerDevIks) {
+                result = 31 * result + Arrays.hashCode(peerIk);
+            }
+        }
+
         return result;
     }
 }

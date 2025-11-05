@@ -22,8 +22,10 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import android.net.wifi.WifiSsid;
+import android.net.wifi.util.Environment;
 import android.os.Parcel;
 
 import androidx.test.filters.SmallTest;
@@ -136,7 +138,8 @@ public class PasnConfigTest {
 
         String expectedString = "PasnConfig{" + "mBaseAkms=" + TEST_AKM + ", mCiphers="
                 + TEST_CIPHER + ", mPassword='" + TEST_PASSWORD_MASKED + '\'' + ", mWifiSsid="
-                + ssid + ", mPasnComebackCookie=" + Arrays.toString(TEST_COOKIE) + '}';
+                + ssid + ", mPasnComebackCookie=" + Arrays.toString(TEST_COOKIE)
+                + ", seekerDeviceIdentityKey=null, mPmk=null}";
         assertEquals(expectedString, config.toString());
     }
 
@@ -218,5 +221,136 @@ public class PasnConfigTest {
     @Test
     public void testIsAkmRequiresPassword() {
         assertTrue(PasnConfig.isAkmRequiresPassword(PasnConfig.AKM_SAE));
+    }
+
+    private static final byte[] TEST_PMK = new byte[32];
+    private static final byte[] TEST_SEEKER_DEV_IK = new byte[16];
+
+    static {
+        Arrays.fill(TEST_PMK, (byte) 0x0D);
+        Arrays.fill(TEST_SEEKER_DEV_IK, (byte) 0x0E);
+    }
+
+    /**
+     * Verifies builder and getter methods work as expected for proximity detection fields.
+     */
+    @Test
+    public void testBuilderAndGettersWithProximityDetection() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        PasnConfig config = new PasnConfig.Builder(TEST_AKM, TEST_CIPHER)
+                .setProximityDetectionSeekerDeviceIdentityKey(TEST_SEEKER_DEV_IK)
+                .setPmk(TEST_PMK)
+                .build();
+
+        assertArrayEquals(TEST_SEEKER_DEV_IK, config
+                .getProximityDetectionSeekerDeviceIdentityKey());
+        assertArrayEquals(TEST_PMK, config.getPmk());
+    }
+
+    /**
+     * Verifies parceling round trip returns an identical object including
+     * proximity detection fields.
+     */
+    @Test
+    public void testParcelableRoundTripWithProximityDetection() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        PasnConfig config = new PasnConfig.Builder(TEST_AKM, TEST_CIPHER)
+                .setProximityDetectionSeekerDeviceIdentityKey(TEST_SEEKER_DEV_IK)
+                .setPmk(TEST_PMK)
+                .build();
+
+        Parcel parcel = Parcel.obtain();
+        config.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+
+        PasnConfig fromParcel = PasnConfig.CREATOR.createFromParcel(parcel);
+        assertEquals(config, fromParcel);
+        assertEquals(config.hashCode(), fromParcel.hashCode());
+    }
+
+    /**
+     * Tests equality and non-equality of objects including proximity detection fields.
+     */
+    @Test
+    public void testEqualsAndHashCodeWithProximityDetection() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        PasnConfig config1 = new PasnConfig.Builder(TEST_AKM, TEST_CIPHER)
+                .setProximityDetectionSeekerDeviceIdentityKey(TEST_SEEKER_DEV_IK)
+                .setPmk(TEST_PMK)
+                .build();
+        PasnConfig config2 = new PasnConfig.Builder(TEST_AKM, TEST_CIPHER)
+                .setProximityDetectionSeekerDeviceIdentityKey(TEST_SEEKER_DEV_IK)
+                .setPmk(TEST_PMK)
+                .build();
+        PasnConfig config3 = new PasnConfig.Builder(TEST_AKM, TEST_CIPHER)
+                .setProximityDetectionSeekerDeviceIdentityKey(new byte[16]) // Different DevIK
+                .setPmk(TEST_PMK)
+                .build();
+
+        assertEquals(config1, config2);
+        assertEquals(config1.hashCode(), config2.hashCode());
+        assertNotEquals(config1, config3);
+        assertNotEquals(config1.hashCode(), config3.hashCode());
+    }
+
+    /**
+     * Tests toString() method including proximity detection fields.
+     */
+    @Test
+    public void testToStringWithProximityDetection() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        PasnConfig config = new PasnConfig.Builder(TEST_AKM, TEST_CIPHER)
+                .setProximityDetectionSeekerDeviceIdentityKey(TEST_SEEKER_DEV_IK)
+                .setPmk(TEST_PMK)
+                .build();
+
+        String expectedString = "PasnConfig{" + "mBaseAkms=" + TEST_AKM + ", mCiphers="
+                + TEST_CIPHER + ", mPassword='null', mWifiSsid=null, mPasnComebackCookie=null"
+                + ", seekerDeviceIdentityKey=[SeekerDevIK], mPmk=[pmk]}";
+        assertEquals(expectedString, config.toString());
+    }
+
+    /**
+     * Tests the validation when setting seeker DevIK but no PMK or password.
+     */
+    @Test(expected = IllegalStateException.class)
+    public void testBuildWithSeekerDevIkAndNoCredential() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new PasnConfig.Builder(TEST_AKM, TEST_CIPHER)
+                .setProximityDetectionSeekerDeviceIdentityKey(TEST_SEEKER_DEV_IK)
+                .build();
+    }
+
+    /**
+     * Tests the validation when setting seeker DevIK and both PMK and password.
+     */
+    @Test(expected = IllegalStateException.class)
+    public void testBuildWithSeekerDevIkAndBothCredentials() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new PasnConfig.Builder(TEST_AKM, TEST_CIPHER)
+                .setProximityDetectionSeekerDeviceIdentityKey(TEST_SEEKER_DEV_IK)
+                .setPassword(TEST_PASSWORD)
+                .setPmk(TEST_PMK)
+                .build();
+    }
+
+    /**
+     * Tests the validation when setting an invalid length seeker DevIK.
+     */
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidSeekerDevIkLength() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new PasnConfig.Builder(TEST_AKM, TEST_CIPHER)
+                .setProximityDetectionSeekerDeviceIdentityKey(new byte[15]);
+    }
+
+    /**
+     * Tests the validation when setting an invalid length PMK.
+     */
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidPmkLength() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new PasnConfig.Builder(TEST_AKM, TEST_CIPHER)
+                .setPmk(new byte[31]);
     }
 }

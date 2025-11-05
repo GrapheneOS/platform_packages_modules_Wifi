@@ -31,6 +31,8 @@ import android.net.wifi.aware.DiscoverySessionCallback;
 import android.net.wifi.aware.IdentityChangedListener;
 import android.net.wifi.aware.PeerHandle;
 import android.net.wifi.aware.WifiAwareManager;
+import android.net.wifi.usd.DiscoveryResult;
+import android.net.wifi.util.Environment;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Parcel;
@@ -222,6 +224,29 @@ public final class RangingRequest implements Parcelable {
             throw new UnsupportedOperationException();
         }
         return mVendorData;
+    }
+
+    /**
+     * Returns the list of USD peers in this ranging request.
+     *
+     * @return A list of {@link ResponderConfig} objects representing USD peers.
+     * @hide
+     */
+    @SystemApi
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    @NonNull
+    public List<ResponderConfig> getWifiUsdPeers() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        List<ResponderConfig> usdPeers = new ArrayList<>();
+        for (ResponderConfig peer : mRttPeers) {
+            if (peer.getUsdPeerId() != -1) {
+                usdPeers.add(peer);
+            }
+        }
+        return usdPeers;
     }
 
     @Override
@@ -566,6 +591,61 @@ public final class RangingRequest implements Parcelable {
             }
 
             return addResponder(ResponderConfig.fromWifiAwarePeerHandleWithDefaults(peerHandle));
+        }
+
+        /**
+         * Add a device specified by a {@link DiscoveryResult} to the list of devices with which
+         * to measure range.
+         * <p>
+         * The {@code peerInfo} is obtained as part of the Wi-Fi USD discovery
+         * process. E.g. using
+         * {@link android.net.wifi.usd.SubscribeSessionCallback
+         * #onServiceDiscovered(DiscoveryResult)} on the Subscriber(Seeker) Device and
+         * {@link android.net.wifi.usd.PublishSessionCallback#onPublishReplied(DiscoveryResult)}
+         * on the Publisher(Advertiser) Device.
+         * <p>
+         * Note: in order to use this API the device must support Wi-Fi USD
+         * {@link android.net.wifi.usd}. The device initiating the request can act as either a publisher or
+         * subscriber in a USD discovery session. For both requesting device and peer
+         * device, ranging must be enabled on the USD discovery session:
+         * {@link android.net.wifi.usd.PublishConfig.Builder#setProximityRangingEnabled(boolean)}
+         * for publisher and
+         * {@link android.net.wifi.usd.SubscribeConfig.Builder#setProximityRangingEnabled(boolean)}
+         * for subscriber.
+         *
+         * If both 11az and 11mc are supported by the local device and the USD peer, 11az
+         * non-trigger based ranging will be performed.
+         *
+         *
+         * @param peerInfo Information about an USD peer obtained in a
+         * {@link DiscoveryResult}.
+         * @param config The {@link ProximityDetectionConfig} for the ranging session.
+         * @param secureRangingConfig The {@link SecureRangingConfig} for the ranging session.
+         * @return The builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         * @hide
+         */
+        @SystemApi
+        @RequiresApi(37)
+        @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder addWifiUsdPeer(@NonNull DiscoveryResult peerInfo,
+                @NonNull ProximityDetectionConfig config,
+                @NonNull SecureRangingConfig secureRangingConfig) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            if (peerInfo == null) {
+                throw new IllegalArgumentException("Null peer info");
+            }
+            if (config == null) {
+                throw new IllegalArgumentException("Null proximity detection config");
+            }
+            if (secureRangingConfig == null) {
+                throw new IllegalArgumentException("Null secure ranging config");
+            }
+            return addResponder(ResponderConfig
+                    .fromProximityDetectionPeer(peerInfo, config, secureRangingConfig));
         }
 
         /**

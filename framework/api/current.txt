@@ -1842,6 +1842,8 @@ package android.net.wifi.rtt {
     method public int getCiphers();
     method @Nullable public byte[] getPasnComebackCookie();
     method @Nullable public String getPassword();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @Nullable public byte[] getPmk();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @Nullable public byte[] getProximityDetectionSeekerDeviceIdentityKey();
     method @Nullable public android.net.wifi.WifiSsid getWifiSsid();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field public static final int AKM_FILS_EAP_SHA256 = 64; // 0x40
@@ -1866,6 +1868,8 @@ package android.net.wifi.rtt {
     method @NonNull public android.net.wifi.rtt.PasnConfig build();
     method @NonNull public android.net.wifi.rtt.PasnConfig.Builder setPasnComebackCookie(@NonNull byte[]);
     method @NonNull public android.net.wifi.rtt.PasnConfig.Builder setPassword(@NonNull String);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.rtt.PasnConfig.Builder setPmk(@NonNull @Size(32) byte[]);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.rtt.PasnConfig.Builder setProximityDetectionSeekerDeviceIdentityKey(@NonNull @Size(16) byte[]);
     method @NonNull public android.net.wifi.rtt.PasnConfig.Builder setWifiSsid(@NonNull android.net.wifi.WifiSsid);
   }
 
@@ -1905,6 +1909,7 @@ package android.net.wifi.rtt {
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public int get80211azNumberOfRxSpatialStreams();
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public int get80211azNumberOfTxSpatialStreams();
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public int get80211azResponderTxLtfRepetitionsCount();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public long getAvailabilityWindowDurationMillis();
     method public int getDistanceMm();
     method public int getDistanceStdDevMm();
     method @NonNull public byte[] getLci();
@@ -1914,6 +1919,7 @@ package android.net.wifi.rtt {
     method public int getMeasurementBandwidth();
     method public int getMeasurementChannelFrequencyMHz();
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public long getMinTimeBetweenNtbMeasurementsMicros();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public long getNominalTimeMillis();
     method public int getNumAttemptedMeasurements();
     method public int getNumSuccessfulMeasurements();
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") public long getPasnComebackAfterMillis();
@@ -1925,6 +1931,7 @@ package android.net.wifi.rtt {
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") @IntRange(from=0, to=7) public int getSecureHeLtfProtocolVersion();
     method public int getStatus();
     method @Nullable public android.net.wifi.rtt.ResponderLocation getUnverifiedResponderLocation();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public int getUsdPeerId();
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public boolean is80211azNtbMeasurement();
     method public boolean is80211mcMeasurement();
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") public boolean isRangingAuthenticated();
@@ -1948,6 +1955,7 @@ package android.net.wifi.rtt {
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder set80211azNumberOfTxSpatialStreams(int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder set80211azResponderTxLtfRepetitionsCount(int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder set80211mcMeasurement(boolean);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.rtt.RangingResult.Builder setAvailabilityWindowDurationMillis(@IntRange(from=0) long);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setDistanceMm(int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setDistanceStdDevMm(int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setLci(@Nullable byte[]);
@@ -1957,6 +1965,7 @@ package android.net.wifi.rtt {
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setMeasurementBandwidth(int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setMeasurementChannelFrequencyMHz(int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setMinTimeBetweenNtbMeasurementsMicros(long);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.rtt.RangingResult.Builder setNominalTimeMillis(@IntRange(from=0) long);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setNumAttemptedMeasurements(int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setNumSuccessfulMeasurements(int);
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") @NonNull public android.net.wifi.rtt.RangingResult.Builder setPasnComebackAfterMillis(long);
@@ -1971,6 +1980,7 @@ package android.net.wifi.rtt {
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") @NonNull public android.net.wifi.rtt.RangingResult.Builder setSecureHeLtfProtocolVersion(@IntRange(from=0, to=7) int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setStatus(int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setUnverifiedResponderLocation(@Nullable android.net.wifi.rtt.ResponderLocation);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.rtt.RangingResult.Builder setUsdPeerId(int);
   }
 
   public abstract class RangingResultCallback {
@@ -1993,6 +2003,7 @@ package android.net.wifi.rtt {
     method public int getPreamble();
     method public int getResponderType();
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") @Nullable public android.net.wifi.rtt.SecureRangingConfig getSecureRangingConfig();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public int getUsdPeerId();
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public boolean is80211azNtbSupported();
     method public boolean is80211mcSupported();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
@@ -2016,6 +2027,7 @@ package android.net.wifi.rtt {
     method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setPreamble(int);
     method @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setResponderType(int);
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setSecureRangingConfig(@NonNull android.net.wifi.rtt.SecureRangingConfig);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.rtt.ResponderConfig.Builder setUsdPeerId(int);
   }
 
   public final class ResponderLocation implements android.os.Parcelable {
