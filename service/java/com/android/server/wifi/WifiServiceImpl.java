@@ -1132,7 +1132,9 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                     },
                     intentFilter,
                     null, null);
-            registerBroadcastReceiver(
+            // Only monitor ACTION_SHUTDOWN from user 0 (system) for device power-down scenarios.
+            // This avoids triggering on user log-outs in multi-user environments.
+            mContext.registerReceiver(
                     new BroadcastReceiver() {
                         @Override
                         public void onReceive(Context context, Intent intent) {
