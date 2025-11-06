@@ -21,6 +21,8 @@ import android.net.wifi.IScoreUpdateObserver;
 import android.net.wifi.WifiManager;
 import android.util.Log;
 
+import androidx.annotation.VisibleForTesting;
+
 import com.android.modules.utils.build.SdkLevel;
 
 
@@ -43,7 +45,8 @@ public class ExternalScoreUpdateObserverProxy extends IScoreUpdateObserver.Stub 
 
     private final WifiThreadRunner mWifiThreadRunner;
     private WifiManager.ScoreUpdateObserver mCallback;
-    private int mCountNullCallback = 0;
+    @VisibleForTesting
+    int mCountNullCallback = 0;
     private static final int MAX_NULL_CALLBACK_TRIGGER_WTF = 3;
 
     ExternalScoreUpdateObserverProxy(WifiThreadRunner wifiThreadRunner) {
@@ -146,5 +149,17 @@ public class ExternalScoreUpdateObserverProxy extends IScoreUpdateObserver.Stub 
             mCountNullCallback = 0;
             mCallback.blocklistCurrentBssid(sessionId);
         }, TAG + "#blocklistCurrentBssid");
+    }
+
+    @Override
+    public void unblockAllBssids() {
+        mWifiThreadRunner.post(() -> {
+            if (mCallback == null) {
+                incrementAndMaybeLogWtf("No callback registered, dropping unblockAllBssids");
+                return;
+            }
+            mCountNullCallback = 0;
+            mCallback.unblockAllBssids();
+        }, TAG + "#unblockAllBssids");
     }
 }
