@@ -50,6 +50,7 @@ import androidx.test.uiautomator.UiObject2;
 import androidx.test.uiautomator.Until;
 
 import com.android.compatibility.common.util.FeatureUtil;
+import com.android.compatibility.common.util.UiAutomatorUtils2;
 
 import com.google.android.mobly.snippet.Snippet;
 import com.google.android.mobly.snippet.event.EventCache;
@@ -433,7 +434,7 @@ public class WifiP2pManagerSnippet implements Snippet {
         }
 
         // Click 'OK' to close the PIN code alert
-        UiObject2 okButton = mUiDevice.findObject(By.text("OK").clazz(Button.class));
+        UiObject2 okButton = UiAutomatorUtils2.waitFindObject(By.text("OK").clazz(Button.class));
         if (okButton == null) {
             throw new WifiP2pManagerException(
                     "OK button not found in the p2p connection invitation pop-up window.");
