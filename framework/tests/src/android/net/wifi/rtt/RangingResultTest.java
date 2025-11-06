@@ -34,6 +34,11 @@ import org.junit.Test;
  */
 @SmallTest
 public class RangingResultTest {
+    private static final int TEST_USD_PEER_ID = 123;
+    private static final long TEST_AVAILABILITY_WINDOW_DURATION_MILLIS = 1000L;
+    private static final long TEST_NOMINAL_TIME_MILLIS = 500L;
+    private static final int TEST_NUM_NTB_REPETITIONS_PER_MEASUREMENT = 5;
+    private static final boolean TEST_IS_DELAYED_LMR_ENABLED = true;
 
     @Test
     public void testRangingResultBusyTryLaterStatus() {
@@ -172,10 +177,6 @@ public class RangingResultTest {
         assertTrue(toString.contains("mac=00:11:22:33:44:55"));
     }
 
-    private static final int TEST_USD_PEER_ID = 123;
-    private static final long TEST_AVAILABILITY_WINDOW_DURATION_MILLIS = 1000L;
-    private static final long TEST_NOMINAL_TIME_MILLIS = 500L;
-
     @Test
     public void testBuilderAndGettersWithProximityDetection() {
         RangingResult result = new RangingResult.Builder()
@@ -261,5 +262,78 @@ public class RangingResultTest {
         assertTrue(toString.contains("availabilityWindowDurationMillis="
                 + TEST_AVAILABILITY_WINDOW_DURATION_MILLIS));
         assertTrue(toString.contains("nominalTimeMillis=" + TEST_NOMINAL_TIME_MILLIS));
+    }
+
+    @Test
+    public void testBuilderAndGettersWithNtbRanging() {
+        RangingResult result = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setNumNtbRepetitionsPerMeasurement(TEST_NUM_NTB_REPETITIONS_PER_MEASUREMENT)
+                .setLmrDelayed(TEST_IS_DELAYED_LMR_ENABLED)
+                .build();
+
+        assertEquals(TEST_NUM_NTB_REPETITIONS_PER_MEASUREMENT,
+                result.getNumNtbRepetitionsPerMeasurement());
+        assertEquals(TEST_IS_DELAYED_LMR_ENABLED, result.isLmrDelayed());
+    }
+
+    @Test
+    public void testParcelableRoundTripWithNtbRanging() {
+        RangingResult originalResult = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setNumNtbRepetitionsPerMeasurement(TEST_NUM_NTB_REPETITIONS_PER_MEASUREMENT)
+                .setLmrDelayed(TEST_IS_DELAYED_LMR_ENABLED)
+                .build();
+
+        Parcel parcel = Parcel.obtain();
+        originalResult.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+
+        RangingResult fromParcel = RangingResult.CREATOR.createFromParcel(parcel);
+        assertEquals(originalResult, fromParcel);
+        assertEquals(originalResult.hashCode(), fromParcel.hashCode());
+    }
+
+    @Test
+    public void testEqualsAndHashCodeWithNtbRanging() {
+        RangingResult result1 = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setNumNtbRepetitionsPerMeasurement(TEST_NUM_NTB_REPETITIONS_PER_MEASUREMENT)
+                .setLmrDelayed(TEST_IS_DELAYED_LMR_ENABLED)
+                .build();
+        RangingResult result2 = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setNumNtbRepetitionsPerMeasurement(TEST_NUM_NTB_REPETITIONS_PER_MEASUREMENT)
+                .setLmrDelayed(TEST_IS_DELAYED_LMR_ENABLED)
+                .build();
+        RangingResult result3 = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setNumNtbRepetitionsPerMeasurement(TEST_NUM_NTB_REPETITIONS_PER_MEASUREMENT + 1)
+                .setLmrDelayed(!TEST_IS_DELAYED_LMR_ENABLED)
+                .build();
+
+        assertEquals(result1, result2);
+        assertEquals(result1.hashCode(), result2.hashCode());
+        assertNotEquals(result1, result3);
+    }
+
+    @Test
+    public void testToStringWithNtbRanging() {
+        RangingResult result = new RangingResult.Builder()
+                .setStatus(RangingResult.STATUS_SUCCESS)
+                .setUsdPeerId(TEST_USD_PEER_ID)
+                .setNumNtbRepetitionsPerMeasurement(TEST_NUM_NTB_REPETITIONS_PER_MEASUREMENT)
+                .setLmrDelayed(TEST_IS_DELAYED_LMR_ENABLED)
+                .build();
+
+        String toString = result.toString();
+        assertTrue(toString.contains("numNtbRepetitionsPerMeasurement="
+                + TEST_NUM_NTB_REPETITIONS_PER_MEASUREMENT));
+        assertTrue(toString.contains("isLmrDelayed=" + TEST_IS_DELAYED_LMR_ENABLED));
     }
 }

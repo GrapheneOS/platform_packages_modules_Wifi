@@ -1921,6 +1921,7 @@ package android.net.wifi.rtt {
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public long getMinTimeBetweenNtbMeasurementsMicros();
     method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public long getNominalTimeMillis();
     method public int getNumAttemptedMeasurements();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public int getNumNtbRepetitionsPerMeasurement();
     method public int getNumSuccessfulMeasurements();
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") public long getPasnComebackAfterMillis();
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") @Nullable public byte[] getPasnComebackCookie();
@@ -1934,6 +1935,7 @@ package android.net.wifi.rtt {
     method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public int getUsdPeerId();
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public boolean is80211azNtbMeasurement();
     method public boolean is80211mcMeasurement();
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") public boolean isLmrDelayed();
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") public boolean isRangingAuthenticated();
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") public boolean isRangingFrameProtected();
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") public boolean isSecureHeLtfEnabled();
@@ -1960,6 +1962,7 @@ package android.net.wifi.rtt {
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setDistanceStdDevMm(int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setLci(@Nullable byte[]);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setLcr(@Nullable byte[]);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.rtt.RangingResult.Builder setLmrDelayed(boolean);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setMacAddress(@Nullable android.net.MacAddress);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setMaxTimeBetweenNtbMeasurementsMicros(long);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setMeasurementBandwidth(int);
@@ -1967,6 +1970,7 @@ package android.net.wifi.rtt {
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setMinTimeBetweenNtbMeasurementsMicros(long);
     method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.rtt.RangingResult.Builder setNominalTimeMillis(@IntRange(from=0) long);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setNumAttemptedMeasurements(int);
+    method @FlaggedApi("com.android.wifi.flags.proximity_ranging") @NonNull public android.net.wifi.rtt.RangingResult.Builder setNumNtbRepetitionsPerMeasurement(@IntRange(from=0) int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @NonNull public android.net.wifi.rtt.RangingResult.Builder setNumSuccessfulMeasurements(int);
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") @NonNull public android.net.wifi.rtt.RangingResult.Builder setPasnComebackAfterMillis(long);
     method @FlaggedApi("com.android.wifi.flags.secure_ranging") @NonNull public android.net.wifi.rtt.RangingResult.Builder setPasnComebackCookie(@NonNull byte[]);

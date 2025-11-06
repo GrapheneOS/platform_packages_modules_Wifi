@@ -136,8 +136,9 @@ public final class RangingResult implements Parcelable {
     private final long mPasnComebackAfterMillis;
     private final long mAvailabilityWindowDurationMillis;
     private final long mNominalTimeMillis;
+    private final int mNumNtbRepetitionsPerMeasurement;
+    private final boolean mIsLmrDelayed;
     private final int mUsdPeerId;
-
 
     /**
      * Builder class used to construct {@link RangingResult} objects.
@@ -176,6 +177,8 @@ public final class RangingResult implements Parcelable {
         private long mPasnComebackAfterMillis = UNSPECIFIED;
         private long mAvailabilityWindowDurationMillis = UNSPECIFIED;
         private long mNominalTimeMillis = UNSPECIFIED;
+        private int mNumNtbRepetitionsPerMeasurement = 0;
+        private boolean mIsLmrDelayed = false;
         private int mUsdPeerId = UNSPECIFIED;
 
 
@@ -227,6 +230,8 @@ public final class RangingResult implements Parcelable {
             }
             mAvailabilityWindowDurationMillis = other.mAvailabilityWindowDurationMillis;
             mNominalTimeMillis = other.mNominalTimeMillis;
+            mNumNtbRepetitionsPerMeasurement = other.mNumNtbRepetitionsPerMeasurement;
+            mIsLmrDelayed = other.mIsLmrDelayed;
             mUsdPeerId = other.mUsdPeerId;
             mVendorData = new ArrayList<>(other.mVendorData);
         }
@@ -731,6 +736,49 @@ public final class RangingResult implements Parcelable {
         }
 
         /**
+         * Sets the number of range repetitions carried out for distance calculation in
+         * IEEE 802.11az Non Trigger Based (NTB) ranging.
+         *
+         * <p>This corresponds to the value set in
+         * {@link RangingRequest.Builder#setRttBurstSize(int)} for IEEE 802.11az ranging.
+         * See {@link #getNumNtbRepetitionsPerMeasurement()}.
+         * The default value is zero.
+         *
+         * @param numNtbRepetitionsPerMeasurement The number of repetitions.
+         * @return The builder to facilitate chaining.
+         */
+        @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setNumNtbRepetitionsPerMeasurement(
+                @IntRange(from = 0) int numNtbRepetitionsPerMeasurement) {
+            if (numNtbRepetitionsPerMeasurement < 0) {
+                throw new IllegalArgumentException(
+                        "The number of NTB repetitions must be a non-negative value");
+            }
+            mNumNtbRepetitionsPerMeasurement = numNtbRepetitionsPerMeasurement;
+            return this;
+        }
+
+        /**
+         * Sets whether the device delayed sending the Location Measurement Report (LMR),
+         * as defined in the IEEE 802.11az standard.
+         *
+         * <p> The decision on whether the Location Measurement Report (LMR) feedback will be
+         * immediate or delayed is negotiated during the initial Fine Time Measurement (FTM)
+         * negotiation.
+         * See {@link #isLmrDelayed()}.
+         *
+         * @param isLmrDelayed true if LMR is delayed, false otherwise.
+         * @return The builder to facilitate chaining.
+         */
+        @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setLmrDelayed(boolean isLmrDelayed) {
+            mIsLmrDelayed = isLmrDelayed;
+            return this;
+        }
+
+        /**
          * Sets the USD peer identifier for the ranging result.
          *
          * @param usdPeerId The peer ID of the USD responder.
@@ -804,6 +852,8 @@ public final class RangingResult implements Parcelable {
         mPasnComebackAfterMillis = builder.mPasnComebackAfterMillis;
         mAvailabilityWindowDurationMillis = builder.mAvailabilityWindowDurationMillis;
         mNominalTimeMillis = builder.mNominalTimeMillis;
+        mNumNtbRepetitionsPerMeasurement = builder.mNumNtbRepetitionsPerMeasurement;
+        mIsLmrDelayed = builder.mIsLmrDelayed;
         mUsdPeerId = builder.mUsdPeerId;
     }
 
@@ -1309,6 +1359,29 @@ public final class RangingResult implements Parcelable {
         return mNominalTimeMillis;
     }
 
+    /**
+     * Get the number of range repetitions carried out for distance calculation in
+     * Non Trigger Based (NTB) ranging.
+     * Note: Only applicable for IEEE 802.11az result.
+     *
+     * @return The number of repetitions.
+     */
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    public int getNumNtbRepetitionsPerMeasurement() {
+        return mNumNtbRepetitionsPerMeasurement;
+    }
+
+    /**
+     * Returns whether the Location Measurement Report (LMR) feedback is delayed.
+     * Note: Only applicable for IEEE 802.11az result.
+     *
+     * @return {@code true} if LMR is delayed, {@code false} otherwise.
+     */
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    public boolean isLmrDelayed() {
+        return mIsLmrDelayed;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -1360,6 +1433,8 @@ public final class RangingResult implements Parcelable {
         dest.writeInt(mSecureHeLtfProtocolVersion);
         dest.writeLong(mAvailabilityWindowDurationMillis);
         dest.writeLong(mNominalTimeMillis);
+        dest.writeInt(mNumNtbRepetitionsPerMeasurement);
+        dest.writeBoolean(mIsLmrDelayed);
         dest.writeInt(mUsdPeerId);
     }
 
@@ -1410,6 +1485,8 @@ public final class RangingResult implements Parcelable {
                             .setSecureHeLtfProtocolVersion(in.readInt());
                     builder.setAvailabilityWindowDurationMillis(in.readLong())
                             .setNominalTimeMillis(in.readLong())
+                            .setNumNtbRepetitionsPerMeasurement(in.readInt())
+                            .setLmrDelayed(in.readBoolean())
                             .setUsdPeerId(in.readInt());
                     return builder.build();
                 }
@@ -1453,6 +1530,9 @@ public final class RangingResult implements Parcelable {
                 .append(", availabilityWindowDurationMillis=")
                 .append(mAvailabilityWindowDurationMillis)
                 .append(", nominalTimeMillis=").append(mNominalTimeMillis)
+                .append(", numNtbRepetitionsPerMeasurement=")
+                .append(mNumNtbRepetitionsPerMeasurement)
+                .append(", isLmrDelayed=").append(mIsLmrDelayed)
                 .append("]").toString();
     }
 
@@ -1495,6 +1575,8 @@ public final class RangingResult implements Parcelable {
                 && Arrays.equals(mPasnComebackCookie, lhs.mPasnComebackCookie)
                 && mAvailabilityWindowDurationMillis == lhs.mAvailabilityWindowDurationMillis
                 && mNominalTimeMillis == lhs.mNominalTimeMillis
+                && mNumNtbRepetitionsPerMeasurement == lhs.mNumNtbRepetitionsPerMeasurement
+                && mIsLmrDelayed == lhs.mIsLmrDelayed
                 && mUsdPeerId == lhs.mUsdPeerId;
 
     }
@@ -1509,6 +1591,7 @@ public final class RangingResult implements Parcelable {
                 mR2iTxLtfRepetitions, mNumTxSpatialStreams, mNumRxSpatialStreams, mVendorData,
                 mIsRangingAuthenticated, mIsRangingFrameProtected, mIsSecureHeLtfEnabled,
                 mPasnComebackAfterMillis, Arrays.hashCode(mPasnComebackCookie),
-                mAvailabilityWindowDurationMillis, mNominalTimeMillis, mUsdPeerId);
+                mAvailabilityWindowDurationMillis, mNominalTimeMillis,
+                mNumNtbRepetitionsPerMeasurement, mIsLmrDelayed, mUsdPeerId);
     }
 }
