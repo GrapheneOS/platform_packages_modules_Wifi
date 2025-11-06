@@ -229,7 +229,7 @@ public class WifiConfigManager {
         /**
          * Called when the Wi-Fi auto-join restriction to a subscription ID stops.
          */
-        void onRestrictionStopped();
+        void onRestrictionsStopped();
     }
 
     /**
@@ -510,9 +510,9 @@ public class WifiConfigManager {
                     }
 
                     @Override
-                    public void onRestrictionStopped() {
+                    public void onRestrictionsStopped() {
                         if (mOnRestrictAutoJoinToSubIdCallback != null) {
-                            mOnRestrictAutoJoinToSubIdCallback.onRestrictionStopped();
+                            mOnRestrictAutoJoinToSubIdCallback.onRestrictionsStopped();
                         }
                     }
                 });

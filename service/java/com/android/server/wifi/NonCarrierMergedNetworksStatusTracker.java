@@ -55,7 +55,7 @@ public class NonCarrierMergedNetworksStatusTracker {
         /**
          * Called when the Wi-Fi auto-join restriction to a subscription ID stops.
          */
-        void onRestrictionStopped();
+        void onRestrictionsStopped();
     }
 
     public NonCarrierMergedNetworksStatusTracker(Clock clock) {
@@ -138,7 +138,7 @@ public class NonCarrierMergedNetworksStatusTracker {
         mTemporarilyDisabledNonCarrierMergedListAtStart.clear();
 
         if (wasActive) {
-            mListener.onRestrictionStopped();
+            mListener.onRestrictionsStopped();
         }
     }
 

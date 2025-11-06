@@ -1097,7 +1097,7 @@ package android.net.wifi {
 
   @FlaggedApi("com.android.wifi.flags.restrict_autojoin_callback_api") public static interface WifiManager.RestrictAutoJoinToSubscriptionIdCallback {
     method public void onRestrictionStarted(int);
-    method public void onRestrictionStopped();
+    method public void onRestrictionsStopped();
   }
 
   public static interface WifiManager.ScoreUpdateObserver {
