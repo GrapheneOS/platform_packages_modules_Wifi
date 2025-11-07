@@ -742,6 +742,7 @@ public class WifiMetrics {
         private long mLastRoamCompleteMillis;
         public WifiValidationInfo mValidationInfo;
         public int mDisconnectReason;
+        public int mFirmwareAlertReason;
 
         SessionData(ConnectionEvent connectionEvent, String ssid, long sessionStartTimeMillis,
                 int band, int authType) {
@@ -2465,7 +2466,8 @@ public class WifiMetrics {
                 int lastDisconnectReason = (previousSession != null
                         ? previousSession.mDisconnectReason :
                         WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__UNKNOWN);
-
+                int lastFirmwareAlertReason = (previousSession != null
+                        ? previousSession.mFirmwareAlertReason : 0);
                 WifiStatsLog.write(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED,
                         connectionSucceeded,
                         wwFailureCode, currentConnectionEvent.mConnectionEvent.signalStrength,
@@ -2487,7 +2489,8 @@ public class WifiMetrics {
                         currentConnectionEvent.mL2ConnectingDuration,
                         currentConnectionEvent.mL3ConnectingDuration,
                         lastDisconnectReason,
-                        getOuiFromBssid(currentConnectionEvent.mConfigBssid));
+                        getOuiFromBssid(currentConnectionEvent.mConfigBssid),
+                        lastFirmwareAlertReason);
 
                 if (connectionSucceeded) {
                     reportRouterCapabilities(currentConnectionEvent.mRouterFingerPrint);
@@ -2970,6 +2973,7 @@ public class WifiMetrics {
                     }
                 }
                 currentSession.mDisconnectReason = disconnectReason;
+                currentSession.mFirmwareAlertReason = firmwareAlertReason;
 
                 WifiStatsLog.write(WifiStatsLog.WIFI_DISCONNECT_REPORTED,
                         durationSeconds,
