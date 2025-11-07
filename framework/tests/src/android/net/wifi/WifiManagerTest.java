@@ -205,6 +205,7 @@ public class WifiManagerTest {
             new TetheringManager.TetheringRequest.Builder(TetheringManager.TETHERING_WIFI).build();
     private static final String TEST_INTERFACE_NAME = "test-wlan0";
     private static final int TEST_INTERNAL_SCORE = 50;
+    private static final int TEST_SESSION_ID = 12345;
 
     @Mock Context mContext;
     @Mock android.net.wifi.IWifiManager mWifiService;
@@ -3477,6 +3478,28 @@ public class WifiManagerTest {
         scoreUpdateObserverCaptor.getValue().unblockAllBssids();
 
         verify(mMockIScoreUpdateObserver).unblockAllBssids();
+    }
+
+    @RequiresFlagsEnabled(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
+    @Test
+    public void scoreUpdateObserverProxy_setPreEvaluationEnabled() throws Exception {
+        mWifiManager.setWifiConnectedNetworkScorer(new SynchronousExecutor(),
+                mWifiConnectedNetworkScorer);
+        ArgumentCaptor<IWifiConnectedNetworkScorer.Stub> scorerCaptor =
+                ArgumentCaptor.forClass(IWifiConnectedNetworkScorer.Stub.class);
+        verify(mWifiService).setWifiConnectedNetworkScorer(any(IBinder.class),
+                scorerCaptor.capture());
+        IScoreUpdateObserver mMockIScoreUpdateObserver = mock(IScoreUpdateObserver.class);
+        scorerCaptor.getValue().onSetScoreUpdateObserver(mMockIScoreUpdateObserver);
+        mLooper.dispatchAll();
+
+        ArgumentCaptor<ScoreUpdateObserver> scoreUpdateObserverCaptor =
+                ArgumentCaptor.forClass(ScoreUpdateObserver.class);
+        verify(mWifiConnectedNetworkScorer)
+                .onSetScoreUpdateObserver(scoreUpdateObserverCaptor.capture());
+        scoreUpdateObserverCaptor.getValue().setPreEvaluationEnabled(TEST_SESSION_ID, true);
+
+        verify(mMockIScoreUpdateObserver).setPreEvaluationEnabled(eq(TEST_SESSION_ID), eq(true));
     }
 
     /**
