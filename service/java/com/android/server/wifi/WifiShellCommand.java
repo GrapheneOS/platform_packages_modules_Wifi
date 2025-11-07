@@ -1112,10 +1112,42 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     if (ApConfigUtil.isWpa3SaeSupported(mContext)) {
                         pw.println("wifi_softap_wpa3_sae_supported");
                     }
-                    if (mWifiService.isFeatureSupported(WifiManager.WIFI_FEATURE_BRIDGED_AP)) {
+                    boolean areBoth24GAnd5GBandAvailableOnSap = false;
+                    try {
+                        Bundle extras = new Bundle();
+                        if (SdkLevel.isAtLeastS()) {
+                            List<WifiAvailableChannel> usable24GChannels = null;
+                            List<WifiAvailableChannel> usable5GChannels = null;
+                            extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                                    mContext.getAttributionSource());
+                            usable24GChannels =
+                                    mWifiService.getUsableChannels(WifiScanner.WIFI_BAND_24_GHZ,
+                                            WifiAvailableChannel.OP_MODE_SAP,
+                                            WifiAvailableChannel.FILTER_REGULATORY,
+                                            SHELL_PACKAGE_NAME,
+                                            extras);
+                            usable5GChannels =
+                                    mWifiService.getUsableChannels(
+                                            WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS,
+                                            WifiAvailableChannel.OP_MODE_SAP,
+                                            WifiAvailableChannel.FILTER_REGULATORY,
+                                            SHELL_PACKAGE_NAME,
+                                            extras);
+                            if (usable24GChannels != null && usable24GChannels.size() != 0
+                                    && usable5GChannels != null && usable5GChannels.size() != 0) {
+                                areBoth24GAnd5GBandAvailableOnSap = true;
+                            }
+                        }
+                    } catch (UnsupportedOperationException e) {
+                    }
+                    if (areBoth24GAnd5GBandAvailableOnSap
+                            && mWifiService.isFeatureSupported(
+                                    WifiManager.WIFI_FEATURE_BRIDGED_AP)) {
                         pw.println("wifi_softap_bridged_ap_supported");
                     }
-                    if (mWifiService.isFeatureSupported(WifiManager.WIFI_FEATURE_STA_BRIDGED_AP)) {
+                    if (areBoth24GAnd5GBandAvailableOnSap
+                            && mWifiService.isFeatureSupported(
+                                    WifiManager.WIFI_FEATURE_STA_BRIDGED_AP)) {
                         pw.println("wifi_softap_bridged_ap_with_sta_supported");
                     }
                     if (mWifiNative.isMLDApSupportMLO()) {
