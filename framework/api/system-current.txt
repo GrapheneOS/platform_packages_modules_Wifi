@@ -1106,6 +1106,7 @@ package android.net.wifi {
     method public default void notifyStatusUpdate(int, boolean);
     method public default void requestNudOperation(int);
     method public void triggerUpdateOfWifiUsabilityStats(int);
+    method @FlaggedApi("com.android.wifi.flags.feed_more_data_to_external_scorer") public default void unblockAllBssids();
   }
 
   @FlaggedApi("com.android.wifi.flags.wifi_pno_scan_schedule_api") public static class WifiManager.ScreenOffScanSchedule {
