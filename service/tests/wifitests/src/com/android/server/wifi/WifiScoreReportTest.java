@@ -1872,6 +1872,63 @@ public class WifiScoreReportTest extends WifiBaseTest {
                 eq(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE), anyInt());
     }
 
+    /**
+     * Verify that unblocking happens when unblockAllBssids() is called by apps.
+     */
+    @Test
+    public void testFrameworkUnblockAllBssidsOperation() throws Exception {
+        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
+        // Register Client for verification.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(
+                mExternalScoreUpdateObserverCbCaptor.capture());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+
+        mExternalScoreUpdateObserverCbCaptor.getValue().unblockAllBssids();
+        mLooper.dispatchAll();
+        verify(mWifiBlocklistMonitor).clearBssidBlocklistForReason(
+                eq(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE));
+    }
+
+    @Test
+    public void frameworkIgnoresUnblockAllBssidsWhenScoringDisabled() throws Exception {
+        when(mAdaptiveConnectivityEnabledSettingObserver.get()).thenReturn(false);
+        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
+        // Register Client for verification.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(
+                mExternalScoreUpdateObserverCbCaptor.capture());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+
+        mExternalScoreUpdateObserverCbCaptor.getValue().unblockAllBssids();
+        mLooper.dispatchAll();
+        verify(mWifiBlocklistMonitor, never()).clearBssidBlocklistForReason(
+                eq(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE));
+    }
+
+    @Test
+    public void frameworkIgnoresUnblockAllBssidsFromDryRunScorer() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        assertEquals(ConnectedScorer.WIFI_INITIAL_SCORE, mWifiScoreReport.mLegacyIntScore);
+        when(mMockPackageManager.getPackagesForUid(anyInt()))
+                .thenReturn(new String[]{DRY_RUN_SCORER_PKG_NAME});
+        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(
+                mExternalScoreUpdateObserverCbCaptor.capture());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+        assertEquals(TEST_SESSION_ID, scorerImpl.mSessionId);
+
+        mExternalScoreUpdateObserverCbCaptor.getValue().unblockAllBssids();
+        mLooper.dispatchAll();
+
+        verify(mWifiBlocklistMonitor, never()).clearBssidBlocklistForReason(
+                eq(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE));
+    }
+
     @Test
     public void testClientNotNotifiedForLocalOnlyConnection() throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());
