@@ -19,7 +19,10 @@ package android.net.wifi.usd;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
+import android.net.wifi.util.Environment;
 import android.os.Parcel;
 
 import androidx.test.filters.SmallTest;
@@ -28,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -42,6 +46,14 @@ public class SubscribeConfigTest {
     private static final int TEST_QUERY_PERIOD_MILLIS = 200;
     private static final int[] TEST_FREQUENCIES = new int[]{2412, 2437, 2462};
     private List<byte[]> mFilter;
+    private static final byte[] TEST_SELF_DEV_IK = new byte[16];
+    private static final List<byte[]> TEST_PEER_DEV_IKS = new ArrayList<>();
+    static {
+        Arrays.fill(TEST_SELF_DEV_IK, (byte) 0x0B);
+        byte[] peerIk1 = new byte[16];
+        Arrays.fill(peerIk1, (byte) 0x0C);
+        TEST_PEER_DEV_IKS.add(peerIk1);
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -139,5 +151,66 @@ public class SubscribeConfigTest {
         assertEquals(subscribeConfig.hashCode(), deserializedSubscribeConfig.hashCode());
         // Release the parcel
         parcel.recycle();
+    }
+
+    @Test
+    public void testBuilderAndGettersForProximityRangingEnabled() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        SubscribeConfig config = new SubscribeConfig.Builder(USD_SERVICE_NAME)
+                .setProximityRangingEnabled(true)
+                .setSelfDeviceIdentityKey(TEST_SELF_DEV_IK)
+                .setPeerDeviceIdentityKeys(TEST_PEER_DEV_IKS)
+                .setSubscribeType(Config.SUBSCRIBE_TYPE_ACTIVE)
+                .build();
+
+        assertTrue(config.isProximityRangingEnabled());
+        assertArrayEquals(TEST_SELF_DEV_IK, config.getSelfDeviceIdentityKey());
+        assertEquals(TEST_PEER_DEV_IKS, config.getPeerDeviceIdentityKeys());
+    }
+
+    @Test
+    public void testParcelAndUnparcelForProximityRangingEnabled() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        SubscribeConfig originalConfig = new SubscribeConfig.Builder(USD_SERVICE_NAME)
+                .setProximityRangingEnabled(true)
+                .setSelfDeviceIdentityKey(TEST_SELF_DEV_IK)
+                .setPeerDeviceIdentityKeys(TEST_PEER_DEV_IKS)
+                .setSubscribeType(Config.SUBSCRIBE_TYPE_ACTIVE)
+                .build();
+
+        Parcel parcel = Parcel.obtain();
+        originalConfig.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+
+        SubscribeConfig unparcelledConfig = SubscribeConfig.CREATOR.createFromParcel(parcel);
+        parcel.recycle();
+
+        assertEquals(originalConfig, unparcelledConfig);
+        assertEquals(originalConfig.hashCode(), unparcelledConfig.hashCode());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidSelfDeviceIdentityKey() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new SubscribeConfig.Builder(USD_SERVICE_NAME)
+                .setSelfDeviceIdentityKey(new byte[15]);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidPeerDeviceIdentityKey() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        List<byte[]> invalidPeerIks = new ArrayList<>();
+        invalidPeerIks.add(new byte[15]);
+        new SubscribeConfig.Builder(USD_SERVICE_NAME)
+                .setPeerDeviceIdentityKeys(invalidPeerIks);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRangingWithPassiveSubscribe() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        new SubscribeConfig.Builder(USD_SERVICE_NAME)
+                .setProximityRangingEnabled(true)
+                .setSubscribeType(Config.SUBSCRIBE_TYPE_PASSIVE)
+                .build();
     }
 }

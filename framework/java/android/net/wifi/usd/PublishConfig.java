@@ -24,8 +24,11 @@ import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.aware.TlvBufferUtils;
 import android.net.wifi.aware.WifiAwareUtils;
 import android.net.wifi.flags.Flags;
+import android.net.wifi.util.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import androidx.annotation.RequiresApi;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -44,13 +47,19 @@ public final class PublishConfig extends Config implements Parcelable {
     private final int mSolicitedTransmissionType;
     private final int mAnnouncementPeriodMillis;
     private final boolean mEnableEvents;
+    @PublishType
+    private final int mPublishType;
 
     private PublishConfig(Parcel in) {
         super(in.createByteArray(), in.readInt(), in.readInt(), in.createByteArray(),
-                in.createByteArray(), in.createByteArray(), in.createIntArray());
+                in.createByteArray(), in.createByteArray(), in.createIntArray(),
+                Environment.isSdkNewerThanB() && in.readBoolean(),
+                Environment.isSdkNewerThanB() ? in.createByteArray() : null,
+                Environment.isSdkNewerThanB() ? readPeerDevIksFromParcel(in) : null);
         mSolicitedTransmissionType = in.readInt();
         mAnnouncementPeriodMillis = in.readInt();
         mEnableEvents = in.readBoolean();
+        mPublishType = in.readInt();
     }
 
     @NonNull
@@ -70,10 +79,12 @@ public final class PublishConfig extends Config implements Parcelable {
     private PublishConfig(Builder builder) {
         super(builder.mServiceName, builder.mTtlSeconds, builder.mServiceProtoType,
                 builder.mTxMatchFilterTlv, builder.mRxMatchFilterTlv, builder.mServiceSpecificInfo,
-                builder.mOperatingFrequencies);
+                builder.mOperatingFrequencies, builder.mEnableRanging, builder.mSelfDevIk,
+                builder.mPeerDevIks);
         mSolicitedTransmissionType = builder.mSolicitedTransmissionType;
         mAnnouncementPeriodMillis = builder.mAnnouncementPeriodMillis;
         mEnableEvents = builder.mEnableEvents;
+        mPublishType = builder.mPublishType;
     }
 
     @Override
@@ -90,9 +101,15 @@ public final class PublishConfig extends Config implements Parcelable {
         dest.writeByteArray(getRxMatchFilterTlv());
         dest.writeByteArray(getServiceSpecificInfo());
         dest.writeIntArray(getOperatingFrequenciesMhz());
+        if (Environment.isSdkNewerThanB()) {
+            dest.writeBoolean(isProximityRangingEnabled());
+            dest.writeByteArray(getSelfDeviceIdentityKey());
+            writePeerDevIksToParcel(dest, getPeerDeviceIdentityKeysInternal());
+        }
         dest.writeInt(mSolicitedTransmissionType);
         dest.writeInt(mAnnouncementPeriodMillis);
         dest.writeBoolean(mEnableEvents);
+        dest.writeInt(mPublishType);
     }
 
     /**
@@ -120,11 +137,27 @@ public final class PublishConfig extends Config implements Parcelable {
         return mEnableEvents;
     }
 
+    /**
+     * Returns the publish type for this session, which can be either
+     * {@link #PUBLISH_TYPE_SOLICITED} or {@link #PUBLISH_TYPE_UNSOLICITED}.
+     * See {@link Builder#setPublishType(int)}.
+     */
+    @RequiresApi(37)
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    @PublishType
+    public int getPublishType() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mPublishType;
+    }
+
     @Override
     public String toString() {
         return super.toString() + " PublishConfig{" + "mSolicitedTransmissionType="
                 + mSolicitedTransmissionType + ", mAnnouncementPeriodMillis="
-                + mAnnouncementPeriodMillis + ", mEnableEvents=" + mEnableEvents + '}';
+                + mAnnouncementPeriodMillis + ", mEnableEvents=" + mEnableEvents
+                + ", mPublishType=" + mPublishType + '}';
     }
 
     @Override
@@ -134,13 +167,14 @@ public final class PublishConfig extends Config implements Parcelable {
         if (!super.equals(o)) return false;
         return mSolicitedTransmissionType == that.mSolicitedTransmissionType
                 && mAnnouncementPeriodMillis == that.mAnnouncementPeriodMillis
-                && mEnableEvents == that.mEnableEvents;
+                && mEnableEvents == that.mEnableEvents
+                && mPublishType == that.mPublishType;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), mSolicitedTransmissionType, mAnnouncementPeriodMillis,
-                mEnableEvents);
+                mEnableEvents, mPublishType);
     }
 
     /**
@@ -159,6 +193,11 @@ public final class PublishConfig extends Config implements Parcelable {
         private byte[] mRxMatchFilterTlv = null;
         private byte[] mServiceSpecificInfo = null;
         private int[] mOperatingFrequencies = null;
+        private boolean mEnableRanging = false;
+        @PublishType
+        private int mPublishType = PUBLISH_TYPE_DEFAULT_SOLICITED_AND_UNSOLICITED;
+        private byte[] mSelfDevIk = null;
+        private List<byte[]> mPeerDevIks = null;
 
         /**
          * Builder for {@link PublishConfig}
@@ -372,6 +411,122 @@ public final class PublishConfig extends Config implements Parcelable {
         }
 
         /**
+         * Configures the publish session to be discoverable by peers seeking Proximity Ranging
+         * service.
+         * <p>
+         * When this flag is enabled, this device will advertise its support for ranging, allowing
+         * subscribers that have also enabled ranging to discover it.
+         * <p>
+         * This feature is only supported for solicited publish sessions
+         * ({@link #PUBLISH_TYPE_SOLICITED}). This restriction exists because, according to the
+         * Proximity Detection specification, the ranging device roles are mapped to USD roles
+         * as follows:
+         * The ranging Seeker device acts as an active USD Subscriber.
+         * The ranging Advertiser device (this device) acts as a solicited USD Publisher.
+         * <p>
+         * The device must support proximity detection feature using USD discovery for this
+         * feature to be used. The feature support is checked as described in
+         * {@link Characteristics#isFindingProximityDetectionDevicesSupported()}
+         * <p>
+         * Optional. Disabled by default.
+         *
+         * @param enable {@code true} to advertise support for Proximity Ranging, {@code false}
+         *               otherwise.
+         * @return A reference to this Builder.
+         */
+        @RequiresApi(37)
+        @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setProximityRangingEnabled(boolean enable) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            mEnableRanging = enable;
+            return this;
+        }
+
+        /**
+         * This Proximity Ranging device's identity key (devIK) required for authenticated PASN
+         * mode in proximity ranging.
+         *
+         * @param selfDevIk the device identity key of this device, which must be 16 bytes.
+         * @return the builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @RequiresApi(37)
+        @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setSelfDeviceIdentityKey(@NonNull byte[] selfDevIk) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            Objects.requireNonNull(selfDevIk, "Self Device Identity Key must not be null");
+            if (selfDevIk.length != 16) {
+                throw new IllegalArgumentException("Self Device Identity Key must"
+                        + " be 16 bytes long.");
+            }
+            mSelfDevIk = selfDevIk;
+            return this;
+        }
+
+        /**
+         * Sets the list of peer device identity keys (DevIKs) for proximity detection.
+         *
+         * Each key must be a 16-byte array.
+         *
+         * @param peerDevIks A list of 16-byte device identity keys.
+         * @return A reference to this Builder.
+         * @throws IllegalArgumentException if any key in the list is not 16 bytes long.
+         */
+        @RequiresApi(37)
+        @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setPeerDeviceIdentityKeys(@NonNull List<byte[]> peerDevIks) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            Objects.requireNonNull(peerDevIks, "Peer device identity key list must not be null");
+            // TODO Maximum number of peer device identity keys are limited by
+            // {@link Characteristics#getMaxNumberOfPublishSessions()}
+            for (byte[] key : peerDevIks) {
+                if (key == null || key.length != 16) {
+                    throw new IllegalArgumentException(
+                            "All peer device identity keys must be 16 bytes long.");
+                }
+            }
+            mPeerDevIks = peerDevIks;
+            return this;
+        }
+
+        /**
+         * Specify the type of the publish session: solicited (aka passive -
+         * no publish packets are transmitted, a match is made against an active
+         * subscribe session whose packets are transmitted over-the-air), or unsolicited
+         * (aka active - publish packets are transmitted over-the-air) or both solicited and
+         * unsolicited.
+         * <p>
+         * Optional. Default is solicited and unsolicited.
+         *
+         * @param publishType the publish type {@code PUBLISH_TYPE_*} to set
+         *
+         * @return a reference to this Builder
+         */
+        @RequiresApi(37)
+        @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setPublishType(@PublishType int publishType) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            if (publishType < PUBLISH_TYPE_SOLICITED_AND_UNSOLICITED
+                    || publishType > PUBLISH_TYPE_SOLICITED) {
+                throw new IllegalArgumentException("Invalid publishType - " + publishType);
+            }
+            mPublishType = publishType;
+            return this;
+        }
+
+        /**
          * Returns a {@code PublishConfig} built from the parameters previously set.
          *
          * @return a {@code PublishConfig} built with parameters of this {@code PublishConfig
@@ -379,6 +534,12 @@ public final class PublishConfig extends Config implements Parcelable {
          */
         @NonNull
         public PublishConfig build() {
+            if (Environment.isSdkNewerThanB()) {
+                if (mEnableRanging && mPublishType != PUBLISH_TYPE_SOLICITED) {
+                    throw new IllegalArgumentException(
+                            "Proximity ranging is only supported for solicited publish sessions");
+                }
+            }
             return new PublishConfig(this);
         }
     }

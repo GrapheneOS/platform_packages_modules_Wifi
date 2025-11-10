@@ -742,6 +742,7 @@ public class WifiMetrics {
         private long mLastRoamCompleteMillis;
         public WifiValidationInfo mValidationInfo;
         public int mDisconnectReason;
+        public int mFirmwareAlertReason;
 
         SessionData(ConnectionEvent connectionEvent, String ssid, long sessionStartTimeMillis,
                 int band, int authType) {
@@ -785,6 +786,7 @@ public class WifiMetrics {
 
         private int mValidationCount = 0;
         private boolean mHasReportedValidationResult = false;
+        private int mRssi;
     }
 
     /**
@@ -795,7 +797,8 @@ public class WifiMetrics {
             int status,
             long l3ConnectedStateTimestamp,
             long lastValidationTimestamp,
-            boolean captivePortalDetected) {
+            boolean captivePortalDetected,
+            int rssi) {
         SessionData currentSession = mCurrentConnectionSessionPerIface.get(ifaceName);
         if (currentSession != null) {
             currentSession.mValidationInfo.mStatus = status;
@@ -803,6 +806,7 @@ public class WifiMetrics {
             currentSession.mValidationInfo.mLastValidationTimestamp = lastValidationTimestamp;
             currentSession.mValidationInfo.mValidationCount += 1;
             currentSession.mValidationInfo.mCaptivePortalDetected = captivePortalDetected;
+            currentSession.mValidationInfo.mRssi = rssi;
         }
     }
 
@@ -830,7 +834,8 @@ public class WifiMetrics {
                     status,
                     wifiNetworkValidationDurationMillis,
                     currentSession.mValidationInfo.mValidationCount,
-                    currentSession.mValidationInfo.mCaptivePortalDetected);
+                    currentSession.mValidationInfo.mCaptivePortalDetected,
+                    currentSession.mValidationInfo.mRssi);
         }
     }
 
@@ -2461,7 +2466,8 @@ public class WifiMetrics {
                 int lastDisconnectReason = (previousSession != null
                         ? previousSession.mDisconnectReason :
                         WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__UNKNOWN);
-
+                int lastFirmwareAlertReason = (previousSession != null
+                        ? previousSession.mFirmwareAlertReason : 0);
                 WifiStatsLog.write(WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED,
                         connectionSucceeded,
                         wwFailureCode, currentConnectionEvent.mConnectionEvent.signalStrength,
@@ -2483,7 +2489,8 @@ public class WifiMetrics {
                         currentConnectionEvent.mL2ConnectingDuration,
                         currentConnectionEvent.mL3ConnectingDuration,
                         lastDisconnectReason,
-                        getOuiFromBssid(currentConnectionEvent.mConfigBssid));
+                        getOuiFromBssid(currentConnectionEvent.mConfigBssid),
+                        lastFirmwareAlertReason);
 
                 if (connectionSucceeded) {
                     reportRouterCapabilities(currentConnectionEvent.mRouterFingerPrint);
@@ -2966,6 +2973,7 @@ public class WifiMetrics {
                     }
                 }
                 currentSession.mDisconnectReason = disconnectReason;
+                currentSession.mFirmwareAlertReason = firmwareAlertReason;
 
                 WifiStatsLog.write(WifiStatsLog.WIFI_DISCONNECT_REPORTED,
                         durationSeconds,

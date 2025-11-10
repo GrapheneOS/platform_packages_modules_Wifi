@@ -57,6 +57,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.flags.Flags;
 import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.aware.PairingConfigManager;
 import com.android.server.wifi.aware.WifiAwareMetrics;
 import com.android.server.wifi.b2b.WifiRoamingModeManager;
 import com.android.server.wifi.coex.CoexManager;
@@ -284,6 +285,7 @@ public class WifiInjector {
     private boolean mVerboseLoggingEnabled;
     private WifiUsabilityClassifierFactory mWifiUsabilityClassifierFactory;
     @Nullable private final WepNetworkUsageController mWepNetworkUsageController;
+    private final PairingConfigManager mPairingConfigManager;
 
     public WifiInjector(WifiContext context) {
         if (context == null) {
@@ -411,6 +413,7 @@ public class WifiInjector {
         mWifiCarrierInfoManager = new WifiCarrierInfoManager(makeTelephonyManager(),
                 subscriptionManager, this, mFrameworkFacade, mContext,
                 mWifiConfigStore, mWifiHandler, mWifiMetrics, mClock, mWifiPseudonymManager);
+        mPairingConfigManager = new PairingConfigManager(this);
         String l2KeySeed = Secure.getString(mContext.getContentResolver(), Secure.ANDROID_ID);
         mWifiScoreCard = new WifiScoreCard(mClock, l2KeySeed, mDeviceConfigFacade,
                 mContext, mWifiGlobals);
@@ -1375,5 +1378,15 @@ public class WifiInjector {
     @Nullable
     public WepNetworkUsageController getWepNetworkUsageController() {
         return mWepNetworkUsageController;
+    }
+
+    @NonNull
+    public WifiConfigStore getWifiConfigStore() {
+        return mWifiConfigStore;
+    }
+
+    @NonNull
+    public PairingConfigManager getPairingConfigManager() {
+        return mPairingConfigManager;
     }
 }

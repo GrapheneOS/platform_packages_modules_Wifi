@@ -29,6 +29,7 @@ import static android.net.wifi.WifiManager.WIFI_FEATURE_LINK_LAYER_STATS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TDLS;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_TRUST_ON_FIRST_USE;
 import static android.net.wifi.WifiManager.WIFI_FEATURE_WPA3_SAE;
+import static android.net.NetworkCapabilities.TRANSPORT_WIFI;
 
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_LOCAL_ONLY;
 import static com.android.server.wifi.ActiveModeManager.ROLE_CLIENT_PRIMARY;
@@ -57,6 +58,8 @@ import android.app.admin.SecurityLog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.CaptivePortalData;
+import android.net.ConnectivityDiagnosticsManager;
+import android.net.ConnectivityDiagnosticsManager.ConnectivityDiagnosticsCallback;
 import android.net.ConnectivityManager;
 import android.net.DhcpResultsParcelable;
 import android.net.InvalidPacketException;
@@ -72,6 +75,7 @@ import android.net.NetworkAgentConfig;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkInfo.DetailedState;
+import android.net.NetworkRequest;
 import android.net.RouteInfo;
 import android.net.SocketKeepalive;
 import android.net.StaticIpConfiguration;
@@ -297,6 +301,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private final WifiNotificationManager mNotificationManager;
     private final WifiConnectivityHelper mWifiConnectivityHelper;
     private final QosPolicyRequestHandler mQosPolicyRequestHandler;
+    private ConnectivityDiagnosticsManager mConnectivityDiagnosticsManager;
 
     private boolean mFailedToResetMacAddress = false;
     private int mLastSignalLevel = -1;
@@ -717,6 +722,38 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     @VisibleForTesting
     public static final int EAP_FAILURE_CODE_CERTIFICATE_EXPIRED = 32768;
     private boolean mCurrentConnectionReportedCertificateExpired = false;
+
+    private static final NetworkRequest sNetworkRequestForInternet = new NetworkRequest.Builder()
+            .clearCapabilities()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addTransportType(TRANSPORT_WIFI)
+            .build();
+
+    @VisibleForTesting
+    ConnectivityDiagnosticsCallback mConnectivityDiagnosticsCallback;
+    private class WifiConnectivityDiagnosticsCallback
+        extends ConnectivityDiagnosticsCallback {
+            @Override
+            public void onConnectivityReportAvailable(
+                    @NonNull ConnectivityDiagnosticsManager.ConnectivityReport report) {
+                Log.i(TAG, "WifiConnectivityDiagnosticsCallback onConnectivityReportAvailable");
+            }
+
+            @Override
+            public void onDataStallSuspected(
+                    @NonNull ConnectivityDiagnosticsManager.DataStallReport report) {
+                Log.i(TAG, "WifiConnectivityDiagnosticsCallback onDataStallSuspected");
+                mWifiScoreReport.onL3DataStallSuspected();
+            }
+
+            @Override
+            public void onNetworkConnectivityReported(
+                    @NonNull Network network, boolean hasConnectivity) {
+                Log.i(TAG, "WifiConnectivityDiagnosticsCallback onNetworkConnectivityReported "
+                        + "hasConnectivity=" + hasConnectivity);
+            }
+        }
 
     /** Note that this constructor will also start() the StateMachine. */
     public ClientModeImpl(
@@ -1567,10 +1604,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         if (mNetworkFactory.isConnectedToConfig(connectedConfig)) {
             if (mIsUserSelected) {
                 // User manually trigger switch from a local-only network to primary.
-                // Temporarily block re-connection to the local-only network to avoid app
+                // If app is not getting notified of the user explicit disconnect,
+                // temporarily block re-connection to the local-only network to avoid app
                 // automatically connecting back to it.
-                mWifiConfigManager.userTemporarilyDisabledNetwork(connectedConfig.SSID,
-                        Process.WIFI_UID);
+                if (!com.android.wifi.flags.Flags.localOnlyDisconnectReason()
+                        || !mNetworkFactory.connectedNetworkHasDisconnectListenerRegistered()) {
+                    mWifiConfigManager.userTemporarilyDisabledNetwork(connectedConfig.SSID,
+                            Process.WIFI_UID);
+                }
             }
             if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
                 mNetworkFactory.onDisconnectionExpected(
@@ -2066,8 +2107,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             boolean isConnectedToLocalOnlyNetwork = mNetworkFactory.isConnectedToConfig(config);
             boolean connectedNetworkHasDisconnectListenerRegistered =
                     mNetworkFactory.connectedNetworkHasDisconnectListenerRegistered();
-            if (isUserTriggered && isConnectedToLocalOnlyNetwork
+            if (isUserTriggered && config != null && isConnectedToLocalOnlyNetwork
                     && connectedNetworkHasDisconnectListenerRegistered) {
+                mWifiConfigManager.userEnabledNetwork(config.networkId);
                 Runnable onUserApprovedAction = () -> {
                     if (mNetworkFactory.isConnectedToConfig(config)) {
                         mNetworkFactory.onDisconnectionExpected(
@@ -3722,6 +3764,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             // On disconnect, restore roaming mode to normal
             if (!newConnectionInProgress) {
                 enableRoaming(true);
+            }
+            // Unregister callback
+            if (com.android.wifi.flags.Flags.feedMoreDataToExternalScorer()
+                    && mConnectivityDiagnosticsManager != null
+                    && mConnectivityDiagnosticsCallback != null) {
+                mConnectivityDiagnosticsManager.unregisterConnectivityDiagnosticsCallback(
+                        mConnectivityDiagnosticsCallback);
+                mConnectivityDiagnosticsCallback = null;
+                Log.d(getTag(), "Unregistered mConnectivityDiagnosticsCallback");
             }
         }
 
@@ -5744,7 +5795,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
             mWifiMetrics.setLastValidationInfo(
                     mInterfaceName, status, mL3ConnectedStateTimestamp, validationTimestamp,
-                    captivePortalDetected);
+                    captivePortalDetected, mWifiInfo.getRssi());
             if (status == NetworkAgent.VALIDATION_STATUS_VALID) {
                 // Log vaidation success for each connection session
                 mWifiMetrics.reportWifiValidationResult(mInterfaceName, status);
@@ -7660,6 +7711,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             if (getClientRoleForMetrics(config)
                     != WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_LOCAL_ONLY) {
                 if (isPrimary()) {
+                    registerConnectivityDiagnosticsCallbackIfNeeded();
                     mWifiInjector.getWifiRoamingModeManager().applyWifiRoamingMode(
                             mInterfaceName, mWifiInfo.getSSID());
                 }
@@ -7668,6 +7720,32 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                             isPrimary(), mInterfaceName);
                 }
             }
+        }
+
+        @VisibleForTesting
+        void registerConnectivityDiagnosticsCallbackIfNeeded() {
+            if (!com.android.wifi.flags.Flags.feedMoreDataToExternalScorer()) {
+                return;
+            }
+            if (mConnectivityDiagnosticsManager == null) {
+                mConnectivityDiagnosticsManager =
+                        mContext.getSystemService(ConnectivityDiagnosticsManager.class);
+            }
+            if (mConnectivityDiagnosticsManager == null) {
+                loge("ConnectivityDiagnosticsManager is null");
+                return;
+            }
+            if (mConnectivityDiagnosticsCallback == null) {
+                mConnectivityDiagnosticsCallback = new WifiConnectivityDiagnosticsCallback();
+            } else {
+                logd("mConnectivityDiagnosticsCallback already registered, skip registering again");
+                return;
+            }
+            mConnectivityDiagnosticsManager.registerConnectivityDiagnosticsCallback(
+                    sNetworkRequestForInternet,
+                    new HandlerExecutor(getHandler()),
+                    mConnectivityDiagnosticsCallback);
+            logd("Registered mConnectivityDiagnosticsCallback");
         }
 
         @Override

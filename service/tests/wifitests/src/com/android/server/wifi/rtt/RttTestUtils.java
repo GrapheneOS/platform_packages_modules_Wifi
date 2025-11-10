@@ -20,6 +20,7 @@ import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.rtt.PasnConfig;
+import android.net.wifi.rtt.ProximityDetectionConfig;
 import android.net.wifi.rtt.RangingRequest;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.rtt.ResponderConfig;
@@ -345,4 +346,48 @@ public class RttTestUtils {
 
         return new Pair<>(halResults, results);
     }
+
+    // In RttTestUtils.java
+
+    /**
+     * Returns a dummy RangingRequest suitable for continuous ranging tests.
+     */
+    public static RangingRequest getDummyContinuousRangingRequest() {
+        MacAddress mac = MacAddress.fromString("08:09:0A:0B:0C:0D");
+        int discoveryChannelFrequency = 2412;
+        int rangingIntervalMs = 1000;
+
+        // SAE
+        PasnConfig pasnConfig = new PasnConfig
+                .Builder(PasnConfig.AKM_SAE, PasnConfig.CIPHER_GCMP_256)
+                .setPassword("TEST_PASSWORD")
+                .build();
+        SecureRangingConfig secureRangingConfig = new SecureRangingConfig
+                .Builder(pasnConfig)
+                .setRangingFrameProtectionEnabled(true)
+                .setSecureHeLtfEnabled(true)
+                .build();
+
+        ProximityDetectionConfig pdConfig =
+                new ProximityDetectionConfig.Builder(
+                        ProximityDetectionConfig.RANGING_SERVICE_ROLE_SEEKER)
+                        .setDiscoveryChannelFrequencyMhz(discoveryChannelFrequency)
+                        .setContinuousRangingIntervalMillis(rangingIntervalMs)
+                        .build();
+
+        ResponderConfig responder = new ResponderConfig.Builder()
+                .setMacAddress(mac)
+                .setResponderType(ResponderConfig.RESPONDER_STA)
+                .setChannelWidth(ScanResult.CHANNEL_WIDTH_80MHZ)
+                .setPreamble(ScanResult.PREAMBLE_HE)
+                .set80211azNtbSupported(true)
+                .setProximityDetectionConfig(pdConfig)
+                .setSecureRangingConfig(secureRangingConfig)
+                .build();
+
+        return new RangingRequest.Builder()
+                .addResponder(responder)
+                .build();
+    }
+
 }

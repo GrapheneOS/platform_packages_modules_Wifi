@@ -64,6 +64,7 @@ import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.util.WifiResourceCache;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.PatternMatcher;
@@ -124,6 +125,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
     @Mock WifiDialogManager.DialogHandle mLegacyDialogHandle;
     @Mock WifiScanner mWifiScanner;
     @Mock Nl80211Native mNl80211Native;
+    @Mock WifiResourceCache mWifiResourceCache;
     WifiShellCommand mWifiShellCommand;
     TestLooper mLooper;
 
@@ -168,6 +170,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
         when(mDialogBuilder.setNeutralButtonText(any())).thenReturn(mDialogBuilder);
         when(mDialogBuilder.setCallback(any(), any())).thenReturn(mDialogBuilder);
         when(mContext.getSystemService(WifiScanner.class)).thenReturn(mWifiScanner);
+        when(mContext.getResourceCache()).thenReturn(mWifiResourceCache);
         when(mScanRequestProxy.getScanResults()).thenReturn(new ArrayList<>());
 
         mWifiShellCommand = new WifiShellCommand(mWifiInjector, mWifiService, mContext,
@@ -1301,5 +1304,39 @@ public class WifiShellCommandTest extends WifiBaseTest {
                         new FileDescriptor(),
                         new String[] {"list-interface-names"}));
         verify(mNl80211Native).getInterfaceNames();
+    }
+
+    @Test
+    public void testGetSoftApSupportedFeatures() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        List<WifiAvailableChannel> WifiAvailableChannels24G = new ArrayList<>();
+        WifiAvailableChannels24G.add(mock(WifiAvailableChannel.class));
+        List<WifiAvailableChannel> WifiAvailableChannels5G = new ArrayList<>();
+        WifiAvailableChannels5G.add(mock(WifiAvailableChannel.class));
+
+        when(mWifiService.isFeatureSupported(anyInt())).thenReturn(true);
+        when(mWifiService.getUsableChannels(eq(WifiScanner.WIFI_BAND_24_GHZ),
+                eq(WifiAvailableChannel.OP_MODE_SAP),
+                eq(WifiAvailableChannel.FILTER_REGULATORY), any(), any()))
+                .thenReturn(WifiAvailableChannels24G);
+        when(mWifiService.getUsableChannels(eq(WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS),
+                eq(WifiAvailableChannel.OP_MODE_SAP),
+                eq(WifiAvailableChannel.FILTER_REGULATORY), any(), any()))
+                .thenReturn(WifiAvailableChannels5G);
+        assertEquals(0,
+                mWifiShellCommand.exec(
+                        new Binder(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new FileDescriptor(),
+                        new String[]{"get-softap-supported-features"}));
+        verify(mWifiService, times(1)).getUsableChannels(
+                eq(WifiScanner.WIFI_BAND_24_GHZ),
+                eq(WifiAvailableChannel.OP_MODE_SAP),
+                eq(WifiAvailableChannel.FILTER_REGULATORY), any(), any());
+        verify(mWifiService, times(1)).getUsableChannels(
+                eq(WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS),
+                eq(WifiAvailableChannel.OP_MODE_SAP),
+                eq(WifiAvailableChannel.FILTER_REGULATORY), any(), any());
     }
 }

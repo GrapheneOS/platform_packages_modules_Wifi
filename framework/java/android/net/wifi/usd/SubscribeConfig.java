@@ -20,11 +20,13 @@ import android.annotation.FlaggedApi;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.RequiresApi;
 import android.annotation.SystemApi;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.aware.TlvBufferUtils;
 import android.net.wifi.aware.WifiAwareUtils;
 import android.net.wifi.flags.Flags;
+import android.net.wifi.util.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -46,7 +48,8 @@ public final class SubscribeConfig extends Config implements Parcelable {
     private SubscribeConfig(Builder builder) {
         super(builder.mServiceName, builder.mTtlSeconds, builder.mServiceProtoType,
                 builder.mTxMatchFilterTlv, builder.mRxMatchFilterTlv, builder.mServiceSpecificInfo,
-                builder.mOperatingFrequencies);
+                builder.mOperatingFrequencies, builder.mEnableRanging, builder.mSelfDevIk,
+                builder.mPeerDevIks);
         mSubscribeType = builder.mSubscribeType;
         mQueryPeriodMillis = builder.mQueryPeriodMillis;
         mRecommendedFrequencies = builder.mRecommendedFrequencies;
@@ -59,7 +62,10 @@ public final class SubscribeConfig extends Config implements Parcelable {
 
     private SubscribeConfig(Parcel in) {
         super(in.createByteArray(), in.readInt(), in.readInt(), in.createByteArray(),
-                in.createByteArray(), in.createByteArray(), in.createIntArray());
+                in.createByteArray(), in.createByteArray(), in.createIntArray(),
+                Environment.isSdkNewerThanB() && in.readBoolean(),
+                 Environment.isSdkNewerThanB() ? in.createByteArray() : null,
+                Environment.isSdkNewerThanB() ? readPeerDevIksFromParcel(in) : null);
         mSubscribeType = in.readInt();
         mQueryPeriodMillis = in.readInt();
         mRecommendedFrequencies = in.createIntArray();
@@ -74,6 +80,11 @@ public final class SubscribeConfig extends Config implements Parcelable {
         dest.writeByteArray(getRxMatchFilterTlv());
         dest.writeByteArray(getServiceSpecificInfo());
         dest.writeIntArray(getOperatingFrequenciesMhz());
+        if (Environment.isSdkNewerThanB()) {
+            dest.writeBoolean(isProximityRangingEnabled());
+            dest.writeByteArray(getSelfDeviceIdentityKey());
+            writePeerDevIksToParcel(dest, getPeerDeviceIdentityKeysInternal());
+        }
         dest.writeInt(mSubscribeType);
         dest.writeInt(mQueryPeriodMillis);
         dest.writeIntArray(mRecommendedFrequencies);
@@ -169,6 +180,9 @@ public final class SubscribeConfig extends Config implements Parcelable {
         private byte[] mRxMatchFilterTlv = null;
         private byte[] mServiceSpecificInfo = null;
         private int[] mOperatingFrequencies = null;
+        private boolean mEnableRanging = false;
+        private byte[] mSelfDevIk = null;
+        private List<byte[]> mPeerDevIks = null;
 
         /**
          * Builder for {@link SubscribeConfig}
@@ -395,6 +409,87 @@ public final class SubscribeConfig extends Config implements Parcelable {
         }
 
         /**
+         * Configures the subscribe session to discover peer devices that support Proximity Ranging.
+         * <p>
+         * When enabled, the device uses this subscribe session to find publishers that have
+         * also enabled proximity ranging. This is valid only for active subscribe sessions
+         * ({@link #SUBSCRIBE_TYPE_ACTIVE}).
+         * <p>
+         * The device must support proximity detection feature using USD discovery for this
+         * feature to be used. The feature support is checked as described in
+         * {@link Characteristics#isFindingProximityDetectionDevicesSupported()}
+         * <p>
+         * Optional. Disabled by default.
+         *
+         * @param enable {@code true} to enable discovery of peers that support Proximity Ranging,
+         *               {@code false} otherwise.
+         * @return a reference to this Builder
+         */
+        @RequiresApi(37)
+        @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setProximityRangingEnabled(boolean enable) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            mEnableRanging = enable;
+            return this;
+        }
+
+        /**
+         * This Proximity Ranging device's identity key (devIK) required for authenticated PASN
+         * mode in proximity ranging.
+         *
+         * @param selfDevIk the device identity key of this device, which must be 16 bytes.
+         * @return the builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @RequiresApi(37)
+        @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setSelfDeviceIdentityKey(@NonNull byte[] selfDevIk) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            Objects.requireNonNull(selfDevIk, "Self Device Identity Key must not be null");
+            if (selfDevIk.length != 16) {
+                throw new IllegalArgumentException("Self Device Identity Key must"
+                        + " be 16 bytes long.");
+            }
+            mSelfDevIk = selfDevIk;
+            return this;
+        }
+
+        /**
+         * Sets the list of peer device identity keys (DevIKs) for proximity detection.
+         *
+         * Each key must be a 16-byte array.
+         *
+         * @param peerDevIks A list of 16-byte device identity keys.
+         * @return A reference to this Builder.
+         * @throws IllegalArgumentException if any key in the list is not 16 bytes long.
+         */
+        @RequiresApi(37)
+        @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setPeerDeviceIdentityKeys(@NonNull List<byte[]> peerDevIks) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            Objects.requireNonNull(peerDevIks, "Peer device identity key list must not be null");
+            // TODO Maximum number of peer device identity keys are limited by
+            //  {@link Characteristics#getMaxNumberOfSubscribeSessions()}
+            for (byte[] key : peerDevIks) {
+                if (key == null || key.length != 16) {
+                    throw new IllegalArgumentException(
+                            "All peer device identity keys must be 16 bytes long.");
+                }
+            }
+            mPeerDevIks = peerDevIks;
+            return this;
+        }
+
+        /**
          * Returns a {@code SubscribeConfig} built from the parameters previously set.
          *
          * @return a {@code SubscribeConfig} built with parameters of this {@code SubscribeConfig
@@ -402,6 +497,12 @@ public final class SubscribeConfig extends Config implements Parcelable {
          */
         @NonNull
         public SubscribeConfig build() {
+            if (Environment.isSdkNewerThanB()) {
+                if (mEnableRanging && mSubscribeType != SUBSCRIBE_TYPE_ACTIVE) {
+                    throw new IllegalArgumentException(
+                            "Proximity ranging is only supported for active subscribe sessions");
+                }
+            }
             return new SubscribeConfig(this);
         }
     }

@@ -9653,7 +9653,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         // Verify initial value
-        verify(mRestrictAutoJoinToSubIdCallbackProxy).onRestrictionStopped();
+        verify(mRestrictAutoJoinToSubIdCallbackProxy).onRestrictionsStopped();
 
         // Verify changed value
         mOnRestrictAutoJoinToSubIdCallback.onRestrictionStarted(TEST_SUB_ID);
@@ -9664,9 +9664,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         // Verify no value sent after removing listener
-        mOnRestrictAutoJoinToSubIdCallback.onRestrictionStopped();
+        mOnRestrictAutoJoinToSubIdCallback.onRestrictionsStopped();
         verify(mRestrictAutoJoinToSubIdCallbackProxy, times(1))
-                .onRestrictionStopped();
+                .onRestrictionsStopped();
     }
 
     /**
@@ -13979,15 +13979,16 @@ public class WifiServiceImplTest extends WifiBaseTest {
                         && filter.hasAction(BluetoothAdapter.ACTION_STATE_CHANGED)
                         && filter.hasAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)),
                 eq(null), isNull());
-        // Only Shutdown should run in caller thread.
-        verify(mContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
+        // Only Shutdown should run in caller thread and for user 0 only.
+        verify(mContext).registerReceiver(any(BroadcastReceiver.class),
                 argThat(filter -> filter.hasAction(Intent.ACTION_SHUTDOWN)),
                 eq(null), eq(null));
         verify(mContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
                 argThat(filter -> filter.hasAction(
                         LocationManager.MODE_CHANGED_ACTION)),
                 eq(null), any());
-        verify(mContext, never()).registerReceiver(any(BroadcastReceiver.class),
+        // Only Shutdown intent
+        verify(mContext, times(1)).registerReceiver(any(BroadcastReceiver.class),
                 any(IntentFilter.class),
                 any(), any());
     }

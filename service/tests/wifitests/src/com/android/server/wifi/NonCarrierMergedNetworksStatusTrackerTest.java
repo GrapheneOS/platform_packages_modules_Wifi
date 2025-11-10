@@ -147,7 +147,7 @@ public class NonCarrierMergedNetworksStatusTrackerTest extends WifiBaseTest {
         mNonCarrierMergedNetworksStatusTracker.clear();
 
         // Verify restriction is stopped.
-        verify(mCallback).onRestrictionStopped();
+        verify(mCallback).onRestrictionsStopped();
     }
 
     /**
@@ -160,7 +160,7 @@ public class NonCarrierMergedNetworksStatusTrackerTest extends WifiBaseTest {
         mNonCarrierMergedNetworksStatusTracker.clear();
 
         // Verify no callbacks are fired.
-        verify(mCallback, never()).onRestrictionStopped();
+        verify(mCallback, never()).onRestrictionsStopped();
     }
 
     /**

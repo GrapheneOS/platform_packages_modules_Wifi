@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.net.MacAddress;
+import android.net.wifi.WifiContext;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDirInfo;
@@ -59,18 +60,20 @@ import java.util.List;
 
 /**
  * Unit tests for {@link SupplicantP2pIfaceHal}, which functions as a wrapper for either HIDL or
- * AIDL (vendor) implementation of the P2P interface, depending on which service (HIDL or AIDL) is
- * available. Test the initialization logic and verify that calls to all public methods are
- * forwarded to the actual implementation.
+ * AIDL (vendor or mainline) implementation of the Supplicant P2P interface, depending on which
+ * service is available. Test the initialization logic and verify that calls to all public methods
+ * are forwarded to the actual implementation.
  */
 public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
     private SupplicantP2pIfaceHalSpy mDut;
     private @Mock SupplicantP2pIfaceHalHidlImpl mP2pIfaceHalHidlMock;
     private @Mock SupplicantP2pIfaceHalAidlVendorImpl mP2pIfaceHalAidlMock;
+    private @Mock SupplicantP2pIfaceHalAidlMainlineImpl mP2pIfaceHalAidlMainlineMock;
     private @Mock WifiNative.SupplicantDeathEventHandler mSupplicantHalDeathHandler;
     private @Mock WifiP2pMonitor mMonitor;
     private @Mock WifiGlobals mWifiGlobals;
     private @Mock WifiInjector mWifiInjector;
+    private @Mock WifiContext mContext;
 
     private static final String IFACE_NAME = "wlan0";
     private static final String BSSID = "fa:45:23:23:12:12";
@@ -93,6 +96,9 @@ public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
     private static final WifiP2pDirInfo TEST_DIR_INFO = new WifiP2pDirInfo(
             MacAddress.fromString(BSSID), TEST_NONCE, TEST_DIR_TAG);
 
+    /**
+     * Implementation of SupplicantP2pIfaceHalSpy that uses the AIDL Vendor mock internally.
+     */
     private class SupplicantP2pIfaceHalSpy extends SupplicantP2pIfaceHal {
         SupplicantP2pIfaceHalSpy() {
             super(mMonitor, mWifiGlobals, mWifiInjector);
@@ -105,8 +111,21 @@ public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
     }
 
     /**
-     * Implementation of SupplicantP2pIfaceHalSpy that uses the HIDL mock internally
-     * rather than the default AIDL mock.
+     * Implementation of SupplicantP2pIfaceHalSpy that uses the AIDL Mainline mock internally.
+     */
+    private class SupplicantP2pIfaceHalMainlineSpy extends SupplicantP2pIfaceHalSpy {
+        SupplicantP2pIfaceHalMainlineSpy() {
+            super();
+        }
+
+        @Override
+        protected ISupplicantP2pIfaceHal createP2pIfaceHalMockable()  {
+            return mP2pIfaceHalAidlMainlineMock;
+        }
+    }
+
+    /**
+     * Implementation of SupplicantP2pIfaceHalSpy that uses the HIDL mock internally.
      */
     private class SupplicantP2pIfaceHidlHalSpy extends SupplicantP2pIfaceHalSpy {
         SupplicantP2pIfaceHidlHalSpy() {
@@ -146,6 +165,19 @@ public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
         when(mP2pIfaceHalAidlMock.initialize()).thenReturn(shouldSucceed);
         assertEquals(shouldSucceed, mDut.initialize());
         verify(mP2pIfaceHalAidlMock).initialize();
+        verify(mP2pIfaceHalAidlMainlineMock, never()).initialize();
+        verify(mP2pIfaceHalHidlMock, never()).initialize();
+    }
+
+    /**
+     * Initialize SupplicantP2pIfaceHal with the AIDL Mainline implementation.
+     */
+    private void initializeWithAidlMainlineImpl(boolean shouldSucceed) {
+        mDut = new SupplicantP2pIfaceHalMainlineSpy();
+        when(mP2pIfaceHalAidlMainlineMock.initialize()).thenReturn(shouldSucceed);
+        assertEquals(shouldSucceed, mDut.initialize());
+        verify(mP2pIfaceHalAidlMainlineMock).initialize();
+        verify(mP2pIfaceHalAidlMock, never()).initialize();
         verify(mP2pIfaceHalHidlMock, never()).initialize();
     }
 
@@ -156,8 +188,9 @@ public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
         mDut = new SupplicantP2pIfaceHidlHalSpy();
         when(mP2pIfaceHalHidlMock.initialize()).thenReturn(shouldSucceed);
         assertEquals(shouldSucceed, mDut.initialize());
-        verify(mP2pIfaceHalAidlMock, never()).initialize();
         verify(mP2pIfaceHalHidlMock).initialize();
+        verify(mP2pIfaceHalAidlMock, never()).initialize();
+        verify(mP2pIfaceHalAidlMainlineMock, never()).initialize();
     }
 
     /**
@@ -166,6 +199,14 @@ public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
     @Test
     public void testInitSuccessAidlVendor() {
         initializeWithAidlVendorImpl(true);
+    }
+
+    /**
+     * Tests successful initialization with the AIDL Mainline implementation.
+     */
+    @Test
+    public void testInitSuccessAidlMainline() {
+        initializeWithAidlMainlineImpl(true);
     }
 
     /**
@@ -182,6 +223,14 @@ public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
     @Test
     public void testInitFailureAidlVendor() {
         initializeWithAidlVendorImpl(false);
+    }
+
+    /**
+     * Tests failed initialization with the AIDL Mainline implementation.
+     */
+    @Test
+    public void testInitFailureAidlMainline() {
+        initializeWithAidlMainlineImpl(false);
     }
 
     /**

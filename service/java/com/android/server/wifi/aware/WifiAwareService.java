@@ -60,7 +60,7 @@ public final class WifiAwareService extends SystemService {
             FeatureFlags featureFlags = wifiInjector.getDeviceConfigFacade().getFeatureFlags();
 
             WifiAwareStateManager wifiAwareStateManager = new WifiAwareStateManager(wifiInjector,
-                    new PairingConfigManager());
+                    wifiInjector.getPairingConfigManager());
             WifiAwareNativeCallback wifiAwareNativeCallback = new WifiAwareNativeCallback(
                     wifiAwareStateManager);
             WifiAwareNativeManager wifiAwareNativeManager = new WifiAwareNativeManager(

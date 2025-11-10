@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiContext;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDirInfo;
 import android.net.wifi.p2p.WifiP2pDiscoveryConfig;
@@ -34,6 +35,7 @@ import android.net.wifi.p2p.nsd.WifiP2pUsdBasedServiceConfig;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.wifi.SupplicantStaIfaceHalAidlMainlineImpl;
 import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiNative;
@@ -49,6 +51,7 @@ public class SupplicantP2pIfaceHal {
     private final WifiP2pMonitor mMonitor;
     private final WifiGlobals mWifiGlobals;
     private final WifiInjector mWifiInjector;
+    private final WifiContext mContext;
 
     // HAL interface object - might be implemented by HIDL or AIDL
     private ISupplicantP2pIfaceHal mP2pIfaceHal;
@@ -58,6 +61,7 @@ public class SupplicantP2pIfaceHal {
         mMonitor = monitor;
         mWifiGlobals = wifiGlobals;
         mWifiInjector = wifiInjector;
+        mContext = wifiInjector.getContext();
         mP2pIfaceHal = createP2pIfaceHalMockable();
         if (mP2pIfaceHal == null) {
             Log.wtf(TAG, "Failed to get internal ISupplicantP2pIfaceHal instance.");
@@ -122,12 +126,18 @@ public class SupplicantP2pIfaceHal {
     @VisibleForTesting
     protected ISupplicantP2pIfaceHal createP2pIfaceHalMockable() {
         synchronized (mLock) {
-            // Prefer AIDL Vendor implementation if service is declared.
-            if (SupplicantP2pIfaceHalAidlVendorImpl.serviceDeclared()) {
+            // Prefer AIDL Mainline implementation if service is declared.
+            if (SupplicantStaIfaceHalAidlMainlineImpl.isServiceAvailable(mContext)) {
+                Log.i(TAG, "Initializing SupplicantP2pIfaceHal using Mainline AIDL implementation");
+                return new SupplicantP2pIfaceHalAidlMainlineImpl(mMonitor, mWifiInjector);
+
+            } else if (SupplicantP2pIfaceHalAidlVendorImpl.serviceDeclared()) {
+                // Fallback to the AIDL Vendor implementation if service is declared.
                 Log.i(TAG, "Initializing SupplicantP2pIfaceHal using Vendor AIDL implementation.");
                 return new SupplicantP2pIfaceHalAidlVendorImpl(mMonitor, mWifiInjector);
 
             } else if (SupplicantP2pIfaceHalHidlImpl.serviceDeclared()) {
+                // Fallback to the HIDL implementation if service is declared.
                 Log.i(TAG, "Initializing SupplicantP2pIfaceHal using HIDL implementation.");
                 return new SupplicantP2pIfaceHalHidlImpl(mMonitor);
             }

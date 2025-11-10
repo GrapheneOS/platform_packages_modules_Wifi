@@ -110,6 +110,7 @@ import android.net.wifi.WifiManager.NetworkRequestMatchCallback;
 import android.net.wifi.WifiManager.NetworkRequestUserSelectionCallback;
 import android.net.wifi.WifiManager.OnWifiUsabilityStatsListener;
 import android.net.wifi.WifiManager.ScanResultsCallback;
+import android.net.wifi.WifiManager.ScoreUpdateObserver;
 import android.net.wifi.WifiManager.SoftApCallback;
 import android.net.wifi.WifiManager.SubsystemRestartTrackingCallback;
 import android.net.wifi.WifiManager.SuggestionConnectionStatusListener;
@@ -344,7 +345,7 @@ public class WifiManagerTest {
             }
 
             @Override
-            public void onRestrictionStopped() {
+            public void onRestrictionsStopped() {
                 mRunnable.run();
             }
         };
@@ -3454,6 +3455,28 @@ public class WifiManagerTest {
         scorerCaptor.getValue().onSetScoreUpdateObserver(any());
         mLooper.dispatchAll();
         verify(mWifiConnectedNetworkScorer).onSetScoreUpdateObserver(any());
+    }
+
+    @RequiresFlagsEnabled(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
+    @Test
+    public void scoreUpdateObserverProxy_UnblockAllBssids() throws Exception {
+        mWifiManager.setWifiConnectedNetworkScorer(new SynchronousExecutor(),
+                mWifiConnectedNetworkScorer);
+        ArgumentCaptor<IWifiConnectedNetworkScorer.Stub> scorerCaptor =
+                ArgumentCaptor.forClass(IWifiConnectedNetworkScorer.Stub.class);
+        verify(mWifiService).setWifiConnectedNetworkScorer(any(IBinder.class),
+                scorerCaptor.capture());
+        IScoreUpdateObserver mMockIScoreUpdateObserver = mock(IScoreUpdateObserver.class);
+        scorerCaptor.getValue().onSetScoreUpdateObserver(mMockIScoreUpdateObserver);
+        mLooper.dispatchAll();
+
+        ArgumentCaptor<ScoreUpdateObserver> scoreUpdateObserverCaptor =
+                ArgumentCaptor.forClass(ScoreUpdateObserver.class);
+        verify(mWifiConnectedNetworkScorer)
+                .onSetScoreUpdateObserver(scoreUpdateObserverCaptor.capture());
+        scoreUpdateObserverCaptor.getValue().unblockAllBssids();
+
+        verify(mMockIScoreUpdateObserver).unblockAllBssids();
     }
 
     /**

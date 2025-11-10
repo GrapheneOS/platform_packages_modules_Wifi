@@ -22,5 +22,5 @@ package android.net.wifi;
  */
 oneway interface IRestrictAutoJoinToSubIdCallback {
     void onRestrictionStarted(int subscriptionId);
-    void onRestrictionStopped();
+    void onRestrictionsStopped();
 }

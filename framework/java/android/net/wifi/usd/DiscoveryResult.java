@@ -19,8 +19,13 @@ package android.net.wifi.usd;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.RequiresApi;
 import android.annotation.SystemApi;
 import android.net.wifi.flags.Flags;
+import android.net.wifi.util.Environment;
+
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * A class providing information about a USD discovery session with a specific peer.
@@ -35,12 +40,18 @@ public class DiscoveryResult {
     @Config.ServiceProtoType
     private final int mServiceProtoType;
     private final boolean mIsFsdEnabled;
+    @Nullable
+    private final ProximityRangingInfo mProximityRangingInfo;
+    @Nullable
+    private final byte[] mDevIk;
 
     private DiscoveryResult(Builder builder) {
         mPeerId = builder.mPeerId;
         mServiceSpecificInfo = builder.mServiceSpecificInfo;
         mServiceProtoType = builder.mServiceProtoType;
         mIsFsdEnabled = builder.mIsFsdEnabled;
+        mProximityRangingInfo = builder.mProximityRangingInfo;
+        mDevIk = builder.mDevIk;
     }
 
     /**
@@ -75,6 +86,75 @@ public class DiscoveryResult {
     }
 
     /**
+     * Get the proximity ranging information from the peer.
+     *
+     * @return Proximity ranging info, or {@code null} if not available.
+     */
+    @RequiresApi(37)
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    @Nullable
+    public ProximityRangingInfo getProximityRangingInfo() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mProximityRangingInfo;
+    }
+
+    /**
+     * Get the Device Identity Key (DevIK) of the proximity ranging peer.
+     * <p>
+     * This key is derived by the USD protocol engine from the DIRA
+     * (Device Identity Resolution Attribute) in the discovery frame, using the list of peer
+     * DevIKs provided in the subscribe or publish configuration.
+     * A non-null value indicates that the discovered peer is a known device.
+     *
+     * @return a 16 byte device identity key or null
+     */
+    @RequiresApi(37)
+    @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+    @Nullable
+    public byte[] getDeviceIdentityKey() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mDevIk;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DiscoveryResult that)) return false;
+        return mPeerId == that.mPeerId
+                && mServiceProtoType == that.mServiceProtoType
+                && mIsFsdEnabled == that.mIsFsdEnabled
+                && Arrays.equals(mServiceSpecificInfo, that.mServiceSpecificInfo)
+                && Objects.equals(mProximityRangingInfo, that.mProximityRangingInfo)
+                && Arrays.equals(mDevIk, that.mDevIk);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(mPeerId, mServiceProtoType, mIsFsdEnabled,
+                mProximityRangingInfo);
+        result = 31 * result + Arrays.hashCode(mServiceSpecificInfo);
+        result = 31 * result + Arrays.hashCode(mDevIk);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "DiscoveryResult{"
+                + "mPeerId=" + mPeerId
+                + ", mServiceSpecificInfo=" + Arrays.toString(mServiceSpecificInfo)
+                + ", mServiceProtoType=" + mServiceProtoType
+                + ", mIsFsdEnabled=" + mIsFsdEnabled
+                + ", mProximityRangingInfo=" + mProximityRangingInfo
+                + ", mDevIk=" + Arrays.toString(mDevIk)
+                + '}';
+    }
+
+
+    /**
      * {@code DiscoveryResult} builder static inner class.
      */
     @FlaggedApi(Flags.FLAG_USD)
@@ -83,6 +163,8 @@ public class DiscoveryResult {
         private byte[] mServiceSpecificInfo;
         private int mServiceProtoType;
         private boolean mIsFsdEnabled;
+        private ProximityRangingInfo mProximityRangingInfo = null;
+        private byte[] mDevIk = null;
 
         /**
          * Builder constructor.
@@ -132,6 +214,47 @@ public class DiscoveryResult {
             this.mIsFsdEnabled = isFsdEnabled;
             return this;
         }
+
+        /**
+         * Sets the proximity ranging information and returns a reference
+         * to this Builder enabling method chaining.
+         *
+         * @param proximityRangingInfo the {@code proximityRangingInfo} to set
+         * @return a reference to this Builder
+         */
+        @RequiresApi(37)
+        @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setProximityRangingInfo(
+                @Nullable ProximityRangingInfo proximityRangingInfo) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            this.mProximityRangingInfo = proximityRangingInfo;
+            return this;
+        }
+
+        /**
+         * Sets the device identity key of the peer.
+         *
+         * @param devIk The 16-byte device identity key.
+         * @return A reference to this Builder.
+         */
+        @RequiresApi(37)
+        @FlaggedApi(com.android.wifi.flags.Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setDeviceIdentityKey(@Nullable byte[] devIk) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            if (devIk != null && devIk.length != 16) {
+                throw new IllegalArgumentException(
+                        "Device Identity Key must be 16 bytes long.");
+            }
+            this.mDevIk = devIk;
+            return this;
+        }
+
 
         /**
          * Returns a {@code DiscoveryResult} built from the parameters previously set.

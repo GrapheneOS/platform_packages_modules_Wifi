@@ -505,6 +505,16 @@ public class WifiScoreReport {
             }
         }
 
+        public void onL3DataStallSuspected(int sessionId) {
+            try {
+                mScorer.onL3DataStallSuspected(sessionId);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Unable to notify L3 data stall detected for Wifi connected network"
+                        + " scorer " + this, e);
+                revertToDefaultConnectedScorer();
+            }
+        }
+
         public boolean isShellCommandScorer() {
             return mScorer instanceof WifiShellCommand.WifiScorer;
         }
@@ -967,6 +977,16 @@ public class WifiScoreReport {
         }
         mWifiConnectedNetworkScorerHolder.onNetworkSwitchRejected(
                 getCurrentSessionId(), targetNetworkId, targetBssid);
+    }
+
+    /**
+     * Notify the connected network scorer of a L3 data stall.
+     */
+    public void onL3DataStallSuspected() {
+        if (mWifiConnectedNetworkScorerHolder == null) {
+            return;
+        }
+        mWifiConnectedNetworkScorerHolder.onL3DataStallSuspected(getCurrentSessionId());
     }
 
     /**

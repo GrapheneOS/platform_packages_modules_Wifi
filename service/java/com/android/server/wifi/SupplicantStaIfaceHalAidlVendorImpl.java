@@ -29,8 +29,7 @@ import android.util.Log;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.io.PrintWriter;
 
 /**
  * Implementation of Supplicant STA Iface HAL using the vendor AIDL service.
@@ -204,5 +203,17 @@ public class SupplicantStaIfaceHalAidlVendorImpl extends SupplicantStaIfaceHalAi
         synchronized (mLock) {
             return mISupplicant != null;
         }
+    }
+
+    /**
+     * Dump information about the internal state
+     *
+     * @param pw PrintWriter to write the dump to
+     */
+    public void dump(PrintWriter pw) {
+        pw.println("Dump of " + TAG);
+        pw.println("Local Version: " + ISupplicant.VERSION);
+        pw.println("Service Version: " + mServiceVersion);
+        super.dump(pw);
     }
 }

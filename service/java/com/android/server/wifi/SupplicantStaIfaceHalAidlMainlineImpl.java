@@ -34,6 +34,8 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.mainline_supplicant.ServiceManagerWrapper;
 import com.android.wifi.flags.Flags;
 
+import java.io.PrintWriter;
+
 /**
  * Implementation of Supplicant STA Iface HAL using the mainline AIDL service.
  */
@@ -221,5 +223,16 @@ public class SupplicantStaIfaceHalAidlMainlineImpl extends SupplicantStaIfaceHal
         synchronized (mLock) {
             return mIMainlineSupplicant != null && mISupplicant != null;
         }
+    }
+
+    /**
+     * Dump information about the internal state
+     *
+     * @param pw PrintWriter to write the dump to
+     */
+    public void dump(PrintWriter pw) {
+        pw.println("Dump of " + TAG);
+        pw.println("mIMainlineSupplicant: " + (mIMainlineSupplicant != null));
+        super.dump(pw);
     }
 }

@@ -29,6 +29,7 @@ import android.net.wifi.usd.SubscribeConfig;
 
 import com.android.server.wifi.usd.UsdRequestManager;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -950,4 +951,11 @@ interface ISupplicantStaIfaceHal {
             byte[] message) {
         return false;
     }
+
+    /**
+     * Dump information about the internal state
+     *
+     * @param pw PrintWriter to write the dump to
+     */
+    void dump(PrintWriter pw);
 }

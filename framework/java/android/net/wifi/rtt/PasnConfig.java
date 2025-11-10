@@ -20,8 +20,11 @@ import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.RequiresApi;
+import android.annotation.Size;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.util.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -184,6 +187,8 @@ public final class PasnConfig implements Parcelable {
     private String mPassword;
     private final WifiSsid mWifiSsid;
     private final byte[] mPasnComebackCookie;
+    private final byte[] mProximityDetectionSeekerDeviceIdentityKey;
+    private final byte[] mPmk;
 
     /**
      * Return base AKMs (Authentication and Key Management).
@@ -235,6 +240,38 @@ public final class PasnConfig implements Parcelable {
         return mPasnComebackCookie;
     }
 
+    /**
+     * Get the Seeker device identity key.
+     * See {@link Builder#setProximityDetectionSeekerDeviceIdentityKey(byte[])}.
+     * see {@link PasnConfig.Builder}
+     */
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    @Nullable
+    public byte[] getProximityDetectionSeekerDeviceIdentityKey() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mProximityDetectionSeekerDeviceIdentityKey;
+    }
+
+
+
+    /**
+     * Get the PMK (pairwise master key).
+     * See {@link Builder#setPmk(byte[])}.
+     * see {@link PasnConfig.Builder}
+     */
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+    @Nullable
+    public byte[] getPmk() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mPmk;
+    }
+
 
     private PasnConfig(@NonNull Parcel in) {
         mBaseAkms = in.readInt();
@@ -243,6 +280,8 @@ public final class PasnConfig implements Parcelable {
         mWifiSsid = (SdkLevel.isAtLeastT()) ? in.readParcelable(WifiSsid.class.getClassLoader(),
                 WifiSsid.class) : in.readParcelable(WifiSsid.class.getClassLoader());
         mPasnComebackCookie = in.createByteArray();
+        mProximityDetectionSeekerDeviceIdentityKey = in.createByteArray();
+        mPmk = in.createByteArray();
     }
 
     public static final @NonNull Creator<PasnConfig> CREATOR = new Creator<PasnConfig>() {
@@ -269,6 +308,8 @@ public final class PasnConfig implements Parcelable {
         dest.writeString(mPassword);
         dest.writeParcelable(mWifiSsid, flags);
         dest.writeByteArray(mPasnComebackCookie);
+        dest.writeByteArray(mProximityDetectionSeekerDeviceIdentityKey);
+        dest.writeByteArray(mPmk);
     }
 
     /**
@@ -311,6 +352,9 @@ public final class PasnConfig implements Parcelable {
         mPassword = builder.mPassword;
         mWifiSsid = builder.mWifiSsid;
         mPasnComebackCookie = builder.mPasnComebackCookie;
+        mProximityDetectionSeekerDeviceIdentityKey =
+                builder.mProximityDetectionSeekerDeviceIdentityKey;
+        mPmk = builder.mPmk;
     }
 
     /**
@@ -322,6 +366,40 @@ public final class PasnConfig implements Parcelable {
 
     /**
      * Builder for {@link PasnConfig}
+     *
+     * <p><b>Proximity Detection Security Configuration</b></p>
+     * <p>To configure authenticated Pre-association Security Negotiation (PASN) for Proximity
+     * Detection, application must provide a device identity key and a corresponding security
+     * credential (either a PMK or a password).</p>
+     *
+     * <p><b>1. Device Identity Key:</b></p>
+     * <p>Call {@link #setProximityDetectionSeekerDeviceIdentityKey(byte[])} to set the 16-byte
+     * device identity key (DevIK) of the device acting as the Ranging Seeker. This key is
+     * required regardless of whether the current device is the Seeker or the Advertiser.
+     * The device's role as Seeker or Advertiser is specified in
+     * {@link ProximityDetectionConfig#getRangingServiceRole()}.</p>
+     * <p>When this device is the <b>Seeker</b>, it uses the DevIK to generate a Device Identity
+     * Resolution Attribute (DIRA) and include it in the PASN M1 frame in the security handshake.
+     * </p>
+     * <p>When this device is the <b>Advertiser</b>, it uses the Seeker's DevIK (provisioned
+     * out-of-band) and the Seeker's DIRA Tag from received PASN M1 frame to identify the correct
+     * security credential.</p>
+     *
+     * <p><b>2. Security Credential:</b></p>
+     * <p>Along with setting the device identity key, application must provide exactly one of the
+     * following security credentials:</p>
+     * <p><b>PMK (Pairwise Master Key):</b> Call {@link #setPmk(byte[])} to provide a
+     * pre-shared 32-byte PMK.</p>
+     * <p><b>Password:</b> Call {@link #setPassword(String)} to provide a password. The
+     * system will then derive the necessary keys.</p>
+     *
+     * <p>Using both a PMK and a password simultaneously is not allowed and will cause the
+     * {@link #build()} method to throw an {@link IllegalStateException}. Similarly, calling
+     * {@link #setProximityDetectionSeekerDeviceIdentityKey(byte[])} without providing either a
+     * PMK or a password will also result in an {@link IllegalStateException}.</p>
+     *
+     * <p>For standard (non-Proximity Detection) Wi-Fi RTT, see {@link #setWifiSsid(WifiSsid)}
+     * and {@link #setPassword(String)} for STA-AP ranging configuration.</p>
      */
     @FlaggedApi(Flags.FLAG_SECURE_RANGING)
     public static final class Builder {
@@ -330,6 +408,8 @@ public final class PasnConfig implements Parcelable {
         private String mPassword = null;
         private WifiSsid mWifiSsid = null;
         byte[] mPasnComebackCookie = null;
+        private byte[] mProximityDetectionSeekerDeviceIdentityKey = null;
+        private byte[] mPmk = null;
 
         /**
          * Builder
@@ -345,11 +425,10 @@ public final class PasnConfig implements Parcelable {
         }
 
         /**
-         * Sets the password if needed by the base AKM of the PASN. If not set, password is
-         * retrieved from the saved profile identified by the SSID. See
-         * {@link #setWifiSsid(WifiSsid)}.
+         * Sets the password if needed by the base AKM of the PASN.
          *
-         * Note: If password and SSID is not set, secure ranging will use unauthenticated PASN.
+         * <p>For STA-AP ranging, If a password is not set directly, it may be retrieved from a
+         * saved network profile identified by the SSID. See {@link #setWifiSsid(WifiSsid)}.
          *
          * @param password password string
          * @return a reference to this Builder
@@ -360,6 +439,59 @@ public final class PasnConfig implements Parcelable {
             this.mPassword = password;
             return this;
         }
+
+        /**
+         * The Ranging Seeker's device identity key (devIK) required for authenticated PASN mode in
+         * proximity detection. This key is always the Seeker's DevIK, regardless of the
+         * device's role.
+         *
+         * @param seekerDevIK the device identity key of the seeker device, which must be 16 bytes.
+         * @return the builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @RequiresApi(37)
+        @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+        @NonNull
+        public Builder setProximityDetectionSeekerDeviceIdentityKey(
+                @NonNull @Size(16) byte[] seekerDevIK) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            Objects.requireNonNull(seekerDevIK, "Seeker Device Identity Key must not be null");
+            if (seekerDevIK.length != 16) {
+                throw new IllegalArgumentException("Seeker Device Identity Key must"
+                        + " be 16 bytes long.");
+            }
+            mProximityDetectionSeekerDeviceIdentityKey = seekerDevIK;
+            return this;
+        }
+
+
+
+
+        /**
+         * Configures the PMK (Pairwise Master Key) for authenticated PASN mode in proximity
+         * detection.
+         *
+         * @param pmk A PMK, which must be 32 bytes.
+         * @return the builder to facilitate chaining
+         *         {@code builder.setXXX(..).setXXX(..)}.
+         */
+        @RequiresApi(37)
+        @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
+        public @NonNull Builder setPmk(@NonNull @Size(32) byte[] pmk) {
+            if (!Environment.isSdkNewerThanB()) {
+                throw new UnsupportedOperationException();
+            }
+            Objects.requireNonNull(pmk, "PMK must not be null");
+            if (pmk.length != 32) {
+                throw new IllegalArgumentException("PMK must be 32 bytes long.");
+            }
+            mPmk = pmk;
+            return this;
+        }
+
+
 
         /**
          * Sets the Wi-Fi Service Set Identifier (SSID). This is used to get the saved profile to
@@ -408,6 +540,17 @@ public final class PasnConfig implements Parcelable {
          */
         @NonNull
         public PasnConfig build() {
+            if (mProximityDetectionSeekerDeviceIdentityKey != null) {
+                if (mPmk == null && mPassword == null) {
+                    throw new IllegalStateException(
+                            "Either PMK or Password must be set if proximity detection"
+                                    + " device identity key is set.");
+                }
+                if (mPassword != null && mPmk != null) {
+                    throw new IllegalStateException("Cannot set both PMK and password");
+                }
+            }
+
             return new PasnConfig(this);
         }
     }
@@ -418,21 +561,30 @@ public final class PasnConfig implements Parcelable {
         if (!(o instanceof PasnConfig that)) return false;
         return mBaseAkms == that.mBaseAkms && mCiphers == that.mCiphers && Objects.equals(
                 mPassword, that.mPassword) && Objects.equals(mWifiSsid, that.mWifiSsid)
-                && Arrays.equals(mPasnComebackCookie, that.mPasnComebackCookie);
+                && Arrays.equals(mPasnComebackCookie, that.mPasnComebackCookie)
+                && Arrays.equals(mProximityDetectionSeekerDeviceIdentityKey,
+                that.mProximityDetectionSeekerDeviceIdentityKey)
+                && Arrays.equals(mPmk, that.mPmk);
     }
 
     @Override
     public int hashCode() {
         int result = Objects.hash(mBaseAkms, mCiphers, mPassword, mWifiSsid);
         result = 31 * result + Arrays.hashCode(mPasnComebackCookie);
+        result = 31 * result + Arrays.hashCode(mProximityDetectionSeekerDeviceIdentityKey);
+        result = 31 * result + Arrays.hashCode(mPmk);
         return result;
     }
 
     @Override
     public String toString() {
         String password = (mPassword != null ? "*" : "null");
+        String seekerDevIK =
+                (mProximityDetectionSeekerDeviceIdentityKey != null ? "[SeekerDevIK]" : "null");
+        String pmk = (mPmk != null ? "[pmk]" : "null");
         return "PasnConfig{" + "mBaseAkms=" + mBaseAkms + ", mCiphers=" + mCiphers + ", mPassword='"
                 + password + '\'' + ", mWifiSsid=" + mWifiSsid + ", mPasnComebackCookie="
-                + Arrays.toString(mPasnComebackCookie) + '}';
+                + Arrays.toString(mPasnComebackCookie) + ", seekerDeviceIdentityKey=" + seekerDevIK
+                + ", mPmk=" + pmk + '}';
     }
 }

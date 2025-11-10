@@ -97,6 +97,7 @@ import android.hardware.wifi.supplicant.V1_0.ISupplicantStaIfaceCallback;
 import android.hardware.wifi.supplicant.V1_4.ISupplicantStaIfaceCallback.AssociationRejectionData;
 import android.hardware.wifi.supplicant.V1_4.ISupplicantStaIfaceCallback.MboAssocDisallowedReasonCode;
 import android.net.CaptivePortalData;
+import android.net.ConnectivityDiagnosticsManager;
 import android.net.DhcpResultsParcelable;
 import android.net.InetAddresses;
 import android.net.IpConfiguration;
@@ -371,6 +372,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(context.getOpPackageName()).thenReturn(OP_PACKAGE_NAME);
 
         when(context.getSystemService(ActivityManager.class)).thenReturn(mActivityManager);
+        when(context.getSystemService(ConnectivityDiagnosticsManager.class))
+                .thenReturn(mConnectivityDiagnosticsManager);
 
         WifiP2pManager p2pm = mock(WifiP2pManager.class);
         when(context.getSystemService(WifiP2pManager.class)).thenReturn(p2pm);
@@ -603,6 +606,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Mock WifiRoamingConfigStore mWifiRoamingConfigStore;
 
     @Mock DeviceWiphyCapabilities mDeviceWiphyCapabilities;
+    @Mock ConnectivityDiagnosticsManager mConnectivityDiagnosticsManager;
 
     @Captor ArgumentCaptor<WifiConfigManager.OnNetworkUpdateListener> mConfigUpdateListenerCaptor;
     @Captor ArgumentCaptor<WifiNetworkAgent.Callback> mWifiNetworkAgentCallbackCaptor;
@@ -7809,6 +7813,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         // User clicks positive button.
         callback.onPositiveButtonClicked();
         mLooper.dispatchAll();
+        verify(mWifiConfigManager, never()).userTemporarilyDisabledNetwork(any(), anyInt());
         verify(mWifiNetworkFactory).onDisconnectionExpected(
                 WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION, true);
         verify(mWifiConnectivityManager, times(2)).prepareForForcedConnection(anyInt());
@@ -7842,6 +7847,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 any(),
                 callbackCaptor.capture(),
                 any());
+        verify(mWifiConfigManager).userEnabledNetwork(mConnectedNetwork.networkId);
         verify(mockDialogHandle).launchDialog();
         verify(mContext).getString(R.string.wifi_disconnect_dialog_title, "TestAppName");
         WifiDialogManager.SimpleDialogCallback callback = callbackCaptor.getValue();
@@ -7852,11 +7858,15 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         // disconnect() should not be called again.
         verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
+        verify(mWifiNetworkFactory, never()).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API, true);
 
         // User clicks positive button.
         callback.onPositiveButtonClicked();
         mLooper.dispatchAll();
         verify(mWifiNative).disconnect(WIFI_IFACE_NAME);
+        verify(mWifiNetworkFactory).onDisconnectionExpected(
+                WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_DISCONNECT_API, true);
     }
 
     @Test
@@ -11843,5 +11853,123 @@ public class ClientModeImplTest extends WifiBaseTest {
         assertEquals(89, mWifiInfo.getLinkSpeed());
         assertEquals(89, mWifiInfo.getTxLinkSpeedMbps());
         assertEquals(89, mWifiInfo.getRxLinkSpeedMbps());
+    }
+
+    /**
+     * Verify that ConnectivityDiagnosticsCallback is registered and unregistered for primary.
+     */
+    @Test
+    public void testConnectivityDiagnosticsCallbackForPrimary() throws Exception {
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
+        when(com.android.wifi.flags.Flags.feedMoreDataToExternalScorer()).thenReturn(true);
+        connect();
+
+        verify(mConnectivityDiagnosticsManager)
+                .registerConnectivityDiagnosticsCallback(any(), any(), any());
+
+        mCmi.disconnect();
+        mLooper.dispatchAll();
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, WifiSsid.fromUtf8Text(mConnectedNetwork.SSID),
+                        TEST_BSSID_STR, sFreq, SupplicantState.DISCONNECTED));
+        mLooper.dispatchAll();
+
+        verify(mConnectivityDiagnosticsManager).unregisterConnectivityDiagnosticsCallback(any());
+        assertNull(mCmi.mConnectivityDiagnosticsCallback);
+    }
+
+    /**
+     * Verify that ConnectivityDiagnosticsCallback is not registered and unregistered for primary
+     * role when the flag is disabled.
+     */
+    @Test
+    public void testConnectivityDiagnosticsCallbackForPrimaryWithoutFlag() throws Exception {
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
+        when(com.android.wifi.flags.Flags.feedMoreDataToExternalScorer()).thenReturn(false);
+        connect();
+
+        verify(mConnectivityDiagnosticsManager, never())
+                .registerConnectivityDiagnosticsCallback(any(), any(), any());
+
+        mCmi.disconnect();
+        mLooper.dispatchAll();
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, WifiSsid.fromUtf8Text(mConnectedNetwork.SSID),
+                        TEST_BSSID_STR, sFreq, SupplicantState.DISCONNECTED));
+        mLooper.dispatchAll();
+
+        verify(mConnectivityDiagnosticsManager, never())
+                .unregisterConnectivityDiagnosticsCallback(any());
+    }
+
+    /**
+     * Verify that ConnectivityDiagnosticsCallback is not registered and unregistered for secondary
+     * long-lived role.
+     */
+    @Test
+    public void testConnectivityDiagnosticsCallbackForSecondary() throws Exception {
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_SECONDARY_LONG_LIVED);
+        when(com.android.wifi.flags.Flags.feedMoreDataToExternalScorer()).thenReturn(true);
+        connect();
+
+        verify(mConnectivityDiagnosticsManager, never())
+                .registerConnectivityDiagnosticsCallback(any(), any(), any());
+
+        mCmi.disconnect();
+        mLooper.dispatchAll();
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(0, WifiSsid.fromUtf8Text(mConnectedNetwork.SSID),
+                        TEST_BSSID_STR, sFreq, SupplicantState.DISCONNECTED));
+        mLooper.dispatchAll();
+
+        verify(mConnectivityDiagnosticsManager, never())
+                .unregisterConnectivityDiagnosticsCallback(any());
+    }
+
+    @Test
+    public void testConnectivityDiagnosticsManagerIsNull() throws Exception {
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
+        when(com.android.wifi.flags.Flags.feedMoreDataToExternalScorer()).thenReturn(true);
+        when(mContext.getSystemService(ConnectivityDiagnosticsManager.class)).thenReturn(null);
+
+        connect();
+
+        assertNull(mCmi.mConnectivityDiagnosticsCallback);
+    }
+
+    /**
+     * Verify that ConnectivityDiagnosticsCallback is registered and unregistered for primary.
+     */
+    @Test
+    public void testOnDataStallSuspected() throws Exception {
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
+        when(com.android.wifi.flags.Flags.feedMoreDataToExternalScorer()).thenReturn(true);
+        connect();
+        verify(mConnectivityDiagnosticsManager)
+                .registerConnectivityDiagnosticsCallback(any(), any(), any());
+        assertNotNull(mCmi.mConnectivityDiagnosticsCallback);
+
+        ConnectivityDiagnosticsManager.DataStallReport mockReport =
+                mock(ConnectivityDiagnosticsManager.DataStallReport.class);
+        mCmi.mConnectivityDiagnosticsCallback.onDataStallSuspected(mockReport);
+
+        verify(mWifiScoreReport).onL3DataStallSuspected();
+    }
+
+    @Test
+    public void testRegisterConnectivityDiagnosticsCallbackAgain() throws Exception {
+        when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
+        when(com.android.wifi.flags.Flags.feedMoreDataToExternalScorer()).thenReturn(true);
+        connect();
+        verify(mConnectivityDiagnosticsManager)
+                .registerConnectivityDiagnosticsCallback(any(), any(), any());
+        assertNotNull(mCmi.mConnectivityDiagnosticsCallback);
+
+        //ClientModeImpl.L3ConnectedState state = new ClientModeImpl.L3ConnectedState(1);
+        ClientModeImpl.L3ConnectedState state = mCmi.new L3ConnectedState(1);
+        state.registerConnectivityDiagnosticsCallbackIfNeeded();
+
+        verify(mConnectivityDiagnosticsManager)
+                .registerConnectivityDiagnosticsCallback(any(), any(), any());
     }
 }

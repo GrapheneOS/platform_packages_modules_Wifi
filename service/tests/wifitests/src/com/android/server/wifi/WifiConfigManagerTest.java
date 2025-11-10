@@ -5684,7 +5684,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertFalse(mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(
                 visibleNetwork));
         assertFalse(mWifiConfigManager.isNonCarrierMergedNetworkTemporarilyDisabled(otherNetwork));
-        verify(mOnRestrictAutoJoinToSubIdCallback).onRestrictionStopped();
+        verify(mOnRestrictAutoJoinToSubIdCallback).onRestrictionsStopped();
     }
 
     /**
@@ -8775,5 +8775,35 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration retrievedInsecureConfig =
                 mWifiConfigManager.getConfiguredNetwork(insecureResult.getNetworkId());
         assertFalse(retrievedInsecureConfig.isAutoJoinInAdvancedProtectionModeEnabled());
+    }
+
+    /**
+     * Verifies that the user switch won't cause store is written again if user stop is handled.
+     */
+    @Test
+    public void testHandleUserSwitchAfterUserStop() throws Exception {
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        Context user2Context = mock(Context.class);
+        when(user2Context.getSystemService(eq(UserManager.class))).thenReturn(mUserManager);
+        when(mContext.createContextAsUser(any(), eq(0))).thenReturn(user2Context);
+        when(mUserManager.isAdminUser()).thenReturn(true);
+        int user1 = TEST_DEFAULT_USER;
+        int user2 = TEST_DEFAULT_USER + 1;
+        setupUserProfiles(user2);
+
+        // Set up the internal data first.
+        assertTrue(mWifiConfigManager.loadFromStore());
+
+        // Try stopping user 1 first
+        when(mUserManager.isUserUnlockingOrUnlocked(UserHandle.of(user2))).thenReturn(false);
+        mWifiConfigManager.handleUserStop(user1);
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore).write();
+        reset(mWifiConfigStore);
+        // Now try switching the foreground user2, this should NOT trigger a write to store
+        // since it is unlock.
+        mWifiConfigManager.handleUserSwitch(user2);
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never())
+                .switchUserStoresAndRead(any(List.class));
+        mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write();
     }
 }

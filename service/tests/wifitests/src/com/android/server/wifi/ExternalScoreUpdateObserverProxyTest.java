@@ -16,17 +16,21 @@
 
 package com.android.server.wifi;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import android.net.wifi.WifiManager;
+import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.test.TestLooper;
+import android.platform.test.annotations.RequiresFlagsEnabled;
 
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.wifi.flags.Flags;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -104,5 +108,30 @@ public class ExternalScoreUpdateObserverProxyTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verifyNoMoreInteractions(mCallback);
+    }
+
+    @RequiresFlagsEnabled(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
+    @Test
+    public void testCallbackForUnblockAllBssidsApi() throws Exception {
+        mExternalScoreUpdateObserverProxy.registerCallback(mCallback);
+        mExternalScoreUpdateObserverProxy.unblockAllBssids();
+        mLooper.dispatchAll();
+        verify(mCallback).unblockAllBssids();
+
+        // Unregister the callback
+        mExternalScoreUpdateObserverProxy.unregisterCallback(mCallback);
+        mExternalScoreUpdateObserverProxy.unblockAllBssids();
+        mLooper.dispatchAll();
+
+        verifyNoMoreInteractions(mCallback);
+    }
+
+    @RequiresFlagsEnabled(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
+    @Test
+    public void testNullCallbackForUnblockAllBssidsApi() throws Exception {
+        mExternalScoreUpdateObserverProxy.unblockAllBssids();
+        mLooper.dispatchAll();
+
+        assertEquals(mExternalScoreUpdateObserverProxy.mCountNullCallback, 1);
     }
 }

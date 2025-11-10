@@ -796,14 +796,15 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                     }
 
                     @Override
-                    public void onRestrictionStopped() {
+                    public void onRestrictionsStopped() {
                         int itemCount = mRestrictAutoJoinToSubIdCallbacks.beginBroadcast();
                         for (int i = 0; i < itemCount; i++) {
                             try {
                                 mRestrictAutoJoinToSubIdCallbacks.getBroadcastItem(i)
-                                        .onRestrictionStopped();
+                                        .onRestrictionsStopped();
                             } catch (RemoteException e) {
-                                Log.e(TAG, "IRestrictAutoJoinToSubIdCallback.onRestrictionStopped:"
+                                Log.e(TAG,
+                                        "IRestrictAutoJoinToSubIdCallback.onRestrictionsStopped:"
                                         + " remote exception -- " + e);
                             }
                         }
@@ -1132,7 +1133,9 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                     },
                     intentFilter,
                     null, null);
-            registerBroadcastReceiver(
+            // Only monitor ACTION_SHUTDOWN from user 0 (system) for device power-down scenarios.
+            // This avoids triggering on user log-outs in multi-user environments.
+            mContext.registerReceiver(
                     new BroadcastReceiver() {
                         @Override
                         public void onReceive(Context context, Intent intent) {
@@ -4956,7 +4959,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 }
             } else {
                 try {
-                    callback.onRestrictionStopped();
+                    callback.onRestrictionsStopped();
                 } catch (RemoteException e) {
                     Log.e(TAG, "addRestrictAutoJoinToSubIdCallback: remote exception -- "
                             + e);
