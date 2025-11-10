@@ -22,6 +22,8 @@ import static android.net.wifi.MloLink.MIN_MLO_LINK_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import android.os.Parcel;
+
 import androidx.test.filters.SmallTest;
 
 import org.junit.Test;
@@ -53,5 +55,40 @@ public class TwtRequestTest {
         assertEquals(testMinWakeInterval, twtRequest.getMinWakeIntervalMicros());
         assertEquals(testMaxWakeInterval, twtRequest.getMaxWakeIntervalMicros());
         assertEquals(testMloLinkId, twtRequest.getLinkId());
+    }
+
+    /**
+     * Test parceling and unparceling of TwtRequest objects.
+     */
+    @Test
+    public void testParcelable() {
+        final int testMinWakeDuration = 100;
+        final int testMaxWakeDuration = 1000;
+        final int testMinWakeInterval = 9999;
+        final int testMaxWakeInterval = 999999;
+        final int testMloLinkId = 2;
+
+        TwtRequest.Builder builder = new TwtRequest.Builder(testMinWakeDuration,
+                testMaxWakeDuration, testMinWakeInterval, testMaxWakeInterval);
+        builder.setLinkId(testMloLinkId);
+        TwtRequest twtRequest = builder.build();
+
+        Parcel parcel = Parcel.obtain();
+        twtRequest.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+
+        TwtRequest unparceledTwtRequest = TwtRequest.CREATOR.createFromParcel(parcel);
+
+        assertEquals(twtRequest.getMinWakeDurationMicros(),
+                unparceledTwtRequest.getMinWakeDurationMicros());
+        assertEquals(twtRequest.getMaxWakeDurationMicros(),
+                unparceledTwtRequest.getMaxWakeDurationMicros());
+        assertEquals(twtRequest.getMinWakeIntervalMicros(),
+                unparceledTwtRequest.getMinWakeIntervalMicros());
+        assertEquals(twtRequest.getMaxWakeIntervalMicros(),
+                unparceledTwtRequest.getMaxWakeIntervalMicros());
+        assertEquals(twtRequest.getLinkId(), unparceledTwtRequest.getLinkId());
+
+        parcel.recycle();
     }
 }
