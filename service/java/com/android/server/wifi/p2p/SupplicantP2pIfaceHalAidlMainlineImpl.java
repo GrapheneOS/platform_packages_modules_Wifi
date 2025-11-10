@@ -162,7 +162,7 @@ public class SupplicantP2pIfaceHalAidlMainlineImpl extends SupplicantP2pIfaceHal
     @Override
     public boolean isInitializationStarted() {
         synchronized (mLock) {
-            return mIsServiceAvailable;
+            return mInitializationStarted;
         }
     }
 
