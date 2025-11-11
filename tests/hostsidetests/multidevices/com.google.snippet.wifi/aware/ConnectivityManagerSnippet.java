@@ -21,6 +21,7 @@ import android.net.LinkProperties;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
+import android.net.RouteInfo;
 import android.net.TransportInfo;
 import android.net.wifi.aware.WifiAwareChannelInfo;
 import android.net.wifi.aware.WifiAwareNetworkInfo;
@@ -212,8 +213,9 @@ public class ConnectivityManagerSnippet implements Snippet {
             return null;
         }
 
-        if (iface == null)
+        if (iface == null) {
             return null;
+        }
         return iface.getInetAddresses();
     }
 
@@ -270,6 +272,63 @@ public class ConnectivityManagerSnippet implements Snippet {
             }
         }
         return inetAddrs;
+    }
+
+
+    /**
+     * Gets the LinkProperties for the currently active default network.
+     *
+     * <p>This method retrieves the network that the system currently considers its default
+     * route for internet traffic and returns its associated link properties, which include
+     * IP addresses, DNS servers, routes, and the interface name.
+     *
+     * @return A {@link LinkProperties} object for the active network, or {@code null} if there
+     *         is no active network connection.
+     */
+    @Rpc(description = "Returns active link properties")
+    public LinkProperties connectivityGetActiveLinkProperties() {
+        // Get the current default network.
+        Network activeNetwork = mConnectivityManager.getActiveNetwork();
+        if (activeNetwork == null) {
+            // No active network, so no properties to return.
+            return null;
+        }
+        // Get the LinkProperties for that specific network.
+        return mConnectivityManager.getLinkProperties(activeNetwork);
+    }
+
+    /**
+     * Gets the IPv4 default gateway address for the active network.
+     *
+     * <p>This method inspects the routes within the active network's {@link LinkProperties}
+     * to find the default route (destination 0.0.0.0/0) and returns its gateway address.
+     *
+     * @return A string representation of the IPv4 default gateway address (e.g., "192.168.1.1"),
+     *         or {@code null} if no active network or IPv4 default gateway is found.
+     */
+    @Rpc(description = "Return default gateway of the "
+            + "active network")
+    public String connectivityGetIPv4DefaultGateway() {
+        // First, get the LinkProperties for the active network.
+        LinkProperties linkProp = connectivityGetActiveLinkProperties();
+        if (linkProp == null) {
+            // If there are no link properties, there's no gateway.
+            return null;
+        }
+
+        List<RouteInfo> routeInfos = linkProp.getRoutes();
+        for (RouteInfo routeInfo: routeInfos) {
+            // Check if the route is a default route and has a gateway.
+            if (routeInfo.isDefaultRoute() && routeInfo.getGateway() instanceof Inet4Address) {
+                Inet4Address gateway = (Inet4Address) routeInfo.getGateway();
+                Log.d(
+                        "Found IPv4 default gateway: " + gateway.getHostAddress());
+                return gateway.getHostAddress();
+            }
+        }
+        Log.w("No IPv4 default gateway found in "
+                + "LinkProperties.");
+        return null;
     }
 
     /**
