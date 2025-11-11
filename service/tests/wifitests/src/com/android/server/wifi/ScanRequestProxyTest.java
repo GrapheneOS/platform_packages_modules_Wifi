@@ -599,7 +599,8 @@ public class ScanRequestProxyTest extends WifiBaseTest {
         // Enable scanning again (a new iface was added/removed).
         mScanRequestProxy.enableScanning(true, false);
         mInOrder.verify(mWifiScanner).setScanningEnabled(true);
-        validateScanAvailableBroadcastSent(true);
+        // Don't send duplicate broadcast
+        validateScanAvailableBroadcastNotSent();
         // Validate the scan results in the cache (should not be cleared).
         ScanTestUtil.assertScanResultsEqualsAnyOrder(
                 mTestScanDatas1[0].getResults(),
@@ -1122,6 +1123,13 @@ public class ScanRequestProxyTest extends WifiBaseTest {
             }
         }
         return map;
+    }
+
+    private void validateScanAvailableBroadcastNotSent() {
+        ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
+        ArgumentCaptor<UserHandle> userHandleCaptor = ArgumentCaptor.forClass(UserHandle.class);
+        mInOrder.verify(mContext, never()).sendStickyBroadcastAsUser(
+                intentCaptor.capture(), userHandleCaptor.capture());
     }
 
     private void validateScanAvailableBroadcastSent(boolean expectedScanAvailable) {
