@@ -1852,8 +1852,8 @@ package android.net.wifi.rtt {
 
   @FlaggedApi("com.android.wifi.flags.proximity_ranging") public final class ProximityDetectionCharacteristics implements android.os.Parcelable {
     method public int describeContents();
-    method public int getMaxNumContinuousRangingAdvertiserSessions();
-    method public int getMaxNumContinuousRangingSeekerSessions();
+    method @IntRange(from=1) public int getMaxNumContinuousRangingAdvertiserSessions();
+    method @IntRange(from=1) public int getMaxNumContinuousRangingSeekerSessions();
     method public int getMaxSupportedPacketWidth80211mcBased();
     method public int getMaxSupportedPacketWidthNtb();
     method public int getMaxSupportedPreamble80211mcBased();
