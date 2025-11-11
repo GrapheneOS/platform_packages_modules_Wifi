@@ -163,4 +163,93 @@ public class GenericNetlinkMsgTest {
         StructNlAttr nestedAttribute = Nl80211TestUtils.createMulticastGroupsAttribute();
         assertNotNull(GenericNetlinkMsg.getInnerNestedAttributes(nestedAttribute));
     }
+
+    /**
+     * Test that {@link GenericNetlinkMsg#getCommand()} returns the correct command.
+     */
+    @Test
+    public void testGetCommand() {
+        GenericNetlinkMsg msg = Nl80211TestUtils.createTestMessage();
+        assertEquals(Nl80211TestUtils.TEST_COMMAND, msg.getCommand());
+    }
+
+    /**
+     * Test that {@link GenericNetlinkMsg#getAttributeValueAsInteger(short)} can retrieve an
+     * integer attribute.
+     */
+    @Test
+    public void testGetAttributeValueAsInteger() {
+        GenericNetlinkMsg msg = Nl80211TestUtils.createTestMessage();
+        Integer testValue = 12345;
+        StructNlAttr attribute = new StructNlAttr(Nl80211TestUtils.TEST_ATTRIBUTE_ID, testValue);
+        msg.addAttribute(attribute);
+
+        assertEquals(testValue,
+                msg.getAttributeValueAsInteger(Nl80211TestUtils.TEST_ATTRIBUTE_ID));
+        assertNull(
+                msg.getAttributeValueAsInteger((short) (Nl80211TestUtils.TEST_ATTRIBUTE_ID + 1)));
+    }
+
+    /**
+     * Test that {@link GenericNetlinkMsg#getAttributeValueAsInteger(short)} returns null if the
+     * attribute payload is not 4 bytes.
+     */
+    @Test
+    public void testGetAttributeValueAsInteger_invalidLength() {
+        GenericNetlinkMsg msg = Nl80211TestUtils.createTestMessage();
+        byte[] testValue = new byte[]{(byte) 0xDE, (byte) 0xAD}; // 2 bytes
+        StructNlAttr attribute = new StructNlAttr(Nl80211TestUtils.TEST_ATTRIBUTE_ID, testValue);
+        msg.addAttribute(attribute);
+
+        assertNull(msg.getAttributeValueAsInteger(Nl80211TestUtils.TEST_ATTRIBUTE_ID));
+    }
+
+    /**
+     * Test that {@link GenericNetlinkMsg#getAttributeValueAsByte(short)} can retrieve a
+     * byte attribute.
+     */
+    @Test
+    public void testGetAttributeValueAsByte() {
+        GenericNetlinkMsg msg = Nl80211TestUtils.createTestMessage();
+        Byte testValue = (byte) 0xAB;
+        StructNlAttr attribute = new StructNlAttr(
+                Nl80211TestUtils.TEST_ATTRIBUTE_ID, new byte[]{testValue});
+        msg.addAttribute(attribute);
+
+        assertEquals(testValue,
+                msg.getAttributeValueAsByte(Nl80211TestUtils.TEST_ATTRIBUTE_ID));
+        assertNull(msg.getAttributeValueAsByte((short) (Nl80211TestUtils.TEST_ATTRIBUTE_ID + 1)));
+    }
+
+    /**
+     * Test that {@link GenericNetlinkMsg#getAttributeValueAsByte(short)} returns null if the
+     * attribute payload is not 1 byte.
+     */
+    @Test
+    public void testGetAttributeValueAsByte_invalidLength() {
+        GenericNetlinkMsg msg = Nl80211TestUtils.createTestMessage();
+        byte[] testValue = new byte[3]; // 3 bytes
+        StructNlAttr attribute = new StructNlAttr(Nl80211TestUtils.TEST_ATTRIBUTE_ID, testValue);
+        msg.addAttribute(attribute);
+
+        assertNull(msg.getAttributeValueAsByte(Nl80211TestUtils.TEST_ATTRIBUTE_ID));
+    }
+
+    /**
+     * Test that {@link GenericNetlinkMsg#getAttributeValueAsByteArray(short)} can retrieve a
+     * byte array attribute.
+     */
+    @Test
+    public void testGetAttributeValueAsByteArray() {
+        GenericNetlinkMsg msg = Nl80211TestUtils.createTestMessage();
+        byte[] testValue = new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF};
+        StructNlAttr attribute = new StructNlAttr(Nl80211TestUtils.TEST_ATTRIBUTE_ID, testValue);
+        msg.addAttribute(attribute);
+
+        assertEquals(testValue,
+                msg.getAttributeValueAsByteArray(Nl80211TestUtils.TEST_ATTRIBUTE_ID));
+        assertNull(msg.getAttributeValueAsByteArray(
+                (short) (Nl80211TestUtils.TEST_ATTRIBUTE_ID + 1)));
+    }
 }
+

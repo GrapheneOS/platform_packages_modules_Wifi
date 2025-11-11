@@ -55,6 +55,9 @@ public class NetlinkConstants {
     public static final String NL80211_MULTICAST_GROUP_REG = "regulatory";
     public static final String NL80211_MULTICAST_GROUP_MLME = "mlme";
 
+    // Split wiphy dump protocol feature. See kernel/uapi/linux/nl80211.h
+    public static final int NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP = 1 << 0;
+
     // Nl80211 commands. See kernel/uapi/linux/nl80211.h
     public enum Nl80211Commands {
         NL80211_CMD_UNSPEC,
@@ -313,6 +316,16 @@ public class NetlinkConstants {
          */
         public short toShort() {
             return (short) ordinal();
+        }
+
+        /**
+         * Returns the enum value corresponding to the given short.
+         */
+        public static Nl80211Commands fromShort(short value) {
+            if (value >= values().length) {
+                return Nl80211Commands.NL80211_CMD_UNSPEC;
+            }
+            return values()[value];
         }
     }
 
@@ -868,6 +881,306 @@ public class NetlinkConstants {
         NL80211_ATTR_ANDROID_KABI_RESERVED_23,
         NL80211_ATTR_ANDROID_KABI_RESERVED_24,
         NL80211_ATTR_ANDROID_KABI_RESERVED_25;
+
+        /**
+         * Returns the value of this enum as a short.
+         */
+        public short toShort() {
+            return (short) ordinal();
+        }
+
+        /**
+         * Returns the enum value corresponding to the given short.
+         */
+        public static Nl80211Attrs fromShort(short value) {
+            if (value >= values().length) {
+                return Nl80211Attrs.NL80211_ATTR_UNSPEC;
+            }
+            return values()[value];
+        }
+    }
+
+    // Nl80211 frequency band values. See kernel/uapi/linux/nl80211.h
+    public enum Nl80211Band {
+        NL80211_BAND_2GHZ,
+        NL80211_BAND_5GHZ,
+        NL80211_BAND_60GHZ,
+        NL80211_BAND_6GHZ,
+        NL80211_BAND_S1GHZ,
+        NL80211_BAND_LC;
+
+        /**
+         * Returns the value of this enum as a short.
+         */
+        public short toShort() {
+            return (short) ordinal();
+        }
+
+        /**
+         * Returns the enum value corresponding to the given short.
+         */
+        public static Nl80211Band fromShort(short value) {
+            if (value >= values().length) {
+                return null;
+            }
+            return values()[value];
+        }
+    };
+
+    // Nl80211 interface type data attributes. See kernel/uapi/linux/nl80211.h
+    public enum Nl80211BandIftypeAttrs {
+        NL80211_BAND_IFTYPE_ATTR_INVALID,
+
+        NL80211_BAND_IFTYPE_ATTR_IFTYPES,
+        NL80211_BAND_IFTYPE_ATTR_HE_CAP_MAC,
+        NL80211_BAND_IFTYPE_ATTR_HE_CAP_PHY,
+        NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET,
+        NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE,
+        NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA,
+        NL80211_BAND_IFTYPE_ATTR_VENDOR_ELEMS,
+        NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC,
+        NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY,
+        NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET,
+        NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PPE,
+        NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_1,
+        NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_2,
+        NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_3,
+        NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_4,
+        NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_5;
+
+        /**
+         * Returns the value of this enum as a short.
+         */
+        public short toShort() {
+            return (short) ordinal();
+        }
+
+        /**
+         * Returns the enum value corresponding to the given short.
+         */
+        public static Nl80211BandIftypeAttrs fromShort(short value) {
+            if (value >= values().length) {
+                return Nl80211BandIftypeAttrs.NL80211_BAND_IFTYPE_ATTR_INVALID;
+            }
+            return values()[value];
+        }
+    }
+
+    // Nl80211 band attributes. See kernel/uapi/linux/nl80211.h
+    public enum Nl80211BandAttrs {
+        NL80211_BAND_ATTR_INVALID,
+        NL80211_BAND_ATTR_FREQS,
+        NL80211_BAND_ATTR_RATES,
+
+        NL80211_BAND_ATTR_HT_MCS_SET,
+        NL80211_BAND_ATTR_HT_CAPA,
+        NL80211_BAND_ATTR_HT_AMPDU_FACTOR,
+        NL80211_BAND_ATTR_HT_AMPDU_DENSITY,
+
+        NL80211_BAND_ATTR_VHT_MCS_SET,
+        NL80211_BAND_ATTR_VHT_CAPA,
+        NL80211_BAND_ATTR_IFTYPE_DATA,
+
+        NL80211_BAND_ATTR_EDMG_CHANNELS,
+        NL80211_BAND_ATTR_EDMG_BW_CONFIG,
+        NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_1,
+        NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_2,
+        NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_3,
+        NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_4,
+        NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_5;
+
+        /**
+         * Returns the value of this enum as a short.
+         */
+        public short toShort() {
+            return (short) ordinal();
+        }
+
+        /**
+         * Returns the enum value corresponding to the given short.
+         */
+        public static Nl80211BandAttrs fromShort(short value) {
+            if (value >= values().length) {
+                return Nl80211BandAttrs.NL80211_BAND_ATTR_INVALID;
+            }
+            return values()[value];
+        }
+    }
+
+    public enum Nl80211ExtFeatureIndex {
+        NL80211_EXT_FEATURE_VHT_IBSS,
+        NL80211_EXT_FEATURE_RRM,
+        NL80211_EXT_FEATURE_MU_MIMO_AIR_SNIFFER,
+        NL80211_EXT_FEATURE_SCAN_START_TIME,
+        NL80211_EXT_FEATURE_BSS_PARENT_TSF,
+        NL80211_EXT_FEATURE_SET_SCAN_DWELL,
+        NL80211_EXT_FEATURE_BEACON_RATE_LEGACY,
+        NL80211_EXT_FEATURE_BEACON_RATE_HT,
+        NL80211_EXT_FEATURE_BEACON_RATE_VHT,
+        NL80211_EXT_FEATURE_FILS_STA,
+        NL80211_EXT_FEATURE_MGMT_TX_RANDOM_TA,
+        NL80211_EXT_FEATURE_MGMT_TX_RANDOM_TA_CONNECTED,
+        NL80211_EXT_FEATURE_SCHED_SCAN_RELATIVE_RSSI,
+        NL80211_EXT_FEATURE_CQM_RSSI_LIST,
+        NL80211_EXT_FEATURE_FILS_SK_OFFLOAD,
+        NL80211_EXT_FEATURE_4WAY_HANDSHAKE_STA_PSK,
+        NL80211_EXT_FEATURE_4WAY_HANDSHAKE_STA_1X,
+        NL80211_EXT_FEATURE_FILS_MAX_CHANNEL_TIME,
+        NL80211_EXT_FEATURE_ACCEPT_BCAST_PROBE_RESP,
+        NL80211_EXT_FEATURE_OCE_PROBE_REQ_HIGH_TX_RATE,
+        NL80211_EXT_FEATURE_OCE_PROBE_REQ_DEFERRAL_SUPPRESSION,
+        NL80211_EXT_FEATURE_MFP_OPTIONAL,
+        NL80211_EXT_FEATURE_LOW_SPAN_SCAN,
+        NL80211_EXT_FEATURE_LOW_POWER_SCAN,
+        NL80211_EXT_FEATURE_HIGH_ACCURACY_SCAN,
+        NL80211_EXT_FEATURE_DFS_OFFLOAD,
+        NL80211_EXT_FEATURE_CONTROL_PORT_OVER_NL80211,
+        NL80211_EXT_FEATURE_ACK_SIGNAL_SUPPORT,
+        NL80211_EXT_FEATURE_TXQS,
+        NL80211_EXT_FEATURE_SCAN_RANDOM_SN,
+        NL80211_EXT_FEATURE_SCAN_MIN_PREQ_CONTENT,
+        NL80211_EXT_FEATURE_CAN_REPLACE_PTK0,
+        NL80211_EXT_FEATURE_ENABLE_FTM_RESPONDER,
+        NL80211_EXT_FEATURE_AIRTIME_FAIRNESS,
+        NL80211_EXT_FEATURE_AP_PMKSA_CACHING,
+        NL80211_EXT_FEATURE_SCHED_SCAN_BAND_SPECIFIC_RSSI_THOLD,
+        NL80211_EXT_FEATURE_EXT_KEY_ID,
+        NL80211_EXT_FEATURE_STA_TX_PWR,
+        NL80211_EXT_FEATURE_SAE_OFFLOAD,
+        NL80211_EXT_FEATURE_VLAN_OFFLOAD,
+        NL80211_EXT_FEATURE_AQL,
+        NL80211_EXT_FEATURE_BEACON_PROTECTION,
+        NL80211_EXT_FEATURE_CONTROL_PORT_NO_PREAUTH,
+        NL80211_EXT_FEATURE_PROTECTED_TWT,
+        NL80211_EXT_FEATURE_DEL_IBSS_STA,
+        NL80211_EXT_FEATURE_MULTICAST_REGISTRATIONS,
+        NL80211_EXT_FEATURE_BEACON_PROTECTION_CLIENT,
+        NL80211_EXT_FEATURE_SCAN_FREQ_KHZ,
+        NL80211_EXT_FEATURE_CONTROL_PORT_OVER_NL80211_TX_STATUS,
+        NL80211_EXT_FEATURE_OPERATING_CHANNEL_VALIDATION,
+        NL80211_EXT_FEATURE_4WAY_HANDSHAKE_AP_PSK,
+        NL80211_EXT_FEATURE_SAE_OFFLOAD_AP,
+        NL80211_EXT_FEATURE_FILS_DISCOVERY,
+        NL80211_EXT_FEATURE_UNSOL_BCAST_PROBE_RESP,
+        NL80211_EXT_FEATURE_BEACON_RATE_HE,
+        NL80211_EXT_FEATURE_SECURE_LTF,
+        NL80211_EXT_FEATURE_SECURE_RTT,
+        NL80211_EXT_FEATURE_PROT_RANGE_NEGO_AND_MEASURE,
+        NL80211_EXT_FEATURE_BSS_COLOR,
+        NL80211_EXT_FEATURE_FILS_CRYPTO_OFFLOAD,
+        NL80211_EXT_FEATURE_RADAR_BACKGROUND,
+        NL80211_EXT_FEATURE_POWERED_ADDR_CHANGE,
+        NL80211_EXT_FEATURE_PUNCT,
+        NL80211_EXT_FEATURE_SECURE_NAN,
+        NL80211_EXT_FEATURE_AUTH_AND_DEAUTH_RANDOM_TA,
+        NL80211_EXT_FEATURE_OWE_OFFLOAD,
+        NL80211_EXT_FEATURE_OWE_OFFLOAD_AP,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_3,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_4,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_5,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_6,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_7,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_8,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_9,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_10,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_11,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_12,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_13,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_14,
+        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_15;
+
+        /**
+         * Returns the value of this enum as a short.
+         */
+        public short toShort() {
+            return (short) ordinal();
+        }
+    }
+
+    public enum Nl80211FeatureFlags {
+        NL80211_FEATURE_SK_TX_STATUS,
+        NL80211_FEATURE_HT_IBSS,
+        NL80211_FEATURE_INACTIVITY_TIMER,
+        NL80211_FEATURE_CELL_BASE_REG_HINTS,
+        NL80211_FEATURE_P2P_DEVICE_NEEDS_CHANNEL,
+        NL80211_FEATURE_SAE,
+        NL80211_FEATURE_LOW_PRIORITY_SCAN,
+        NL80211_FEATURE_SCAN_FLUSH,
+        NL80211_FEATURE_AP_SCAN,
+        NL80211_FEATURE_VIF_TXPOWER,
+        NL80211_FEATURE_NEED_OBSS_SCAN,
+        NL80211_FEATURE_P2P_GO_CTWIN,
+        NL80211_FEATURE_P2P_GO_OPPPS,
+        NL80211_FEATURE_RESERVED_13,
+        NL80211_FEATURE_ADVERTISE_CHAN_LIMITS,
+        NL80211_FEATURE_FULL_AP_CLIENT_STATE,
+        NL80211_FEATURE_USERSPACE_MPM,
+        NL80211_FEATURE_ACTIVE_MONITOR,
+        NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE,
+        NL80211_FEATURE_DS_PARAM_SET_IE_IN_PROBES,
+        NL80211_FEATURE_WFA_TPC_IE_IN_PROBES,
+        NL80211_FEATURE_QUIET,
+        NL80211_FEATURE_TX_POWER_INSERTION,
+        NL80211_FEATURE_ACKTO_ESTIMATION,
+        NL80211_FEATURE_STATIC_SMPS,
+        NL80211_FEATURE_DYNAMIC_SMPS,
+        NL80211_FEATURE_SUPPORTS_WMM_ADMISSION,
+        NL80211_FEATURE_MAC_ON_CREATE,
+        NL80211_FEATURE_TDLS_CHANNEL_SWITCH,
+        NL80211_FEATURE_SCAN_RANDOM_MAC_ADDR,
+        NL80211_FEATURE_SCHED_SCAN_RANDOM_MAC_ADDR,
+        NL80211_FEATURE_ND_RANDOM_MAC_ADDR;
+
+        /**
+         * Returns the value of this enum as a short.
+         */
+        public short toShort() {
+            return (short) ordinal();
+        }
+    }
+
+    public enum Nl80211DfsStates {
+        NL80211_DFS_USABLE,
+        NL80211_DFS_UNAVAILABLE,
+        NL80211_DFS_AVAILABLE;
+
+        /**
+         * Returns the value of this enum as a short.
+         */
+        public short toShort() {
+            return (short) ordinal();
+        }
+    }
+
+    public enum Nl80211FrequencyAttr {
+        NL80211_FREQUENCY_ATTR_INVALID,
+        NL80211_FREQUENCY_ATTR_FREQ,
+        NL80211_FREQUENCY_ATTR_DISABLED,
+        NL80211_FREQUENCY_ATTR_NO_IR,
+        NL80211_FREQUENCY_ATTR_NO_IBSS,
+        NL80211_FREQUENCY_ATTR_RADAR,
+        NL80211_FREQUENCY_ATTR_MAX_TX_POWER,
+        NL80211_FREQUENCY_ATTR_DFS_STATE,
+        NL80211_FREQUENCY_ATTR_DFS_TIME,
+        NL80211_FREQUENCY_ATTR_NO_HT40_MINUS,
+        NL80211_FREQUENCY_ATTR_NO_HT40_PLUS,
+        NL80211_FREQUENCY_ATTR_NO_80MHZ,
+        NL80211_FREQUENCY_ATTR_NO_160MHZ,
+        NL80211_FREQUENCY_ATTR_DFS_CAC_TIME,
+        NL80211_FREQUENCY_ATTR_INDOOR_ONLY,
+        NL80211_FREQUENCY_ATTR_IR_CONCURRENT,
+        NL80211_FREQUENCY_ATTR_NO_20MHZ,
+        NL80211_FREQUENCY_ATTR_NO_10MHZ,
+        NL80211_FREQUENCY_ATTR_WMM,
+        NL80211_FREQUENCY_ATTR_NO_HE,
+        NL80211_FREQUENCY_ATTR_OFFSET,
+        NL80211_FREQUENCY_ATTR_1MHZ,
+        NL80211_FREQUENCY_ATTR_2MHZ,
+        NL80211_FREQUENCY_ATTR_4MHZ,
+        NL80211_FREQUENCY_ATTR_8MHZ,
+        NL80211_FREQUENCY_ATTR_16MHZ,
+        NL80211_FREQUENCY_ATTR_NO_320MHZ,
+        NL80211_FREQUENCY_ATTR_NO_EHT;
 
         /**
          * Returns the value of this enum as a short.
