@@ -47,4 +47,14 @@ interface IMainlineSupplicant {
      */
     @PropagateAllowBlocking ISupplicantNanIface addNanInterface(in String ifaceName);
 
+    /**
+     * Removes a wireless NAN interface from supplicant.
+     *
+     * @param ifaceName Name of the interface (e.g aware0).
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|,
+     *         |SupplicantStatusCode.FAILURE_IFACE_DOES_NOT_EXIST|
+     */
+    void removeNanInterface(in String ifaceName);
 }
