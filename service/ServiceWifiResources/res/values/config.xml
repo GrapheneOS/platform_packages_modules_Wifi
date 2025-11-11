@@ -221,6 +221,10 @@
          contain 2.4 or 5Ghz.-->
     <bool translatable="false" name ="config_wifiSoftapUpgradeTetheredTo2g5gBridgedIfBandsAreSubset">false</bool>
 
+    <!-- boolean indicating whether or not to temporarily auto-upgrade tethering softap configured
+         with 6Ghz-single band to 2.4 + 6GHz Bridged if available. -->
+    <bool translatable="false" name ="config_wifiSoftapUpgradeTetheredTo2g6gBridgedIfBandIs6g">false</bool>
+
     <!-- List of allowed channels in 2GHz band for softap. If the device doesn't want to restrict
          channels this should be empty. Values is a comma separated channel string and/or channel
          range string like '1-6,11'. -->

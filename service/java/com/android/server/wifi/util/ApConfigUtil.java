@@ -30,6 +30,7 @@ import static android.net.wifi.SoftApCapability.SOFTAP_FEATURE_WPA3_OWE_TRANSITI
 import static android.net.wifi.SoftApCapability.SOFTAP_FEATURE_WPA3_SAE;
 import static android.net.wifi.SoftApConfiguration.BAND_2GHZ;
 import static android.net.wifi.SoftApConfiguration.BAND_5GHZ;
+import static android.net.wifi.SoftApConfiguration.BAND_6GHZ;
 
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_AP_BRIDGE;
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_STA;
@@ -66,6 +67,7 @@ import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
+import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
@@ -115,7 +117,7 @@ public class ApConfigUtil {
         sBandToOperatingClass.append(SoftApConfiguration.BAND_2GHZ, new int[]{81, 82, 83, 84});
         sBandToOperatingClass.append(SoftApConfiguration.BAND_5GHZ, new int[]{115, 116, 117, 118,
                 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130});
-        sBandToOperatingClass.append(SoftApConfiguration.BAND_6GHZ, new int[]{131, 132, 133, 134,
+        sBandToOperatingClass.append(BAND_6GHZ, new int[]{131, 132, 133, 134,
                 135, 136});
     }
 
@@ -135,10 +137,10 @@ public class ApConfigUtil {
         }
         band &= ~SoftApConfiguration.BAND_5GHZ;
 
-        if ((band & SoftApConfiguration.BAND_6GHZ) != 0) {
+        if ((band & BAND_6GHZ) != 0) {
             sj.add("6Ghz");
         }
-        band &= ~SoftApConfiguration.BAND_6GHZ;
+        band &= ~BAND_6GHZ;
 
         if ((band & SoftApConfiguration.BAND_60GHZ) != 0) {
             sj.add("60Ghz");
@@ -182,7 +184,7 @@ public class ApConfigUtil {
                 return WifiScanner.WIFI_BAND_24_GHZ;
             case SoftApConfiguration.BAND_5GHZ:
                 return WifiScanner.WIFI_BAND_5_GHZ;
-            case SoftApConfiguration.BAND_6GHZ:
+            case BAND_6GHZ:
                 return WifiScanner.WIFI_BAND_6_GHZ;
             case SoftApConfiguration.BAND_60GHZ:
                 return WifiScanner.WIFI_BAND_60_GHZ;
@@ -215,7 +217,7 @@ public class ApConfigUtil {
         } else if (ScanResult.is5GHz(frequency)) {
             return SoftApConfiguration.BAND_5GHZ;
         } else if (ScanResult.is6GHz(frequency)) {
-            return SoftApConfiguration.BAND_6GHZ;
+            return BAND_6GHZ;
         } else if (ScanResult.is60GHz(frequency)) {
             return SoftApConfiguration.BAND_60GHZ;
         }
@@ -275,7 +277,7 @@ public class ApConfigUtil {
      */
     public static boolean isBandValid(@BandType int band) {
         int bandAny = SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ
-                | SoftApConfiguration.BAND_6GHZ | SoftApConfiguration.BAND_60GHZ;
+                | BAND_6GHZ | SoftApConfiguration.BAND_60GHZ;
         return ((band != 0) && ((band & ~bandAny) == 0));
     }
 
@@ -394,7 +396,7 @@ public class ApConfigUtil {
             case SoftApConfiguration.BAND_5GHZ:
                 return convertStringToChannelList(resources.getString(
                         R.string.config_wifiSoftap5gChannelList));
-            case SoftApConfiguration.BAND_6GHZ:
+            case BAND_6GHZ:
                 return convertStringToChannelList(resources.getString(
                         R.string.config_wifiSoftap6gChannelList));
             case SoftApConfiguration.BAND_60GHZ:
@@ -553,7 +555,7 @@ public class ApConfigUtil {
         }
         final int[] bandPreferences = new int[]{
                 SoftApConfiguration.BAND_60GHZ,
-                SoftApConfiguration.BAND_6GHZ,
+                BAND_6GHZ,
                 SoftApConfiguration.BAND_5GHZ,
                 SoftApConfiguration.BAND_2GHZ};
         int selectedUnsafeFreq = 0;
@@ -716,21 +718,37 @@ public class ApConfigUtil {
      * country code that didn't support 2 + 5 GHz dual band, but the current country code does
      * support 2 + 5 GHz dual band.
      */
-    public static SoftApConfiguration upgradeTo2g5gBridgedIfAvailableBandsAreSubset(
-            SoftApConfiguration config, SoftApCapability capability, @NonNull WifiContext context) {
+    public static SoftApConfiguration maybeUpgradeToDualBand(
+            SoftApConfiguration config, SoftApCapability capability, @NonNull WifiContext context,
+            FeatureFlags flags) {
         // DBS requires SdkLevel S or above.
         if (!SdkLevel.isAtLeastS()) {
             return config;
         }
 
-        // Skip if overlay isn't set.
-        if (!context.getResourceCache().getBoolean(
-                R.bool.config_wifiSoftapUpgradeTetheredTo2g5gBridgedIfBandsAreSubset)) {
+        // Skip if config is already multi-band.
+        if (config.getBands().length != 1) {
             return config;
         }
 
-        // Skip if config is already multi-band.
-        if (config.getBands().length != 1) {
+        // 2 and 6 GHz DBS
+        if (flags.upgradeSingle6ghzHotspotToDualBand()
+                && context.getResourceCache().getBoolean(
+                        R.bool.config_wifiSoftapUpgradeTetheredTo2g6gBridgedIfBandIs6g)
+                && (config.getBand() & BAND_6GHZ) != 0
+                && capability.getSupportedChannelList(BAND_2GHZ).length > 0
+                && capability.getSupportedChannelList(BAND_6GHZ).length > 0) {
+            Log.i(TAG, "Temporarily upgrading 6GHz-single config to 2 + 6GHz bridged.");
+            return new SoftApConfiguration.Builder(config)
+                    .setBands(new int[]{BAND_2GHZ, BAND_2GHZ | BAND_5GHZ | BAND_6GHZ})
+                    .build();
+        }
+
+        // 2 and 5 GHz DBS
+
+        // Skip if overlay isn't set.
+        if (!context.getResourceCache().getBoolean(
+                R.bool.config_wifiSoftapUpgradeTetheredTo2g5gBridgedIfBandsAreSubset)) {
             return config;
         }
 
@@ -839,11 +857,11 @@ public class ApConfigUtil {
             int securityType = config.getSecurityType();
             if (config.getBands().length == 1) {
                 int configuredBand = config.getBand();
-                if ((configuredBand & SoftApConfiguration.BAND_6GHZ) != 0
+                if ((configuredBand & BAND_6GHZ) != 0
                         && isSecurityTypeRestrictedFor6gBand(config.getSecurityType())) {
                     Log.i(TAG, "remove BAND_6G if multiple bands are configured "
                             + "as a mask when security type is restricted");
-                    builder.setBand(configuredBand & ~SoftApConfiguration.BAND_6GHZ);
+                    builder.setBand(configuredBand & ~BAND_6GHZ);
                 }
             } else if (SdkLevel.isAtLeastS()) {
                 SparseIntArray channels = config.getChannels();
@@ -851,7 +869,7 @@ public class ApConfigUtil {
                 if (isSecurityTypeRestrictedFor6gBand(securityType)) {
                     for (int i = 0; i < channels.size(); i++) {
                         int band = channels.keyAt(i);
-                        if ((band & SoftApConfiguration.BAND_6GHZ) != 0
+                        if ((band & BAND_6GHZ) != 0
                                 && canHALConvertRestrictedSecurityTypeFor6GHz(resources,
                                 securityType) && isBridgedMode) {
                             Log.i(TAG, "Do not remove BAND_6G in bridged mode for"
@@ -860,7 +878,7 @@ public class ApConfigUtil {
                         } else {
                             Log.i(TAG, "remove BAND_6G if multiple bands are configured "
                                     + "as a mask when security type is restricted");
-                            band &= ~SoftApConfiguration.BAND_6GHZ;
+                            band &= ~BAND_6GHZ;
                         }
                         newChannels.put(band, channels.valueAt(i));
                     }
@@ -1039,7 +1057,7 @@ public class ApConfigUtil {
                         new int[] {});
                 configBuilder.setAllowedAcsChannels(SoftApConfiguration.BAND_5GHZ,
                         new int[] {});
-                configBuilder.setAllowedAcsChannels(SoftApConfiguration.BAND_6GHZ,
+                configBuilder.setAllowedAcsChannels(BAND_6GHZ,
                         new int[] {});
             }
         }
@@ -1149,7 +1167,7 @@ public class ApConfigUtil {
             features |= SOFTAP_FEATURE_BAND_5G_SUPPORTED;
         }
 
-        if (isSoftApBandSupported(context, SoftApConfiguration.BAND_6GHZ)) {
+        if (isSoftApBandSupported(context, BAND_6GHZ)) {
             Log.d(TAG, "Update Softap capability, add 6G support");
             features |= SOFTAP_FEATURE_BAND_6G_SUPPORTED;
         }
@@ -1378,7 +1396,7 @@ public class ApConfigUtil {
                 return context.getResourceCache().getBoolean(R.bool.config_wifi5ghzSupport)
                         && context.getResourceCache().getBoolean(
                         R.bool.config_wifiSoftap5ghzSupported);
-            case SoftApConfiguration.BAND_6GHZ:
+            case BAND_6GHZ:
                 return context.getResourceCache().getBoolean(R.bool.config_wifi6ghzSupport)
                         && context.getResourceCache().getBoolean(
                         R.bool.config_wifiSoftap6ghzSupported);
@@ -1513,7 +1531,7 @@ public class ApConfigUtil {
             }
         }
         if (!capability.areFeaturesSupported(SOFTAP_FEATURE_BAND_6G_SUPPORTED)) {
-            if ((requestedBands & SoftApConfiguration.BAND_6GHZ) != 0) {
+            if ((requestedBands & BAND_6GHZ) != 0) {
                 Log.d(TAG, "Error, 6Ghz band requires HAL support");
                 return false;
             }
@@ -1589,11 +1607,11 @@ public class ApConfigUtil {
         // Next, if only one of 5G or 6G is selected, then we need freqList to separate them
         // Since there is no other way.
         if (((band & SoftApConfiguration.BAND_5GHZ) != 0)
-                && ((band & SoftApConfiguration.BAND_6GHZ) == 0)) {
+                && ((band & BAND_6GHZ) == 0)) {
             return true;
         }
         if (((band & SoftApConfiguration.BAND_5GHZ) == 0)
-                && ((band & SoftApConfiguration.BAND_6GHZ) != 0)) {
+                && ((band & BAND_6GHZ) != 0)) {
             return true;
         }
 
@@ -1639,7 +1657,7 @@ public class ApConfigUtil {
                         .boxed()
                         .collect(Collectors.toSet());
 
-            case SoftApConfiguration.BAND_6GHZ:
+            case BAND_6GHZ:
                 return IntStream.rangeClosed(
                         ScanResult.BAND_6_GHZ_FIRST_CH_NUM,
                         ScanResult.BAND_6_GHZ_LAST_CH_NUM)

@@ -1293,15 +1293,17 @@ public class SoftApManager implements ActiveModeManager {
                             }
                         } else if (!isCountryCodeChanged && isBridgedApAvailable()
                                 && mIsUsingPersistentSoftApConfiguration) {
-                            // Try upgrading config to 2 + 5 GHz Dual Band if the available config
-                            // bands only include 2 or 5 Ghz. This is to handle cases where the
-                            // config was previously set to single band in a CC that didn't support
-                            // DBS, but the current one does.
+                            // Try upgrading config to dual band if available and the overlay allows
+                            // the upgrade. This is to handle cases where the config was previously
+                            // set to single band in a CC that didn't support DBS, but the current
+                            // one does.
                             mCurrentSoftApConfiguration =
-                                    ApConfigUtil.upgradeTo2g5gBridgedIfAvailableBandsAreSubset(
+                                    ApConfigUtil.maybeUpgradeToDualBand(
                                             mCurrentSoftApConfiguration,
                                             mCurrentSoftApCapability,
-                                            mContext);
+                                            mContext,
+                                            mWifiInjector.getDeviceConfigFacade()
+                                                    .getFeatureFlags());
                         }
 
                         // Remove 6GHz from requested bands if security type is restricted
@@ -1524,10 +1526,12 @@ public class SoftApManager implements ActiveModeManager {
                     int[] oldBands = mCurrentSoftApConfiguration.getBands();
                     if (isBridgedApAvailable() && mIsUsingPersistentSoftApConfiguration) {
                         mCurrentSoftApConfiguration =
-                                ApConfigUtil.upgradeTo2g5gBridgedIfAvailableBandsAreSubset(
+                                ApConfigUtil.maybeUpgradeToDualBand(
                                         mCurrentSoftApConfiguration,
                                         mCurrentSoftApCapability,
-                                        mContext);
+                                        mContext,
+                                        mWifiInjector.getDeviceConfigFacade()
+                                                .getFeatureFlags());
                     }
                     if (isBridgedMode()) {
                         SoftApConfiguration tempConfig =
