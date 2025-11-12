@@ -75,6 +75,12 @@ public class WifiP2pDevice implements Parcelable {
     @Nullable private InetAddress mIpAddress;
 
     /**
+     * P2P connection info of the current connection.
+     * This field is valid when the device is a part of the group.
+     */
+    @Nullable private WifiP2pConnectionInfo mWifiP2pConnectionInfo;
+
+    /**
      * Primary device type identifies the type of device. For example, an application
      * could filter the devices discovered to only display printers if the purpose is to
      * enable a printing action from the user. See the Wi-Fi Direct technical specification
@@ -582,6 +588,45 @@ public class WifiP2pDevice implements Parcelable {
     }
 
     /**
+     * Get the P2P connection info (See {@link WifiP2pConnectionInfo} of the connected client
+     * device if the device is a part of the group, otherwise null.
+     * <p>
+     * The application should listen to {@link WifiP2pManager#WIFI_P2P_CONNECTION_CHANGED_ACTION}
+     * broadcast to obtain the connection info of the connected client. When the client gets
+     * connected to the Group Owner, the connected P2P device information
+     * ({@link WifiP2pGroup#getClientList()}) in the group is updated with the connection
+     * information and broadcast the group information using
+     * {@link WifiP2pManager#EXTRA_WIFI_P2P_GROUP} extra of the
+     * {@link WifiP2pManager#WIFI_P2P_CONNECTION_CHANGED_ACTION} broadcast intent.
+     *
+     * Alternatively, the application can request for the group details with
+     * {@link WifiP2pManager#requestGroupInfo} and use ({@link WifiP2pGroup#getClientList()}) to
+     * obtain the connected client details.
+     *
+     * @return the p2p connection info if the device is a part of the group, otherwise null.
+     */
+    @RequiresApi(37)
+    @FlaggedApi(Flags.FLAG_WIFI_P2P_CONNECTION_INFO)
+    @Nullable
+    public WifiP2pConnectionInfo getWifiP2pConnectionInfo() {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        return mWifiP2pConnectionInfo;
+    }
+
+    /**
+     * Set the ConnectionInfo of the device.
+     * @hide
+     */
+    public void setWifiP2pConnectionInfo(WifiP2pConnectionInfo info) {
+        if (!Environment.isSdkNewerThanB()) {
+            throw new UnsupportedOperationException();
+        }
+        mWifiP2pConnectionInfo = info;
+    }
+
+    /**
      * Store the Device Identity Resolution (DIR) Info received in USD frame for framework
      * internal usage.
      * @hide
@@ -625,6 +670,7 @@ public class WifiP2pDevice implements Parcelable {
         sbuf.append("\n vendorElements: ").append(mVendorElements);
         sbuf.append("\n vendorData: ").append(mVendorData);
         sbuf.append("\n Pairing Bootstrapping Methods: ").append(mPairingBootstrappingMethods);
+        sbuf.append("\n connectionInfo: ").append(mWifiP2pConnectionInfo);
         return sbuf.toString();
     }
 
@@ -655,6 +701,9 @@ public class WifiP2pDevice implements Parcelable {
             }
             mVendorData = new ArrayList<>(source.mVendorData);
             mPairingBootstrappingMethods = source.mPairingBootstrappingMethods;
+            if (Environment.isSdkNewerThanB() && source.mWifiP2pConnectionInfo != null) {
+                mWifiP2pConnectionInfo = new WifiP2pConnectionInfo(source.mWifiP2pConnectionInfo);
+            }
         }
     }
 
@@ -685,6 +734,14 @@ public class WifiP2pDevice implements Parcelable {
         dest.writeTypedList(mVendorElements);
         dest.writeList(mVendorData);
         dest.writeInt(mPairingBootstrappingMethods);
+        if (Environment.isSdkNewerThanB()) {
+            if (mWifiP2pConnectionInfo != null) {
+                dest.writeInt(1);
+                mWifiP2pConnectionInfo.writeToParcel(dest, flags);
+            } else {
+                dest.writeInt(0);
+            }
+        }
     }
 
     /** Implement the Parcelable interface */
@@ -718,6 +775,10 @@ public class WifiP2pDevice implements Parcelable {
                             ScanResult.InformationElement.CREATOR);
                     device.mVendorData = ParcelUtil.readOuiKeyedDataList(in);
                     device.mPairingBootstrappingMethods = in.readInt();
+                    if (Environment.isSdkNewerThanB() && in.readInt() == 1) {
+                        device.mWifiP2pConnectionInfo =
+                                WifiP2pConnectionInfo.CREATOR.createFromParcel(in);
+                    }
                     return device;
             }
 

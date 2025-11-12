@@ -18,10 +18,12 @@ package com.android.server.wifi.p2p;
 
 import static com.android.net.module.util.Inet4AddressUtils.intToInet4AddressHTL;
 import static com.android.wifi.flags.Flags.wifiDirectR2;
+import static com.android.wifi.flags.Flags.wifiP2pConnectionInfo;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SuppressLint;
+import android.hardware.wifi.supplicant.ConnectionCapabilities;
 import android.hardware.wifi.supplicant.ISupplicantP2pIfaceCallback;
 import android.hardware.wifi.supplicant.KeyMgmtMask;
 import android.hardware.wifi.supplicant.P2pClientEapolIpAddressInfo;
@@ -43,6 +45,7 @@ import android.net.wifi.OuiKeyedData;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.WifiP2pConnectionInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDirInfo;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -281,7 +284,7 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
             boolean isPersistent) {
         onGroupStarted(groupIfName, isGroupOwner, ssid, frequency, psk, passphrase, goDeviceAddress,
                 isPersistent, /* goInterfaceAddress */ null, /*p2pClientIpInfo */ null,
-                /* vendorData */ null, 0);
+                /* vendorData */ null, /* keyMgmtMask */ 0, /* connectionCapabilities */ null);
     }
 
     /**
@@ -293,12 +296,16 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
     public void onGroupStartedWithParams(P2pGroupStartedEventParams groupStartedEventParams) {
         List<OuiKeyedData> vendorData = null;
         int keyMgmtMask = 0;
+        ConnectionCapabilities capabilities = null;
         if (mServiceVersion >= 3 && groupStartedEventParams.vendorData != null) {
             vendorData = HalAidlUtil.halToFrameworkOuiKeyedDataList(
                     groupStartedEventParams.vendorData);
         }
         if (mServiceVersion >= 4) {
             keyMgmtMask = groupStartedEventParams.keyMgmtMask;
+        }
+        if (mServiceVersion >= 5) {
+            capabilities = groupStartedEventParams.p2pClientConnectionCapabilities;
         }
         onGroupStarted(groupStartedEventParams.groupInterfaceName,
                 groupStartedEventParams.isGroupOwner, groupStartedEventParams.ssid,
@@ -308,15 +315,18 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
                 groupStartedEventParams.isP2pClientEapolIpAddressInfoPresent
                         ? groupStartedEventParams.p2pClientIpInfo : null,
                 vendorData,
-                keyMgmtMask);
+                keyMgmtMask,
+                capabilities);
     }
 
+    @SuppressLint("NewApi")
     private void onGroupStarted(String groupIfName, boolean isGroupOwner, byte[] ssid,
             int frequency, byte[] psk, String passphrase, byte[] goDeviceAddress,
             boolean isPersistent, byte[] goInterfaceAddress,
             P2pClientEapolIpAddressInfo p2pClientIpInfo,
             @Nullable List<OuiKeyedData> vendorData,
-            int keyMgmtMask) {
+            int keyMgmtMask,
+            @Nullable ConnectionCapabilities caps) {
         if (groupIfName == null) {
             Log.e(TAG, "Missing group interface name.");
             return;
@@ -380,6 +390,15 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
         if (Environment.isSdkAtLeastB()
                 && wifiDirectR2()) {
             group.setSecurityType(convertHalKeyMgmtMaskToP2pGroupSecurityType(keyMgmtMask));
+        }
+
+        if (Environment.isSdkNewerThanB() && wifiP2pConnectionInfo()
+                && !isGroupOwner && caps != null) {
+            WifiP2pConnectionInfo info = new WifiP2pConnectionInfo(
+                    HalAidlUtil.getWifiStandardFromHal(caps.technology),
+                    HalAidlUtil.getChannelBandwidthFromHal(caps.channelBandwidth),
+                    caps.maxNumberTxSpatialStreams, caps.maxNumberRxSpatialStreams);
+            group.setWifiP2pGroupClientConnectionInfo(info);
         }
 
         mMonitor.broadcastP2pGroupStarted(mInterface, group);
@@ -871,7 +890,7 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
      */
     @Override
     public void onStaAuthorized(byte[] srcAddress, byte[] p2pDeviceAddress) {
-        onP2pApStaConnected(null, srcAddress, p2pDeviceAddress, 0, null);
+        onP2pApStaConnected(null, srcAddress, p2pDeviceAddress, 0, null, null);
     }
 
     /**
@@ -882,21 +901,28 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
     @Override
     public void onPeerClientJoined(P2pPeerClientJoinedEventParams clientJoinedEventParams) {
         List<OuiKeyedData> vendorData = null;
+        ConnectionCapabilities capabilities = null;
         if (mServiceVersion >= 3 && clientJoinedEventParams.vendorData != null) {
             vendorData = HalAidlUtil.halToFrameworkOuiKeyedDataList(
                     clientJoinedEventParams.vendorData);
+        }
+        if (mServiceVersion >= 5) {
+            capabilities = clientJoinedEventParams.connectionCapabilities;
         }
         onP2pApStaConnected(
                 clientJoinedEventParams.groupInterfaceName,
                 clientJoinedEventParams.clientInterfaceAddress,
                 clientJoinedEventParams.clientDeviceAddress,
                 clientJoinedEventParams.clientIpAddress,
-                vendorData);
+                vendorData,
+                capabilities);
     }
 
+    @SuppressLint("NewApi")
     private void onP2pApStaConnected(
             String groupIfName, byte[] srcAddress, byte[] p2pDeviceAddress, int ipAddress,
-            @Nullable List<OuiKeyedData> vendorData) {
+            @Nullable List<OuiKeyedData> vendorData,
+            @Nullable ConnectionCapabilities caps) {
         InetAddress ipAddressClient = null;
         logd("STA authorized on " + (TextUtils.isEmpty(groupIfName) ? mInterface : groupIfName));
         if (ipAddress != 0) {
@@ -909,6 +935,13 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
         }
         if (SdkLevel.isAtLeastV() && vendorData != null) {
             device.setVendorData(vendorData);
+        }
+        if (Environment.isSdkNewerThanB() && wifiP2pConnectionInfo() && caps != null) {
+            WifiP2pConnectionInfo info = new WifiP2pConnectionInfo(
+                    HalAidlUtil.getWifiStandardFromHal(caps.technology),
+                    HalAidlUtil.getChannelBandwidthFromHal(caps.channelBandwidth),
+                    caps.maxNumberTxSpatialStreams, caps.maxNumberRxSpatialStreams);
+            device.setWifiP2pConnectionInfo(info);
         }
         mMonitor.broadcastP2pApStaConnected(mInterface, device);
     }
