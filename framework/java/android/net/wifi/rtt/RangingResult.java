@@ -423,12 +423,16 @@ public final class RangingResult implements Parcelable {
          * millisec. The time offset is from the measurement time
          * {@link #getRangingTimestampMillis()}.
          *
-         * @param durationMs The duration in milliseconds.
+         * @param durationMs The duration in milliseconds. Must be non-negative.
          * @return The builder to facilitate chaining.
+         * @throws IllegalArgumentException if durationMs is negative.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_RTT_BUSY_TRY_LATER_API)
         public Builder setRetryAfterDurationMillis(@IntRange(from = 0) int durationMs) {
+            if (durationMs < 0) {
+                throw new IllegalArgumentException("durationMs cannot be negative");
+            }
             mRetryAfterDurationMillis = durationMs;
             return this;
         }
