@@ -60,9 +60,10 @@ interface ISupplicantP2pIfaceHal {
      * Setup the P2P iface.
      *
      * @param ifaceName Name of the interface.
+     * @param userId User ID of the user.
      * @return true on success, false otherwise.
      */
-    boolean setupIface(@NonNull String ifaceName);
+    boolean setupIface(@NonNull String ifaceName, int userId);
 
     /**
      * Teardown the P2P interface.

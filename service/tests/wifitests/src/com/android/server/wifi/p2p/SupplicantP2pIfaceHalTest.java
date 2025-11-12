@@ -32,8 +32,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.net.MacAddress;
-import android.net.wifi.WifiContext;
 import android.net.wifi.CoexUnsafeChannel;
+import android.net.wifi.WifiContext;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDirInfo;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -262,9 +262,21 @@ public class SupplicantP2pIfaceHalTest extends WifiBaseTest {
     @Test
     public void testSetupIface() {
         initializeWithAidlVendorImpl(true);
-        when(mP2pIfaceHalAidlMock.setupIface(anyString())).thenReturn(true);
-        assertTrue(mDut.setupIface(IFACE_NAME));
-        verify(mP2pIfaceHalAidlMock).setupIface(eq(IFACE_NAME));
+        when(mP2pIfaceHalAidlMock.setupIface(anyString(), anyInt())).thenReturn(true);
+        assertTrue(mDut.setupIface(IFACE_NAME, 0));
+        verify(mP2pIfaceHalAidlMock).setupIface(eq(IFACE_NAME), eq(0));
+    }
+
+    /**
+     * Test that we can call setupIface with a user id.
+     */
+    @Test
+    public void testSetupIfaceWithUserId() {
+        final int userId = 10;
+        initializeWithAidlVendorImpl(true);
+        when(mP2pIfaceHalAidlMock.setupIface(anyString(), anyInt())).thenReturn(true);
+        assertTrue(mDut.setupIface(IFACE_NAME, userId));
+        verify(mP2pIfaceHalAidlMock).setupIface(eq(IFACE_NAME), eq(userId));
     }
 
     /**

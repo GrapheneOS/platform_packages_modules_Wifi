@@ -150,15 +150,16 @@ public class SupplicantP2pIfaceHal {
      * Setup the P2P iface.
      *
      * @param ifaceName Name of the interface.
+     * @param userId User ID of the user.
      * @return true on success, false otherwise.
      */
-    public boolean setupIface(@NonNull String ifaceName) {
+    public boolean setupIface(@NonNull String ifaceName, int userId) {
         synchronized (mLock) {
             String methodStr = "setupIface";
             if (mP2pIfaceHal == null) {
                 return handleNullHal(methodStr);
             }
-            return mP2pIfaceHal.setupIface(ifaceName);
+            return mP2pIfaceHal.setupIface(ifaceName, userId);
         }
     }
 

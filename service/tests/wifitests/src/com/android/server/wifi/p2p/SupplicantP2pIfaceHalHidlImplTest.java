@@ -319,7 +319,7 @@ public class SupplicantP2pIfaceHalHidlImplTest extends WifiBaseTest {
         executeAndValidateInitializationSequenceV1_1(false, false);
 
         // Trying setting up the p2p0 interface again & ensure it fails.
-        assertFalse(mDut.setupIface(mIfaceName));
+        assertFalse(mDut.setupIface(mIfaceName, 0));
         verifyNoMoreInteractions(mISupplicantMockV11);
     }
 
@@ -2837,7 +2837,7 @@ public class SupplicantP2pIfaceHalHidlImplTest extends WifiBaseTest {
         assertEquals(true, mDut.isInitializationComplete());
 
         // Now setup the iface.
-        assertTrue(mDut.setupIface(mIfaceName) == shouldSucceed);
+        assertTrue(mDut.setupIface(mIfaceName, 0) == shouldSucceed);
 
         // verify: listInterfaces is called
         mInOrder.verify(mISupplicantMock).listInterfaces(
@@ -2894,7 +2894,7 @@ public class SupplicantP2pIfaceHalHidlImplTest extends WifiBaseTest {
         assertEquals(true, mDut.isInitializationComplete());
 
         // Now setup the iface.
-        assertTrue(mDut.setupIface(mIfaceName) == shouldSucceed);
+        assertTrue(mDut.setupIface(mIfaceName, 0) == shouldSucceed);
 
         // verify: addInterface is called
         mInOrder.verify(mISupplicantMockV11)

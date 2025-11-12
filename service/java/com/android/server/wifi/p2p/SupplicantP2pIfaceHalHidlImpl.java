@@ -299,7 +299,7 @@ public class SupplicantP2pIfaceHalHidlImpl implements ISupplicantP2pIfaceHal {
      * @param ifaceName Name of the interface.
      * @return true on success, false otherwise.
      */
-    public boolean setupIface(@NonNull String ifaceName) {
+    public boolean setupIface(@NonNull String ifaceName, int userId) {
         synchronized (mLock) {
             if (mISupplicantP2pIface != null) return false;
             ISupplicantIface ifaceHwBinder;
