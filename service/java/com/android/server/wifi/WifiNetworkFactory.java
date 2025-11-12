@@ -2159,11 +2159,11 @@ public class WifiNetworkFactory extends NetworkFactory {
                 || mConnectedSpecificNetworkRequest == null
                 || mConnectedSpecificNetworkRequestSpecifier == null
                 || mConnectedSpecificNetworkRequestSpecifier.wifiConfiguration == null
-                || !config.fromWifiNetworkSpecifier) {
+                || !config.fromWifiNetworkSpecifier
+                || mUserSelectedNetwork == null) {
             return false;
         }
-        return config.getProfileKey().equals(
-                mConnectedSpecificNetworkRequestSpecifier.wifiConfiguration.getProfileKey());
+        return config.getProfileKey().equals(mUserSelectedNetwork.getProfileKey());
     }
 
     /**
