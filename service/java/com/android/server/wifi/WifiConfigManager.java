@@ -1512,16 +1512,18 @@ public class WifiConfigManager {
         initRandomizedMacForInternalConfig(newInternalConfig);
         if (Environment.isSdkNewerThanB()
                 && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
-            boolean isInsecure = true;
             for (SecurityParams p : newInternalConfig.getSecurityParamsList()) {
-                if (!p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OPEN)
-                        && !p.isSecurityType(WifiConfiguration.SECURITY_TYPE_WEP)
-                        && !p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OWE)) {
-                    isInsecure = false;
-                    break;
+                if (p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OPEN)
+                        || p.isSecurityType(WifiConfiguration.SECURITY_TYPE_WEP)
+                        || p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OWE)) {
+                    // Only change auto join in AAPM for non DO/PO networks
+                    if (!isDeviceOwnerProfileOwner(
+                            newInternalConfig.creatorUid, newInternalConfig.creatorName)) {
+                        newInternalConfig.setAutoJoinInAdvancedProtectionModeEnabled(false);
+                        break;
+                    }
                 }
             }
-            newInternalConfig.setAutoJoinInAdvancedProtectionModeEnabled(!isInsecure);
         }
         return newInternalConfig;
     }
@@ -1964,6 +1966,11 @@ public class WifiConfigManager {
                 || mWifiPermissionsUtil.isProfileOwner(uid, packageName)
                 || mWifiPermissionsUtil.isSystem(packageName, uid)
                 || mWifiPermissionsUtil.isSignedWithPlatformKey(uid);
+    }
+
+    private boolean isDeviceOwnerProfileOwner(int uid, String packageName) {
+        return mWifiPermissionsUtil.isDeviceOwner(uid, packageName)
+                || mWifiPermissionsUtil.isProfileOwner(uid, packageName);
     }
 
     /**

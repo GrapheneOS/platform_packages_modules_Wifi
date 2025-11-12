@@ -31,6 +31,7 @@ import android.util.Log;
 import android.util.Pair;
 
 import com.android.server.wifi.util.WifiConfigStoreEncryptionUtil;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.XmlUtil;
 import com.android.server.wifi.util.XmlUtil.IpConfigurationXmlUtil;
 import com.android.server.wifi.util.XmlUtil.NetworkSelectionStatusXmlUtil;
@@ -64,14 +65,16 @@ public abstract class NetworkListStoreData implements WifiConfigStore.StoreData 
             "WifiEnterpriseConfiguration";
 
     private final Context mContext;
+    private final WifiPermissionsUtil mWifiPermissionsUtil;
 
     /**
      * List of saved shared networks visible to all the users to be stored in the store file.
      */
     private List<WifiConfiguration> mConfigurations;
 
-    NetworkListStoreData(Context context) {
+    NetworkListStoreData(Context context, WifiPermissionsUtil wifiPermissionsUtil) {
         mContext = context;
+        mWifiPermissionsUtil = wifiPermissionsUtil;
     }
 
     @Override
@@ -250,7 +253,7 @@ public abstract class NetworkListStoreData implements WifiConfigStore.StoreData 
                     }
                     parsedConfig = WifiConfigurationXmlUtil.parseFromXml(in, outerTagDepth + 1,
                             version >= ENCRYPT_CREDENTIALS_CONFIG_STORE_DATA_VERSION,
-                            encryptionUtil, false);
+                            encryptionUtil, false, mWifiPermissionsUtil);
                     break;
                 case XML_TAG_SECTION_HEADER_NETWORK_STATUS:
                     if (status != null) {

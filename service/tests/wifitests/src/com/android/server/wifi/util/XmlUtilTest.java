@@ -23,6 +23,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.validateMockitoUsage;
@@ -59,6 +61,7 @@ import com.android.wifi.flags.Flags;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.MockitoSession;
 import org.xmlpull.v1.XmlPullParser;
@@ -105,6 +108,7 @@ public class XmlUtilTest extends WifiBaseTest {
     private WifiConfigStoreEncryptionUtil mWifiConfigStoreEncryptionUtil = null;
 
     private MockitoSession mSession;
+    @Mock WifiPermissionsUtil mWifiPermissionsUtil;
 
     @Before
     public void setUp() throws Exception {
@@ -800,7 +804,7 @@ public class XmlUtilTest extends WifiBaseTest {
         return WifiConfigurationXmlUtil.parseFromXml(
                 in, in.getDepth(),
                 mWifiConfigStoreEncryptionUtil != null,
-                mWifiConfigStoreEncryptionUtil, fromSuggestion);
+                mWifiConfigStoreEncryptionUtil, fromSuggestion, mWifiPermissionsUtil);
     }
 
     /**
@@ -1103,6 +1107,40 @@ public class XmlUtilTest extends WifiBaseTest {
         XmlUtil.writeNextSectionEnd(out, WifiConfigurationXmlUtil.XML_TAG_SECURITY_PARAMS);
         XmlUtil.writeNextSectionEnd(out, WifiConfigurationXmlUtil.XML_TAG_SECURITY_PARAMS_LIST);
         XmlUtil.writeDocumentEnd(out, mXmlDocHeader);
+
+        // Deserialize the data
+        Pair<String, WifiConfiguration> retrieved =
+                deserializeWifiConfiguration(outputStream.toByteArray(), false);
+
+        // Verify that isAutoJoinInAdvancedProtectionModeEnabled returns true.
+        assertTrue(retrieved.second.isAutoJoinInAdvancedProtectionModeEnabled());
+    }
+
+    /**
+     * Verify that when AllowedAutoJoinInAdvancedProtection is not in the XML file, the
+     * corresponding field defaults to true for insecure networks when creator is DO or PO
+     */
+    @Test
+    public void testAllowedAutoJoinInAdvancedProtection_DefaultToTrueForInsecureButCreatedByDOPO()
+            throws IOException, XmlPullParserException {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), any())).thenReturn(true);
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
+        // First generate XML data that only has the header filled in
+        final XmlSerializer out = new FastXmlSerializer();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        out.setOutput(outputStream, StandardCharsets.UTF_8.name());
+        XmlUtil.writeDocumentStart(out, mXmlDocHeader);
+        // Add open security params to make it insecure
+        XmlUtil.writeNextSectionStart(out, WifiConfigurationXmlUtil.XML_TAG_SECURITY_PARAMS_LIST);
+        XmlUtil.writeNextSectionStart(out, WifiConfigurationXmlUtil.XML_TAG_SECURITY_PARAMS);
+        XmlUtil.writeNextValue(out, WifiConfigurationXmlUtil.XML_TAG_SECURITY_TYPE,
+                WifiConfiguration.SECURITY_TYPE_OPEN);
+        XmlUtil.writeNextValue(out, WifiConfigurationXmlUtil.XML_TAG_IS_ENABLED, true);
+        XmlUtil.writeNextSectionEnd(out, WifiConfigurationXmlUtil.XML_TAG_SECURITY_PARAMS);
+        XmlUtil.writeNextSectionEnd(out, WifiConfigurationXmlUtil.XML_TAG_SECURITY_PARAMS_LIST);
+        XmlUtil.writeDocumentEnd(out, mXmlDocHeader);
+
 
         // Deserialize the data
         Pair<String, WifiConfiguration> retrieved =

@@ -43,6 +43,7 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.server.wifi.WifiNetworkSuggestionsManager.ExtendedWifiNetworkSuggestion;
 import com.android.server.wifi.WifiNetworkSuggestionsManager.PerAppInfo;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 
 import org.junit.After;
 import org.junit.Before;
@@ -255,6 +256,7 @@ public class NetworkSuggestionStoreDataTest extends WifiBaseTest {
                     + "</NetworkSuggestionPerApp>";
 
     private @Mock NetworkSuggestionStoreData.DataSource mDataSource;
+    private @Mock WifiPermissionsUtil mWifiPermissionsUtil;
     private NetworkSuggestionStoreData mNetworkSuggestionStoreData;
     private MockitoSession mSession;
 
@@ -266,7 +268,8 @@ public class NetworkSuggestionStoreDataTest extends WifiBaseTest {
                 .mockStatic(ActivityManager.class, withSettings().lenient())
                 .startMocking();
         when(ActivityManager.getCurrentUser()).thenReturn(UserHandle.getUserId(TEST_UID));
-        mNetworkSuggestionStoreData = new NetworkSuggestionStoreData(mDataSource);
+        mNetworkSuggestionStoreData = new NetworkSuggestionStoreData(
+                mDataSource, mWifiPermissionsUtil);
     }
 
     /**

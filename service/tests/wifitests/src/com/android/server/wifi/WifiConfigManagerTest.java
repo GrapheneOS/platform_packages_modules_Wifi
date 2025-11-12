@@ -8860,4 +8860,26 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 expectedWifiConfigurationsForUser1,
                 mWifiConfigManager.getConfiguredNetworksCreatedByCurrentUserWithPassword());
     }
+
+    @Test
+    public void testAapmFeatureNotDisableInsecureWifiAutojoinWhenCreatorUidIsDOPO() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
+        when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), any())).thenReturn(true);
+        // Test with a secure network type
+        WifiConfiguration secureConfig = WifiConfigurationTestUtil.createPskNetwork();
+        NetworkUpdateResult secureResult = addNetworkToWifiConfigManager(secureConfig);
+        assertTrue(secureResult.isSuccess());
+        WifiConfiguration retrievedSecureConfig =
+                mWifiConfigManager.getConfiguredNetwork(secureResult.getNetworkId());
+        assertTrue(retrievedSecureConfig.isAutoJoinInAdvancedProtectionModeEnabled());
+
+        // Test with an insecure network type
+        WifiConfiguration insecureConfig = WifiConfigurationTestUtil.createOpenNetwork();
+        NetworkUpdateResult insecureResult = addNetworkToWifiConfigManager(insecureConfig);
+        assertTrue(insecureResult.isSuccess());
+        WifiConfiguration retrievedInsecureConfig =
+                mWifiConfigManager.getConfiguredNetwork(insecureResult.getNetworkId());
+        assertTrue(retrievedInsecureConfig.isAutoJoinInAdvancedProtectionModeEnabled());
+    }
 }
