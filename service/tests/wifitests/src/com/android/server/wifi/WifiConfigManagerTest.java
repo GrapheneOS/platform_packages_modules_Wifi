@@ -5134,7 +5134,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      * Verifies that the method resetSimNetworks updates SIM presence status and SIM configs.
      */
     @Test
-    public void testResetSimNetworks() {
+    public void testResetSimNetworks() throws Exception {
         String expectedIdentity = "13214561234567890@wlan.mnc456.mcc321.3gppnetwork.org";
         when(mDataTelephonyManager.getSubscriberId()).thenReturn("3214561234567890");
         when(mDataTelephonyManager.getSimApplicationState())
@@ -5149,6 +5149,9 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         WifiConfiguration network = WifiConfigurationTestUtil.createEapNetwork();
         WifiConfiguration simNetwork = WifiConfigurationTestUtil.createEapNetwork(
                 WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE);
+        WifiConfiguration ephemeralSimNetwork = WifiConfigurationTestUtil.createEapNetwork(
+                WifiEnterpriseConfig.Eap.SIM, WifiEnterpriseConfig.Phase2.NONE);
+        ephemeralSimNetwork.ephemeral = true;
         WifiConfiguration peapSimNetwork = WifiConfigurationTestUtil.createEapNetwork(
                 WifiEnterpriseConfig.Eap.PEAP, WifiEnterpriseConfig.Phase2.SIM);
         network.enterpriseConfig.setIdentity("identity1");
@@ -5160,6 +5163,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         verifyAddNetworkToWifiConfigManager(network);
         verifyAddNetworkToWifiConfigManager(simNetwork);
         verifyAddNetworkToWifiConfigManager(peapSimNetwork);
+        verifyAddEphemeralNetworkToWifiConfigManager(ephemeralSimNetwork);
         MockitoSession mockSession = ExtendedMockito.mockitoSession()
                 .mockStatic(SubscriptionManager.class)
                 .startMocking();
@@ -5181,7 +5185,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 mWifiConfigManager.getConfiguredNetwork(peapSimNetwork.networkId);
         assertEquals(expectedIdentity, retrievedPeapSimNetwork.enterpriseConfig.getIdentity());
         assertNotEquals("", retrievedPeapSimNetwork.enterpriseConfig.getAnonymousIdentity());
-
+        assertNull(mWifiConfigManager.getConfiguredNetwork(ephemeralSimNetwork.networkId));
         mockSession.finishMocking();
     }
 

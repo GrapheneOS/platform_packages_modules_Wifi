@@ -3522,6 +3522,10 @@ public class WifiConfigManager {
                     || !config.enterpriseConfig.isAuthenticationSimBased()) {
                 continue;
             }
+            if (config.ephemeral) {
+                removeNetwork(config.networkId, config.creatorUid, config.creatorName);
+                continue;
+            }
             if (config.enterpriseConfig.getEapMethod() == WifiEnterpriseConfig.Eap.PEAP) {
                 Pair<String, String> currentIdentity =
                         mWifiCarrierInfoManager.getSimIdentity(config);
