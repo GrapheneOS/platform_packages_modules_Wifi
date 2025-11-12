@@ -59,1134 +59,1003 @@ public class NetlinkConstants {
     public static final int NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP = 1 << 0;
 
     // Nl80211 commands. See kernel/uapi/linux/nl80211.h
-    public enum Nl80211Commands {
-        NL80211_CMD_UNSPEC,
+    public static final short NL80211_CMD_UNSPEC = 0;
 
-        NL80211_CMD_GET_WIPHY, /* can dump */
-        NL80211_CMD_SET_WIPHY,
-        NL80211_CMD_NEW_WIPHY,
-        NL80211_CMD_DEL_WIPHY,
+    public static final short NL80211_CMD_GET_WIPHY = 1; /* can dump */
+    public static final short NL80211_CMD_SET_WIPHY = 2;
+    public static final short NL80211_CMD_NEW_WIPHY = 3;
+    public static final short NL80211_CMD_DEL_WIPHY = 4;
 
-        NL80211_CMD_GET_INTERFACE, /* can dump */
-        NL80211_CMD_SET_INTERFACE,
-        NL80211_CMD_NEW_INTERFACE,
-        NL80211_CMD_DEL_INTERFACE,
+    public static final short NL80211_CMD_GET_INTERFACE = 5; /* can dump */
+    public static final short NL80211_CMD_SET_INTERFACE = 6;
+    public static final short NL80211_CMD_NEW_INTERFACE = 7;
+    public static final short NL80211_CMD_DEL_INTERFACE = 8;
 
-        NL80211_CMD_GET_KEY,
-        NL80211_CMD_SET_KEY,
-        NL80211_CMD_NEW_KEY,
-        NL80211_CMD_DEL_KEY,
+    public static final short NL80211_CMD_GET_KEY = 9;
+    public static final short NL80211_CMD_SET_KEY = 10;
+    public static final short NL80211_CMD_NEW_KEY = 11;
+    public static final short NL80211_CMD_DEL_KEY = 12;
 
-        NL80211_CMD_GET_BEACON,
-        NL80211_CMD_SET_BEACON,
-        NL80211_CMD_START_AP,
-        NL80211_CMD_STOP_AP,
+    public static final short NL80211_CMD_GET_BEACON = 13;
+    public static final short NL80211_CMD_SET_BEACON = 14;
+    public static final short NL80211_CMD_START_AP = 15;
+    public static final short NL80211_CMD_STOP_AP = 16;
 
-        NL80211_CMD_GET_STATION,
-        NL80211_CMD_SET_STATION,
-        NL80211_CMD_NEW_STATION,
-        NL80211_CMD_DEL_STATION,
+    public static final short NL80211_CMD_GET_STATION = 17;
+    public static final short NL80211_CMD_SET_STATION = 18;
+    public static final short NL80211_CMD_NEW_STATION = 19;
+    public static final short NL80211_CMD_DEL_STATION = 20;
 
-        NL80211_CMD_GET_MPATH,
-        NL80211_CMD_SET_MPATH,
-        NL80211_CMD_NEW_MPATH,
-        NL80211_CMD_DEL_MPATH,
+    public static final short NL80211_CMD_GET_MPATH = 21;
+    public static final short NL80211_CMD_SET_MPATH = 22;
+    public static final short NL80211_CMD_NEW_MPATH = 23;
+    public static final short NL80211_CMD_DEL_MPATH = 24;
 
-        NL80211_CMD_SET_BSS,
+    public static final short NL80211_CMD_SET_BSS = 25;
 
-        NL80211_CMD_SET_REG,
-        NL80211_CMD_REQ_SET_REG,
+    public static final short NL80211_CMD_SET_REG = 26;
+    public static final short NL80211_CMD_REQ_SET_REG = 27;
 
-        NL80211_CMD_GET_MESH_CONFIG,
-        NL80211_CMD_SET_MESH_CONFIG,
+    public static final short NL80211_CMD_GET_MESH_CONFIG = 28;
+    public static final short NL80211_CMD_SET_MESH_CONFIG = 29;
 
-        NL80211_CMD_SET_MGMT_EXTRA_IE /* reserved; not used */,
+    public static final short NL80211_CMD_SET_MGMT_EXTRA_IE = 30; /* reserved; not used */
 
-        NL80211_CMD_GET_REG,
+    public static final short NL80211_CMD_GET_REG = 31;
 
-        NL80211_CMD_GET_SCAN,
-        NL80211_CMD_TRIGGER_SCAN,
-        NL80211_CMD_NEW_SCAN_RESULTS,
-        NL80211_CMD_SCAN_ABORTED,
+    public static final short NL80211_CMD_GET_SCAN = 32;
+    public static final short NL80211_CMD_TRIGGER_SCAN = 33;
+    public static final short NL80211_CMD_NEW_SCAN_RESULTS = 34;
+    public static final short NL80211_CMD_SCAN_ABORTED = 35;
 
-        NL80211_CMD_REG_CHANGE,
+    public static final short NL80211_CMD_REG_CHANGE = 36;
 
-        NL80211_CMD_AUTHENTICATE,
-        NL80211_CMD_ASSOCIATE,
-        NL80211_CMD_DEAUTHENTICATE,
-        NL80211_CMD_DISASSOCIATE,
+    public static final short NL80211_CMD_AUTHENTICATE = 37;
+    public static final short NL80211_CMD_ASSOCIATE = 38;
+    public static final short NL80211_CMD_DEAUTHENTICATE = 39;
+    public static final short NL80211_CMD_DISASSOCIATE = 40;
 
-        NL80211_CMD_MICHAEL_MIC_FAILURE,
+    public static final short NL80211_CMD_MICHAEL_MIC_FAILURE = 41;
 
-        NL80211_CMD_REG_BEACON_HINT,
+    public static final short NL80211_CMD_REG_BEACON_HINT = 42;
 
-        NL80211_CMD_JOIN_IBSS,
-        NL80211_CMD_LEAVE_IBSS,
+    public static final short NL80211_CMD_JOIN_IBSS = 43;
+    public static final short NL80211_CMD_LEAVE_IBSS = 44;
 
-        NL80211_CMD_TESTMODE,
+    public static final short NL80211_CMD_TESTMODE = 45;
 
-        NL80211_CMD_CONNECT,
-        NL80211_CMD_ROAM,
-        NL80211_CMD_DISCONNECT,
+    public static final short NL80211_CMD_CONNECT = 46;
+    public static final short NL80211_CMD_ROAM = 47;
+    public static final short NL80211_CMD_DISCONNECT = 48;
 
-        NL80211_CMD_SET_WIPHY_NETNS,
+    public static final short NL80211_CMD_SET_WIPHY_NETNS = 49;
 
-        NL80211_CMD_GET_SURVEY,
-        NL80211_CMD_NEW_SURVEY_RESULTS,
+    public static final short NL80211_CMD_GET_SURVEY = 50;
+    public static final short NL80211_CMD_NEW_SURVEY_RESULTS = 51;
 
-        NL80211_CMD_SET_PMKSA,
-        NL80211_CMD_DEL_PMKSA,
-        NL80211_CMD_FLUSH_PMKSA,
+    public static final short NL80211_CMD_SET_PMKSA = 52;
+    public static final short NL80211_CMD_DEL_PMKSA = 53;
+    public static final short NL80211_CMD_FLUSH_PMKSA = 54;
 
-        NL80211_CMD_REMAIN_ON_CHANNEL,
-        NL80211_CMD_CANCEL_REMAIN_ON_CHANNEL,
+    public static final short NL80211_CMD_REMAIN_ON_CHANNEL = 55;
+    public static final short NL80211_CMD_CANCEL_REMAIN_ON_CHANNEL = 56;
 
-        NL80211_CMD_SET_TX_BITRATE_MASK,
+    public static final short NL80211_CMD_SET_TX_BITRATE_MASK = 57;
 
-        NL80211_CMD_REGISTER_FRAME,
-        NL80211_CMD_FRAME,
-        NL80211_CMD_FRAME_TX_STATUS,
+    public static final short NL80211_CMD_REGISTER_FRAME = 58;
+    public static final short NL80211_CMD_FRAME = 59;
+    public static final short NL80211_CMD_FRAME_TX_STATUS = 60;
 
-        NL80211_CMD_SET_POWER_SAVE,
-        NL80211_CMD_GET_POWER_SAVE,
+    public static final short NL80211_CMD_SET_POWER_SAVE = 61;
+    public static final short NL80211_CMD_GET_POWER_SAVE = 62;
 
-        NL80211_CMD_SET_CQM,
-        NL80211_CMD_NOTIFY_CQM,
+    public static final short NL80211_CMD_SET_CQM = 63;
+    public static final short NL80211_CMD_NOTIFY_CQM = 64;
 
-        NL80211_CMD_SET_CHANNEL,
-        NL80211_CMD_SET_WDS_PEER,
+    public static final short NL80211_CMD_SET_CHANNEL = 65;
+    public static final short NL80211_CMD_SET_WDS_PEER = 66;
 
-        NL80211_CMD_FRAME_WAIT_CANCEL,
+    public static final short NL80211_CMD_FRAME_WAIT_CANCEL = 67;
 
-        NL80211_CMD_JOIN_MESH,
-        NL80211_CMD_LEAVE_MESH,
+    public static final short NL80211_CMD_JOIN_MESH = 68;
+    public static final short NL80211_CMD_LEAVE_MESH = 69;
 
-        NL80211_CMD_UNPROT_DEAUTHENTICATE,
-        NL80211_CMD_UNPROT_DISASSOCIATE,
+    public static final short NL80211_CMD_UNPROT_DEAUTHENTICATE = 70;
+    public static final short NL80211_CMD_UNPROT_DISASSOCIATE = 71;
 
-        NL80211_CMD_NEW_PEER_CANDIDATE,
+    public static final short NL80211_CMD_NEW_PEER_CANDIDATE = 72;
 
-        NL80211_CMD_GET_WOWLAN,
-        NL80211_CMD_SET_WOWLAN,
+    public static final short NL80211_CMD_GET_WOWLAN = 73;
+    public static final short NL80211_CMD_SET_WOWLAN = 74;
 
-        NL80211_CMD_START_SCHED_SCAN,
-        NL80211_CMD_STOP_SCHED_SCAN,
-        NL80211_CMD_SCHED_SCAN_RESULTS,
-        NL80211_CMD_SCHED_SCAN_STOPPED,
+    public static final short NL80211_CMD_START_SCHED_SCAN = 75;
+    public static final short NL80211_CMD_STOP_SCHED_SCAN = 76;
+    public static final short NL80211_CMD_SCHED_SCAN_RESULTS = 77;
+    public static final short NL80211_CMD_SCHED_SCAN_STOPPED = 78;
 
-        NL80211_CMD_SET_REKEY_OFFLOAD,
+    public static final short NL80211_CMD_SET_REKEY_OFFLOAD = 79;
 
-        NL80211_CMD_PMKSA_CANDIDATE,
+    public static final short NL80211_CMD_PMKSA_CANDIDATE = 80;
 
-        NL80211_CMD_TDLS_OPER,
-        NL80211_CMD_TDLS_MGMT,
+    public static final short NL80211_CMD_TDLS_OPER = 81;
+    public static final short NL80211_CMD_TDLS_MGMT = 82;
 
-        NL80211_CMD_UNEXPECTED_FRAME,
+    public static final short NL80211_CMD_UNEXPECTED_FRAME = 83;
 
-        NL80211_CMD_PROBE_CLIENT,
+    public static final short NL80211_CMD_PROBE_CLIENT = 84;
 
-        NL80211_CMD_REGISTER_BEACONS,
+    public static final short NL80211_CMD_REGISTER_BEACONS = 85;
 
-        NL80211_CMD_UNEXPECTED_4ADDR_FRAME,
+    public static final short NL80211_CMD_UNEXPECTED_4ADDR_FRAME = 86;
 
-        NL80211_CMD_SET_NOACK_MAP,
+    public static final short NL80211_CMD_SET_NOACK_MAP = 87;
 
-        NL80211_CMD_CH_SWITCH_NOTIFY,
+    public static final short NL80211_CMD_CH_SWITCH_NOTIFY = 88;
 
-        NL80211_CMD_START_P2P_DEVICE,
-        NL80211_CMD_STOP_P2P_DEVICE,
+    public static final short NL80211_CMD_START_P2P_DEVICE = 89;
+    public static final short NL80211_CMD_STOP_P2P_DEVICE = 90;
 
-        NL80211_CMD_CONN_FAILED,
+    public static final short NL80211_CMD_CONN_FAILED = 91;
 
-        NL80211_CMD_SET_MCAST_RATE,
+    public static final short NL80211_CMD_SET_MCAST_RATE = 92;
 
-        NL80211_CMD_SET_MAC_ACL,
+    public static final short NL80211_CMD_SET_MAC_ACL = 93;
 
-        NL80211_CMD_RADAR_DETECT,
+    public static final short NL80211_CMD_RADAR_DETECT = 94;
 
-        NL80211_CMD_GET_PROTOCOL_FEATURES,
+    public static final short NL80211_CMD_GET_PROTOCOL_FEATURES = 95;
 
-        NL80211_CMD_UPDATE_FT_IES,
-        NL80211_CMD_FT_EVENT,
+    public static final short NL80211_CMD_UPDATE_FT_IES = 96;
+    public static final short NL80211_CMD_FT_EVENT = 97;
 
-        NL80211_CMD_CRIT_PROTOCOL_START,
-        NL80211_CMD_CRIT_PROTOCOL_STOP,
+    public static final short NL80211_CMD_CRIT_PROTOCOL_START = 98;
+    public static final short NL80211_CMD_CRIT_PROTOCOL_STOP = 99;
 
-        NL80211_CMD_GET_COALESCE,
-        NL80211_CMD_SET_COALESCE,
+    public static final short NL80211_CMD_GET_COALESCE = 100;
+    public static final short NL80211_CMD_SET_COALESCE = 101;
 
-        NL80211_CMD_CHANNEL_SWITCH,
+    public static final short NL80211_CMD_CHANNEL_SWITCH = 102;
 
-        NL80211_CMD_VENDOR,
+    public static final short NL80211_CMD_VENDOR = 103;
 
-        NL80211_CMD_SET_QOS_MAP,
+    public static final short NL80211_CMD_SET_QOS_MAP = 104;
 
-        NL80211_CMD_ADD_TX_TS,
-        NL80211_CMD_DEL_TX_TS,
+    public static final short NL80211_CMD_ADD_TX_TS = 105;
+    public static final short NL80211_CMD_DEL_TX_TS = 106;
 
-        NL80211_CMD_GET_MPP,
+    public static final short NL80211_CMD_GET_MPP = 107;
 
-        NL80211_CMD_JOIN_OCB,
-        NL80211_CMD_LEAVE_OCB,
+    public static final short NL80211_CMD_JOIN_OCB = 108;
+    public static final short NL80211_CMD_LEAVE_OCB = 109;
 
-        NL80211_CMD_CH_SWITCH_STARTED_NOTIFY,
+    public static final short NL80211_CMD_CH_SWITCH_STARTED_NOTIFY = 110;
 
-        NL80211_CMD_TDLS_CHANNEL_SWITCH,
-        NL80211_CMD_TDLS_CANCEL_CHANNEL_SWITCH,
+    public static final short NL80211_CMD_TDLS_CHANNEL_SWITCH = 111;
+    public static final short NL80211_CMD_TDLS_CANCEL_CHANNEL_SWITCH = 112;
 
-        NL80211_CMD_WIPHY_REG_CHANGE,
+    public static final short NL80211_CMD_WIPHY_REG_CHANGE = 113;
 
-        NL80211_CMD_ABORT_SCAN,
+    public static final short NL80211_CMD_ABORT_SCAN = 114;
 
-        NL80211_CMD_START_NAN,
-        NL80211_CMD_STOP_NAN,
-        NL80211_CMD_ADD_NAN_FUNCTION,
-        NL80211_CMD_DEL_NAN_FUNCTION,
-        NL80211_CMD_CHANGE_NAN_CONFIG,
-        NL80211_CMD_NAN_MATCH,
+    public static final short NL80211_CMD_START_NAN = 115;
+    public static final short NL80211_CMD_STOP_NAN = 116;
+    public static final short NL80211_CMD_ADD_NAN_FUNCTION = 117;
+    public static final short NL80211_CMD_DEL_NAN_FUNCTION = 118;
+    public static final short NL80211_CMD_CHANGE_NAN_CONFIG = 119;
+    public static final short NL80211_CMD_NAN_MATCH = 120;
 
-        NL80211_CMD_SET_MULTICAST_TO_UNICAST,
+    public static final short NL80211_CMD_SET_MULTICAST_TO_UNICAST = 121;
 
-        NL80211_CMD_UPDATE_CONNECT_PARAMS,
+    public static final short NL80211_CMD_UPDATE_CONNECT_PARAMS = 122;
 
-        NL80211_CMD_SET_PMK,
-        NL80211_CMD_DEL_PMK,
+    public static final short NL80211_CMD_SET_PMK = 123;
+    public static final short NL80211_CMD_DEL_PMK = 124;
 
-        NL80211_CMD_PORT_AUTHORIZED,
+    public static final short NL80211_CMD_PORT_AUTHORIZED = 125;
 
-        NL80211_CMD_RELOAD_REGDB,
+    public static final short NL80211_CMD_RELOAD_REGDB = 126;
 
-        NL80211_CMD_EXTERNAL_AUTH,
+    public static final short NL80211_CMD_EXTERNAL_AUTH = 127;
 
-        NL80211_CMD_STA_OPMODE_CHANGED,
+    public static final short NL80211_CMD_STA_OPMODE_CHANGED = 128;
 
-        NL80211_CMD_CONTROL_PORT_FRAME,
+    public static final short NL80211_CMD_CONTROL_PORT_FRAME = 129;
 
-        NL80211_CMD_GET_FTM_RESPONDER_STATS,
+    public static final short NL80211_CMD_GET_FTM_RESPONDER_STATS = 130;
 
-        NL80211_CMD_PEER_MEASUREMENT_START,
-        NL80211_CMD_PEER_MEASUREMENT_RESULT,
-        NL80211_CMD_PEER_MEASUREMENT_COMPLETE,
+    public static final short NL80211_CMD_PEER_MEASUREMENT_START = 131;
+    public static final short NL80211_CMD_PEER_MEASUREMENT_RESULT = 132;
+    public static final short NL80211_CMD_PEER_MEASUREMENT_COMPLETE = 133;
 
-        NL80211_CMD_NOTIFY_RADAR,
+    public static final short NL80211_CMD_NOTIFY_RADAR = 134;
 
-        NL80211_CMD_UPDATE_OWE_INFO,
+    public static final short NL80211_CMD_UPDATE_OWE_INFO = 135;
 
-        NL80211_CMD_PROBE_MESH_LINK,
+    public static final short NL80211_CMD_PROBE_MESH_LINK = 136;
 
-        NL80211_CMD_SET_TID_CONFIG,
+    public static final short NL80211_CMD_SET_TID_CONFIG = 137;
 
-        NL80211_CMD_UNPROT_BEACON,
+    public static final short NL80211_CMD_UNPROT_BEACON = 138;
 
-        NL80211_CMD_CONTROL_PORT_FRAME_TX_STATUS,
+    public static final short NL80211_CMD_CONTROL_PORT_FRAME_TX_STATUS = 139;
 
-        NL80211_CMD_SET_SAR_SPECS,
+    public static final short NL80211_CMD_SET_SAR_SPECS = 140;
 
-        NL80211_CMD_OBSS_COLOR_COLLISION,
+    public static final short NL80211_CMD_OBSS_COLOR_COLLISION = 141;
 
-        NL80211_CMD_COLOR_CHANGE_REQUEST,
+    public static final short NL80211_CMD_COLOR_CHANGE_REQUEST = 142;
 
-        NL80211_CMD_COLOR_CHANGE_STARTED,
-        NL80211_CMD_COLOR_CHANGE_ABORTED,
-        NL80211_CMD_COLOR_CHANGE_COMPLETED,
+    public static final short NL80211_CMD_COLOR_CHANGE_STARTED = 143;
+    public static final short NL80211_CMD_COLOR_CHANGE_ABORTED = 144;
+    public static final short NL80211_CMD_COLOR_CHANGE_COMPLETED = 145;
 
-        NL80211_CMD_SET_FILS_AAD,
+    public static final short NL80211_CMD_SET_FILS_AAD = 146;
 
-        NL80211_CMD_ASSOC_COMEBACK,
+    public static final short NL80211_CMD_ASSOC_COMEBACK = 147;
 
-        NL80211_CMD_ADD_LINK,
-        NL80211_CMD_REMOVE_LINK,
+    public static final short NL80211_CMD_ADD_LINK = 148;
+    public static final short NL80211_CMD_REMOVE_LINK = 149;
 
-        NL80211_CMD_ADD_LINK_STA,
-        NL80211_CMD_MODIFY_LINK_STA,
-        NL80211_CMD_REMOVE_LINK_STA,
-        NL80211_CMD_ANDROID_KABI_RESERVED_1,
-        NL80211_CMD_ANDROID_KABI_RESERVED_2,
-        NL80211_CMD_ANDROID_KABI_RESERVED_3,
-        NL80211_CMD_ANDROID_KABI_RESERVED_4,
-        NL80211_CMD_ANDROID_KABI_RESERVED_5,
-        NL80211_CMD_ANDROID_KABI_RESERVED_6,
-        NL80211_CMD_ANDROID_KABI_RESERVED_7,
-        NL80211_CMD_ANDROID_KABI_RESERVED_8,
-        NL80211_CMD_ANDROID_KABI_RESERVED_9,
-        NL80211_CMD_ANDROID_KABI_RESERVED_10;
-
-        /**
-         * Returns the value of this enum as a short.
-         */
-        public short toShort() {
-            return (short) ordinal();
-        }
-
-        /**
-         * Returns the enum value corresponding to the given short.
-         */
-        public static Nl80211Commands fromShort(short value) {
-            if (value >= values().length) {
-                return Nl80211Commands.NL80211_CMD_UNSPEC;
-            }
-            return values()[value];
-        }
-    }
+    public static final short NL80211_CMD_ADD_LINK_STA = 150;
+    public static final short NL80211_CMD_MODIFY_LINK_STA = 151;
+    public static final short NL80211_CMD_REMOVE_LINK_STA = 152;
+    public static final short NL80211_CMD_ANDROID_KABI_RESERVED_1 = 153;
+    public static final short NL80211_CMD_ANDROID_KABI_RESERVED_2 = 154;
+    public static final short NL80211_CMD_ANDROID_KABI_RESERVED_3 = 155;
+    public static final short NL80211_CMD_ANDROID_KABI_RESERVED_4 = 156;
+    public static final short NL80211_CMD_ANDROID_KABI_RESERVED_5 = 157;
+    public static final short NL80211_CMD_ANDROID_KABI_RESERVED_6 = 158;
+    public static final short NL80211_CMD_ANDROID_KABI_RESERVED_7 = 159;
+    public static final short NL80211_CMD_ANDROID_KABI_RESERVED_8 = 160;
+    public static final short NL80211_CMD_ANDROID_KABI_RESERVED_9 = 161;
+    public static final short NL80211_CMD_ANDROID_KABI_RESERVED_10 = 162;
 
     // Nl80211 attributes. See kernel/uapi/linux/nl80211.h
-    public enum Nl80211Attrs {
-        NL80211_ATTR_UNSPEC,
+    public static final short NL80211_ATTR_UNSPEC = 0;
 
-        NL80211_ATTR_WIPHY,
-        NL80211_ATTR_WIPHY_NAME,
+    public static final short NL80211_ATTR_WIPHY = 1;
+    public static final short NL80211_ATTR_WIPHY_NAME = 2;
 
-        NL80211_ATTR_IFINDEX,
-        NL80211_ATTR_IFNAME,
-        NL80211_ATTR_IFTYPE,
+    public static final short NL80211_ATTR_IFINDEX = 3;
+    public static final short NL80211_ATTR_IFNAME = 4;
+    public static final short NL80211_ATTR_IFTYPE = 5;
 
-        NL80211_ATTR_MAC,
+    public static final short NL80211_ATTR_MAC = 6;
 
-        NL80211_ATTR_KEY_DATA,
-        NL80211_ATTR_KEY_IDX,
-        NL80211_ATTR_KEY_CIPHER,
-        NL80211_ATTR_KEY_SEQ,
-        NL80211_ATTR_KEY_DEFAULT,
+    public static final short NL80211_ATTR_KEY_DATA = 7;
+    public static final short NL80211_ATTR_KEY_IDX = 8;
+    public static final short NL80211_ATTR_KEY_CIPHER = 9;
+    public static final short NL80211_ATTR_KEY_SEQ = 10;
+    public static final short NL80211_ATTR_KEY_DEFAULT = 11;
 
-        NL80211_ATTR_BEACON_INTERVAL,
-        NL80211_ATTR_DTIM_PERIOD,
-        NL80211_ATTR_BEACON_HEAD,
-        NL80211_ATTR_BEACON_TAIL,
+    public static final short NL80211_ATTR_BEACON_INTERVAL = 12;
+    public static final short NL80211_ATTR_DTIM_PERIOD = 13;
+    public static final short NL80211_ATTR_BEACON_HEAD = 14;
+    public static final short NL80211_ATTR_BEACON_TAIL = 15;
 
-        NL80211_ATTR_STA_AID,
-        NL80211_ATTR_STA_FLAGS,
-        NL80211_ATTR_STA_LISTEN_INTERVAL,
-        NL80211_ATTR_STA_SUPPORTED_RATES,
-        NL80211_ATTR_STA_VLAN,
-        NL80211_ATTR_STA_INFO,
+    public static final short NL80211_ATTR_STA_AID = 16;
+    public static final short NL80211_ATTR_STA_FLAGS = 17;
+    public static final short NL80211_ATTR_STA_LISTEN_INTERVAL = 18;
+    public static final short NL80211_ATTR_STA_SUPPORTED_RATES = 19;
+    public static final short NL80211_ATTR_STA_VLAN = 20;
+    public static final short NL80211_ATTR_STA_INFO = 21;
 
-        NL80211_ATTR_WIPHY_BANDS,
+    public static final short NL80211_ATTR_WIPHY_BANDS = 22;
 
-        NL80211_ATTR_MNTR_FLAGS,
+    public static final short NL80211_ATTR_MNTR_FLAGS = 23;
 
-        NL80211_ATTR_MESH_ID,
-        NL80211_ATTR_STA_PLINK_ACTION,
-        NL80211_ATTR_MPATH_NEXT_HOP,
-        NL80211_ATTR_MPATH_INFO,
+    public static final short NL80211_ATTR_MESH_ID = 24;
+    public static final short NL80211_ATTR_STA_PLINK_ACTION = 25;
+    public static final short NL80211_ATTR_MPATH_NEXT_HOP = 26;
+    public static final short NL80211_ATTR_MPATH_INFO = 27;
 
-        NL80211_ATTR_BSS_CTS_PROT,
-        NL80211_ATTR_BSS_SHORT_PREAMBLE,
-        NL80211_ATTR_BSS_SHORT_SLOT_TIME,
+    public static final short NL80211_ATTR_BSS_CTS_PROT = 28;
+    public static final short NL80211_ATTR_BSS_SHORT_PREAMBLE = 29;
+    public static final short NL80211_ATTR_BSS_SHORT_SLOT_TIME = 30;
 
-        NL80211_ATTR_HT_CAPABILITY,
+    public static final short NL80211_ATTR_HT_CAPABILITY = 31;
 
-        NL80211_ATTR_SUPPORTED_IFTYPES,
+    public static final short NL80211_ATTR_SUPPORTED_IFTYPES = 32;
 
-        NL80211_ATTR_REG_ALPHA2,
-        NL80211_ATTR_REG_RULES,
+    public static final short NL80211_ATTR_REG_ALPHA2 = 33;
+    public static final short NL80211_ATTR_REG_RULES = 34;
 
-        NL80211_ATTR_MESH_CONFIG,
+    public static final short NL80211_ATTR_MESH_CONFIG = 35;
 
-        NL80211_ATTR_BSS_BASIC_RATES,
+    public static final short NL80211_ATTR_BSS_BASIC_RATES = 36;
 
-        NL80211_ATTR_WIPHY_TXQ_PARAMS,
-        NL80211_ATTR_WIPHY_FREQ,
-        NL80211_ATTR_WIPHY_CHANNEL_TYPE,
+    public static final short NL80211_ATTR_WIPHY_TXQ_PARAMS = 37;
+    public static final short NL80211_ATTR_WIPHY_FREQ = 38;
+    public static final short NL80211_ATTR_WIPHY_CHANNEL_TYPE = 39;
 
-        NL80211_ATTR_KEY_DEFAULT_MGMT,
+    public static final short NL80211_ATTR_KEY_DEFAULT_MGMT = 40;
 
-        NL80211_ATTR_MGMT_SUBTYPE,
-        NL80211_ATTR_IE,
+    public static final short NL80211_ATTR_MGMT_SUBTYPE = 41;
+    public static final short NL80211_ATTR_IE = 42;
 
-        NL80211_ATTR_MAX_NUM_SCAN_SSIDS,
+    public static final short NL80211_ATTR_MAX_NUM_SCAN_SSIDS = 43;
 
-        NL80211_ATTR_SCAN_FREQUENCIES,
-        NL80211_ATTR_SCAN_SSIDS,
-        NL80211_ATTR_GENERATION, /* replaces old SCAN_GENERATION */
-        NL80211_ATTR_BSS,
+    public static final short NL80211_ATTR_SCAN_FREQUENCIES = 44;
+    public static final short NL80211_ATTR_SCAN_SSIDS = 45;
+    public static final short NL80211_ATTR_GENERATION = 46; /* replaces old SCAN_GENERATION */
+    public static final short NL80211_ATTR_BSS = 47;
 
-        NL80211_ATTR_REG_INITIATOR,
-        NL80211_ATTR_REG_TYPE,
+    public static final short NL80211_ATTR_REG_INITIATOR = 48;
+    public static final short NL80211_ATTR_REG_TYPE = 49;
 
-        NL80211_ATTR_SUPPORTED_COMMANDS,
+    public static final short NL80211_ATTR_SUPPORTED_COMMANDS = 50;
 
-        NL80211_ATTR_FRAME,
-        NL80211_ATTR_SSID,
-        NL80211_ATTR_AUTH_TYPE,
-        NL80211_ATTR_REASON_CODE,
+    public static final short NL80211_ATTR_FRAME = 51;
+    public static final short NL80211_ATTR_SSID = 52;
+    public static final short NL80211_ATTR_AUTH_TYPE = 53;
+    public static final short NL80211_ATTR_REASON_CODE = 54;
 
-        NL80211_ATTR_KEY_TYPE,
+    public static final short NL80211_ATTR_KEY_TYPE = 55;
 
-        NL80211_ATTR_MAX_SCAN_IE_LEN,
-        NL80211_ATTR_CIPHER_SUITES,
+    public static final short NL80211_ATTR_MAX_SCAN_IE_LEN = 56;
+    public static final short NL80211_ATTR_CIPHER_SUITES = 57;
 
-        NL80211_ATTR_FREQ_BEFORE,
-        NL80211_ATTR_FREQ_AFTER,
+    public static final short NL80211_ATTR_FREQ_BEFORE = 58;
+    public static final short NL80211_ATTR_FREQ_AFTER = 59;
 
-        NL80211_ATTR_FREQ_FIXED,
+    public static final short NL80211_ATTR_FREQ_FIXED = 60;
 
 
-        NL80211_ATTR_WIPHY_RETRY_SHORT,
-        NL80211_ATTR_WIPHY_RETRY_LONG,
-        NL80211_ATTR_WIPHY_FRAG_THRESHOLD,
-        NL80211_ATTR_WIPHY_RTS_THRESHOLD,
+    public static final short NL80211_ATTR_WIPHY_RETRY_SHORT = 61;
+    public static final short NL80211_ATTR_WIPHY_RETRY_LONG = 62;
+    public static final short NL80211_ATTR_WIPHY_FRAG_THRESHOLD = 63;
+    public static final short NL80211_ATTR_WIPHY_RTS_THRESHOLD = 64;
 
-        NL80211_ATTR_TIMED_OUT,
+    public static final short NL80211_ATTR_TIMED_OUT = 65;
 
-        NL80211_ATTR_USE_MFP,
+    public static final short NL80211_ATTR_USE_MFP = 66;
 
-        NL80211_ATTR_STA_FLAGS2,
+    public static final short NL80211_ATTR_STA_FLAGS2 = 67;
 
-        NL80211_ATTR_CONTROL_PORT,
+    public static final short NL80211_ATTR_CONTROL_PORT = 68;
 
-        NL80211_ATTR_TESTDATA,
+    public static final short NL80211_ATTR_TESTDATA = 69;
 
-        NL80211_ATTR_PRIVACY,
+    public static final short NL80211_ATTR_PRIVACY = 70;
 
-        NL80211_ATTR_DISCONNECTED_BY_AP,
-        NL80211_ATTR_STATUS_CODE,
+    public static final short NL80211_ATTR_DISCONNECTED_BY_AP = 71;
+    public static final short NL80211_ATTR_STATUS_CODE = 72;
 
-        NL80211_ATTR_CIPHER_SUITES_PAIRWISE,
-        NL80211_ATTR_CIPHER_SUITE_GROUP,
-        NL80211_ATTR_WPA_VERSIONS,
-        NL80211_ATTR_AKM_SUITES,
+    public static final short NL80211_ATTR_CIPHER_SUITES_PAIRWISE = 73;
+    public static final short NL80211_ATTR_CIPHER_SUITE_GROUP = 74;
+    public static final short NL80211_ATTR_WPA_VERSIONS = 75;
+    public static final short NL80211_ATTR_AKM_SUITES = 76;
 
-        NL80211_ATTR_REQ_IE,
-        NL80211_ATTR_RESP_IE,
+    public static final short NL80211_ATTR_REQ_IE = 77;
+    public static final short NL80211_ATTR_RESP_IE = 78;
 
-        NL80211_ATTR_PREV_BSSID,
+    public static final short NL80211_ATTR_PREV_BSSID = 79;
 
-        NL80211_ATTR_KEY,
-        NL80211_ATTR_KEYS,
+    public static final short NL80211_ATTR_KEY = 80;
+    public static final short NL80211_ATTR_KEYS = 81;
 
-        NL80211_ATTR_PID,
+    public static final short NL80211_ATTR_PID = 82;
 
-        NL80211_ATTR_4ADDR,
+    public static final short NL80211_ATTR_4ADDR = 83;
 
-        NL80211_ATTR_SURVEY_INFO,
+    public static final short NL80211_ATTR_SURVEY_INFO = 84;
 
-        NL80211_ATTR_PMKID,
-        NL80211_ATTR_MAX_NUM_PMKIDS,
+    public static final short NL80211_ATTR_PMKID = 85;
+    public static final short NL80211_ATTR_MAX_NUM_PMKIDS = 86;
 
-        NL80211_ATTR_DURATION,
+    public static final short NL80211_ATTR_DURATION = 87;
 
-        NL80211_ATTR_COOKIE,
+    public static final short NL80211_ATTR_COOKIE = 88;
 
-        NL80211_ATTR_WIPHY_COVERAGE_CLASS,
+    public static final short NL80211_ATTR_WIPHY_COVERAGE_CLASS = 89;
 
-        NL80211_ATTR_TX_RATES,
+    public static final short NL80211_ATTR_TX_RATES = 90;
 
-        NL80211_ATTR_FRAME_MATCH,
+    public static final short NL80211_ATTR_FRAME_MATCH = 91;
 
-        NL80211_ATTR_ACK,
+    public static final short NL80211_ATTR_ACK = 92;
 
-        NL80211_ATTR_PS_STATE,
+    public static final short NL80211_ATTR_PS_STATE = 93;
 
-        NL80211_ATTR_CQM,
+    public static final short NL80211_ATTR_CQM = 94;
 
-        NL80211_ATTR_LOCAL_STATE_CHANGE,
+    public static final short NL80211_ATTR_LOCAL_STATE_CHANGE = 95;
 
-        NL80211_ATTR_AP_ISOLATE,
+    public static final short NL80211_ATTR_AP_ISOLATE = 96;
 
-        NL80211_ATTR_WIPHY_TX_POWER_SETTING,
-        NL80211_ATTR_WIPHY_TX_POWER_LEVEL,
+    public static final short NL80211_ATTR_WIPHY_TX_POWER_SETTING = 97;
+    public static final short NL80211_ATTR_WIPHY_TX_POWER_LEVEL = 98;
 
-        NL80211_ATTR_TX_FRAME_TYPES,
-        NL80211_ATTR_RX_FRAME_TYPES,
-        NL80211_ATTR_FRAME_TYPE,
+    public static final short NL80211_ATTR_TX_FRAME_TYPES = 99;
+    public static final short NL80211_ATTR_RX_FRAME_TYPES = 100;
+    public static final short NL80211_ATTR_FRAME_TYPE = 101;
 
-        NL80211_ATTR_CONTROL_PORT_ETHERTYPE,
-        NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT,
+    public static final short NL80211_ATTR_CONTROL_PORT_ETHERTYPE = 102;
+    public static final short NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT = 103;
 
-        NL80211_ATTR_SUPPORT_IBSS_RSN,
+    public static final short NL80211_ATTR_SUPPORT_IBSS_RSN = 104;
 
-        NL80211_ATTR_WIPHY_ANTENNA_TX,
-        NL80211_ATTR_WIPHY_ANTENNA_RX,
+    public static final short NL80211_ATTR_WIPHY_ANTENNA_TX = 105;
+    public static final short NL80211_ATTR_WIPHY_ANTENNA_RX = 106;
 
-        NL80211_ATTR_MCAST_RATE,
+    public static final short NL80211_ATTR_MCAST_RATE = 107;
 
-        NL80211_ATTR_OFFCHANNEL_TX_OK,
+    public static final short NL80211_ATTR_OFFCHANNEL_TX_OK = 108;
 
-        NL80211_ATTR_BSS_HT_OPMODE,
+    public static final short NL80211_ATTR_BSS_HT_OPMODE = 109;
 
-        NL80211_ATTR_KEY_DEFAULT_TYPES,
+    public static final short NL80211_ATTR_KEY_DEFAULT_TYPES = 110;
 
-        NL80211_ATTR_MAX_REMAIN_ON_CHANNEL_DURATION,
+    public static final short NL80211_ATTR_MAX_REMAIN_ON_CHANNEL_DURATION = 111;
 
-        NL80211_ATTR_MESH_SETUP,
+    public static final short NL80211_ATTR_MESH_SETUP = 112;
 
-        NL80211_ATTR_WIPHY_ANTENNA_AVAIL_TX,
-        NL80211_ATTR_WIPHY_ANTENNA_AVAIL_RX,
+    public static final short NL80211_ATTR_WIPHY_ANTENNA_AVAIL_TX = 113;
+    public static final short NL80211_ATTR_WIPHY_ANTENNA_AVAIL_RX = 114;
 
-        NL80211_ATTR_SUPPORT_MESH_AUTH,
-        NL80211_ATTR_STA_PLINK_STATE,
+    public static final short NL80211_ATTR_SUPPORT_MESH_AUTH = 115;
+    public static final short NL80211_ATTR_STA_PLINK_STATE = 116;
 
-        NL80211_ATTR_WOWLAN_TRIGGERS,
-        NL80211_ATTR_WOWLAN_TRIGGERS_SUPPORTED,
+    public static final short NL80211_ATTR_WOWLAN_TRIGGERS = 117;
+    public static final short NL80211_ATTR_WOWLAN_TRIGGERS_SUPPORTED = 118;
 
-        NL80211_ATTR_SCHED_SCAN_INTERVAL,
+    public static final short NL80211_ATTR_SCHED_SCAN_INTERVAL = 119;
 
-        NL80211_ATTR_INTERFACE_COMBINATIONS,
-        NL80211_ATTR_SOFTWARE_IFTYPES,
+    public static final short NL80211_ATTR_INTERFACE_COMBINATIONS = 120;
+    public static final short NL80211_ATTR_SOFTWARE_IFTYPES = 121;
 
-        NL80211_ATTR_REKEY_DATA,
+    public static final short NL80211_ATTR_REKEY_DATA = 122;
 
-        NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS,
-        NL80211_ATTR_MAX_SCHED_SCAN_IE_LEN,
+    public static final short NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS = 123;
+    public static final short NL80211_ATTR_MAX_SCHED_SCAN_IE_LEN = 124;
 
-        NL80211_ATTR_SCAN_SUPP_RATES,
+    public static final short NL80211_ATTR_SCAN_SUPP_RATES = 125;
 
-        NL80211_ATTR_HIDDEN_SSID,
+    public static final short NL80211_ATTR_HIDDEN_SSID = 126;
 
-        NL80211_ATTR_IE_PROBE_RESP,
-        NL80211_ATTR_IE_ASSOC_RESP,
+    public static final short NL80211_ATTR_IE_PROBE_RESP = 127;
+    public static final short NL80211_ATTR_IE_ASSOC_RESP = 128;
 
-        NL80211_ATTR_STA_WME,
-        NL80211_ATTR_SUPPORT_AP_UAPSD,
+    public static final short NL80211_ATTR_STA_WME = 129;
+    public static final short NL80211_ATTR_SUPPORT_AP_UAPSD = 130;
 
-        NL80211_ATTR_ROAM_SUPPORT,
+    public static final short NL80211_ATTR_ROAM_SUPPORT = 131;
 
-        NL80211_ATTR_SCHED_SCAN_MATCH,
-        NL80211_ATTR_MAX_MATCH_SETS,
+    public static final short NL80211_ATTR_SCHED_SCAN_MATCH = 132;
+    public static final short NL80211_ATTR_MAX_MATCH_SETS = 133;
 
-        NL80211_ATTR_PMKSA_CANDIDATE,
+    public static final short NL80211_ATTR_PMKSA_CANDIDATE = 134;
 
-        NL80211_ATTR_TX_NO_CCK_RATE,
+    public static final short NL80211_ATTR_TX_NO_CCK_RATE = 135;
 
-        NL80211_ATTR_TDLS_ACTION,
-        NL80211_ATTR_TDLS_DIALOG_TOKEN,
-        NL80211_ATTR_TDLS_OPERATION,
-        NL80211_ATTR_TDLS_SUPPORT,
-        NL80211_ATTR_TDLS_EXTERNAL_SETUP,
+    public static final short NL80211_ATTR_TDLS_ACTION = 136;
+    public static final short NL80211_ATTR_TDLS_DIALOG_TOKEN = 137;
+    public static final short NL80211_ATTR_TDLS_OPERATION = 138;
+    public static final short NL80211_ATTR_TDLS_SUPPORT = 139;
+    public static final short NL80211_ATTR_TDLS_EXTERNAL_SETUP = 140;
 
-        NL80211_ATTR_DEVICE_AP_SME,
+    public static final short NL80211_ATTR_DEVICE_AP_SME = 141;
 
-        NL80211_ATTR_DONT_WAIT_FOR_ACK,
+    public static final short NL80211_ATTR_DONT_WAIT_FOR_ACK = 142;
 
-        NL80211_ATTR_FEATURE_FLAGS,
+    public static final short NL80211_ATTR_FEATURE_FLAGS = 143;
 
-        NL80211_ATTR_PROBE_RESP_OFFLOAD,
+    public static final short NL80211_ATTR_PROBE_RESP_OFFLOAD = 144;
 
-        NL80211_ATTR_PROBE_RESP,
+    public static final short NL80211_ATTR_PROBE_RESP = 145;
 
-        NL80211_ATTR_DFS_REGION,
+    public static final short NL80211_ATTR_DFS_REGION = 146;
 
-        NL80211_ATTR_DISABLE_HT,
-        NL80211_ATTR_HT_CAPABILITY_MASK,
+    public static final short NL80211_ATTR_DISABLE_HT = 147;
+    public static final short NL80211_ATTR_HT_CAPABILITY_MASK = 148;
 
-        NL80211_ATTR_NOACK_MAP,
+    public static final short NL80211_ATTR_NOACK_MAP = 149;
 
-        NL80211_ATTR_INACTIVITY_TIMEOUT,
+    public static final short NL80211_ATTR_INACTIVITY_TIMEOUT = 150;
 
-        NL80211_ATTR_RX_SIGNAL_DBM,
+    public static final short NL80211_ATTR_RX_SIGNAL_DBM = 151;
 
-        NL80211_ATTR_BG_SCAN_PERIOD,
+    public static final short NL80211_ATTR_BG_SCAN_PERIOD = 152;
 
-        NL80211_ATTR_WDEV,
+    public static final short NL80211_ATTR_WDEV = 153;
 
-        NL80211_ATTR_USER_REG_HINT_TYPE,
+    public static final short NL80211_ATTR_USER_REG_HINT_TYPE = 154;
 
-        NL80211_ATTR_CONN_FAILED_REASON,
+    public static final short NL80211_ATTR_CONN_FAILED_REASON = 155;
 
-        NL80211_ATTR_AUTH_DATA,
+    public static final short NL80211_ATTR_AUTH_DATA = 156;
 
-        NL80211_ATTR_VHT_CAPABILITY,
+    public static final short NL80211_ATTR_VHT_CAPABILITY = 157;
 
-        NL80211_ATTR_SCAN_FLAGS,
+    public static final short NL80211_ATTR_SCAN_FLAGS = 158;
 
-        NL80211_ATTR_CHANNEL_WIDTH,
-        NL80211_ATTR_CENTER_FREQ1,
-        NL80211_ATTR_CENTER_FREQ2,
+    public static final short NL80211_ATTR_CHANNEL_WIDTH = 159;
+    public static final short NL80211_ATTR_CENTER_FREQ1 = 160;
+    public static final short NL80211_ATTR_CENTER_FREQ2 = 161;
 
-        NL80211_ATTR_P2P_CTWINDOW,
-        NL80211_ATTR_P2P_OPPPS,
+    public static final short NL80211_ATTR_P2P_CTWINDOW = 162;
+    public static final short NL80211_ATTR_P2P_OPPPS = 163;
 
-        NL80211_ATTR_LOCAL_MESH_POWER_MODE,
+    public static final short NL80211_ATTR_LOCAL_MESH_POWER_MODE = 164;
 
-        NL80211_ATTR_ACL_POLICY,
+    public static final short NL80211_ATTR_ACL_POLICY = 165;
 
-        NL80211_ATTR_MAC_ADDRS,
+    public static final short NL80211_ATTR_MAC_ADDRS = 166;
 
-        NL80211_ATTR_MAC_ACL_MAX,
+    public static final short NL80211_ATTR_MAC_ACL_MAX = 167;
 
-        NL80211_ATTR_RADAR_EVENT,
+    public static final short NL80211_ATTR_RADAR_EVENT = 168;
 
-        NL80211_ATTR_EXT_CAPA,
-        NL80211_ATTR_EXT_CAPA_MASK,
+    public static final short NL80211_ATTR_EXT_CAPA = 169;
+    public static final short NL80211_ATTR_EXT_CAPA_MASK = 170;
 
-        NL80211_ATTR_STA_CAPABILITY,
-        NL80211_ATTR_STA_EXT_CAPABILITY,
+    public static final short NL80211_ATTR_STA_CAPABILITY = 171;
+    public static final short NL80211_ATTR_STA_EXT_CAPABILITY = 172;
 
-        NL80211_ATTR_PROTOCOL_FEATURES,
-        NL80211_ATTR_SPLIT_WIPHY_DUMP,
+    public static final short NL80211_ATTR_PROTOCOL_FEATURES = 173;
+    public static final short NL80211_ATTR_SPLIT_WIPHY_DUMP = 174;
 
-        NL80211_ATTR_DISABLE_VHT,
-        NL80211_ATTR_VHT_CAPABILITY_MASK,
+    public static final short NL80211_ATTR_DISABLE_VHT = 175;
+    public static final short NL80211_ATTR_VHT_CAPABILITY_MASK = 176;
 
-        NL80211_ATTR_MDID,
-        NL80211_ATTR_IE_RIC,
+    public static final short NL80211_ATTR_MDID = 177;
+    public static final short NL80211_ATTR_IE_RIC = 178;
 
-        NL80211_ATTR_CRIT_PROT_ID,
-        NL80211_ATTR_MAX_CRIT_PROT_DURATION,
+    public static final short NL80211_ATTR_CRIT_PROT_ID = 179;
+    public static final short NL80211_ATTR_MAX_CRIT_PROT_DURATION = 180;
 
-        NL80211_ATTR_PEER_AID,
+    public static final short NL80211_ATTR_PEER_AID = 181;
 
-        NL80211_ATTR_COALESCE_RULE,
+    public static final short NL80211_ATTR_COALESCE_RULE = 182;
 
-        NL80211_ATTR_CH_SWITCH_COUNT,
-        NL80211_ATTR_CH_SWITCH_BLOCK_TX,
-        NL80211_ATTR_CSA_IES,
-        NL80211_ATTR_CNTDWN_OFFS_BEACON,
-        NL80211_ATTR_CNTDWN_OFFS_PRESP,
+    public static final short NL80211_ATTR_CH_SWITCH_COUNT = 183;
+    public static final short NL80211_ATTR_CH_SWITCH_BLOCK_TX = 184;
+    public static final short NL80211_ATTR_CSA_IES = 185;
+    public static final short NL80211_ATTR_CNTDWN_OFFS_BEACON = 186;
+    public static final short NL80211_ATTR_CNTDWN_OFFS_PRESP = 187;
 
-        NL80211_ATTR_RXMGMT_FLAGS,
+    public static final short NL80211_ATTR_RXMGMT_FLAGS = 188;
 
-        NL80211_ATTR_STA_SUPPORTED_CHANNELS,
+    public static final short NL80211_ATTR_STA_SUPPORTED_CHANNELS = 189;
 
-        NL80211_ATTR_STA_SUPPORTED_OPER_CLASSES,
+    public static final short NL80211_ATTR_STA_SUPPORTED_OPER_CLASSES = 190;
 
-        NL80211_ATTR_HANDLE_DFS,
+    public static final short NL80211_ATTR_HANDLE_DFS = 191;
 
-        NL80211_ATTR_SUPPORT_5_MHZ,
-        NL80211_ATTR_SUPPORT_10_MHZ,
+    public static final short NL80211_ATTR_SUPPORT_5_MHZ = 192;
+    public static final short NL80211_ATTR_SUPPORT_10_MHZ = 193;
 
-        NL80211_ATTR_OPMODE_NOTIF,
+    public static final short NL80211_ATTR_OPMODE_NOTIF = 194;
 
-        NL80211_ATTR_VENDOR_ID,
-        NL80211_ATTR_VENDOR_SUBCMD,
-        NL80211_ATTR_VENDOR_DATA,
-        NL80211_ATTR_VENDOR_EVENTS,
+    public static final short NL80211_ATTR_VENDOR_ID = 195;
+    public static final short NL80211_ATTR_VENDOR_SUBCMD = 196;
+    public static final short NL80211_ATTR_VENDOR_DATA = 197;
+    public static final short NL80211_ATTR_VENDOR_EVENTS = 198;
 
-        NL80211_ATTR_QOS_MAP,
+    public static final short NL80211_ATTR_QOS_MAP = 199;
 
-        NL80211_ATTR_MAC_HINT,
-        NL80211_ATTR_WIPHY_FREQ_HINT,
+    public static final short NL80211_ATTR_MAC_HINT = 200;
+    public static final short NL80211_ATTR_WIPHY_FREQ_HINT = 201;
 
-        NL80211_ATTR_MAX_AP_ASSOC_STA,
+    public static final short NL80211_ATTR_MAX_AP_ASSOC_STA = 202;
 
-        NL80211_ATTR_TDLS_PEER_CAPABILITY,
+    public static final short NL80211_ATTR_TDLS_PEER_CAPABILITY = 203;
 
-        NL80211_ATTR_SOCKET_OWNER,
+    public static final short NL80211_ATTR_SOCKET_OWNER = 204;
 
-        NL80211_ATTR_CSA_C_OFFSETS_TX,
-        NL80211_ATTR_MAX_CSA_COUNTERS,
+    public static final short NL80211_ATTR_CSA_C_OFFSETS_TX = 205;
+    public static final short NL80211_ATTR_MAX_CSA_COUNTERS = 206;
 
-        NL80211_ATTR_TDLS_INITIATOR,
+    public static final short NL80211_ATTR_TDLS_INITIATOR = 207;
 
-        NL80211_ATTR_USE_RRM,
+    public static final short NL80211_ATTR_USE_RRM = 208;
 
-        NL80211_ATTR_WIPHY_DYN_ACK,
+    public static final short NL80211_ATTR_WIPHY_DYN_ACK = 209;
 
-        NL80211_ATTR_TSID,
-        NL80211_ATTR_USER_PRIO,
-        NL80211_ATTR_ADMITTED_TIME,
+    public static final short NL80211_ATTR_TSID = 210;
+    public static final short NL80211_ATTR_USER_PRIO = 211;
+    public static final short NL80211_ATTR_ADMITTED_TIME = 212;
 
-        NL80211_ATTR_SMPS_MODE,
+    public static final short NL80211_ATTR_SMPS_MODE = 213;
 
-        NL80211_ATTR_OPER_CLASS,
+    public static final short NL80211_ATTR_OPER_CLASS = 214;
 
-        NL80211_ATTR_MAC_MASK,
+    public static final short NL80211_ATTR_MAC_MASK = 215;
 
-        NL80211_ATTR_WIPHY_SELF_MANAGED_REG,
+    public static final short NL80211_ATTR_WIPHY_SELF_MANAGED_REG = 216;
 
-        NL80211_ATTR_EXT_FEATURES,
+    public static final short NL80211_ATTR_EXT_FEATURES = 217;
 
-        NL80211_ATTR_SURVEY_RADIO_STATS,
+    public static final short NL80211_ATTR_SURVEY_RADIO_STATS = 218;
 
-        NL80211_ATTR_NETNS_FD,
+    public static final short NL80211_ATTR_NETNS_FD = 219;
 
-        NL80211_ATTR_SCHED_SCAN_DELAY,
+    public static final short NL80211_ATTR_SCHED_SCAN_DELAY = 220;
 
-        NL80211_ATTR_REG_INDOOR,
+    public static final short NL80211_ATTR_REG_INDOOR = 221;
 
-        NL80211_ATTR_MAX_NUM_SCHED_SCAN_PLANS,
-        NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL,
-        NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS,
-        NL80211_ATTR_SCHED_SCAN_PLANS,
+    public static final short NL80211_ATTR_MAX_NUM_SCHED_SCAN_PLANS = 222;
+    public static final short NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL = 223;
+    public static final short NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS = 224;
+    public static final short NL80211_ATTR_SCHED_SCAN_PLANS = 225;
 
-        NL80211_ATTR_PBSS,
+    public static final short NL80211_ATTR_PBSS = 226;
 
-        NL80211_ATTR_BSS_SELECT,
+    public static final short NL80211_ATTR_BSS_SELECT = 227;
 
-        NL80211_ATTR_STA_SUPPORT_P2P_PS,
+    public static final short NL80211_ATTR_STA_SUPPORT_P2P_PS = 228;
 
-        NL80211_ATTR_PAD,
+    public static final short NL80211_ATTR_PAD = 229;
 
-        NL80211_ATTR_IFTYPE_EXT_CAPA,
+    public static final short NL80211_ATTR_IFTYPE_EXT_CAPA = 230;
 
-        NL80211_ATTR_MU_MIMO_GROUP_DATA,
-        NL80211_ATTR_MU_MIMO_FOLLOW_MAC_ADDR,
+    public static final short NL80211_ATTR_MU_MIMO_GROUP_DATA = 231;
+    public static final short NL80211_ATTR_MU_MIMO_FOLLOW_MAC_ADDR = 232;
 
-        NL80211_ATTR_SCAN_START_TIME_TSF,
-        NL80211_ATTR_SCAN_START_TIME_TSF_BSSID,
-        NL80211_ATTR_MEASUREMENT_DURATION,
-        NL80211_ATTR_MEASUREMENT_DURATION_MANDATORY,
+    public static final short NL80211_ATTR_SCAN_START_TIME_TSF = 233;
+    public static final short NL80211_ATTR_SCAN_START_TIME_TSF_BSSID = 234;
+    public static final short NL80211_ATTR_MEASUREMENT_DURATION = 235;
+    public static final short NL80211_ATTR_MEASUREMENT_DURATION_MANDATORY = 236;
 
-        NL80211_ATTR_MESH_PEER_AID,
+    public static final short NL80211_ATTR_MESH_PEER_AID = 237;
 
-        NL80211_ATTR_NAN_MASTER_PREF,
-        NL80211_ATTR_BANDS,
-        NL80211_ATTR_NAN_FUNC,
-        NL80211_ATTR_NAN_MATCH,
+    public static final short NL80211_ATTR_NAN_MASTER_PREF = 238;
+    public static final short NL80211_ATTR_BANDS = 239;
+    public static final short NL80211_ATTR_NAN_FUNC = 240;
+    public static final short NL80211_ATTR_NAN_MATCH = 241;
 
-        NL80211_ATTR_FILS_KEK,
-        NL80211_ATTR_FILS_NONCES,
+    public static final short NL80211_ATTR_FILS_KEK = 242;
+    public static final short NL80211_ATTR_FILS_NONCES = 243;
 
-        NL80211_ATTR_MULTICAST_TO_UNICAST_ENABLED,
+    public static final short NL80211_ATTR_MULTICAST_TO_UNICAST_ENABLED = 244;
 
-        NL80211_ATTR_BSSID,
+    public static final short NL80211_ATTR_BSSID = 245;
 
-        NL80211_ATTR_SCHED_SCAN_RELATIVE_RSSI,
-        NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST,
+    public static final short NL80211_ATTR_SCHED_SCAN_RELATIVE_RSSI = 246;
+    public static final short NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST = 247;
 
-        NL80211_ATTR_TIMEOUT_REASON,
+    public static final short NL80211_ATTR_TIMEOUT_REASON = 248;
 
-        NL80211_ATTR_FILS_ERP_USERNAME,
-        NL80211_ATTR_FILS_ERP_REALM,
-        NL80211_ATTR_FILS_ERP_NEXT_SEQ_NUM,
-        NL80211_ATTR_FILS_ERP_RRK,
-        NL80211_ATTR_FILS_CACHE_ID,
+    public static final short NL80211_ATTR_FILS_ERP_USERNAME = 249;
+    public static final short NL80211_ATTR_FILS_ERP_REALM = 250;
+    public static final short NL80211_ATTR_FILS_ERP_NEXT_SEQ_NUM = 251;
+    public static final short NL80211_ATTR_FILS_ERP_RRK = 252;
+    public static final short NL80211_ATTR_FILS_CACHE_ID = 253;
 
-        NL80211_ATTR_PMK,
+    public static final short NL80211_ATTR_PMK = 254;
 
-        NL80211_ATTR_SCHED_SCAN_MULTI,
-        NL80211_ATTR_SCHED_SCAN_MAX_REQS,
+    public static final short NL80211_ATTR_SCHED_SCAN_MULTI = 255;
+    public static final short NL80211_ATTR_SCHED_SCAN_MAX_REQS = 256;
 
-        NL80211_ATTR_WANT_1X_4WAY_HS,
-        NL80211_ATTR_PMKR0_NAME,
-        NL80211_ATTR_PORT_AUTHORIZED,
+    public static final short NL80211_ATTR_WANT_1X_4WAY_HS = 257;
+    public static final short NL80211_ATTR_PMKR0_NAME = 258;
+    public static final short NL80211_ATTR_PORT_AUTHORIZED = 259;
 
-        NL80211_ATTR_EXTERNAL_AUTH_ACTION,
-        NL80211_ATTR_EXTERNAL_AUTH_SUPPORT,
+    public static final short NL80211_ATTR_EXTERNAL_AUTH_ACTION = 260;
+    public static final short NL80211_ATTR_EXTERNAL_AUTH_SUPPORT = 261;
 
-        NL80211_ATTR_NSS,
-        NL80211_ATTR_ACK_SIGNAL,
+    public static final short NL80211_ATTR_NSS = 262;
+    public static final short NL80211_ATTR_ACK_SIGNAL = 263;
 
-        NL80211_ATTR_CONTROL_PORT_OVER_NL80211,
+    public static final short NL80211_ATTR_CONTROL_PORT_OVER_NL80211 = 264;
 
-        NL80211_ATTR_TXQ_STATS,
-        NL80211_ATTR_TXQ_LIMIT,
-        NL80211_ATTR_TXQ_MEMORY_LIMIT,
-        NL80211_ATTR_TXQ_QUANTUM,
+    public static final short NL80211_ATTR_TXQ_STATS = 265;
+    public static final short NL80211_ATTR_TXQ_LIMIT = 266;
+    public static final short NL80211_ATTR_TXQ_MEMORY_LIMIT = 267;
+    public static final short NL80211_ATTR_TXQ_QUANTUM = 268;
 
-        NL80211_ATTR_HE_CAPABILITY,
+    public static final short NL80211_ATTR_HE_CAPABILITY = 269;
 
-        NL80211_ATTR_FTM_RESPONDER,
+    public static final short NL80211_ATTR_FTM_RESPONDER = 270;
 
-        NL80211_ATTR_FTM_RESPONDER_STATS,
+    public static final short NL80211_ATTR_FTM_RESPONDER_STATS = 271;
 
-        NL80211_ATTR_TIMEOUT,
+    public static final short NL80211_ATTR_TIMEOUT = 272;
 
-        NL80211_ATTR_PEER_MEASUREMENTS,
+    public static final short NL80211_ATTR_PEER_MEASUREMENTS = 273;
 
-        NL80211_ATTR_AIRTIME_WEIGHT,
-        NL80211_ATTR_STA_TX_POWER_SETTING,
-        NL80211_ATTR_STA_TX_POWER,
+    public static final short NL80211_ATTR_AIRTIME_WEIGHT = 274;
+    public static final short NL80211_ATTR_STA_TX_POWER_SETTING = 275;
+    public static final short NL80211_ATTR_STA_TX_POWER = 276;
 
-        NL80211_ATTR_SAE_PASSWORD,
+    public static final short NL80211_ATTR_SAE_PASSWORD = 277;
 
-        NL80211_ATTR_TWT_RESPONDER,
+    public static final short NL80211_ATTR_TWT_RESPONDER = 278;
 
-        NL80211_ATTR_HE_OBSS_PD,
+    public static final short NL80211_ATTR_HE_OBSS_PD = 279;
 
-        NL80211_ATTR_WIPHY_EDMG_CHANNELS,
-        NL80211_ATTR_WIPHY_EDMG_BW_CONFIG,
+    public static final short NL80211_ATTR_WIPHY_EDMG_CHANNELS = 280;
+    public static final short NL80211_ATTR_WIPHY_EDMG_BW_CONFIG = 281;
 
-        NL80211_ATTR_VLAN_ID,
+    public static final short NL80211_ATTR_VLAN_ID = 282;
 
-        NL80211_ATTR_HE_BSS_COLOR,
+    public static final short NL80211_ATTR_HE_BSS_COLOR = 283;
 
-        NL80211_ATTR_IFTYPE_AKM_SUITES,
+    public static final short NL80211_ATTR_IFTYPE_AKM_SUITES = 284;
 
-        NL80211_ATTR_TID_CONFIG,
+    public static final short NL80211_ATTR_TID_CONFIG = 285;
 
-        NL80211_ATTR_CONTROL_PORT_NO_PREAUTH,
+    public static final short NL80211_ATTR_CONTROL_PORT_NO_PREAUTH = 286;
 
-        NL80211_ATTR_PMK_LIFETIME,
-        NL80211_ATTR_PMK_REAUTH_THRESHOLD,
+    public static final short NL80211_ATTR_PMK_LIFETIME = 287;
+    public static final short NL80211_ATTR_PMK_REAUTH_THRESHOLD = 288;
 
-        NL80211_ATTR_RECEIVE_MULTICAST,
-        NL80211_ATTR_WIPHY_FREQ_OFFSET,
-        NL80211_ATTR_CENTER_FREQ1_OFFSET,
-        NL80211_ATTR_SCAN_FREQ_KHZ,
+    public static final short NL80211_ATTR_RECEIVE_MULTICAST = 289;
+    public static final short NL80211_ATTR_WIPHY_FREQ_OFFSET = 290;
+    public static final short NL80211_ATTR_CENTER_FREQ1_OFFSET = 291;
+    public static final short NL80211_ATTR_SCAN_FREQ_KHZ = 292;
 
-        NL80211_ATTR_HE_6GHZ_CAPABILITY,
+    public static final short NL80211_ATTR_HE_6GHZ_CAPABILITY = 293;
 
-        NL80211_ATTR_FILS_DISCOVERY,
+    public static final short NL80211_ATTR_FILS_DISCOVERY = 294;
 
-        NL80211_ATTR_UNSOL_BCAST_PROBE_RESP,
+    public static final short NL80211_ATTR_UNSOL_BCAST_PROBE_RESP = 295;
 
-        NL80211_ATTR_S1G_CAPABILITY,
-        NL80211_ATTR_S1G_CAPABILITY_MASK,
+    public static final short NL80211_ATTR_S1G_CAPABILITY = 296;
+    public static final short NL80211_ATTR_S1G_CAPABILITY_MASK = 297;
 
-        NL80211_ATTR_SAE_PWE,
+    public static final short NL80211_ATTR_SAE_PWE = 298;
 
-        NL80211_ATTR_RECONNECT_REQUESTED,
+    public static final short NL80211_ATTR_RECONNECT_REQUESTED = 299;
 
-        NL80211_ATTR_SAR_SPEC,
+    public static final short NL80211_ATTR_SAR_SPEC = 300;
 
-        NL80211_ATTR_DISABLE_HE,
+    public static final short NL80211_ATTR_DISABLE_HE = 301;
 
-        NL80211_ATTR_OBSS_COLOR_BITMAP,
+    public static final short NL80211_ATTR_OBSS_COLOR_BITMAP = 302;
 
-        NL80211_ATTR_COLOR_CHANGE_COUNT,
-        NL80211_ATTR_COLOR_CHANGE_COLOR,
-        NL80211_ATTR_COLOR_CHANGE_ELEMS,
+    public static final short NL80211_ATTR_COLOR_CHANGE_COUNT = 303;
+    public static final short NL80211_ATTR_COLOR_CHANGE_COLOR = 304;
+    public static final short NL80211_ATTR_COLOR_CHANGE_ELEMS = 305;
 
-        NL80211_ATTR_MBSSID_CONFIG,
-        NL80211_ATTR_MBSSID_ELEMS,
+    public static final short NL80211_ATTR_MBSSID_CONFIG = 306;
+    public static final short NL80211_ATTR_MBSSID_ELEMS = 307;
 
-        NL80211_ATTR_RADAR_BACKGROUND,
+    public static final short NL80211_ATTR_RADAR_BACKGROUND = 308;
 
-        NL80211_ATTR_AP_SETTINGS_FLAGS,
+    public static final short NL80211_ATTR_AP_SETTINGS_FLAGS = 309;
 
-        NL80211_ATTR_EHT_CAPABILITY,
+    public static final short NL80211_ATTR_EHT_CAPABILITY = 310;
 
-        NL80211_ATTR_DISABLE_EHT,
+    public static final short NL80211_ATTR_DISABLE_EHT = 311;
 
-        NL80211_ATTR_MLO_LINKS,
-        NL80211_ATTR_MLO_LINK_ID,
-        NL80211_ATTR_MLD_ADDR,
+    public static final short NL80211_ATTR_MLO_LINKS = 312;
+    public static final short NL80211_ATTR_MLO_LINK_ID = 313;
+    public static final short NL80211_ATTR_MLD_ADDR = 314;
 
-        NL80211_ATTR_MLO_SUPPORT,
+    public static final short NL80211_ATTR_MLO_SUPPORT = 315;
 
-        NL80211_ATTR_MAX_NUM_AKM_SUITES,
+    public static final short NL80211_ATTR_MAX_NUM_AKM_SUITES = 316;
 
-        NL80211_ATTR_EML_CAPABILITY,
-        NL80211_ATTR_MLD_CAPA_AND_OPS,
+    public static final short NL80211_ATTR_EML_CAPABILITY = 317;
+    public static final short NL80211_ATTR_MLD_CAPA_AND_OPS = 318;
 
-        NL80211_ATTR_TX_HW_TIMESTAMP,
-        NL80211_ATTR_RX_HW_TIMESTAMP,
-        NL80211_ATTR_TD_BITMAP,
+    public static final short NL80211_ATTR_TX_HW_TIMESTAMP = 319;
+    public static final short NL80211_ATTR_RX_HW_TIMESTAMP = 320;
+    public static final short NL80211_ATTR_TD_BITMAP = 321;
 
-        NL80211_ATTR_PUNCT_BITMAP,
+    public static final short NL80211_ATTR_PUNCT_BITMAP = 322;
 
-        NL80211_ATTR_ANDROID_KABI_RESERVED_1,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_2,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_3,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_4,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_5,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_6,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_7,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_8,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_9,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_10,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_11,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_12,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_13,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_14,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_15,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_16,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_17,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_18,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_19,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_20,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_21,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_22,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_23,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_24,
-        NL80211_ATTR_ANDROID_KABI_RESERVED_25;
-
-        /**
-         * Returns the value of this enum as a short.
-         */
-        public short toShort() {
-            return (short) ordinal();
-        }
-
-        /**
-         * Returns the enum value corresponding to the given short.
-         */
-        public static Nl80211Attrs fromShort(short value) {
-            if (value >= values().length) {
-                return Nl80211Attrs.NL80211_ATTR_UNSPEC;
-            }
-            return values()[value];
-        }
-    }
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_1 = 323;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_2 = 324;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_3 = 325;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_4 = 326;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_5 = 327;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_6 = 328;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_7 = 329;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_8 = 330;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_9 = 331;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_10 = 332;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_11 = 333;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_12 = 334;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_13 = 335;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_14 = 336;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_15 = 337;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_16 = 338;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_17 = 339;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_18 = 340;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_19 = 341;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_20 = 342;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_21 = 343;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_22 = 344;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_23 = 345;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_24 = 346;
+    public static final short NL80211_ATTR_ANDROID_KABI_RESERVED_25 = 347;
 
     // Nl80211 frequency band values. See kernel/uapi/linux/nl80211.h
-    public enum Nl80211Band {
-        NL80211_BAND_2GHZ,
-        NL80211_BAND_5GHZ,
-        NL80211_BAND_60GHZ,
-        NL80211_BAND_6GHZ,
-        NL80211_BAND_S1GHZ,
-        NL80211_BAND_LC;
-
-        /**
-         * Returns the value of this enum as a short.
-         */
-        public short toShort() {
-            return (short) ordinal();
-        }
-
-        /**
-         * Returns the enum value corresponding to the given short.
-         */
-        public static Nl80211Band fromShort(short value) {
-            if (value >= values().length) {
-                return null;
-            }
-            return values()[value];
-        }
-    };
+    public static final short NL80211_BAND_2GHZ = 0;
+    public static final short NL80211_BAND_5GHZ = 1;
+    public static final short NL80211_BAND_60GHZ = 2;
+    public static final short NL80211_BAND_6GHZ = 3;
+    public static final short NL80211_BAND_S1GHZ = 4;
+    public static final short NL80211_BAND_LC = 5;;
 
     // Nl80211 interface type data attributes. See kernel/uapi/linux/nl80211.h
-    public enum Nl80211BandIftypeAttrs {
-        NL80211_BAND_IFTYPE_ATTR_INVALID,
+    public static final short NL80211_BAND_IFTYPE_ATTR_INVALID = 0;
 
-        NL80211_BAND_IFTYPE_ATTR_IFTYPES,
-        NL80211_BAND_IFTYPE_ATTR_HE_CAP_MAC,
-        NL80211_BAND_IFTYPE_ATTR_HE_CAP_PHY,
-        NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET,
-        NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE,
-        NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA,
-        NL80211_BAND_IFTYPE_ATTR_VENDOR_ELEMS,
-        NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC,
-        NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY,
-        NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET,
-        NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PPE,
-        NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_1,
-        NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_2,
-        NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_3,
-        NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_4,
-        NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_5;
-
-        /**
-         * Returns the value of this enum as a short.
-         */
-        public short toShort() {
-            return (short) ordinal();
-        }
-
-        /**
-         * Returns the enum value corresponding to the given short.
-         */
-        public static Nl80211BandIftypeAttrs fromShort(short value) {
-            if (value >= values().length) {
-                return Nl80211BandIftypeAttrs.NL80211_BAND_IFTYPE_ATTR_INVALID;
-            }
-            return values()[value];
-        }
-    }
+    public static final short NL80211_BAND_IFTYPE_ATTR_IFTYPES = 1;
+    public static final short NL80211_BAND_IFTYPE_ATTR_HE_CAP_MAC = 2;
+    public static final short NL80211_BAND_IFTYPE_ATTR_HE_CAP_PHY = 3;
+    public static final short NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET = 4;
+    public static final short NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE = 5;
+    public static final short NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA = 6;
+    public static final short NL80211_BAND_IFTYPE_ATTR_VENDOR_ELEMS = 7;
+    public static final short NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC = 8;
+    public static final short NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY = 9;
+    public static final short NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET = 10;
+    public static final short NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PPE = 11;
+    public static final short NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_1 = 12;
+    public static final short NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_2 = 13;
+    public static final short NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_3 = 14;
+    public static final short NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_4 = 15;
+    public static final short NL80211_BAND_IFTYPE_ATTR_ANDROID_KABI_RESERVED_5 = 16;
 
     // Nl80211 band attributes. See kernel/uapi/linux/nl80211.h
-    public enum Nl80211BandAttrs {
-        NL80211_BAND_ATTR_INVALID,
-        NL80211_BAND_ATTR_FREQS,
-        NL80211_BAND_ATTR_RATES,
+    public static final short NL80211_BAND_ATTR_INVALID = 0;
+    public static final short NL80211_BAND_ATTR_FREQS = 1;
+    public static final short NL80211_BAND_ATTR_RATES = 2;
 
-        NL80211_BAND_ATTR_HT_MCS_SET,
-        NL80211_BAND_ATTR_HT_CAPA,
-        NL80211_BAND_ATTR_HT_AMPDU_FACTOR,
-        NL80211_BAND_ATTR_HT_AMPDU_DENSITY,
+    public static final short NL80211_BAND_ATTR_HT_MCS_SET = 3;
+    public static final short NL80211_BAND_ATTR_HT_CAPA = 4;
+    public static final short NL80211_BAND_ATTR_HT_AMPDU_FACTOR = 5;
+    public static final short NL80211_BAND_ATTR_HT_AMPDU_DENSITY = 6;
 
-        NL80211_BAND_ATTR_VHT_MCS_SET,
-        NL80211_BAND_ATTR_VHT_CAPA,
-        NL80211_BAND_ATTR_IFTYPE_DATA,
+    public static final short NL80211_BAND_ATTR_VHT_MCS_SET = 7;
+    public static final short NL80211_BAND_ATTR_VHT_CAPA = 8;
+    public static final short NL80211_BAND_ATTR_IFTYPE_DATA = 9;
 
-        NL80211_BAND_ATTR_EDMG_CHANNELS,
-        NL80211_BAND_ATTR_EDMG_BW_CONFIG,
-        NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_1,
-        NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_2,
-        NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_3,
-        NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_4,
-        NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_5;
+    public static final short NL80211_BAND_ATTR_EDMG_CHANNELS = 10;
+    public static final short NL80211_BAND_ATTR_EDMG_BW_CONFIG = 11;
+    public static final short NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_1 = 12;
+    public static final short NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_2 = 13;
+    public static final short NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_3 = 14;
+    public static final short NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_4 = 15;
+    public static final short NL80211_BAND_ATTR_ANDROID_KABI_RESERVED_5 = 16;
 
-        /**
-         * Returns the value of this enum as a short.
-         */
-        public short toShort() {
-            return (short) ordinal();
-        }
+    public static final short NL80211_EXT_FEATURE_VHT_IBSS = 0;
+    public static final short NL80211_EXT_FEATURE_RRM = 1;
+    public static final short NL80211_EXT_FEATURE_MU_MIMO_AIR_SNIFFER = 2;
+    public static final short NL80211_EXT_FEATURE_SCAN_START_TIME = 3;
+    public static final short NL80211_EXT_FEATURE_BSS_PARENT_TSF = 4;
+    public static final short NL80211_EXT_FEATURE_SET_SCAN_DWELL = 5;
+    public static final short NL80211_EXT_FEATURE_BEACON_RATE_LEGACY = 6;
+    public static final short NL80211_EXT_FEATURE_BEACON_RATE_HT = 7;
+    public static final short NL80211_EXT_FEATURE_BEACON_RATE_VHT = 8;
+    public static final short NL80211_EXT_FEATURE_FILS_STA = 9;
+    public static final short NL80211_EXT_FEATURE_MGMT_TX_RANDOM_TA = 10;
+    public static final short NL80211_EXT_FEATURE_MGMT_TX_RANDOM_TA_CONNECTED = 11;
+    public static final short NL80211_EXT_FEATURE_SCHED_SCAN_RELATIVE_RSSI = 12;
+    public static final short NL80211_EXT_FEATURE_CQM_RSSI_LIST = 13;
+    public static final short NL80211_EXT_FEATURE_FILS_SK_OFFLOAD = 14;
+    public static final short NL80211_EXT_FEATURE_4WAY_HANDSHAKE_STA_PSK = 15;
+    public static final short NL80211_EXT_FEATURE_4WAY_HANDSHAKE_STA_1X = 16;
+    public static final short NL80211_EXT_FEATURE_FILS_MAX_CHANNEL_TIME = 17;
+    public static final short NL80211_EXT_FEATURE_ACCEPT_BCAST_PROBE_RESP = 18;
+    public static final short NL80211_EXT_FEATURE_OCE_PROBE_REQ_HIGH_TX_RATE = 19;
+    public static final short NL80211_EXT_FEATURE_OCE_PROBE_REQ_DEFERRAL_SUPPRESSION = 20;
+    public static final short NL80211_EXT_FEATURE_MFP_OPTIONAL = 21;
+    public static final short NL80211_EXT_FEATURE_LOW_SPAN_SCAN = 22;
+    public static final short NL80211_EXT_FEATURE_LOW_POWER_SCAN = 23;
+    public static final short NL80211_EXT_FEATURE_HIGH_ACCURACY_SCAN = 24;
+    public static final short NL80211_EXT_FEATURE_DFS_OFFLOAD = 25;
+    public static final short NL80211_EXT_FEATURE_CONTROL_PORT_OVER_NL80211 = 26;
+    public static final short NL80211_EXT_FEATURE_ACK_SIGNAL_SUPPORT = 27;
+    public static final short NL80211_EXT_FEATURE_TXQS = 28;
+    public static final short NL80211_EXT_FEATURE_SCAN_RANDOM_SN = 29;
+    public static final short NL80211_EXT_FEATURE_SCAN_MIN_PREQ_CONTENT = 30;
+    public static final short NL80211_EXT_FEATURE_CAN_REPLACE_PTK0 = 31;
+    public static final short NL80211_EXT_FEATURE_ENABLE_FTM_RESPONDER = 32;
+    public static final short NL80211_EXT_FEATURE_AIRTIME_FAIRNESS = 33;
+    public static final short NL80211_EXT_FEATURE_AP_PMKSA_CACHING = 34;
+    public static final short NL80211_EXT_FEATURE_SCHED_SCAN_BAND_SPECIFIC_RSSI_THOLD = 35;
+    public static final short NL80211_EXT_FEATURE_EXT_KEY_ID = 36;
+    public static final short NL80211_EXT_FEATURE_STA_TX_PWR = 37;
+    public static final short NL80211_EXT_FEATURE_SAE_OFFLOAD = 38;
+    public static final short NL80211_EXT_FEATURE_VLAN_OFFLOAD = 39;
+    public static final short NL80211_EXT_FEATURE_AQL = 40;
+    public static final short NL80211_EXT_FEATURE_BEACON_PROTECTION = 41;
+    public static final short NL80211_EXT_FEATURE_CONTROL_PORT_NO_PREAUTH = 42;
+    public static final short NL80211_EXT_FEATURE_PROTECTED_TWT = 43;
+    public static final short NL80211_EXT_FEATURE_DEL_IBSS_STA = 44;
+    public static final short NL80211_EXT_FEATURE_MULTICAST_REGISTRATIONS = 45;
+    public static final short NL80211_EXT_FEATURE_BEACON_PROTECTION_CLIENT = 46;
+    public static final short NL80211_EXT_FEATURE_SCAN_FREQ_KHZ = 47;
+    public static final short NL80211_EXT_FEATURE_CONTROL_PORT_OVER_NL80211_TX_STATUS = 48;
+    public static final short NL80211_EXT_FEATURE_OPERATING_CHANNEL_VALIDATION = 49;
+    public static final short NL80211_EXT_FEATURE_4WAY_HANDSHAKE_AP_PSK = 50;
+    public static final short NL80211_EXT_FEATURE_SAE_OFFLOAD_AP = 51;
+    public static final short NL80211_EXT_FEATURE_FILS_DISCOVERY = 52;
+    public static final short NL80211_EXT_FEATURE_UNSOL_BCAST_PROBE_RESP = 53;
+    public static final short NL80211_EXT_FEATURE_BEACON_RATE_HE = 54;
+    public static final short NL80211_EXT_FEATURE_SECURE_LTF = 55;
+    public static final short NL80211_EXT_FEATURE_SECURE_RTT = 56;
+    public static final short NL80211_EXT_FEATURE_PROT_RANGE_NEGO_AND_MEASURE = 57;
+    public static final short NL80211_EXT_FEATURE_BSS_COLOR = 58;
+    public static final short NL80211_EXT_FEATURE_FILS_CRYPTO_OFFLOAD = 59;
+    public static final short NL80211_EXT_FEATURE_RADAR_BACKGROUND = 60;
+    public static final short NL80211_EXT_FEATURE_POWERED_ADDR_CHANGE = 61;
+    public static final short NL80211_EXT_FEATURE_PUNCT = 62;
+    public static final short NL80211_EXT_FEATURE_SECURE_NAN = 63;
+    public static final short NL80211_EXT_FEATURE_AUTH_AND_DEAUTH_RANDOM_TA = 64;
+    public static final short NL80211_EXT_FEATURE_OWE_OFFLOAD = 65;
+    public static final short NL80211_EXT_FEATURE_OWE_OFFLOAD_AP = 66;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_3 = 67;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_4 = 68;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_5 = 69;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_6 = 70;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_7 = 71;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_8 = 72;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_9 = 73;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_10 = 74;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_11 = 75;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_12 = 76;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_13 = 77;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_14 = 78;
+    public static final short NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_15 = 79;
 
-        /**
-         * Returns the enum value corresponding to the given short.
-         */
-        public static Nl80211BandAttrs fromShort(short value) {
-            if (value >= values().length) {
-                return Nl80211BandAttrs.NL80211_BAND_ATTR_INVALID;
-            }
-            return values()[value];
-        }
-    }
+    public static final short NL80211_FEATURE_SK_TX_STATUS = 0;
+    public static final short NL80211_FEATURE_HT_IBSS = 1;
+    public static final short NL80211_FEATURE_INACTIVITY_TIMER = 2;
+    public static final short NL80211_FEATURE_CELL_BASE_REG_HINTS = 3;
+    public static final short NL80211_FEATURE_P2P_DEVICE_NEEDS_CHANNEL = 4;
+    public static final short NL80211_FEATURE_SAE = 5;
+    public static final short NL80211_FEATURE_LOW_PRIORITY_SCAN = 6;
+    public static final short NL80211_FEATURE_SCAN_FLUSH = 7;
+    public static final short NL80211_FEATURE_AP_SCAN = 8;
+    public static final short NL80211_FEATURE_VIF_TXPOWER = 9;
+    public static final short NL80211_FEATURE_NEED_OBSS_SCAN = 10;
+    public static final short NL80211_FEATURE_P2P_GO_CTWIN = 11;
+    public static final short NL80211_FEATURE_P2P_GO_OPPPS = 12;
+    public static final short NL80211_FEATURE_RESERVED_13 = 13;
+    public static final short NL80211_FEATURE_ADVERTISE_CHAN_LIMITS = 14;
+    public static final short NL80211_FEATURE_FULL_AP_CLIENT_STATE = 15;
+    public static final short NL80211_FEATURE_USERSPACE_MPM = 16;
+    public static final short NL80211_FEATURE_ACTIVE_MONITOR = 17;
+    public static final short NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE = 18;
+    public static final short NL80211_FEATURE_DS_PARAM_SET_IE_IN_PROBES = 19;
+    public static final short NL80211_FEATURE_WFA_TPC_IE_IN_PROBES = 20;
+    public static final short NL80211_FEATURE_QUIET = 21;
+    public static final short NL80211_FEATURE_TX_POWER_INSERTION = 22;
+    public static final short NL80211_FEATURE_ACKTO_ESTIMATION = 23;
+    public static final short NL80211_FEATURE_STATIC_SMPS = 24;
+    public static final short NL80211_FEATURE_DYNAMIC_SMPS = 25;
+    public static final short NL80211_FEATURE_SUPPORTS_WMM_ADMISSION = 26;
+    public static final short NL80211_FEATURE_MAC_ON_CREATE = 27;
+    public static final short NL80211_FEATURE_TDLS_CHANNEL_SWITCH = 28;
+    public static final short NL80211_FEATURE_SCAN_RANDOM_MAC_ADDR = 29;
+    public static final short NL80211_FEATURE_SCHED_SCAN_RANDOM_MAC_ADDR = 30;
+    public static final short NL80211_FEATURE_ND_RANDOM_MAC_ADDR = 31;
 
-    public enum Nl80211ExtFeatureIndex {
-        NL80211_EXT_FEATURE_VHT_IBSS,
-        NL80211_EXT_FEATURE_RRM,
-        NL80211_EXT_FEATURE_MU_MIMO_AIR_SNIFFER,
-        NL80211_EXT_FEATURE_SCAN_START_TIME,
-        NL80211_EXT_FEATURE_BSS_PARENT_TSF,
-        NL80211_EXT_FEATURE_SET_SCAN_DWELL,
-        NL80211_EXT_FEATURE_BEACON_RATE_LEGACY,
-        NL80211_EXT_FEATURE_BEACON_RATE_HT,
-        NL80211_EXT_FEATURE_BEACON_RATE_VHT,
-        NL80211_EXT_FEATURE_FILS_STA,
-        NL80211_EXT_FEATURE_MGMT_TX_RANDOM_TA,
-        NL80211_EXT_FEATURE_MGMT_TX_RANDOM_TA_CONNECTED,
-        NL80211_EXT_FEATURE_SCHED_SCAN_RELATIVE_RSSI,
-        NL80211_EXT_FEATURE_CQM_RSSI_LIST,
-        NL80211_EXT_FEATURE_FILS_SK_OFFLOAD,
-        NL80211_EXT_FEATURE_4WAY_HANDSHAKE_STA_PSK,
-        NL80211_EXT_FEATURE_4WAY_HANDSHAKE_STA_1X,
-        NL80211_EXT_FEATURE_FILS_MAX_CHANNEL_TIME,
-        NL80211_EXT_FEATURE_ACCEPT_BCAST_PROBE_RESP,
-        NL80211_EXT_FEATURE_OCE_PROBE_REQ_HIGH_TX_RATE,
-        NL80211_EXT_FEATURE_OCE_PROBE_REQ_DEFERRAL_SUPPRESSION,
-        NL80211_EXT_FEATURE_MFP_OPTIONAL,
-        NL80211_EXT_FEATURE_LOW_SPAN_SCAN,
-        NL80211_EXT_FEATURE_LOW_POWER_SCAN,
-        NL80211_EXT_FEATURE_HIGH_ACCURACY_SCAN,
-        NL80211_EXT_FEATURE_DFS_OFFLOAD,
-        NL80211_EXT_FEATURE_CONTROL_PORT_OVER_NL80211,
-        NL80211_EXT_FEATURE_ACK_SIGNAL_SUPPORT,
-        NL80211_EXT_FEATURE_TXQS,
-        NL80211_EXT_FEATURE_SCAN_RANDOM_SN,
-        NL80211_EXT_FEATURE_SCAN_MIN_PREQ_CONTENT,
-        NL80211_EXT_FEATURE_CAN_REPLACE_PTK0,
-        NL80211_EXT_FEATURE_ENABLE_FTM_RESPONDER,
-        NL80211_EXT_FEATURE_AIRTIME_FAIRNESS,
-        NL80211_EXT_FEATURE_AP_PMKSA_CACHING,
-        NL80211_EXT_FEATURE_SCHED_SCAN_BAND_SPECIFIC_RSSI_THOLD,
-        NL80211_EXT_FEATURE_EXT_KEY_ID,
-        NL80211_EXT_FEATURE_STA_TX_PWR,
-        NL80211_EXT_FEATURE_SAE_OFFLOAD,
-        NL80211_EXT_FEATURE_VLAN_OFFLOAD,
-        NL80211_EXT_FEATURE_AQL,
-        NL80211_EXT_FEATURE_BEACON_PROTECTION,
-        NL80211_EXT_FEATURE_CONTROL_PORT_NO_PREAUTH,
-        NL80211_EXT_FEATURE_PROTECTED_TWT,
-        NL80211_EXT_FEATURE_DEL_IBSS_STA,
-        NL80211_EXT_FEATURE_MULTICAST_REGISTRATIONS,
-        NL80211_EXT_FEATURE_BEACON_PROTECTION_CLIENT,
-        NL80211_EXT_FEATURE_SCAN_FREQ_KHZ,
-        NL80211_EXT_FEATURE_CONTROL_PORT_OVER_NL80211_TX_STATUS,
-        NL80211_EXT_FEATURE_OPERATING_CHANNEL_VALIDATION,
-        NL80211_EXT_FEATURE_4WAY_HANDSHAKE_AP_PSK,
-        NL80211_EXT_FEATURE_SAE_OFFLOAD_AP,
-        NL80211_EXT_FEATURE_FILS_DISCOVERY,
-        NL80211_EXT_FEATURE_UNSOL_BCAST_PROBE_RESP,
-        NL80211_EXT_FEATURE_BEACON_RATE_HE,
-        NL80211_EXT_FEATURE_SECURE_LTF,
-        NL80211_EXT_FEATURE_SECURE_RTT,
-        NL80211_EXT_FEATURE_PROT_RANGE_NEGO_AND_MEASURE,
-        NL80211_EXT_FEATURE_BSS_COLOR,
-        NL80211_EXT_FEATURE_FILS_CRYPTO_OFFLOAD,
-        NL80211_EXT_FEATURE_RADAR_BACKGROUND,
-        NL80211_EXT_FEATURE_POWERED_ADDR_CHANGE,
-        NL80211_EXT_FEATURE_PUNCT,
-        NL80211_EXT_FEATURE_SECURE_NAN,
-        NL80211_EXT_FEATURE_AUTH_AND_DEAUTH_RANDOM_TA,
-        NL80211_EXT_FEATURE_OWE_OFFLOAD,
-        NL80211_EXT_FEATURE_OWE_OFFLOAD_AP,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_3,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_4,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_5,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_6,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_7,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_8,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_9,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_10,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_11,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_12,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_13,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_14,
-        NL80211_EXT_FEATURE_ANDROID_KABI_RESERVED_15;
+    public static final short NL80211_DFS_USABLE = 0;
+    public static final short NL80211_DFS_UNAVAILABLE = 1;
+    public static final short NL80211_DFS_AVAILABLE = 2;
 
-        /**
-         * Returns the value of this enum as a short.
-         */
-        public short toShort() {
-            return (short) ordinal();
-        }
-    }
-
-    public enum Nl80211FeatureFlags {
-        NL80211_FEATURE_SK_TX_STATUS,
-        NL80211_FEATURE_HT_IBSS,
-        NL80211_FEATURE_INACTIVITY_TIMER,
-        NL80211_FEATURE_CELL_BASE_REG_HINTS,
-        NL80211_FEATURE_P2P_DEVICE_NEEDS_CHANNEL,
-        NL80211_FEATURE_SAE,
-        NL80211_FEATURE_LOW_PRIORITY_SCAN,
-        NL80211_FEATURE_SCAN_FLUSH,
-        NL80211_FEATURE_AP_SCAN,
-        NL80211_FEATURE_VIF_TXPOWER,
-        NL80211_FEATURE_NEED_OBSS_SCAN,
-        NL80211_FEATURE_P2P_GO_CTWIN,
-        NL80211_FEATURE_P2P_GO_OPPPS,
-        NL80211_FEATURE_RESERVED_13,
-        NL80211_FEATURE_ADVERTISE_CHAN_LIMITS,
-        NL80211_FEATURE_FULL_AP_CLIENT_STATE,
-        NL80211_FEATURE_USERSPACE_MPM,
-        NL80211_FEATURE_ACTIVE_MONITOR,
-        NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE,
-        NL80211_FEATURE_DS_PARAM_SET_IE_IN_PROBES,
-        NL80211_FEATURE_WFA_TPC_IE_IN_PROBES,
-        NL80211_FEATURE_QUIET,
-        NL80211_FEATURE_TX_POWER_INSERTION,
-        NL80211_FEATURE_ACKTO_ESTIMATION,
-        NL80211_FEATURE_STATIC_SMPS,
-        NL80211_FEATURE_DYNAMIC_SMPS,
-        NL80211_FEATURE_SUPPORTS_WMM_ADMISSION,
-        NL80211_FEATURE_MAC_ON_CREATE,
-        NL80211_FEATURE_TDLS_CHANNEL_SWITCH,
-        NL80211_FEATURE_SCAN_RANDOM_MAC_ADDR,
-        NL80211_FEATURE_SCHED_SCAN_RANDOM_MAC_ADDR,
-        NL80211_FEATURE_ND_RANDOM_MAC_ADDR;
-
-        /**
-         * Returns the value of this enum as a short.
-         */
-        public short toShort() {
-            return (short) ordinal();
-        }
-    }
-
-    public enum Nl80211DfsStates {
-        NL80211_DFS_USABLE,
-        NL80211_DFS_UNAVAILABLE,
-        NL80211_DFS_AVAILABLE;
-
-        /**
-         * Returns the value of this enum as a short.
-         */
-        public short toShort() {
-            return (short) ordinal();
-        }
-    }
-
-    public enum Nl80211FrequencyAttr {
-        NL80211_FREQUENCY_ATTR_INVALID,
-        NL80211_FREQUENCY_ATTR_FREQ,
-        NL80211_FREQUENCY_ATTR_DISABLED,
-        NL80211_FREQUENCY_ATTR_NO_IR,
-        NL80211_FREQUENCY_ATTR_NO_IBSS,
-        NL80211_FREQUENCY_ATTR_RADAR,
-        NL80211_FREQUENCY_ATTR_MAX_TX_POWER,
-        NL80211_FREQUENCY_ATTR_DFS_STATE,
-        NL80211_FREQUENCY_ATTR_DFS_TIME,
-        NL80211_FREQUENCY_ATTR_NO_HT40_MINUS,
-        NL80211_FREQUENCY_ATTR_NO_HT40_PLUS,
-        NL80211_FREQUENCY_ATTR_NO_80MHZ,
-        NL80211_FREQUENCY_ATTR_NO_160MHZ,
-        NL80211_FREQUENCY_ATTR_DFS_CAC_TIME,
-        NL80211_FREQUENCY_ATTR_INDOOR_ONLY,
-        NL80211_FREQUENCY_ATTR_IR_CONCURRENT,
-        NL80211_FREQUENCY_ATTR_NO_20MHZ,
-        NL80211_FREQUENCY_ATTR_NO_10MHZ,
-        NL80211_FREQUENCY_ATTR_WMM,
-        NL80211_FREQUENCY_ATTR_NO_HE,
-        NL80211_FREQUENCY_ATTR_OFFSET,
-        NL80211_FREQUENCY_ATTR_1MHZ,
-        NL80211_FREQUENCY_ATTR_2MHZ,
-        NL80211_FREQUENCY_ATTR_4MHZ,
-        NL80211_FREQUENCY_ATTR_8MHZ,
-        NL80211_FREQUENCY_ATTR_16MHZ,
-        NL80211_FREQUENCY_ATTR_NO_320MHZ,
-        NL80211_FREQUENCY_ATTR_NO_EHT;
-
-        /**
-         * Returns the value of this enum as a short.
-         */
-        public short toShort() {
-            return (short) ordinal();
-        }
-    }
+    public static final short NL80211_FREQUENCY_ATTR_INVALID = 0;
+    public static final short NL80211_FREQUENCY_ATTR_FREQ = 1;
+    public static final short NL80211_FREQUENCY_ATTR_DISABLED = 2;
+    public static final short NL80211_FREQUENCY_ATTR_NO_IR = 3;
+    public static final short NL80211_FREQUENCY_ATTR_NO_IBSS = 4;
+    public static final short NL80211_FREQUENCY_ATTR_RADAR = 5;
+    public static final short NL80211_FREQUENCY_ATTR_MAX_TX_POWER = 6;
+    public static final short NL80211_FREQUENCY_ATTR_DFS_STATE = 7;
+    public static final short NL80211_FREQUENCY_ATTR_DFS_TIME = 8;
+    public static final short NL80211_FREQUENCY_ATTR_NO_HT40_MINUS = 9;
+    public static final short NL80211_FREQUENCY_ATTR_NO_HT40_PLUS = 10;
+    public static final short NL80211_FREQUENCY_ATTR_NO_80MHZ = 11;
+    public static final short NL80211_FREQUENCY_ATTR_NO_160MHZ = 12;
+    public static final short NL80211_FREQUENCY_ATTR_DFS_CAC_TIME = 13;
+    public static final short NL80211_FREQUENCY_ATTR_INDOOR_ONLY = 14;
+    public static final short NL80211_FREQUENCY_ATTR_IR_CONCURRENT = 15;
+    public static final short NL80211_FREQUENCY_ATTR_NO_20MHZ = 16;
+    public static final short NL80211_FREQUENCY_ATTR_NO_10MHZ = 17;
+    public static final short NL80211_FREQUENCY_ATTR_WMM = 18;
+    public static final short NL80211_FREQUENCY_ATTR_NO_HE = 19;
+    public static final short NL80211_FREQUENCY_ATTR_OFFSET = 20;
+    public static final short NL80211_FREQUENCY_ATTR_1MHZ = 21;
+    public static final short NL80211_FREQUENCY_ATTR_2MHZ = 22;
+    public static final short NL80211_FREQUENCY_ATTR_4MHZ = 23;
+    public static final short NL80211_FREQUENCY_ATTR_8MHZ = 24;
+    public static final short NL80211_FREQUENCY_ATTR_16MHZ = 25;
+    public static final short NL80211_FREQUENCY_ATTR_NO_320MHZ = 26;
+    public static final short NL80211_FREQUENCY_ATTR_NO_EHT = 27;
 }

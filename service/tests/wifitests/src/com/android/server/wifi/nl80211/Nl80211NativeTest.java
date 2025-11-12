@@ -16,6 +16,9 @@
 
 package com.android.server.wifi.nl80211;
 
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFNAME;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -81,8 +84,7 @@ public class Nl80211NativeTest {
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
         when(mNl80211Proxy.initialize()).thenReturn(true);
-        when(mNl80211Proxy.createNl80211Request(
-                NetlinkConstants.Nl80211Commands.NL80211_CMD_GET_INTERFACE.toShort(),
+        when(mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
                 StructNlMsgHdr.NLM_F_DUMP))
                 .thenReturn(Nl80211TestUtils.createTestMessage());
     }
@@ -99,8 +101,7 @@ public class Nl80211NativeTest {
     public void testGetInterfaceNames_success_returnsInterfaceNames() {
         mDut = initNl80211Native(false);
         GenericNetlinkMsg response = Nl80211TestUtils.createTestMessage();
-        response.addAttribute(new StructNlAttr(
-                NetlinkConstants.Nl80211Attrs.NL80211_ATTR_IFNAME.toShort(), IFACE_NAME));
+        response.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, IFACE_NAME));
         when(mNl80211Proxy.sendMessageAndReceiveResponses(any()))
                 .thenReturn(List.of(response));
         List<String> interfaceNames = mDut.getInterfaceNames();
@@ -123,8 +124,7 @@ public class Nl80211NativeTest {
     @Test
     public void testGetInterfaceNames_failedToCreateRequest_returnsNull() {
         mDut = initNl80211Native(false);
-        when(mNl80211Proxy.createNl80211Request(
-                NetlinkConstants.Nl80211Commands.NL80211_CMD_GET_INTERFACE.toShort(),
+        when(mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
                 StructNlMsgHdr.NLM_F_DUMP))
                 .thenReturn(null);
         List<String> interfaceNames = mDut.getInterfaceNames();
