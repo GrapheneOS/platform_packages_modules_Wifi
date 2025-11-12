@@ -496,25 +496,6 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testGetTxPacketCounters_useWificondEnabled_callsWificond() {
-        mDut = initNl80211Native(true);
-        WifiNl80211Manager.TxPacketCounters counters =
-                new WifiNl80211Manager.TxPacketCounters(4, 2);
-        when(mWificondManager.getTxPacketCounters(IFACE_NAME)).thenReturn(counters);
-        Nl80211Native.TxPacketCounters result = mDut.getTxPacketCounters(IFACE_NAME);
-        verify(mWificondManager).getTxPacketCounters(IFACE_NAME);
-        assertEquals(4, result.txPacketSucceeded);
-        assertEquals(2, result.txPacketFailed);
-    }
-
-    @Test
-    public void testGetTxPacketCounters_throwsException() {
-        mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.getTxPacketCounters(IFACE_NAME));
-    }
-
-    @Test
     public void testGetMaxSsidsPerScan_useWificondEnabled_callsWificond() {
         assumeTrue(SdkLevel.isAtLeastT());
         mDut = initNl80211Native(true);

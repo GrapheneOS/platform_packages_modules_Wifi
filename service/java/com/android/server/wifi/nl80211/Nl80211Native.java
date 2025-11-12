@@ -97,27 +97,6 @@ public class Nl80211Native {
         // Inherit from WifiNl80211Manager.PnoScanRequestCallback
     }
 
-    /**
-     * Transmission counters obtained using {@link #getTxPacketCounters(String)}.
-     */
-    public static class TxPacketCounters {
-        /** @hide */
-        public TxPacketCounters(int txPacketSucceeded, int txPacketFailed) {
-            this.txPacketSucceeded = txPacketSucceeded;
-            this.txPacketFailed = txPacketFailed;
-        }
-
-        /**
-         * Number of successfully transmitted packets.
-         */
-        public final int txPacketSucceeded;
-
-        /**
-         * Number of packet transmission failures.
-         */
-        public final int txPacketFailed;
-    }
-
     public Nl80211Native(
             @NonNull Nl80211Proxy nl80211Proxy,
             @NonNull Nl80211Utils nl80211Utils,
@@ -694,35 +673,6 @@ public class Nl80211Native {
         }
 
         if (!mIsInitialized) return new int[0];
-
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Get current transmit (Tx) packet counters of the specified interface. The interface must
-     * have been already set up using
-     * {@link #setupInterfaceForClientMode(String, Executor, ScanEventCallback, ScanEventCallback)}
-     * or {@link #setupInterfaceForSoftApMode(String)}.
-     *
-     * @param ifaceName Name of the interface.
-     * @return {@link TxPacketCounters} of the current interface or null on error (e.g. when
-     * called before the interface has been set up).
-     */
-    @Nullable
-    public TxPacketCounters getTxPacketCounters(@NonNull String ifaceName) {
-        if (useWificond()) {
-            WifiNl80211Manager.TxPacketCounters result =
-                    mWificondManager.getTxPacketCounters(ifaceName);
-            if (result == null) return null;
-            return new TxPacketCounters(result.txPacketSucceeded, result.txPacketFailed);
-        }
-
-        if (ifaceName == null) {
-            Log.e(TAG, "ifaceName cannot be null");
-            return null;
-        }
-        if (!mIsInitialized) return null;
 
         // TODO (b/394409845): Implement the Nl80211Proxy path
         throw new UnsupportedOperationException();
