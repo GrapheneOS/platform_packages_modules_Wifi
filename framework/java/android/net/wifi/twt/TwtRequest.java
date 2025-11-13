@@ -149,7 +149,7 @@ public final class TwtRequest implements Parcelable {
         dest.writeInt(mMinWakeDurationMicros);
         dest.writeInt(mMaxWakeDurationMicros);
         dest.writeLong(mMinWakeIntervalMicros);
-        dest.writeLong(mMinWakeIntervalMicros);
+        dest.writeLong(mMaxWakeIntervalMicros);
         dest.writeInt(mLinkId);
     }
 
