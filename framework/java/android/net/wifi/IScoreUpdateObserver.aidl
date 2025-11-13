@@ -35,5 +35,5 @@ oneway interface IScoreUpdateObserver
 
     void unblockAllBssids();
 
-    void setPreEvaluationEnabled(int sessionId, boolean enabled);
+    void setPreEvaluationEnabled(boolean enabled);
 }

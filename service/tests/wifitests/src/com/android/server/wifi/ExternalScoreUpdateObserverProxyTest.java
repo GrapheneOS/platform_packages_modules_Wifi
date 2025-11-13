@@ -140,17 +140,17 @@ public class ExternalScoreUpdateObserverProxyTest extends WifiBaseTest {
     @Test
     public void testCallbackForSetPreEvaluationEnabledApi() throws Exception {
         mExternalScoreUpdateObserverProxy.registerCallback(mCallback);
-        mExternalScoreUpdateObserverProxy.setPreEvaluationEnabled(TEST_SESSION_ID, true);
+        mExternalScoreUpdateObserverProxy.setPreEvaluationEnabled(true);
         mLooper.dispatchAll();
-        verify(mCallback).setPreEvaluationEnabled(eq(TEST_SESSION_ID), eq(true));
+        verify(mCallback).setPreEvaluationEnabled(eq(true));
 
-        mExternalScoreUpdateObserverProxy.setPreEvaluationEnabled(TEST_SESSION_ID, false);
+        mExternalScoreUpdateObserverProxy.setPreEvaluationEnabled(false);
         mLooper.dispatchAll();
-        verify(mCallback).setPreEvaluationEnabled(eq(TEST_SESSION_ID), eq(false));
+        verify(mCallback).setPreEvaluationEnabled(eq(false));
 
         // Unregister the callback
         mExternalScoreUpdateObserverProxy.unregisterCallback(mCallback);
-        mExternalScoreUpdateObserverProxy.setPreEvaluationEnabled(TEST_SESSION_ID, false);
+        mExternalScoreUpdateObserverProxy.setPreEvaluationEnabled(false);
         mLooper.dispatchAll();
 
         verifyNoMoreInteractions(mCallback);
@@ -159,7 +159,7 @@ public class ExternalScoreUpdateObserverProxyTest extends WifiBaseTest {
     @RequiresFlagsEnabled(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
     @Test
     public void testNullCallbackForSetPreEvaluationEnabledApi() throws Exception {
-        mExternalScoreUpdateObserverProxy.setPreEvaluationEnabled(TEST_SESSION_ID, true);
+        mExternalScoreUpdateObserverProxy.setPreEvaluationEnabled(true);
         mLooper.dispatchAll();
 
         assertEquals(mExternalScoreUpdateObserverProxy.mCountNullCallback, 1);

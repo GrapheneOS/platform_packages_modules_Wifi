@@ -11027,12 +11027,10 @@ public class WifiManager {
          * The external scorer app can test the Wi-Fi connection quality during the pre-evaluation
          * stage to assess whether it meets the current requirement to become default network.
          *
-         * @param sessionId The ID to indicate current Wi-Fi network connection obtained from
-         *                  {@link WifiConnectedNetworkScorer#onStart(int)}.
          * @param enabled The boolean representing whether the pre-evaluation is enabled or not.
          */
         @FlaggedApi(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
-        default void setPreEvaluationEnabled(int sessionId, boolean enabled) {}
+        default void setPreEvaluationEnabled(boolean enabled) {}
     }
 
     /**
@@ -11111,9 +11109,9 @@ public class WifiManager {
         }
 
         @Override
-        public void setPreEvaluationEnabled(int sessionId, boolean enabled) {
+        public void setPreEvaluationEnabled(boolean enabled) {
             try {
-                mScoreUpdateObserver.setPreEvaluationEnabled(sessionId, enabled);
+                mScoreUpdateObserver.setPreEvaluationEnabled(enabled);
             } catch (RemoteException e) {
                 throw e.rethrowFromSystemServer();
             }

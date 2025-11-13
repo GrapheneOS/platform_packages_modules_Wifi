@@ -3497,9 +3497,9 @@ public class WifiManagerTest {
                 ArgumentCaptor.forClass(ScoreUpdateObserver.class);
         verify(mWifiConnectedNetworkScorer)
                 .onSetScoreUpdateObserver(scoreUpdateObserverCaptor.capture());
-        scoreUpdateObserverCaptor.getValue().setPreEvaluationEnabled(TEST_SESSION_ID, true);
+        scoreUpdateObserverCaptor.getValue().setPreEvaluationEnabled(true);
 
-        verify(mMockIScoreUpdateObserver).setPreEvaluationEnabled(eq(TEST_SESSION_ID), eq(true));
+        verify(mMockIScoreUpdateObserver).setPreEvaluationEnabled(eq(true));
     }
 
     /**

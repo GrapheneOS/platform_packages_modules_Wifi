@@ -164,14 +164,14 @@ public class ExternalScoreUpdateObserverProxy extends IScoreUpdateObserver.Stub 
     }
 
     @Override
-    public void setPreEvaluationEnabled(int sessionId, boolean value) {
+    public void setPreEvaluationEnabled(boolean value) {
         mWifiThreadRunner.post(() -> {
             if (mCallback == null) {
                 incrementAndMaybeLogWtf("No callback registered, dropping setPreEvaluationEnabled");
                 return;
             }
             mCountNullCallback = 0;
-            mCallback.setPreEvaluationEnabled(sessionId, value);
+            mCallback.setPreEvaluationEnabled(value);
         }, TAG + "#setPreEvaluationEnabled");
     }
 }
