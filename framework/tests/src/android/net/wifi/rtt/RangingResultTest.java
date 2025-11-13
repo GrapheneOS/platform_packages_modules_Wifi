@@ -336,4 +336,12 @@ public class RangingResultTest {
                 + TEST_NUM_NTB_REPETITIONS_PER_MEASUREMENT));
         assertTrue(toString.contains("isLmrDelayed=" + TEST_IS_DELAYED_LMR_ENABLED));
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetRetryAfterDurationMillisNegative() {
+        new RangingResult.Builder()
+                .setMacAddress(MacAddress.fromString("00:11:22:33:44:55"))
+                .setStatus(RangingResult.STATUS_BUSY_TRY_LATER)
+                .setRetryAfterDurationMillis(-1);
+    }
 }
