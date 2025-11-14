@@ -943,7 +943,7 @@ public class WifiInjector {
                         mDeviceConfigFacade, mContext, mAdaptiveConnectivityEnabledSettingObserver,
                         ifaceName, mExternalScoreUpdateObserverProxy, mSettingsStore, mWifiGlobals,
                         mActiveModeWarden, mWifiConnectivityManager, mWifiConfigManager,
-                        mConnectedScorerHelper, mlConnectedScorer),
+                        mConnectedScorerHelper, mlConnectedScorer, mNetworkPreEvaluationManager),
                 mWifiP2pConnection, mWifiGlobals, ifaceName, clientModeManager,
                 mCmiMonitor, mBroadcastQueue, mWifiNetworkSelector, makeTelephonyManager(),
                 this, mSettingsConfigStore, verboseLoggingEnabled, mWifiNotificationManager,
