@@ -17,6 +17,7 @@
 package android.net.wifi.rtt;
 
 import android.annotation.FlaggedApi;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SystemApi;
@@ -29,6 +30,8 @@ import com.android.wifi.flags.Flags;
 
 /**
  * The characteristics of the Proximity Detection feature implementation.
+ * Refer Wi-Fi Alliance Proximity Ranging specification section 3.3
+ * "P2P Proximity Ranging Attributes" for the details.
  *
  * @hide
  */
@@ -123,6 +126,7 @@ public final class ProximityDetectionCharacteristics implements Parcelable {
      * sessions the device can handle (act as a seeker/initiator).
      * @return the maximum number of sessions.
      */
+    @IntRange(from = 1)
     public int getMaxNumContinuousRangingSeekerSessions() {
         return mCharacteristics.getInt(KEY_INT_MAX_NUM_CONTINUOUS_RANGING_SEEKER_SESSIONS);
     }
@@ -132,13 +136,14 @@ public final class ProximityDetectionCharacteristics implements Parcelable {
      * device can handle (act as an advertiser/responder).
      * @return the maximum number of sessions.
      */
+    @IntRange(from = 1)
     public int getMaxNumContinuousRangingAdvertiserSessions() {
         return mCharacteristics.getInt(KEY_INT_MAX_NUM_CONTINUOUS_RANGING_ADVERTISER_SESSIONS);
     }
 
     /**
-     * Returns true if the device can support ranging initiator and responder role
-     * operation concurrently.
+     * Returns true if the device can support ranging initiator station (ISTA) and ranging
+     * responder station (RSTA) operation concurrently.
      * @return true if supported, false otherwise.
      */
     public boolean isConcurrentIstaRstaOperationSupported() {
