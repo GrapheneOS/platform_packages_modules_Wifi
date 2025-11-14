@@ -16,29 +16,13 @@
 
 package android.system.wifi.mainline_supplicant;
 
+import android.system.wifi.mainline_supplicant.NanClusterEventType;
+
 /**
  * Cluster event indication structure. Triggered on events impacting how this device is visible to
  * peers - cluster forming, joining a new cluster, or changing of the MAC address.
  */
 parcelable NanClusterEventInd {
-    /**
-     * Event types for a cluster event indication.
-     */
-    @Backing(type="int")
-    enum NanClusterEventType {
-        UNKNOWN = 0,
-
-        /**
-         * A new cluster has been formed by this device.
-         */
-        STARTED,
-
-        /**
-         * This device has joined an existing cluster.
-         */
-        JOINED,
-    }
-
     /**
      * Event type causing the cluster event indication to be triggered.
      */
