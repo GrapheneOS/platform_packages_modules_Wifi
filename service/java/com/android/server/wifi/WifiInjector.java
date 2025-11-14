@@ -224,6 +224,7 @@ public class WifiInjector {
     private final SarManager mSarManager;
     private final WifiDiagnostics mWifiDiagnostics;
     private final WifiDataStall mWifiDataStall;
+    private final NetworkPreEvaluationManager mNetworkPreEvaluationManager;
     private final WifiScoreCard mWifiScoreCard;
     private final WifiNetworkSuggestionsManager mWifiNetworkSuggestionsManager;
     private final DppMetrics mDppMetrics;
@@ -538,6 +539,8 @@ public class WifiInjector {
                 mDeviceConfigFacade, wifiChannelUtilizationConnected, mClock, mWifiHandler,
                 mThroughputPredictor, mActiveModeWarden, mCmiMonitor, mWifiGlobals);
         mWifiMetrics.setWifiDataStall(mWifiDataStall);
+        mNetworkPreEvaluationManager = new NetworkPreEvaluationManager(mClock, mWifiDataStall,
+                 mWifiHandler);
         mWifiMetrics.setWifiHealthMonitor(mWifiHealthMonitor);
         mWifiP2pConnection = new WifiP2pConnection(mContext, wifiLooper, mActiveModeWarden);
         mConnectHelper = new ConnectHelper(mActiveModeWarden, mWifiConfigManager);
@@ -716,6 +719,7 @@ public class WifiInjector {
         mWifiHealthMonitor.enableVerboseLogging(verboseEnabled);
         mThroughputPredictor.enableVerboseLogging(verboseEnabled);
         mWifiDataStall.enableVerboseLogging(verboseEnabled);
+        mNetworkPreEvaluationManager.enableVerboseLogging(verboseEnabled);
         mWifiConnectivityManager.enableVerboseLogging(verboseEnabled);
         mThroughputScorer.enableVerboseLogging(verboseEnabled);
         mWifiNetworkSelector.enableVerboseLogging(verboseEnabled);
@@ -1111,6 +1115,10 @@ public class WifiInjector {
 
     public WifiDataStall getWifiDataStall() {
         return mWifiDataStall;
+    }
+
+    public NetworkPreEvaluationManager getNetworkPreEvaluationManager() {
+        return mNetworkPreEvaluationManager;
     }
 
     public WifiPulledAtomLogger getWifiPulledAtomLogger() {
