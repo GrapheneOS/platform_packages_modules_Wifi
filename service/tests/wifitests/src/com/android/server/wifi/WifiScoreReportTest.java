@@ -60,6 +60,7 @@ import android.net.ip.IpClientManager;
 import android.net.wifi.IScoreUpdateObserver;
 import android.net.wifi.IWifiConnectedNetworkScorer;
 import android.net.wifi.MloLink;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConnectedSessionInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -122,6 +123,7 @@ public class WifiScoreReportTest extends WifiBaseTest {
     private static final int TEST_LOW_CONNECTED_SCORE_SCAN_PERIOD_SECONDS = 60;
     private static final int TEST_NETWORK_ID = 860370;
     private static final int TEST_SESSION_ID = 8603703; // last digit is a check digit
+    private static final String TEST_PROFILE_KEY = "1234567890";
     private static final String TEST_IFACE_NAME = "wlan0";
     public static final String TEST_BSSID = "00:00:00:00:00:00";
     public static final boolean TEST_USER_SELECTED = true;
@@ -165,11 +167,13 @@ public class WifiScoreReportTest extends WifiBaseTest {
     @Mock ActiveModeWarden mActiveModeWarden;
     @Mock WifiConnectivityManager mWifiConnectivityManager;
     @Mock WifiConfigManager mWifiConfigManager;
+    @Mock WifiConfiguration mMockWifiConfiguration;
     @Mock VelocityBasedConnectedScorer mMockVelocityScorer;
     @Mock ConnectedScorerHelper mMockConnectedScorerHelper;
     @Mock IpClientManager mMockIpClientManager;
     @Mock WifiUsabilityStatsEntry mMockWifiUsabilityStatsEntry;
     @Mock MlConnectedScorer mMockMlConnectedScorer;
+    @Mock NetworkPreEvaluationManager mMockNetworkPreEvaluationManager;
     @Captor ArgumentCaptor<WifiManager.ScoreUpdateObserver> mExternalScoreUpdateObserverCbCaptor;
     private TestLooper mLooper;
 
@@ -316,7 +320,7 @@ public class WifiScoreReportTest extends WifiBaseTest {
                 mExternalScoreUpdateObserverProxy, mWifiSettingsStore,
                 mWifiGlobals, mActiveModeWarden, mWifiConnectivityManager, mWifiConfigManager,
                 new ConnectedScorerHelper(mScoringParams, mWifiGlobals, mWifiConnectivityManager),
-                mMockMlConnectedScorer);
+                mMockMlConnectedScorer, mMockNetworkPreEvaluationManager);
         mWifiScoreReport.onRoleChanged(mIsPrimary ? ActiveModeManager.ROLE_CLIENT_PRIMARY
                 : ActiveModeManager.ROLE_CLIENT_SECONDARY_LONG_LIVED);
         mWifiScoreReport.setNetworkAgent(mNetworkAgent);
@@ -333,7 +337,7 @@ public class WifiScoreReportTest extends WifiBaseTest {
             mAdaptiveConnectivityEnabledSettingObserver, TEST_IFACE_NAME,
             mExternalScoreUpdateObserverProxy, mWifiSettingsStore,
             mWifiGlobals, mActiveModeWarden, mWifiConnectivityManager, mWifiConfigManager,
-            mMockConnectedScorerHelper, mMockMlConnectedScorer);
+            mMockConnectedScorerHelper, mMockMlConnectedScorer, mMockNetworkPreEvaluationManager);
         mWifiScoreReportWithMockHelper.mVelocityBasedConnectedScorer = mMockVelocityScorer;
         mWifiScoreReportWithMockHelper.setNetworkAgent(mMockNetworkAgent);
         mWifiScoreReportWithMockHelper.setIpClientManager(mMockIpClientManager);
@@ -349,6 +353,8 @@ public class WifiScoreReportTest extends WifiBaseTest {
         when(mPerNetwork.getTxLinkBandwidthKbps()).thenReturn(40_000);
         when(mPerNetwork.getRxLinkBandwidthKbps()).thenReturn(50_000);
         when(mWifiScoreCard.lookupNetwork(any())).thenReturn(mPerNetwork);
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(mMockWifiConfiguration);
+        when(mMockWifiConfiguration.getProfileKey()).thenReturn(TEST_PROFILE_KEY);
     }
 
     /**
@@ -1927,6 +1933,63 @@ public class WifiScoreReportTest extends WifiBaseTest {
 
         verify(mWifiBlocklistMonitor, never()).clearBssidBlocklistForReason(
                 eq(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE));
+    }
+
+    @Test
+    public void testFrameworkSetPreEvaluationRequestOperation() throws Exception {
+        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
+        // Register Client for verification.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(
+                mExternalScoreUpdateObserverCbCaptor.capture());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+
+        mExternalScoreUpdateObserverCbCaptor.getValue()
+                .setPreEvaluationEnabled(true);
+        mLooper.dispatchAll();
+        verify(mMockNetworkPreEvaluationManager).setPreEvaluationEnabled(
+                eq(TEST_PROFILE_KEY), eq(true));
+    }
+
+    @Test
+    public void frameworkIgnoresSetPreEvaluationRequestWhenScoringDisabled() throws Exception {
+        when(mAdaptiveConnectivityEnabledSettingObserver.get()).thenReturn(false);
+        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
+        // Register Client for verification.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(
+                mExternalScoreUpdateObserverCbCaptor.capture());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+
+        mExternalScoreUpdateObserverCbCaptor.getValue()
+                .setPreEvaluationEnabled(true);
+        mLooper.dispatchAll();
+        verify(mMockNetworkPreEvaluationManager, never())
+                .setPreEvaluationEnabled(anyString(), anyBoolean());
+    }
+
+    @Test
+    public void frameworkIgnoresSetPreEvaluationRequestFromDryRunScorer() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        assertEquals(ConnectedScorer.WIFI_INITIAL_SCORE, mWifiScoreReport.mLegacyIntScore);
+        when(mMockPackageManager.getPackagesForUid(anyInt()))
+                .thenReturn(new String[]{DRY_RUN_SCORER_PKG_NAME});
+        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(
+                mExternalScoreUpdateObserverCbCaptor.capture());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+        assertEquals(TEST_SESSION_ID, scorerImpl.mSessionId);
+
+        mExternalScoreUpdateObserverCbCaptor.getValue()
+                .setPreEvaluationEnabled(true);
+        mLooper.dispatchAll();
+
+        verify(mMockNetworkPreEvaluationManager, never())
+                .setPreEvaluationEnabled(anyString(), anyBoolean());
     }
 
     @Test
