@@ -36,6 +36,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
@@ -69,6 +70,7 @@ public class Nl80211NativeTest {
     private static final String COUNTRY_CODE = "US";
 
     @Mock Nl80211Proxy mNl80211Proxy;
+    @Mock Nl80211Utils mNl80211Utils;
     @Mock WifiNl80211Manager mWificondManager;
     @Mock Executor mExecutor;
     @Mock Nl80211Native.ScanEventCallback mScanCallback;
@@ -91,7 +93,7 @@ public class Nl80211NativeTest {
 
     private Nl80211Native initNl80211Native(boolean useWificond) {
         Nl80211Native nl80211Native =
-                new Nl80211Native(mNl80211Proxy, mWificondManager, useWificond);
+                new Nl80211Native(mNl80211Proxy, mNl80211Utils, mWificondManager, useWificond);
         nl80211Native.initialize();
         return nl80211Native;
     }
@@ -432,10 +434,66 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testGetDeviceWiphyCapabilities_throwsException() {
+    public void testGetDeviceWiphyCapabilities_success() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.getDeviceWiphyCapabilities(IFACE_NAME));
+        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo();
+        bandInfo.is80211nSupported = true;
+        bandInfo.is80211acSupported = true;
+        bandInfo.is80211axSupported = true;
+        bandInfo.is80211beSupported = true;
+        bandInfo.is160MhzSupported = true;
+        bandInfo.is80p80MhzSupported = true;
+        bandInfo.is320MhzSupported = true;
+        bandInfo.maxTxStreams = 8;
+        bandInfo.maxRxStreams = 4;
+        Nl80211Utils.ScanCapabilities scanCapabilities =
+                new Nl80211Utils.ScanCapabilities(0, 0, 0, 0, 0, 0);
+        Nl80211Utils.WiphyFeatures wiphyFeatures =
+                new Nl80211Utils.WiphyFeatures(false, false, false, false, false, false, false);
+        Nl80211Utils.DriverCapabilities driverCapabilities =
+                new Nl80211Utils.DriverCapabilities(5);
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
+                bandInfo, scanCapabilities, wiphyFeatures, driverCapabilities);
+
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        when(mNl80211Utils.getWiphyInfo(0)).thenReturn(wiphyInfo);
+
+        DeviceWiphyCapabilities capabilities = mDut.getDeviceWiphyCapabilities(IFACE_NAME);
+
+        assertNotNull(capabilities);
+        assertTrue(capabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11N));
+        assertTrue(capabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AC));
+        assertTrue(capabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AX));
+        assertTrue(capabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11BE));
+        assertTrue(capabilities.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ));
+        assertTrue(capabilities.isChannelWidthSupported(
+                ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ));
+        assertTrue(capabilities.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ));
+        assertEquals(8, capabilities.getMaxNumberTxSpatialStreams());
+        assertEquals(4, capabilities.getMaxNumberRxSpatialStreams());
+        assertEquals(5, capabilities.getMaxNumberAkms());
+    }
+
+    @Test
+    public void testGetDeviceWiphyCapabilities_getWiphyIndexFails() {
+        mDut = initNl80211Native(false);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(-1);
+        assertNull(mDut.getDeviceWiphyCapabilities(IFACE_NAME));
+    }
+
+    @Test
+    public void testGetDeviceWiphyCapabilities_getWiphyInfoFails() {
+        mDut = initNl80211Native(false);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        when(mNl80211Utils.getWiphyInfo(0)).thenReturn(null);
+        assertNull(mDut.getDeviceWiphyCapabilities(IFACE_NAME));
+    }
+
+    @Test
+    public void testGetDeviceWiphyCapabilities_notInitialized() {
+        Nl80211Native nl80211Native =
+                new Nl80211Native(mNl80211Proxy, mNl80211Utils, mWificondManager, false);
+        assertNull(nl80211Native.getDeviceWiphyCapabilities(IFACE_NAME));
     }
 
     @Test
@@ -483,10 +541,36 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testGetMaxSsidsPerScan_throwsException() {
+    public void testGetMaxSsidsPerScan_success() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.getMaxSsidsPerScan(IFACE_NAME));
+        final int maxSsids = 16;
+        Nl80211Utils.ScanCapabilities scanCaps = new Nl80211Utils.ScanCapabilities(
+                maxSsids, 0, 0, 0, 0, 0);
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
+                new Nl80211Utils.BandInfo(),
+                scanCaps,
+                mock(Nl80211Utils.WiphyFeatures.class),
+                mock(Nl80211Utils.DriverCapabilities.class));
+
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        when(mNl80211Utils.getWiphyInfo(0)).thenReturn(wiphyInfo);
+
+        assertEquals(maxSsids, mDut.getMaxSsidsPerScan(IFACE_NAME));
+    }
+
+    @Test
+    public void testGetMaxSsidsPerScan_getWiphyIndexFails() {
+        mDut = initNl80211Native(false);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(-1);
+        assertEquals(0, mDut.getMaxSsidsPerScan(IFACE_NAME));
+    }
+
+    @Test
+    public void testGetMaxSsidsPerScan_getWiphyInfoFails() {
+        mDut = initNl80211Native(false);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
+        when(mNl80211Utils.getWiphyInfo(0)).thenReturn(null);
+        assertEquals(0, mDut.getMaxSsidsPerScan(IFACE_NAME));
     }
 
     @Test

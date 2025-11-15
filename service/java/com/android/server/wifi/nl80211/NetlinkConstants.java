@@ -60,7 +60,6 @@ public class NetlinkConstants {
 
     // Nl80211 commands. See kernel/uapi/linux/nl80211.h
     public static final short NL80211_CMD_UNSPEC = 0;
-
     public static final short NL80211_CMD_GET_WIPHY = 1; /* can dump */
     public static final short NL80211_CMD_SET_WIPHY = 2;
     public static final short NL80211_CMD_NEW_WIPHY = 3;
