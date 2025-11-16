@@ -25,9 +25,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkInfo.DetailedState;
+import android.net.NetworkRequest;
+import android.net.TransportInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApCapability;
 import android.net.wifi.SoftApConfiguration;
@@ -819,6 +824,36 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         return executeWithShellPermission(mWifiManager::getConnectionInfo);
     }
 
+    /**
+     * Gets the current connected Wi-Fi information without using shell permissions.
+     *
+     * @return WifiInfo
+     */
+    @Rpc(
+            description =
+                    "Gets the current connected Wi-Fi connection information without shell"
+                            + " permissions.")
+    public WifiInfo wifiGetConnectionInfoWithoutShellPermission() {
+        try {
+            WifiInfo wifiInfo = mWifiManager.getConnectionInfo();
+            // If location permission is denied, getConnectionInfo() might return a WifiInfo object
+            // with UNKNOWN_SSID instead of throwing a SecurityException.
+            if (wifiInfo != null && wifiInfo.getSSID().equals(WifiManager.UNKNOWN_SSID)) {
+                if (mContext.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    Log.e(TAG, "getConnectionInfo() returned UNKNOWN_SSID, "
+                            + "likely due to missing location permission.");
+                    return null;
+                }
+            }
+            return wifiInfo;
+        } catch (SecurityException e) {
+            Log.e(TAG, "SecurityException when calling WifiManager.getConnectionInfo() "
+                    + "without shell permissions: " + e.getMessage());
+            return null;
+        }
+    }
+
     private static class WifiActionListener implements WifiManager.ActionListener {
         private final CountDownLatch mLatch;
         WifiActionListener(CountDownLatch latch) {
@@ -898,6 +933,72 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     @Rpc(description = "Resets all WifiManager settings.")
     public void wifiFactoryReset() {
         executeWithShellPermission(() -> mWifiManager.factoryReset());
+    }
+
+    private static class TestNetworkCallback extends ConnectivityManager.NetworkCallback {
+        private final CountDownLatch mCountDownLatch;
+        private boolean mOnAvailableCalled = false;
+        NetworkCapabilities mNetworkCapabilities;
+
+        TestNetworkCallback(CountDownLatch countDownLatch) {
+            super(ConnectivityManager.NetworkCallback.FLAG_INCLUDE_LOCATION_INFO);
+            mCountDownLatch = countDownLatch;
+        }
+
+        @Override
+        public void onAvailable(Network network) {
+            mOnAvailableCalled = true;
+        }
+
+        @Override
+        public void onCapabilitiesChanged(Network network,
+                NetworkCapabilities networkCapabilities) {
+            if (mOnAvailableCalled) {
+                this.mNetworkCapabilities = networkCapabilities;
+                mCountDownLatch.countDown();
+            }
+        }
+
+        boolean isOnAvailableCalled() {
+            return mOnAvailableCalled;
+        }
+    }
+
+    /**
+     * Retrieves the transport information for the current Wi-Fi network.
+     *
+     * @return A JSONObject representing the WifiInfo from the transport info, or null on failure.
+     */
+    @Rpc(description = "Retrieves the transport information for the current Wi-Fi network.")
+    public JSONObject wifiGetTransportInfo() throws InterruptedException, JSONException {
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        TestNetworkCallback testNetworkCallback = new TestNetworkCallback(countDownLatch);
+        try {
+            mConnectivityManager.registerNetworkCallback(
+                    new NetworkRequest.Builder()
+                            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                            .build(),
+                    testNetworkCallback);
+            if (!countDownLatch.await(15, TimeUnit.SECONDS)) {
+                Log.e(TAG, "Timed out waiting for wifi network");
+                return null;
+            }
+            if (!testNetworkCallback.isOnAvailableCalled()) {
+                Log.e(TAG, "Failed to get wifi network onAvailable");
+                return null;
+            }
+            TransportInfo transportInfo =
+                    testNetworkCallback.mNetworkCapabilities.getTransportInfo();
+            if (transportInfo instanceof WifiInfo) {
+                WifiInfo wifiInfo = (WifiInfo) transportInfo;
+                if (!wifiInfo.getSSID().equals(WifiManager.UNKNOWN_SSID)) {
+                    return WifiJsonConverter.serialize(wifiInfo);
+                }
+            }
+        } finally {
+            mConnectivityManager.unregisterNetworkCallback(testNetworkCallback);
+        }
+        return null;
     }
 
     /**
@@ -1153,6 +1254,44 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     @Rpc(description = "Turn off Wi-Fi.")
     public void wifiToggleDisable() throws InterruptedException, WifiManagerSnippetException {
         wifiToggleState(false);
+    }
+
+    /**
+     * Start scan only, without waiting for scan results.
+     *
+     * @return True if the scan was successfully initiated, false otherwise.
+     */
+    @Rpc(description = "Start scan only, without waiting for scan results.")
+    public boolean wifiStartScanAndGetStatus() {
+        try {
+            return mWifiManager.startScan();
+        } catch (SecurityException e) {
+            Log.e(TAG, "SecurityException when calling WifiManager.startScan(): " + e.getMessage());
+            return false;
+        }
+    }
+
+        /**
+     * Retrieves the latest Wi-Fi scan results.
+     *
+     * @return A JSONArray of serialized ScanResult objects, or an empty array on failure.
+     */
+    @Rpc(description = "Retrieves the latest Wi-Fi scan results.")
+    public JSONArray wifiGetScanResults() throws JSONException {
+        JSONArray results = new JSONArray();
+        if (mContext.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "ACCESS_FINE_LOCATION permission not granted.");
+            return results;
+        }
+        try {
+            for (ScanResult result : mWifiManager.getScanResults()) {
+                results.put(WifiAwareSnippetConverter.serializeScanResult(result));
+            }
+        } catch (SecurityException e) {
+            Log.e(TAG, "Failed to retrieve scan results", e);
+        }
+        return results;
     }
 
     /** Start scan, wait for scan to complete, and return results. */
