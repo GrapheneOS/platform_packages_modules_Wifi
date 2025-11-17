@@ -149,6 +149,7 @@ import com.android.net.module.util.MacAddressUtils;
 import com.android.net.module.util.NetUtils;
 import com.android.server.wifi.ActiveModeManager.ClientRole;
 import com.android.server.wifi.MboOceController.BtmFrameData;
+import com.android.server.wifi.NetworkPreEvaluationManager.PreEvaluationResultCallback;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
 import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceReasonCode;
 import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceStatusCode;
@@ -230,6 +231,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     @VisibleForTesting
     public static final String ARP_TABLE_PATH = "/proc/net/arp";
     private final WifiDeviceStateChangeManager mWifiDeviceStateChangeManager;
+    private boolean mPreEvaluationActive = false;
 
     private boolean mVerboseLoggingEnabled = false;
 
@@ -300,6 +302,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     private final WifiNotificationManager mNotificationManager;
     private final WifiConnectivityHelper mWifiConnectivityHelper;
+    private final NetworkPreEvaluationManager mNetworkPreEvaluationManager;
     private final QosPolicyRequestHandler mQosPolicyRequestHandler;
     private ConnectivityDiagnosticsManager mConnectivityDiagnosticsManager;
 
@@ -567,6 +570,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     /* Used to time out the creation of an IpClient instance. */
     static final int CMD_IPCLIENT_STARTUP_TIMEOUT                       = BASE + 165;
+    static final int CMD_PRE_EVALUATION_PASSED                          = BASE + 166;
+    static final int CMD_PRE_EVALUATION_FAILED                          = BASE + 167;
 
     /**
      * Used to handle messages bounced between ClientModeImpl and IpClient.
@@ -814,7 +819,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             @NonNull WifiSettingsConfigStore settingsConfigStore,
             boolean verboseLoggingEnabled,
             @NonNull WifiNotificationManager wifiNotificationManager,
-            @NonNull WifiConnectivityHelper wifiConnectivityHelper) {
+            @NonNull WifiConnectivityHelper wifiConnectivityHelper,
+            @NonNull NetworkPreEvaluationManager networkPreEvaluationManager) {
         super(TAG, looper);
         mWifiMetrics = wifiMetrics;
         mClock = clock;
@@ -923,6 +929,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
         mNotificationManager = wifiNotificationManager;
         mWifiConnectivityHelper = wifiConnectivityHelper;
+        mNetworkPreEvaluationManager = networkPreEvaluationManager;
         mInsecureEapNetworkHandlerCallbacksImpl =
                 new InsecureEapNetworkHandler.InsecureEapNetworkHandlerCallbacks() {
                 @Override
@@ -5606,6 +5613,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             }
             builder.removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED);
         }
+        if (mPreEvaluationActive) {
+            builder.removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED);
+        }
         return builder.build();
     }
 
@@ -7668,6 +7678,30 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     }
 
     class L3ConnectedState extends RunnerState {
+        private final PreEvaluationResultCallback mPreEvaluationResultCallback =
+            new PreEvaluationResultCallback() {
+                @Override
+                public void onPass(@NonNull String profileKey) {
+                    if (mVerboseLoggingEnabled) {
+                        log("Pre-evaluation for network " + profileKey + " passed.");
+                    }
+                    WifiConfiguration config = getConnectedWifiConfigurationInternal();
+                    if ((config != null) && config.getProfileKey().equals(profileKey)) {
+                        ClientModeImpl.this.sendMessage(CMD_PRE_EVALUATION_PASSED);
+                    }
+                }
+
+                @Override
+                public void onFail(@NonNull String profileKey) {
+                    if (mVerboseLoggingEnabled) {
+                        log("Pre-evaluation for network " + profileKey + " failed.");
+                    }
+                    WifiConfiguration config = getConnectedWifiConfigurationInternal();
+                    if ((config != null) && config.getProfileKey().equals(profileKey)) {
+                        ClientModeImpl.this.sendMessage(CMD_PRE_EVALUATION_FAILED);
+                    }
+                }
+            };
         L3ConnectedState(int threshold) {
             super(threshold, mWifiInjector.getWifiHandlerLocalLog());
         }
@@ -7699,8 +7733,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             // Inform WifiLockManager
             mWifiLockManager.updateWifiClientConnected(mClientModeManager, true);
             WifiConfiguration config = getConnectedWifiConfigurationInternal();
-            mWifiScoreReport.startConnectedNetworkScorer(
-                    mNetworkAgent.getNetwork().getNetId(), isRecentlySelectedByTheUser(config));
+            if (mWifiScoreReport.startConnectedNetworkScorer(
+                    mNetworkAgent.getNetwork().getNetId(), isRecentlySelectedByTheUser(config))) {
+                if (com.android.wifi.flags.Flags.feedMoreDataToExternalScorer()) {
+                    mPreEvaluationActive = true;
+                    updateCapabilities();
+                    mNetworkPreEvaluationManager.startPreEvaluation(
+                            config.getProfileKey(), mPreEvaluationResultCallback);
+                }
+            };
             mWifiScoreCard.noteIpConfiguration(mWifiInfo);
             // too many places to record L3 failure with too many failure reasons.
             // So only record success here.
@@ -7890,6 +7931,13 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     mWifiConfigManager.setNetworkNoInternetAccessExpected(mLastNetworkId, accept);
                     break;
                 }
+                case CMD_PRE_EVALUATION_PASSED:
+                    mPreEvaluationActive = false;
+                    updateCapabilities();
+                    break;
+                case CMD_PRE_EVALUATION_FAILED:
+                    mPreEvaluationActive = false;
+                    updateCapabilities();
                 case WifiMonitor.NETWORK_DISCONNECTION_EVENT: {
                     DisconnectEventInfo eventInfo = (DisconnectEventInfo) message.obj;
                     if (unexpectedDisconnectedReason(eventInfo.reasonCode)) {
