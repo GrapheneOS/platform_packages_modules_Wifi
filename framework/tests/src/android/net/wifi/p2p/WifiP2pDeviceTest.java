@@ -166,6 +166,13 @@ public class WifiP2pDeviceTest {
             device.setPairingBootStrappingMethods(WifiP2pPairingBootstrappingConfig
                     .PAIRING_BOOTSTRAPPING_METHOD_OPPORTUNISTIC);
         }
+        if (Environment.isSdkNewerThanB()) {
+            device.setWifiP2pConnectionInfo(new WifiP2pConnectionInfo(
+                    ScanResult.WIFI_STANDARD_11AX,
+                    ScanResult.CHANNEL_WIDTH_80MHZ,
+                    2,
+                    2));
+        }
 
         Parcel parcel = Parcel.obtain();
         device.writeToParcel(parcel, 0);
@@ -185,6 +192,10 @@ public class WifiP2pDeviceTest {
         }
         if (Environment.isSdkAtLeastB()) {
             assertTrue(device.isOpportunisticBootstrappingMethodSupported());
+        }
+        if (Environment.isSdkNewerThanB()) {
+            assertEquals(device.getWifiP2pConnectionInfo(),
+                    unparceledDevice.getWifiP2pConnectionInfo());
         }
     }
 
@@ -235,5 +246,25 @@ public class WifiP2pDeviceTest {
         assertTrue(device.isPassphraseDisplayBootstrappingMethodSupported());
         assertTrue(device.isPinCodeKeypadBootstrappingMethodSupported());
         assertTrue(device.isPassphraseKeypadBootstrappingMethodSupported());
+    }
+
+    /**
+     * Test the setter/getter for P2P connection info.
+     */
+    @Test
+    public void testWifiP2pConnectionInfoSetterGetter() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        WifiP2pDevice device = new WifiP2pDevice();
+        WifiP2pConnectionInfo connectionInfo = new WifiP2pConnectionInfo(
+                ScanResult.WIFI_STANDARD_11AX,
+                ScanResult.CHANNEL_WIDTH_80MHZ,
+                2,
+                2);
+        device.setWifiP2pConnectionInfo(connectionInfo);
+        WifiP2pConnectionInfo retrievedInfo = device.getWifiP2pConnectionInfo();
+        assertEquals(ScanResult.WIFI_STANDARD_11AX, retrievedInfo.getWifiStandard());
+        assertEquals(ScanResult.CHANNEL_WIDTH_80MHZ, retrievedInfo.getChannelWidth());
+        assertEquals(2, retrievedInfo.getTxNss());
+        assertEquals(2, retrievedInfo.getRxNss());
     }
 }

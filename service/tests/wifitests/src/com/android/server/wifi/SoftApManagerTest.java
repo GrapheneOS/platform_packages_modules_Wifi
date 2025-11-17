@@ -99,6 +99,7 @@ import com.android.internal.util.WakeupMessage;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
+import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
@@ -238,6 +239,8 @@ public class SoftApManagerTest extends WifiBaseTest {
     @Mock BatteryManager mBatteryManager;
     @Mock InterfaceConflictManager mInterfaceConflictManager;
     @Mock WifiInjector mWifiInjector;
+    @Mock DeviceConfigFacade mDeviceConfigFacade;
+    @Mock FeatureFlags mFeatureFlags;
     @Mock WifiCountryCode mWifiCountryCode;
     @Mock Clock mClock;
     @Mock LocalLog mLocalLog;
@@ -356,6 +359,8 @@ public class SoftApManagerTest extends WifiBaseTest {
 
         when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
         when(mWifiInjector.getContext()).thenReturn(mContext);
+        when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
         when(mWifiNative.isItPossibleToCreateApIface(any())).thenReturn(true);
         when(mWifiNative.isItPossibleToCreateBridgedApIface(any())).thenReturn(true);
         when(mWifiNative.isApSetMacAddressSupported(any())).thenReturn(true);
@@ -4560,5 +4565,116 @@ public class SoftApManagerTest extends WifiBaseTest {
                 WifiManager.IFACE_IP_MODE_TETHERED, null,
                 mTestSoftApCapability, "Not " + TEST_COUNTRY_CODE, TEST_TETHERING_REQUEST);
         startSoftApAndVerifyEnabled(apConfig);
+    }
+
+    @Test
+    public void testStartSoftApAutoUpgradeTo2g6gDbs() throws Exception {
+        when(mFeatureFlags.upgradeSingle6ghzHotspotToDualBand()).thenReturn(true);
+        assumeTrue(SdkLevel.isAtLeastS());
+        when(mResourceCache.getBoolean(
+                R.bool.config_wifiSoftapUpgradeTetheredTo2g6gBridgedIfBandIs6g))
+                .thenReturn(true);
+        int[] dual_bands = {SoftApConfiguration.BAND_2GHZ,
+                SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ
+                        | SoftApConfiguration.BAND_6GHZ};
+
+        mPersistentApConfig = new SoftApConfiguration.Builder(mPersistentApConfig)
+                .setBand(SoftApConfiguration.BAND_6GHZ)
+                .setPassphrase(TEST_PASSWORD, SoftApConfiguration.SECURITY_TYPE_WPA3_SAE)
+                .build();
+        when(mWifiApConfigStore.getApConfiguration()).thenReturn(mPersistentApConfig);
+        SoftApConfiguration dualBandConfig = new SoftApConfiguration.Builder(mPersistentApConfig)
+                .setBands(dual_bands)
+                .build();
+
+        SoftApCapability with6GhzCapability = new SoftApCapability(mTestSoftApCapability);
+        with6GhzCapability.setSupportedChannelList(
+                SoftApConfiguration.BAND_6GHZ, new int[]{5, 21});
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, null,
+                with6GhzCapability, TEST_COUNTRY_CODE, TEST_TETHERING_REQUEST);
+        startSoftApAndVerifyEnabled(apConfig, dualBandConfig, false);
+    }
+
+    @Test
+    public void testStartSoftApDoesNotAutoUpgradeTo2g6gDbsWhenFlagDisabled() throws Exception {
+        when(mFeatureFlags.upgradeSingle6ghzHotspotToDualBand()).thenReturn(false);
+        assumeTrue(SdkLevel.isAtLeastS());
+        when(mResourceCache.getBoolean(
+                R.bool.config_wifiSoftapUpgradeTetheredTo2g6gBridgedIfBandIs6g))
+                .thenReturn(true);
+
+        mPersistentApConfig = new SoftApConfiguration.Builder(mPersistentApConfig)
+                .setBand(SoftApConfiguration.BAND_6GHZ)
+                .setPassphrase(TEST_PASSWORD, SoftApConfiguration.SECURITY_TYPE_WPA3_SAE)
+                .build();
+        when(mWifiApConfigStore.getApConfiguration()).thenReturn(mPersistentApConfig);
+
+        SoftApCapability with6GhzCapability = new SoftApCapability(mTestSoftApCapability);
+        with6GhzCapability.setSupportedChannelList(
+                SoftApConfiguration.BAND_6GHZ, new int[]{5, 21});
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, null,
+                with6GhzCapability, TEST_COUNTRY_CODE, TEST_TETHERING_REQUEST);
+        // Expect no upgrade, so the config should remain single-band 6GHz.
+        startSoftApAndVerifyEnabled(apConfig, mPersistentApConfig, false);
+    }
+
+    @Test
+    public void testStartSoftApDoesNotAutoUpgradeTo2g6gDbsWhenOverlayIsFalse() throws Exception {
+        when(mFeatureFlags.upgradeSingle6ghzHotspotToDualBand()).thenReturn(true);
+        assumeTrue(SdkLevel.isAtLeastS());
+        when(mResourceCache.getBoolean(
+                R.bool.config_wifiSoftapUpgradeTetheredTo2g6gBridgedIfBandIs6g))
+                .thenReturn(false);
+
+        mPersistentApConfig = new SoftApConfiguration.Builder(mPersistentApConfig)
+                .setBand(SoftApConfiguration.BAND_6GHZ)
+                .setPassphrase(TEST_PASSWORD, SoftApConfiguration.SECURITY_TYPE_WPA3_SAE)
+                .build();
+        when(mWifiApConfigStore.getApConfiguration()).thenReturn(mPersistentApConfig);
+
+        SoftApCapability with6GhzCapability = new SoftApCapability(mTestSoftApCapability);
+        with6GhzCapability.setSupportedChannelList(
+                SoftApConfiguration.BAND_6GHZ, new int[]{5, 21});
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, null,
+                with6GhzCapability, TEST_COUNTRY_CODE, TEST_TETHERING_REQUEST);
+        // Expect no upgrade because overlay is false.
+        startSoftApAndVerifyEnabled(apConfig, mPersistentApConfig, false);
+    }
+
+    @Test
+    public void testStartSoftApDoesNotAutoUpgradeTo2g6gDbsAndFallsBackWhen6ghzNotAvailable()
+            throws Exception {
+        when(mFeatureFlags.upgradeSingle6ghzHotspotToDualBand()).thenReturn(true);
+        assumeTrue(SdkLevel.isAtLeastS());
+        // Enable both overlays to test fallback behavior.
+        when(mResourceCache.getBoolean(
+                R.bool.config_wifiSoftapUpgradeTetheredTo2g6gBridgedIfBandIs6g))
+                .thenReturn(true);
+        when(mResourceCache.getBoolean(
+                R.bool.config_wifiSoftapUpgradeTetheredTo2g5gBridgedIfBandsAreSubset))
+                .thenReturn(true);
+        int[] dual_bands_2g5g = {SoftApConfiguration.BAND_2GHZ,
+                SoftApConfiguration.BAND_2GHZ | SoftApConfiguration.BAND_5GHZ};
+
+        mPersistentApConfig = new SoftApConfiguration.Builder(mPersistentApConfig)
+                .setBand(SoftApConfiguration.BAND_6GHZ)
+                .setPassphrase(TEST_PASSWORD, SoftApConfiguration.SECURITY_TYPE_WPA3_SAE)
+                .build();
+        when(mWifiApConfigStore.getApConfiguration()).thenReturn(mPersistentApConfig);
+        // Since 6GHz is not available, it should fall back to 2.4+5GHz DBS.
+        SoftApConfiguration expectedFallbackConfig =
+                new SoftApConfiguration.Builder(mPersistentApConfig)
+                        .setBands(dual_bands_2g5g)
+                        .build();
+
+        SoftApCapability no6GhzCapability = new SoftApCapability(mTestSoftApCapability);
+        no6GhzCapability.setSupportedChannelList(WifiScanner.WIFI_BAND_6_GHZ, new int[0]);
+        SoftApModeConfiguration apConfig = new SoftApModeConfiguration(
+                WifiManager.IFACE_IP_MODE_TETHERED, null,
+                no6GhzCapability, TEST_COUNTRY_CODE, TEST_TETHERING_REQUEST);
+        startSoftApAndVerifyEnabled(apConfig, expectedFallbackConfig, false);
     }
 }

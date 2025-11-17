@@ -84,6 +84,7 @@
           <item type="bool" name="config_wifiSoftapResetMaxClientSettingConfig" />
           <item type="bool" name="config_wifiSoftapAutoUpgradeToBridgedConfigWhenSupported" />
           <item type="bool" name="config_wifiSoftapUpgradeTetheredTo2g5gBridgedIfBandsAreSubset" />
+          <item type="bool" name="config_wifiSoftapUpgradeTetheredTo2g6gBridgedIfBandIs6g" />
           <item type="string"  name="config_wifiSoftap2gChannelList" />
           <item type="string"  name="config_wifiSoftap5gChannelList" />
           <item type="string"  name="config_wifiSoftap6gChannelList" />

@@ -26,6 +26,7 @@ import android.net.InetAddresses;
 import android.net.MacAddress;
 import android.net.wifi.OuiKeyedData;
 import android.net.wifi.OuiKeyedDataUtil;
+import android.net.wifi.ScanResult;
 import android.net.wifi.util.Environment;
 import android.os.Parcel;
 
@@ -62,6 +63,14 @@ public class WifiP2pGroupTest {
     private static final String CLIENT_1_IP_ADDRESS = "192.168.49.10";
     private static final List<OuiKeyedData> VENDOR_DATA =
             OuiKeyedDataUtil.createTestOuiKeyedDataList(5);
+    private static final WifiP2pConnectionInfo CLIENT_1_CONNECTION_INFO = new WifiP2pConnectionInfo(
+            ScanResult.WIFI_STANDARD_11AX,
+            ScanResult.CHANNEL_WIDTH_80MHZ,
+            2,
+            2);
+    private static final WifiP2pConnectionInfo GROUP_CLIENT_CONNECTION_INFO =
+            new WifiP2pConnectionInfo(ScanResult.WIFI_STANDARD_11AC,
+                    ScanResult.CHANNEL_WIDTH_40MHZ, 1, 1);
 
     /**
      * Verify setter/getter functions.
@@ -84,6 +93,10 @@ public class WifiP2pGroupTest {
             group.setClientIpAddress(CLIENT_1_INTERFACE_MAC_ADDRESS,
                     InetAddresses.parseNumericAddress(CLIENT_1_IP_ADDRESS));
         }
+        if (Environment.isSdkNewerThanB() && Flags.wifiP2pConnectionInfo()) {
+            group.setClientConnectionInfo(CLIENT_1.deviceAddress, CLIENT_1_CONNECTION_INFO);
+            group.setWifiP2pGroupClientConnectionInfo(GROUP_CLIENT_CONNECTION_INFO);
+        }
         group.addClient(CLIENT_2);
         if (SdkLevel.isAtLeastV()) {
             group.setVendorData(VENDOR_DATA);
@@ -91,7 +104,6 @@ public class WifiP2pGroupTest {
         if (Environment.isSdkAtLeastB() && Flags.wifiDirectR2()) {
             group.setSecurityType(WifiP2pGroup.SECURITY_TYPE_WPA3_COMPATIBILITY);
         }
-
         assertEquals(INTERFACE, group.getInterface());
         assertEquals(NETWORK_ID, group.getNetworkId());
         assertEquals(NETWORK_NAME, group.getNetworkName());
@@ -106,6 +118,9 @@ public class WifiP2pGroupTest {
             assertEquals(WifiP2pGroup.SECURITY_TYPE_WPA3_COMPATIBILITY,
                     group.getSecurityType());
         }
+        if (Environment.isSdkNewerThanB() && Flags.wifiP2pConnectionInfo()) {
+            assertEquals(GROUP_CLIENT_CONNECTION_INFO, group.getWifiP2pGroupClientConnectionInfo());
+        }
 
         assertFalse(group.isClientListEmpty());
         assertTrue(group.contains(CLIENT_1));
@@ -117,6 +132,9 @@ public class WifiP2pGroupTest {
                 assertEquals(CLIENT_1_INTERFACE_MAC_ADDRESS, client.getInterfaceMacAddress());
                 if (SdkLevel.isAtLeastV()) {
                     assertEquals(CLIENT_1_IP_ADDRESS, client.getIpAddress().getHostAddress());
+                }
+                if (Environment.isSdkNewerThanB() && Flags.wifiP2pConnectionInfo()) {
+                    assertEquals(CLIENT_1_CONNECTION_INFO, client.getWifiP2pConnectionInfo());
                 }
             } else if (client.deviceAddress.equals(CLIENT_2_DEV_ADDRESS)) {
                 assertNull(client.getInterfaceMacAddress());
@@ -143,6 +161,10 @@ public class WifiP2pGroupTest {
 
         if (SdkLevel.isAtLeastV()) {
             assertTrue(VENDOR_DATA.equals(fromParcel.getVendorData()));
+        }
+        if (Environment.isSdkNewerThanB() && Flags.wifiP2pConnectionInfo()) {
+            assertEquals(GROUP_CLIENT_CONNECTION_INFO,
+                    fromParcel.getWifiP2pGroupClientConnectionInfo());
         }
         assertEquals(group.toString(), fromParcel.toString());
 

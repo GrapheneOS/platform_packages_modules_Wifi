@@ -496,6 +496,14 @@ flag {
 }
 
 flag {
+    name: "wifi_p2p_connection_info"
+    is_exported: true
+    namespace: "wifi"
+    description: "Add new API to get connection capabilities of current P2P connection"
+    bug: "345584464"
+}
+
+flag {
     name: "proximity_ranging"
     is_exported: true
     namespace: "wifi"
@@ -509,4 +517,11 @@ flag {
     namespace: "wifi"
     description: "Feed the L2/L3 data stall and pre-evaluation data to external scorer for reference"
     bug: "446298612"
+}
+
+flag {
+    name: "upgrade_single_6ghz_hotspot_to_dual_band"
+    namespace: "wifi"
+    description: "Add option to temporarily upgrade single 6ghz hotspot config to dual band if available"
+    bug: "394409845"
 }

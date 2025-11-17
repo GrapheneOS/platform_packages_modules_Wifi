@@ -109,6 +109,7 @@ public class Nl80211Proxy {
 
     private boolean sendNl80211Message(@NonNull GenericNetlinkMsg message) {
         if (message == null) return false;
+        Log.i(TAG, "Sending Nl80211 message: " + message);
         try {
             byte[] msgBytes = message.toByteArray();
             NetlinkUtils.sendMessage(

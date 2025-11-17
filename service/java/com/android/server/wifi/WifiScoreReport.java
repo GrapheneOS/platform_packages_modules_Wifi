@@ -152,6 +152,7 @@ public class WifiScoreReport {
     private int mNudCount = 0;  // Counts when we were told a NUD was sent
     private WifiConfiguration mCurrentWifiConfiguration;
     private final ConnectedScorerHelper mConnectedScorerHelper;
+    private final NetworkPreEvaluationManager mNetworkPreEvaluationManager;
 
     /**
      * Callback from {@link ExternalScoreUpdateObserverProxy}
@@ -357,6 +358,46 @@ public class WifiScoreReport {
                         mWifiInfoNoReset.getRssi());
             }
         }
+
+        @Override
+        public void unblockAllBssids() {
+            if (mWifiConnectedNetworkScorerHolder == null) {
+                Log.w(TAG, "Ignoring stale/invalid external input for unblocking all BSSIDs");
+                return;
+            }
+            if (mIsExternalScorerDryRun) {
+                return;
+            }
+            if (!mAdaptiveConnectivityEnabledSettingObserver.get()
+                    || !mWifiSettingsStore.isWifiScoringEnabled()) {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Wifi scoring disabled - Cannot blocklist current BSSID");
+                }
+                return;
+            }
+            mWifiBlocklistMonitor.clearBssidBlocklistForReason(
+                    WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE);
+        }
+
+        @Override
+        public void setPreEvaluationEnabled(boolean enabled) {
+            if (mWifiConnectedNetworkScorerHolder == null) {
+                Log.w(TAG, "Ignoring stale/invalid external input for setPreEvaluationEnabled");
+                return;
+            }
+            if (mIsExternalScorerDryRun) {
+                return;
+            }
+            if (!mAdaptiveConnectivityEnabledSettingObserver.get()
+                    || !mWifiSettingsStore.isWifiScoringEnabled()) {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Wifi scoring disabled - Cannot set preEvaluationEnabled");
+                }
+                return;
+            }
+            mNetworkPreEvaluationManager
+                    .setPreEvaluationEnabled(mCurrentWifiConfiguration.getProfileKey(), enabled);
+        }
     }
 
     /**
@@ -552,7 +593,8 @@ public class WifiScoreReport {
             WifiConnectivityManager wifiConnectivityManager,
             WifiConfigManager wifiConfigManager,
             ConnectedScorerHelper connectedScorerHelper,
-            MlConnectedScorer mlConnectedScorer) {
+            MlConnectedScorer mlConnectedScorer,
+            NetworkPreEvaluationManager networkPreEvaluationManager) {
         mScoringParams = scoringParams;
         mClock = clock;
         mAdaptiveConnectivityEnabledSettingObserver = adaptiveConnectivityEnabledSettingObserver;
@@ -579,6 +621,7 @@ public class WifiScoreReport {
         mWifiMetrics.setIsExternalWifiScorerOn(false, Process.WIFI_UID);
         mWifiMetrics.setScorerPredictedWifiUsabilityState(mInterfaceName,
                 WifiMetrics.WifiUsabilityState.UNKNOWN);
+        mNetworkPreEvaluationManager = networkPreEvaluationManager;
     }
 
     /** Returns whether this scores primary network based on the role */

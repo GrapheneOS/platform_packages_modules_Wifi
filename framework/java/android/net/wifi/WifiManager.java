@@ -11019,6 +11019,18 @@ public class WifiManager {
          */
         @FlaggedApi(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
         default void unblockAllBssids() {}
+
+        /**
+         * Called by applications to enable/disable pre-evaluation the next time the current Wi-Fi
+         * network is connected.
+         * During the pre-evaluation stage, the Wi-Fi network is restricted to privileged apps only.
+         * The external scorer app can test the Wi-Fi connection quality during the pre-evaluation
+         * stage to assess whether it meets the current requirement to become default network.
+         *
+         * @param enabled The boolean representing whether the pre-evaluation is enabled or not.
+         */
+        @FlaggedApi(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
+        default void setPreEvaluationEnabled(boolean enabled) {}
     }
 
     /**
@@ -11091,6 +11103,15 @@ public class WifiManager {
         public void unblockAllBssids() {
             try {
                 mScoreUpdateObserver.unblockAllBssids();
+            } catch (RemoteException e) {
+                throw e.rethrowFromSystemServer();
+            }
+        }
+
+        @Override
+        public void setPreEvaluationEnabled(boolean enabled) {
+            try {
+                mScoreUpdateObserver.setPreEvaluationEnabled(enabled);
             } catch (RemoteException e) {
                 throw e.rethrowFromSystemServer();
             }

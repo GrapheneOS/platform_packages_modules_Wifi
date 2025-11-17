@@ -17,9 +17,15 @@
 package android.system.wifi.mainline_supplicant;
 
 import android.system.wifi.mainline_supplicant.ISupplicantNanIfaceEventCallback;
+import android.system.wifi.mainline_supplicant.NanBootstrappingRequest;
+import android.system.wifi.mainline_supplicant.NanBootstrappingResponse;
 import android.system.wifi.mainline_supplicant.NanConfigRequest;
 import android.system.wifi.mainline_supplicant.NanEnableRequest;
+import android.system.wifi.mainline_supplicant.NanInitiateDataPathRequest;
+import android.system.wifi.mainline_supplicant.NanPairingRequest;
 import android.system.wifi.mainline_supplicant.NanPublishRequest;
+import android.system.wifi.mainline_supplicant.NanRespondToDataPathIndicationRequest;
+import android.system.wifi.mainline_supplicant.NanRespondToPairingIndicationRequest;
 import android.system.wifi.mainline_supplicant.NanSubscribeRequest;
 import android.system.wifi.mainline_supplicant.NanTransmitFollowupRequest;
 
@@ -68,8 +74,7 @@ interface ISupplicantNanIface {
      *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
      *         |SupplicantStatusCode.FAILURE_UNKNOWN|
      */
-    void enableRequest(in char cmdId, in NanEnableRequest msg1,
-                       in NanConfigRequest msg2);
+    void enableRequest(in char cmdId, in NanEnableRequest msg1, in NanConfigRequest msg2);
 
     /**
      * Configures an existing NAN functionality (i.e. assumes |ISupplicantNanIface.enableRequest|
@@ -199,4 +204,120 @@ interface ISupplicantNanIface {
      *         |SupplicantStatusCode.FAILURE_UNKNOWN|
      */
     void transmitFollowupRequest(in char cmdId, in NanTransmitFollowupRequest msg);
+
+    /**
+     * Initiate a NAN pairing bootstrapping operation: Initiator.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyInitiateBootstrappingResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param msg Instance of |NanBootstrappingRequest|.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void initiateBootstrappingRequest(in char cmdId, in NanBootstrappingRequest msg);
+
+    /**
+     * Respond to a received request indication of NAN pairing bootstrapping operation.
+     * An indication is received by the Responder from the Initiator.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyRespondToPairingIndicationResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param msg Instance of |NanBootstrappingResponse|.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void respondToBootstrappingIndicationRequest(in char cmdId, in NanBootstrappingResponse msg);
+
+    /**
+     * Initiate a NAN pairing operation: Initiator.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyInitiatePairingResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param msg Instance of |NanPairingRequest|.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void initiatePairingRequest(in char cmdId, in NanPairingRequest msg);
+
+    /**
+     * Respond to a received request indication of NAN pairing setup operation.
+     * An indication is received by the Responder from the Initiator.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyRespondToPairingIndicationResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param msg Instance of |NanRespondToPairingIndicationRequest|.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void respondToPairingIndicationRequest(
+            in char cmdId, in NanRespondToPairingIndicationRequest msg);
+
+    /**
+     * Aware pairing termination request. Executed by either the Initiator
+     * or Responder.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyTerminatePairingResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param pairingInstanceId Pairing instance ID to be terminated.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void terminatePairingRequest(in char cmdId, in int pairingInstanceId);
+
+    /**
+     * Initiate a data-path (NDP) setup operation: Initiator.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyInitiateDataPathResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param msg Instance of |NanInitiateDataPathRequest|.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void initiateDataPathRequest(in char cmdId, in NanInitiateDataPathRequest msg);
+
+   /**
+     * Respond to a received data indication as part of a data-path (NDP) setup operation.
+     * An indication is received by the Responder from the Initiator.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyRespondToDataPathIndicationResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param msg Instance of |NanRespondToDataPathIndicationRequest|.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void respondToDataPathIndicationRequest(
+            in char cmdId, in NanRespondToDataPathIndicationRequest msg);
+
+   /**
+     * Data-path (NDP) termination request. Executed by either Initiator or Responder.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyTerminateDataPathResponse|.
+     *
+     * @param cmdId Command Id to use for this invocation.
+     * @param ndpInstanceId Data-path instance ID to be terminated.
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+     */
+    void terminateDataPathRequest(in char cmdId, in int ndpInstanceId);
 }

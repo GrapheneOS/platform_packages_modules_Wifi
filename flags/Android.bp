@@ -32,12 +32,14 @@ java_aconfig_library {
     apex_available: [
         "//apex_available:platform",
         "com.android.wifi",
+        "com.android.uwb",
     ],
     visibility: [
         "//frameworks/opt/net/wifi/libs/WifiTrackerLib:__subpackages__",
         "//packages/modules/Wifi:__subpackages__",
         "//cts/tests/tests/wifi:__subpackages__",
         "//cts/tests/tests/security",
+        "//packages/modules/Uwb/ranging:__subpackages__",
     ],
 }
 

@@ -76,7 +76,7 @@ parcelable NanConfigRequest {
     /**
      * Additional configuration provided per band. Indexed by |NanBandIndex|.
      */
-    NanBandSpecificConfig bandSpecificConfig;
+    NanBandSpecificConfig[3] bandSpecificConfig;
 
     /**
      * Optional vendor-specific parameters. Null value indicates that no vendor data is provided.
@@ -114,5 +114,5 @@ parcelable NanConfigRequest {
     /**
      * Controls which cluster to join.
      */
-    int clusterId;
+    byte[6] clusterId;
 }

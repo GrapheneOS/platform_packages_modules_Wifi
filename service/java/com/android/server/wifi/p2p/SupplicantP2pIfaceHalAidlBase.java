@@ -204,11 +204,27 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
      * @param ifaceName Name of the interface.
      * @return true on success, false otherwise.
      */
-    public boolean setupIface(@NonNull String ifaceName) {
+    public boolean setupIface(@NonNull String ifaceName, int userId) {
         synchronized (mLock) {
             if (mISupplicantP2pIface != null) {
                 // P2P iface already exists
                 return false;
+            }
+            if (Environment.isSdkNewerThanB() && Flags.multiUserWifiEnhancement()
+                    && getCachedServiceVersion() >= 5) {
+                final String methodStr = "setCurrentUserIdentity";
+                if (!checkSupplicantAndLogFailure(methodStr)) {
+                    return false;
+                }
+                try {
+                    mISupplicant.setCurrentUserIdentity(userId);
+                } catch (RemoteException e) {
+                    handleRemoteException(e, methodStr);
+                    return false;
+                } catch (ServiceSpecificException e) {
+                    handleServiceSpecificException(e, methodStr);
+                    return false;
+                }
             }
             ISupplicantP2pIface iface = addIface(ifaceName);
             if (iface == null) {

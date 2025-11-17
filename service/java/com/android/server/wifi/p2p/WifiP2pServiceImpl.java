@@ -737,6 +737,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
     private final Map<Integer, WorkSource> mActiveClients = new ConcurrentHashMap<>();
 
     private final Clock mClock;
+    private int mCurrentUserId = UserHandle.SYSTEM.getIdentifier();
 
     private class D2DAllowWhenInfraStaDisabledValueListener
             implements WifiSettingsConfigStore.OnSettingsChangedListener<Boolean> {
@@ -781,6 +782,17 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         mP2pStateMachine = new P2pStateMachine(TAG, wifiP2pThread.getLooper(), mP2pSupported);
         mP2pStateMachine.setDbg(false); // can enable for very verbose logs
         mP2pStateMachine.start();
+    }
+
+    /**
+     * Handles user switching.
+     * @param userId the new user id
+     */
+    public void onUserSwitching(int userId) {
+        mP2pStateMachine.getHandler().post(() -> {
+            Log.i(TAG, "User switching to " + userId);
+            mCurrentUserId = userId;
+        });
     }
 
     /**
@@ -3000,7 +3012,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 mInterfaceName = mWifiNative.setupInterface((String ifaceName) -> {
                     sendMessage(DISABLE_P2P);
                     checkAndSendP2pStateChangedBroadcast();
-                }, getHandler(), requestorWs);
+                }, getHandler(), requestorWs, mCurrentUserId);
                 if (mInterfaceName == null) {
                     String errorMsg = "Failed to setup interface for P2P";
                     Log.e(TAG, errorMsg);
@@ -5373,6 +5385,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 mWifiP2pMetrics.startGroupEvent(mGroup);
             }
 
+            @SuppressLint("NewApi")
             @Override
             public boolean processMessageImpl(Message message) {
                 logSmMessage(getName(), message);
@@ -5399,6 +5412,11 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                             if (SdkLevel.isAtLeastV() && device.getIpAddress() != null) {
                                 mGroup.setClientIpAddress(interfaceMacAddress,
                                         device.getIpAddress());
+                            }
+                            if (Environment.isSdkNewerThanB()
+                                    && mFeatureFlags.wifiP2pConnectionInfo()) {
+                                mGroup.setClientConnectionInfo(deviceAddress,
+                                        device.getWifiP2pConnectionInfo());
                             }
                             mPeers.updateStatus(deviceAddress, WifiP2pDevice.CONNECTED);
                             if (mVerboseLoggingEnabled) logd(getName() + " ap sta connected");
