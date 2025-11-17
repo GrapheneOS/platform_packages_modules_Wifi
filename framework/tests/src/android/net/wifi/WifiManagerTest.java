@@ -228,6 +228,7 @@ public class WifiManagerTest {
     @Mock WifiConnectedNetworkScorer mWifiConnectedNetworkScorer;
     @Mock SuggestionUserApprovalStatusListener mSuggestionUserApprovalStatusListener;
     @Mock ActiveCountryCodeChangedCallback mActiveCountryCodeChangedCallback;
+    @Mock IScoreUpdateObserver mMockIScoreUpdateObserver;
 
     private Handler mHandler;
     private TestLooper mLooper;
@@ -3458,24 +3459,80 @@ public class WifiManagerTest {
         verify(mWifiConnectedNetworkScorer).onSetScoreUpdateObserver(any());
     }
 
-    @RequiresFlagsEnabled(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
-    @Test
-    public void scoreUpdateObserverProxy_UnblockAllBssids() throws Exception {
+    private ScoreUpdateObserver getScoreUpdateObserver() throws Exception {
         mWifiManager.setWifiConnectedNetworkScorer(new SynchronousExecutor(),
                 mWifiConnectedNetworkScorer);
         ArgumentCaptor<IWifiConnectedNetworkScorer.Stub> scorerCaptor =
                 ArgumentCaptor.forClass(IWifiConnectedNetworkScorer.Stub.class);
         verify(mWifiService).setWifiConnectedNetworkScorer(any(IBinder.class),
                 scorerCaptor.capture());
-        IScoreUpdateObserver mMockIScoreUpdateObserver = mock(IScoreUpdateObserver.class);
         scorerCaptor.getValue().onSetScoreUpdateObserver(mMockIScoreUpdateObserver);
         mLooper.dispatchAll();
-
         ArgumentCaptor<ScoreUpdateObserver> scoreUpdateObserverCaptor =
                 ArgumentCaptor.forClass(ScoreUpdateObserver.class);
         verify(mWifiConnectedNetworkScorer)
                 .onSetScoreUpdateObserver(scoreUpdateObserverCaptor.capture());
-        scoreUpdateObserverCaptor.getValue().unblockAllBssids();
+        return scoreUpdateObserverCaptor.getValue();
+    }
+
+    @Test
+    public void scoreUpdateObserverProxy_notifyScoreUpdate() throws Exception {
+        ScoreUpdateObserver scoreUpdateObserver = getScoreUpdateObserver();
+
+        scoreUpdateObserver.notifyScoreUpdate(TEST_SESSION_ID, TEST_INTERNAL_SCORE);
+
+        verify(mMockIScoreUpdateObserver)
+                .notifyScoreUpdate(eq(TEST_SESSION_ID), eq(TEST_INTERNAL_SCORE));
+    }
+
+    @Test
+    public void scoreUpdateObserverProxy_notifyStatusUpdate() throws Exception {
+        ScoreUpdateObserver scoreUpdateObserver = getScoreUpdateObserver();
+
+        scoreUpdateObserver.notifyStatusUpdate(TEST_SESSION_ID, true);
+
+        verify(mMockIScoreUpdateObserver)
+                .notifyStatusUpdate(eq(TEST_SESSION_ID), eq(true));
+    }
+
+    @Test
+    public void scoreUpdateObserverProxy_triggerUpdateOfWifiUsabilityStats() throws Exception {
+        ScoreUpdateObserver scoreUpdateObserver = getScoreUpdateObserver();
+
+        scoreUpdateObserver.triggerUpdateOfWifiUsabilityStats(TEST_SESSION_ID);
+
+        verify(mMockIScoreUpdateObserver)
+                .triggerUpdateOfWifiUsabilityStats(eq(TEST_SESSION_ID));
+    }
+
+
+    @Test
+    public void scoreUpdateObserverProxy_requestNudOperation() throws Exception {
+        ScoreUpdateObserver scoreUpdateObserver = getScoreUpdateObserver();
+
+        scoreUpdateObserver.requestNudOperation(TEST_SESSION_ID);
+
+        verify(mMockIScoreUpdateObserver)
+                .requestNudOperation(eq(TEST_SESSION_ID));
+    }
+
+
+    @Test
+    public void scoreUpdateObserverProxy_blockCurrentBssid() throws Exception {
+        ScoreUpdateObserver scoreUpdateObserver = getScoreUpdateObserver();
+
+        scoreUpdateObserver.blocklistCurrentBssid(TEST_SESSION_ID);
+
+        verify(mMockIScoreUpdateObserver)
+                .blocklistCurrentBssid(eq(TEST_SESSION_ID));
+    }
+
+    @RequiresFlagsEnabled(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
+    @Test
+    public void scoreUpdateObserverProxy_UnblockAllBssids() throws Exception {
+        ScoreUpdateObserver scoreUpdateObserver = getScoreUpdateObserver();
+
+        scoreUpdateObserver.unblockAllBssids();
 
         verify(mMockIScoreUpdateObserver).unblockAllBssids();
     }
@@ -3483,21 +3540,9 @@ public class WifiManagerTest {
     @RequiresFlagsEnabled(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
     @Test
     public void scoreUpdateObserverProxy_setPreEvaluationEnabled() throws Exception {
-        mWifiManager.setWifiConnectedNetworkScorer(new SynchronousExecutor(),
-                mWifiConnectedNetworkScorer);
-        ArgumentCaptor<IWifiConnectedNetworkScorer.Stub> scorerCaptor =
-                ArgumentCaptor.forClass(IWifiConnectedNetworkScorer.Stub.class);
-        verify(mWifiService).setWifiConnectedNetworkScorer(any(IBinder.class),
-                scorerCaptor.capture());
-        IScoreUpdateObserver mMockIScoreUpdateObserver = mock(IScoreUpdateObserver.class);
-        scorerCaptor.getValue().onSetScoreUpdateObserver(mMockIScoreUpdateObserver);
-        mLooper.dispatchAll();
+        ScoreUpdateObserver scoreUpdateObserver = getScoreUpdateObserver();
 
-        ArgumentCaptor<ScoreUpdateObserver> scoreUpdateObserverCaptor =
-                ArgumentCaptor.forClass(ScoreUpdateObserver.class);
-        verify(mWifiConnectedNetworkScorer)
-                .onSetScoreUpdateObserver(scoreUpdateObserverCaptor.capture());
-        scoreUpdateObserverCaptor.getValue().setPreEvaluationEnabled(true);
+        scoreUpdateObserver.setPreEvaluationEnabled(true);
 
         verify(mMockIScoreUpdateObserver).setPreEvaluationEnabled(eq(true));
     }
