@@ -828,18 +828,25 @@ public class WifiConfigManager {
      * This retrieves a copy of the internal configurations maintained by WifiConfigManager and
      * should be used for any public interfaces.
      *
-     * @param savedOnly     Retrieve only saved networks.
-     * @param maskPasswords Mask passwords or not.
-     * @param targetUid Target UID for MAC address reading: -1 (Invalid UID) = mask all,
-     *                  WIFI||SYSTEM = mask none, <other> = mask all but the targetUid (carrier
-     *                  app).
+     * @param savedOnly                Retrieve only saved networks.
+     * @param maskPasswords            Mask passwords or not.
+     * @param createdByCurrentUserOnly Retrieve only networks created by the current user.
+     * @param targetUid                Target UID for MAC address reading:
+     *                                 -1 (Invalid UID) = mask all,
+     *                                 WIFI||SYSTEM = mask none,
+     *                                 <other> = mask all but the targetUid (carrier app).
      * @return List of WifiConfiguration objects representing the networks.
      */
-    private List<WifiConfiguration> getConfiguredNetworks(
-            boolean savedOnly, boolean maskPasswords, int targetUid) {
+    private List<WifiConfiguration> getConfiguredNetworks(boolean savedOnly, boolean maskPasswords,
+            boolean createdByCurrentUserOnly, int targetUid) {
         List<WifiConfiguration> networks = new ArrayList<>();
         for (WifiConfiguration config : getInternalConfiguredNetworks()) {
             if (savedOnly && (config.ephemeral || config.isPasspoint())) {
+                continue;
+            }
+            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+            if (mFeatureFlags.multiUserWifiEnhancement() && createdByCurrentUserOnly
+                    && config.getCreatorUserIdInternal() != mCurrentUserId) {
                 continue;
             }
             networks.add(createExternalWifiConfiguration(config, maskPasswords, targetUid));
@@ -853,7 +860,8 @@ public class WifiConfigManager {
      * @return List of WifiConfiguration objects representing the networks.
      */
     public List<WifiConfiguration> getConfiguredNetworks() {
-        return getConfiguredNetworks(false, true, Process.WIFI_UID);
+        return getConfiguredNetworks(false /* savedOnly */, true /* maskPasswords */,
+                false /* createdByCurrentUserOnly */, Process.WIFI_UID);
     }
 
     /**
@@ -866,7 +874,8 @@ public class WifiConfigManager {
      * @return List of WifiConfiguration objects representing the networks.
      */
     public List<WifiConfiguration> getConfiguredNetworksWithPasswords() {
-        return getConfiguredNetworks(false, false, Process.WIFI_UID);
+        return getConfiguredNetworks(false /* savedOnly */, false /* maskPasswords */,
+                false /* createdByCurrentUserOnly */, Process.WIFI_UID);
     }
 
     /**
@@ -882,7 +891,8 @@ public class WifiConfigManager {
      */
     public @Nullable WifiConfiguration getConfiguredNetworkWithPassword(@NonNull WifiSsid ssid,
             @WifiConfiguration.SecurityType int securityType) {
-        List<WifiConfiguration> wifiConfigurations = getConfiguredNetworks(false, false,
+        List<WifiConfiguration> wifiConfigurations = getConfiguredNetworks(false /* savedOnly */,
+                false /* maskPasswords */, false /* createdByCurrentUserOnly */,
                 Process.WIFI_UID);
         for (WifiConfiguration wifiConfiguration : wifiConfigurations) {
             // Match ssid and security type
@@ -901,7 +911,24 @@ public class WifiConfigManager {
      */
     @Keep
     public List<WifiConfiguration> getSavedNetworks(int targetUid) {
-        return getConfiguredNetworks(true, true, targetUid);
+        return getConfiguredNetworks(true /* savedOnly */, true /* maskPasswords */,
+                false /* createdByCurrentUserOnly */, targetUid);
+    }
+
+    /**
+     * Retrieves the list of all configured networks created by the current user, with passwords in
+     * plaintext.
+     *
+     * WARNING: Don't use this to pass network configurations to external apps or other conditions
+     * where plaintext passwords are not allowed. See {@link #getConfiguredNetworksWithPasswords}
+     * for more details. An example usage is backup data retrieval, see
+     * {@link WifiServiceImpl#retrieveBackupData}.
+     *
+     * @return List of WifiConfiguration objects representing the networks.
+     */
+    public List<WifiConfiguration> getConfiguredNetworksCreatedByCurrentUserWithPassword() {
+        return getConfiguredNetworks(false /* savedOnly */, false /* maskPasswords */,
+                true /* createdByCurrentUserOnly */, Process.WIFI_UID);
     }
 
     /**
