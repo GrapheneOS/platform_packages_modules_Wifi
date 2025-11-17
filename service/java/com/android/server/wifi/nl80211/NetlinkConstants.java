@@ -867,7 +867,7 @@ public class NetlinkConstants {
     public static final short NL80211_BAND_60GHZ = 2;
     public static final short NL80211_BAND_6GHZ = 3;
     public static final short NL80211_BAND_S1GHZ = 4;
-    public static final short NL80211_BAND_LC = 5;;
+    public static final short NL80211_BAND_LC = 5;
 
     // Nl80211 interface type data attributes. See kernel/uapi/linux/nl80211.h
     public static final short NL80211_BAND_IFTYPE_ATTR_INVALID = 0;
@@ -1057,4 +1057,36 @@ public class NetlinkConstants {
     public static final short NL80211_FREQUENCY_ATTR_16MHZ = 25;
     public static final short NL80211_FREQUENCY_ATTR_NO_320MHZ = 26;
     public static final short NL80211_FREQUENCY_ATTR_NO_EHT = 27;
+
+    // Nl80211 BSS attributes. See kernel/uapi/linux/nl80211.h
+    public static final short NL80211_BSS_INVALID = 0;
+    public static final short NL80211_BSS_BSSID = 1;
+    public static final short NL80211_BSS_FREQUENCY = 2;
+    public static final short NL80211_BSS_TSF = 3;
+    public static final short NL80211_BSS_BEACON_INTERVAL = 4;
+    public static final short NL80211_BSS_CAPABILITY = 5;
+    public static final short NL80211_BSS_INFORMATION_ELEMENTS = 6;
+    public static final short NL80211_BSS_SIGNAL_MBM = 7;
+    public static final short NL80211_BSS_SIGNAL_UNSPEC = 8;
+    public static final short NL80211_BSS_STATUS = 9;
+    public static final short NL80211_BSS_SEEN_MS_AGO = 10;
+    public static final short NL80211_BSS_BEACON_IES = 11;
+    public static final short NL80211_BSS_CHAN_WIDTH = 12;
+    public static final short NL80211_BSS_BEACON_TSF = 13;
+    public static final short NL80211_BSS_PRESP_DATA = 14;
+    public static final short NL80211_BSS_LAST_SEEN_BOOTTIME = 15;
+    public static final short NL80211_BSS_PAD = 16;
+    public static final short NL80211_BSS_PARENT_TSF = 17;
+    public static final short NL80211_BSS_PARENT_BSSID = 18;
+    public static final short NL80211_BSS_CHAIN_SIGNAL = 19;
+    public static final short NL80211_BSS_FREQUENCY_OFFSET = 20;
+    public static final short NL80211_BSS_MLO_LINK_ID = 21;
+    public static final short NL80211_BSS_MLD_ADDR = 22;
+    public static final short NL80211_BSS_ANDROID_KABI_RESERVED_1 = 23;
+    public static final short NL80211_BSS_ANDROID_KABI_RESERVED_2 = 24;
+    public static final short NL80211_BSS_ANDROID_KABI_RESERVED_3 = 25;
+
+    // Nl80211 BSS Status values. See kernel/uapi/linux/nl80211.h
+    public static final int NL80211_BSS_STATUS_AUTHENTICATED = 1;
+    public static final int NL80211_BSS_STATUS_ASSOCIATED = 2;
 }
