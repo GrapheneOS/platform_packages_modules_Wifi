@@ -48,6 +48,7 @@ import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_P2P;
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_STA;
 import static com.android.server.wifi.SelfRecovery.REASON_API_CALL;
 
+import android.annotation.RequiresNoPermission;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -67,6 +68,7 @@ import android.net.TetheringManager.TetheringRequest;
 import android.net.wifi.IActionListener;
 import android.net.wifi.IDppCallback;
 import android.net.wifi.ILastCallerListener;
+import android.net.wifi.ILocalOnlyDisconnectionStatusListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.IPnoScanResultsCallback;
 import android.net.wifi.IScoreUpdateObserver;
@@ -180,6 +182,8 @@ import java.util.stream.Collectors;
 public class WifiShellCommand extends BasicShellCommandHandler {
     @VisibleForTesting
     public static String SHELL_PACKAGE_NAME = "com.android.shell";
+    // Use this package name when posted call to wifi thread needs to run checkPackage.
+    public static String WIFI_SERVICE_PACKAGE_NAME = "android";
 
     // These don't require root access.
     // However, these do perform permission checks in the corresponding WifiService methods.
@@ -237,6 +241,19 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             .addTransportType(TRANSPORT_WIFI)
             .build();
 
+    private static final ILocalOnlyDisconnectionStatusListener.Stub
+            sLocalOnlyDisconnectionStatusListener =
+            new ILocalOnlyDisconnectionStatusListener.Stub() {
+                @Override
+                @RequiresNoPermission
+                public void onDisconnectionStatus(WifiNetworkSpecifier wifiNetworkSpecifier,
+                        boolean isTriggeredByUser, int reason) throws RemoteException {
+                    Log.i(TAG, "LocalOnlyDisconnectionStatusListener: SSID="
+                            + wifiNetworkSpecifier.wifiConfiguration.SSID
+                            + " isTriggeredByUser=" + isTriggeredByUser
+                            + " reason=" + reason);
+                }
+            };
     private static final ConnectivityDiagnosticsManager.ConnectivityDiagnosticsCallback
             sConnectivityDiagnosticsCallback =
             new ConnectivityDiagnosticsManager.ConnectivityDiagnosticsCallback() {
@@ -1461,6 +1478,22 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                     .unregisterConnectivityDiagnosticsCallback(
                                             sConnectivityDiagnosticsCallback),
                             "shell#remove-connectivity-diagnostic-callback");
+                    return 0;
+                }
+                case "add-local-disconnection-status-listener": {
+                    mWifiThreadRunner.post(() ->
+                                    mWifiService.addLocalOnlyDisconnectionStatusListener(
+                                            sLocalOnlyDisconnectionStatusListener,
+                                            WIFI_SERVICE_PACKAGE_NAME),
+                            "shell#add-local-disconnection-status-listener");
+                    return 0;
+                }
+                case "remove-local-disconnection-status-listener": {
+                    mWifiThreadRunner.post(() ->
+                                    mWifiService.removeLocalOnlyDisconnectionStatusListener(
+                                            sLocalOnlyDisconnectionStatusListener,
+                                            WIFI_SERVICE_PACKAGE_NAME),
+                            "shell#remove-local-disconnection-status-listener");
                     return 0;
                 }
                 case "add-request": {

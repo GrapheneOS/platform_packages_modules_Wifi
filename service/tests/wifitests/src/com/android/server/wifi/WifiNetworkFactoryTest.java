@@ -1890,8 +1890,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
         assertTrue(mWifiNetworkFactory.acceptRequest(mNetworkRequest));
 
         // test isConnectedToConfig on the matching case
-        WifiNetworkSpecifier connectedWifiNetworkSpecifier =
-                (WifiNetworkSpecifier) mNetworkRequest.getNetworkSpecifier();
         WifiConfiguration wcmNetwork = new WifiConfiguration(mSelectedNetwork);
         wcmNetwork.shared = false;
         wcmNetwork.fromWifiNetworkSpecifier = true;

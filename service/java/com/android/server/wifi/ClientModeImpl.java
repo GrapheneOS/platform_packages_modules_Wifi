@@ -2107,6 +2107,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             boolean isConnectedToLocalOnlyNetwork = mNetworkFactory.isConnectedToConfig(config);
             boolean connectedNetworkHasDisconnectListenerRegistered =
                     mNetworkFactory.connectedNetworkHasDisconnectListenerRegistered();
+            logi("disconnect isUserTriggered=" + isUserTriggered
+                    + ", isConnectedToLocalOnlyNetwork=" + isConnectedToLocalOnlyNetwork
+                    + ", connectedNetworkHasDisconnectListenerRegistered="
+                    + connectedNetworkHasDisconnectListenerRegistered);
             if (isUserTriggered && config != null && isConnectedToLocalOnlyNetwork
                     && connectedNetworkHasDisconnectListenerRegistered) {
                 mWifiConfigManager.userEnabledNetwork(config.networkId);
@@ -3788,13 +3792,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         } else {
             stopDhcpSetup();
         }
-
         if (mNetworkFactory.isConnectedToConfig(getConnectedWifiConfigurationInternal())) {
-            mNetworkFactory.teardownForConnectedNetwork();
             if (com.android.wifi.flags.Flags.localOnlyDisconnectReason()) {
                 mNetworkFactory.onDisconnectionExpected(
                         WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_UNKNOWN, false);
             }
+            mNetworkFactory.teardownForConnectedNetwork();
         }
         // The current network has already disconnected somehow. Any pending user dialog is now
         // obsolete and should be cleared.

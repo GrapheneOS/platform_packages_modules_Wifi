@@ -10723,10 +10723,10 @@ public class WifiManager {
                 }
                 ILocalOnlyDisconnectionStatusListener.Stub binderCallback =
                         new LocalOnlyDisconnectionStatusListenerProxy(executor, listener);
-                sLocalOnlyDisconnectionStatusListenerMap.put(System.identityHashCode(listener),
-                        binderCallback);
                 mService.addLocalOnlyDisconnectionStatusListener(binderCallback,
                         mContext.getOpPackageName());
+                sLocalOnlyDisconnectionStatusListenerMap.put(System.identityHashCode(listener),
+                        binderCallback);
             }
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
