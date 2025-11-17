@@ -112,6 +112,7 @@ public class ScanRequestProxy {
     private boolean mThrottleEnabled = true;
     // Flag to decide if we need to scan or not.
     private boolean mScanningEnabled = false;
+    private boolean mIsFirstScanStateChangedBroadcastSent = false;
     // Flag to decide if we need to scan for hidden networks or not.
     private boolean mScanningForHiddenNetworksEnabled = false;
     // Timestamps for the last scan requested by any background app.
@@ -308,7 +309,6 @@ public class ScanRequestProxy {
             return;
         }
         mWifiScanner.setScanningEnabled(enable);
-        sendScanAvailableBroadcast(mContext, enable);
         if (!enable) clearScanResults();
         Log.i(TAG, "Scanning is " + (enable ? "enabled" : "disabled"));
     }
@@ -328,6 +328,10 @@ public class ScanRequestProxy {
                     + (enableScanningForHiddenNetworks ? "enabled" : "disabled"));
         } else {
             enableScanningInternal(false);
+        }
+        if (!mIsFirstScanStateChangedBroadcastSent || mScanningEnabled != enable) {
+            mIsFirstScanStateChangedBroadcastSent = true;
+            sendScanAvailableBroadcast(mContext, enable);
         }
         mScanningEnabled = enable;
     }
