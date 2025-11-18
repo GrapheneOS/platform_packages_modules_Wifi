@@ -49,6 +49,7 @@ public class NetworkPreEvaluationManagerTest extends WifiBaseTest {
     @Mock Clock mMockClock;
     @Mock WifiDataStall mMockWifiDataStall;
     @Mock NetworkPreEvaluationManager.PreEvaluationResultCallback mMockCallback;
+    @Mock WifiGlobals mMockWifiGlobals;
 
     private TestLooper mTestLooper;
     private Handler mHandler;
@@ -61,9 +62,19 @@ public class NetworkPreEvaluationManagerTest extends WifiBaseTest {
         mTestLooper = new TestLooper();
         mHandler = new Handler(mTestLooper.getLooper());
         mNetworkPreEvaluationManager = new NetworkPreEvaluationManager(mMockClock,
-                mMockWifiDataStall, mHandler);
+                mMockWifiDataStall, mMockWifiGlobals, mHandler);
 
         when(mMockClock.getElapsedSinceBootMillis()).thenReturn(ENABLED_TIMESTAMP_MS);
+    }
+
+    @Test
+    public void isPreEvaluationNeeded_returnsFalseWhenGloballyDisabled() {
+        when(mMockWifiGlobals.isPreEvaluationEnabled()).thenReturn(false);
+        when(mMockWifiDataStall.isCellularDataAvailable()).thenReturn(true);
+        mNetworkPreEvaluationManager.setPreEvaluationEnabled(TEST_PROFILE_KEY, true);
+
+        assertFalse(mNetworkPreEvaluationManager.isPreEvaluationNeeded(TEST_PROFILE_KEY,
+                false));
     }
 
     @Test
@@ -115,6 +126,7 @@ public class NetworkPreEvaluationManagerTest extends WifiBaseTest {
 
     @Test
     public void isPreEvaluationNeeded_returnsTrueWhenAllConditionsMet() {
+        when(mMockWifiGlobals.isPreEvaluationEnabled()).thenReturn(true);
         when(mMockClock.getElapsedSinceBootMillis()).thenReturn(ENABLED_TIMESTAMP_MS);
         when(mMockWifiDataStall.isCellularDataAvailable()).thenReturn(true);
         mNetworkPreEvaluationManager.setPreEvaluationEnabled(TEST_PROFILE_KEY, true);

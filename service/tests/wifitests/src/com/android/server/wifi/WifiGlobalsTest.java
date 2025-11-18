@@ -345,4 +345,13 @@ public class WifiGlobalsTest extends WifiBaseTest {
         mResources.setInteger(R.integer.config_wifiSoftApMaxNumberMLDSupported, 1);
         assertTrue(mWifiGlobals.isMLDApSupported());
     }
+
+    @Test
+    public void isPreEvaluationEnabled() {
+        mResources.setBoolean(R.bool.config_preEvaluationEnabled, true);
+        assertTrue(mWifiGlobals.isPreEvaluationEnabled());
+        mWifiResourceCache.reset();
+        mResources.setBoolean(R.bool.config_preEvaluationEnabled, false);
+        assertFalse(mWifiGlobals.isPreEvaluationEnabled());
+    }
 }
