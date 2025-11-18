@@ -31,6 +31,7 @@ import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
 import android.util.ArrayMap;
 import android.util.Log;
+import android.util.SparseIntArray;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.util.NetdWrapper;
@@ -78,6 +79,8 @@ public class Nl80211Native {
     private final boolean mUseWificond;
     private boolean mUseNl80211Override;
     private boolean mIsInitialized;
+    private final Map<String, Integer> mActiveIfaceToWiphyIndex = new ArrayMap<>();
+    private final SparseIntArray mBandToWiphyIndex = new SparseIntArray();
     private final Map<String, ClientInterfaceInfo> mClientInterfaceInfos = new ArrayMap<>();
 
     private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mNl80211BroadcastCallback =
@@ -298,6 +301,30 @@ public class Nl80211Native {
         return interfaceNames;
     }
 
+    private void handleIfaceSetup(@NonNull String ifaceName, int wiphyIndex) {
+        if (!mActiveIfaceToWiphyIndex.containsKey(ifaceName)) {
+            Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(wiphyIndex);
+            if (wiphyInfo == null) {
+                Log.e(TAG, "handleIfaceSetup: Failed to get wiphy info for index " + wiphyIndex);
+                return;
+            }
+            updateBandToWiphyIndexMapping(wiphyIndex, wiphyInfo);
+            mActiveIfaceToWiphyIndex.put(ifaceName, wiphyIndex);
+        }
+    }
+
+    private void handleIfaceTeardown(@NonNull String ifaceName) {
+        if (mActiveIfaceToWiphyIndex.containsKey(ifaceName)) {
+            int wiphyIndex = mActiveIfaceToWiphyIndex.get(ifaceName);
+            mActiveIfaceToWiphyIndex.remove(ifaceName);
+
+            // Erase the band to wiphy mapping if there are no more interfaces set up on the wiphy.
+            if (!mActiveIfaceToWiphyIndex.values().contains(wiphyIndex)) {
+                eraseBandToWiphyIndexMapping(wiphyIndex);
+            }
+        }
+    }
+
     /**
      * Set up an interface for client (STA) mode.
      *
@@ -370,6 +397,8 @@ public class Nl80211Native {
         mClientInterfaceInfos.put(ifaceName,
                 new ClientInterfaceInfo(ifaceName, foundInterface.ifIndex, executor,
                         scanCallback, pnoScanCallback));
+
+        handleIfaceSetup(ifaceName, wiphyIndex);
         return true;
     }
 
@@ -398,6 +427,7 @@ public class Nl80211Native {
             unregisterScanCallbacks();
         }
 
+        handleIfaceTeardown(ifaceName);
         return true;
     }
 
@@ -806,6 +836,54 @@ public class Nl80211Native {
         return capabilities;
     }
 
+    private void updateBandToWiphyIndexMapping(
+            int wiphyIndex, @NonNull Nl80211Utils.WiphyInfo wiphyInfo) {
+        // 2.4 GHz Band
+        boolean has2gChannels = !wiphyInfo.bandInfo.band2g.isEmpty();
+        boolean is2gAlreadyMapped =
+                mBandToWiphyIndex.indexOfKey(WifiScanner.WIFI_BAND_24_GHZ) >= 0;
+        if (has2gChannels && !is2gAlreadyMapped) {
+            mBandToWiphyIndex.put(WifiScanner.WIFI_BAND_24_GHZ, wiphyIndex);
+            Log.i(TAG, "Added 2.4 GHz support at wiphy index: " + wiphyIndex);
+        }
+
+        // 5 GHz Band
+        boolean has5gChannels =
+                !wiphyInfo.bandInfo.band5g.isEmpty() || !wiphyInfo.bandInfo.bandDfs.isEmpty();
+        boolean is5gAlreadyMapped = mBandToWiphyIndex.indexOfKey(WifiScanner.WIFI_BAND_5_GHZ) >= 0;
+        if (has5gChannels && !is5gAlreadyMapped) {
+            mBandToWiphyIndex.put(WifiScanner.WIFI_BAND_5_GHZ, wiphyIndex);
+            mBandToWiphyIndex.put(WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY, wiphyIndex);
+            Log.i(TAG, "Added 5 GHz support at wiphy index: " + wiphyIndex);
+        }
+
+        // 6 GHz Band
+        boolean has6gChannels = !wiphyInfo.bandInfo.band6g.isEmpty();
+        boolean is6gAlreadyMapped =
+                mBandToWiphyIndex.indexOfKey(WifiScanner.WIFI_BAND_6_GHZ) >= 0;
+        if (has6gChannels && !is6gAlreadyMapped) {
+            mBandToWiphyIndex.put(WifiScanner.WIFI_BAND_6_GHZ, wiphyIndex);
+            Log.i(TAG, "Added 6 GHz support at wiphy index: " + wiphyIndex);
+        }
+
+        // 60 GHz
+        boolean has60gChannels = !wiphyInfo.bandInfo.band60g.isEmpty();
+        boolean is60gAlreadyMapped =
+                mBandToWiphyIndex.indexOfKey(WifiScanner.WIFI_BAND_60_GHZ) >= 0;
+        if (has60gChannels && !is60gAlreadyMapped) {
+            mBandToWiphyIndex.put(WifiScanner.WIFI_BAND_60_GHZ, wiphyIndex);
+            Log.i(TAG, "Added 60 GHz support at wiphy index: " + wiphyIndex);
+        }
+    }
+
+    private void eraseBandToWiphyIndexMapping(int wiphyIndex) {
+        int nextIndex = mBandToWiphyIndex.indexOfValue(wiphyIndex);
+        while (nextIndex >= 0) {
+            mBandToWiphyIndex.removeAt(nextIndex);
+            nextIndex = mBandToWiphyIndex.indexOfValue(wiphyIndex);
+        }
+    }
+
     /**
      * Query the list of valid frequencies (in MHz) for the provided band.
      * The result depends on the on the country code that has been set.
@@ -828,8 +906,46 @@ public class Nl80211Native {
 
         if (!mIsInitialized) return new int[0];
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        if (mBandToWiphyIndex.indexOfKey(band) < 0) {
+            Log.e(TAG, "getChannelsMhzForBand: Wiphy index not recorded for band " + band);
+            return new int[0];
+        }
+        int wiphyIndex = mBandToWiphyIndex.get(band);
+
+        Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(wiphyIndex);
+        if (wiphyInfo == null) {
+            Log.e(TAG, "getChannelsMhzForBand: Could not get wiphy info for index " + wiphyIndex);
+            return new int[0];
+        }
+
+        List<Integer> channelsMhz;
+        switch (band) {
+            case WifiScanner.WIFI_BAND_24_GHZ -> {
+                channelsMhz = wiphyInfo.bandInfo.band2g;
+            }
+            case WifiScanner.WIFI_BAND_5_GHZ -> {
+                channelsMhz = wiphyInfo.bandInfo.band5g;
+            }
+            case WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY -> {
+                channelsMhz = wiphyInfo.bandInfo.bandDfs;
+            }
+            case WifiScanner.WIFI_BAND_6_GHZ -> {
+                channelsMhz = wiphyInfo.bandInfo.band6g;
+            }
+            case WifiScanner.WIFI_BAND_60_GHZ -> {
+                channelsMhz = wiphyInfo.bandInfo.band60g;
+            }
+            default -> {
+                Log.e(TAG, "getChannelsMhzForBand: Unsupported band: " + band);
+                return new int[0];
+            }
+        }
+
+        int[] bandArray = new int[channelsMhz.size()];
+        for (int i = 0; i < channelsMhz.size(); i++) {
+            bandArray[i] = channelsMhz.get(i);
+        }
+        return bandArray;
     }
 
     /**
