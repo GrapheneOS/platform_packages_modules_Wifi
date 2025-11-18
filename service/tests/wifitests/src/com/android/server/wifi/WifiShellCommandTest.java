@@ -54,6 +54,7 @@ import android.net.MacAddress;
 import android.net.NetworkRequest;
 import android.net.TetheringManager;
 import android.net.TetheringManager.TetheringRequest;
+import android.net.wifi.ILocalOnlyDisconnectionStatusListener;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SupplicantState;
@@ -1117,6 +1118,54 @@ public class WifiShellCommandTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mConnectivityDiagnosticsManager)
                 .unregisterConnectivityDiagnosticsCallback(any());
+    }
+
+    private int runShellCommand(String... args) {
+        return mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                args);
+    }
+
+    @Test
+    public void testAddLocalDisconnectionStatusListener_nonRootFails() {
+        // not allowed for unrooted shell.
+        runShellCommand("add-local-disconnection-status-listener");
+        mLooper.dispatchAll();
+        verify(mWifiService, never()).addLocalOnlyDisconnectionStatusListener(
+                any(ILocalOnlyDisconnectionStatusListener.class), anyString());
+        assertFalse(mWifiShellCommand.getErrPrintWriter().toString().isEmpty());
+    }
+
+    @Test
+    public void testAddLocalDisconnectionStatusListener_rootSucceeds() {
+        BinderUtil.setUid(Process.ROOT_UID);
+
+        runShellCommand("add-local-disconnection-status-listener");
+        mLooper.dispatchAll();
+        verify(mWifiService).addLocalOnlyDisconnectionStatusListener(
+                any(ILocalOnlyDisconnectionStatusListener.class),
+                eq(WifiShellCommand.WIFI_SERVICE_PACKAGE_NAME));
+    }
+
+    @Test
+    public void testRemoveLocalDisconnectionStatusListener_nonRootFails() {
+        // not allowed for unrooted shell.
+        runShellCommand("remove-local-disconnection-status-listener");
+        mLooper.dispatchAll();
+        verify(mWifiService, never()).removeLocalOnlyDisconnectionStatusListener(
+                any(ILocalOnlyDisconnectionStatusListener.class), anyString());
+        assertFalse(mWifiShellCommand.getErrPrintWriter().toString().isEmpty());
+    }
+
+    @Test
+    public void testRemoveLocalDisconnectionStatusListener_rootSucceeds() {
+        BinderUtil.setUid(Process.ROOT_UID);
+
+        runShellCommand("remove-local-disconnection-status-listener");
+        mLooper.dispatchAll();
+        verify(mWifiService).removeLocalOnlyDisconnectionStatusListener(
+                any(ILocalOnlyDisconnectionStatusListener.class),
+                eq(WifiShellCommand.WIFI_SERVICE_PACKAGE_NAME));
     }
 
     @Test
