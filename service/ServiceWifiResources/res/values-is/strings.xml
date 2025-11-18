@@ -19,7 +19,7 @@
     <string name="wifiResourcesAppLabel" product="default" msgid="3120115613525263696">"Kerfistilföng fyrir Wi-Fi"</string>
     <string name="wifi_available_title" msgid="3899472737467127635">"Tengjast opnu Wi-Fi neti"</string>
     <string name="wifi_available_title_connecting" msgid="7233590022728579868">"Tengist við Wi-Fi net"</string>
-    <string name="wifi_available_title_connected" msgid="6329493859989844201">"Tengt við Wi‑Fi net"</string>
+    <string name="wifi_available_title_connected" msgid="6329493859989844201">"Tengt við Wi‑Fi-net"</string>
     <string name="wifi_available_title_failed_to_connect" msgid="4840833680513368639">"Ekki hægt að tengjast Wi-Fi neti"</string>
     <string name="wifi_available_content_failed_to_connect" msgid="4330035988269701861">"Ýttu til að sjá öll netkerfi"</string>
     <string name="wifi_available_action_connect" msgid="5636634933476946222">"Tengjast"</string>
