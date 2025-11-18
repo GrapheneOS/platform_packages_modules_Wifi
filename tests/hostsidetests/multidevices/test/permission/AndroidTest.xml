@@ -23,6 +23,12 @@
     </target_preparer>
     <target_preparer class="AndroidInstallAppsDecorator" />
   </device>
+  <device name="AndroidDevice">
+    <target_preparer class="AndroidDeviceFeaturesCheckDecorator">
+      <option name="required_feature" value="android.hardware.wifi" />
+    </target_preparer>
+    <target_preparer class="AndroidInstallAppsDecorator" />
+  </device>
 
   <test class="MoblyAospTest" />
 
