@@ -5363,6 +5363,72 @@ public class WifiServiceImplTest extends WifiBaseTest {
         testRestoreNetworkConfiguration(700 /* configNum */, 0 /* batchNum*/, false);
     }
 
+
+    /**
+     * Verify that a call to {@link WifiServiceImpl#restoreNetworks} will trigger shared network to
+     * private network coversion when the restored network does not exsit in internal database or
+     * it is allowed to override networks on restore.
+     */
+    @Test
+    public void testRestoreConvertSharedNetworkToPrivate() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        WifiConfiguration configuration = new WifiConfiguration();
+        List<WifiConfiguration> configurations = List.of(configuration);
+        when(mUserManager.getUserCount()).thenReturn(2);
+        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt()))
+                .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
+        when(mWifiConfigManager.addNetwork(any(), anyInt()))
+                .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
+        InOrder inorder = inOrder(mWifiConfigManager);
+
+        // 1. When the restored network already exists and it is not allowed to override on restore.
+        lenient().when(CompatChanges.isChangeEnabled(eq(NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE),
+                anyInt())).thenReturn(true);
+        when(mWifiConfigManager.isNetworkConfigured(any())).thenReturn(true);
+        mWifiServiceImpl.restoreNetworks(configurations);
+        mLooper.dispatchAll();
+        inorder.verify(mWifiConfigManager).updateNetworkWithUidAndCurrentUserIdIfNeeded(any(),
+                anyInt());
+        assertTrue(configuration.shared);
+
+        // 2. When the restored network already exists and it is allowed to override on restore.
+        lenient().when(CompatChanges.isChangeEnabled(eq(NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE),
+                anyInt())).thenReturn(false);
+        mWifiServiceImpl.restoreNetworks(configurations);
+        mLooper.dispatchAll();
+        inorder.verify(mWifiConfigManager).updateNetworkWithUidAndCurrentUserIdIfNeeded(any(),
+                anyInt());
+        assertFalse(configuration.shared);
+
+        // 3. When the restore network doesn't exist in internal database.
+        configuration.shared = true;
+        when(mWifiConfigManager.isNetworkConfigured(any())).thenReturn(false);
+        mWifiServiceImpl.restoreNetworks(configurations);
+        mLooper.dispatchAll();
+        inorder.verify(mWifiConfigManager).updateNetworkWithUidAndCurrentUserIdIfNeeded(any(),
+                anyInt());
+        assertFalse(configuration.shared);
+
+        // 4. No-op for private networks.
+        configuration.shared = false;
+        mWifiServiceImpl.restoreNetworks(configurations);
+        mLooper.dispatchAll();
+        inorder.verify(mWifiConfigManager).updateNetworkWithUidAndCurrentUserIdIfNeeded(any(),
+                anyInt());
+        assertFalse(configuration.shared);
+
+        // 5. No-op on non-shared devices.
+        configuration.shared = true;
+        when(mUserManager.getUserCount()).thenReturn(1);
+        mWifiServiceImpl.restoreNetworks(configurations);
+        mLooper.dispatchAll();
+        inorder.verify(mWifiConfigManager, never()).updateNetworkWithUidAndCurrentUserIdIfNeeded(
+                any(),
+                anyInt());
+        assertTrue(configuration.shared);
+    }
+
     /**
      * Verify that a call to {@link WifiServiceImpl#restoreSupplicantBackupData(byte[], byte[])} is
      * only allowed from callers with the signature only NETWORK_SETTINGS permission.
