@@ -950,7 +950,7 @@ public class WifiInjector {
                 mWifiP2pConnection, mWifiGlobals, ifaceName, clientModeManager,
                 mCmiMonitor, mBroadcastQueue, mWifiNetworkSelector, makeTelephonyManager(),
                 this, mSettingsConfigStore, verboseLoggingEnabled, mWifiNotificationManager,
-                mWifiConnectivityHelper);
+                mWifiConnectivityHelper, mNetworkPreEvaluationManager);
     }
 
     public WifiNetworkAgent makeWifiNetworkAgent(
