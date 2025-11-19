@@ -17,8 +17,8 @@
 from mobly import base_suite
 from mobly import suite_runner
 
+import wifi_location_info_background_test
 import wifi_location_info_foreground_test
-
 
 class CtsWifiPermissionTests(base_suite.BaseSuite):
     """CTS Wi-Fi Permission test suite."""
@@ -27,6 +27,9 @@ class CtsWifiPermissionTests(base_suite.BaseSuite):
         del config  # unused
         self.add_test_class(
             wifi_location_info_foreground_test.WifiLocationInfoForegroundTest
+        )
+        self.add_test_class(
+            wifi_location_info_background_test.WifiLocationInfoBackgroundTest
         )
 
 

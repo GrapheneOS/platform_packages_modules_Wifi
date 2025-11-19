@@ -839,12 +839,24 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
             // If location permission is denied, getConnectionInfo() might return a WifiInfo object
             // with UNKNOWN_SSID instead of throwing a SecurityException.
             if (wifiInfo != null && wifiInfo.getSSID().equals(WifiManager.UNKNOWN_SSID)) {
-                if (mContext.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED) {
+                boolean hasFineLocation = mContext.checkSelfPermission(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED;
+                boolean hasBackgroundLocation = mContext.checkSelfPermission(
+                        android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED;
+                if (!hasFineLocation) {
                     Log.e(TAG, "getConnectionInfo() returned UNKNOWN_SSID, "
-                            + "likely due to missing location permission.");
+                            + "likely due to missing ACCESS_FINE_LOCATION.");
                     return null;
                 }
+                if (!hasBackgroundLocation) {
+                    Log.w(TAG, "getConnectionInfo() returned UNKNOWN_SSID "
+                            + "even with ACCESS_FINE_LOCATION. Check if ACCESS_BACKGROUND_LOCATION "
+                            + " is missing for background operations (API 29+).");
+                    return null;
+                }
+
             }
             return wifiInfo;
         } catch (SecurityException e) {
