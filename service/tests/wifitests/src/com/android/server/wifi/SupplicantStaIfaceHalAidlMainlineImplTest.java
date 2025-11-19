@@ -21,11 +21,13 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,10 +38,13 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.hardware.wifi.supplicant.ISupplicant;
+import android.hardware.wifi.supplicant.ISupplicantStaIface;
+import android.hardware.wifi.supplicant.ISupplicantStaIfaceCallback;
 import android.net.wifi.util.BuildProperties;
 import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.os.test.TestLooper;
 import android.system.wifi.mainline_supplicant.IMainlineSupplicant;
 
@@ -78,6 +83,8 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
     @Mock private Resources mResources;
     @Mock private BuildProperties mBuildProperties;
     @Mock private PackageManager mPackageManager;
+    @Mock private ISupplicantStaIface mISupplicantStaIfaceMock;
+    @Mock private WifiConfigManager mWifiConfigManager;
 
     private MockitoSession mSession;
     private TestLooper mLooper = new TestLooper();
@@ -122,6 +129,8 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
         when(mResources.getBoolean(anyInt())).thenReturn(true);
         when(mIMainlineSupplicantMock.asBinder()).thenReturn(mServiceBinderMock);
         when(mIMainlineSupplicantMock.getVendorSupplicant()).thenReturn(mISupplicantMock);
+        when(mWifiInjector.getWifiConfigManager()).thenReturn(mWifiConfigManager);
+        when(mWifiConfigManager.getCurrentUserId()).thenReturn(0);
 
         mDut = new SupplicantStaIfaceHalSpy(mContext, mWifiMonitor, mHandler, mClock,
                 mWifiMetrics, mWifiGlobals, mSsidTranslator, mWifiInjector);
@@ -276,5 +285,45 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
         PrintWriter pw = mock(PrintWriter.class);
         mDut.dump(pw);
         verify(pw, atLeastOnce()).println(anyString());
+    }
+
+    @Test
+    public void testSetupIface() throws Exception {
+        executeAndValidateInitializationSequence();
+        when(mISupplicantMock.addStaInterface(anyString())).thenReturn(mISupplicantStaIfaceMock);
+
+        assertTrue(mDut.setupIface("wlan0"));
+
+        InOrder inOrder = inOrder(mISupplicantMock, mISupplicantStaIfaceMock);
+        inOrder.verify(mISupplicantMock).setCurrentUserIdentity(anyInt());
+        inOrder.verify(mISupplicantMock).addStaInterface(eq("wlan0"));
+        inOrder.verify(mISupplicantStaIfaceMock).registerCallback(
+                any(ISupplicantStaIfaceCallback.class));
+    }
+
+    @Test
+    public void testSetupIface_setCurrentUserIdentityFailure() throws Exception {
+        executeAndValidateInitializationSequence();
+        doThrow(new RemoteException()).when(mISupplicantMock).setCurrentUserIdentity(anyInt());
+        assertFalse(mDut.setupIface("wlan0"));
+    }
+
+    @Test
+    public void testSetupIface_addIfaceFailure() throws Exception {
+        executeAndValidateInitializationSequence();
+        when(mISupplicantMock.addStaInterface(anyString())).thenReturn(null);
+        assertFalse(mDut.setupIface("wlan0"));
+        verify(mISupplicantMock).setCurrentUserIdentity(anyInt());
+    }
+
+    @Test
+    public void testSetupIface_registerCallbackFailure() throws Exception {
+        executeAndValidateInitializationSequence();
+        when(mISupplicantMock.addStaInterface(anyString())).thenReturn(mISupplicantStaIfaceMock);
+        doThrow(new RemoteException()).when(mISupplicantStaIfaceMock).registerCallback(
+                any(ISupplicantStaIfaceCallback.class));
+        assertFalse(mDut.setupIface("wlan0"));
+        verify(mISupplicantMock).setCurrentUserIdentity(anyInt());
+        verify(mISupplicantMock).addStaInterface(eq("wlan0"));
     }
 }

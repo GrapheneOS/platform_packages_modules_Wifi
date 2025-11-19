@@ -4873,4 +4873,13 @@ public class WifiConfigManager {
         config.randomizedMacLastModifiedTimeMs = 0;
         config.persistentMacRandomizationSeed++;
     }
+
+    /**
+     * Returns the ID of the current foreground user.
+     *
+     * @return The ID of the current user.
+     */
+    public int getCurrentUserId() {
+        return mCurrentUserId;
+    }
 }

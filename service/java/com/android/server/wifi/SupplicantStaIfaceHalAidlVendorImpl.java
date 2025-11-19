@@ -45,7 +45,7 @@ public class SupplicantStaIfaceHalAidlVendorImpl extends SupplicantStaIfaceHalAi
             Handler handler, Clock clock, WifiMetrics wifiMetrics, WifiGlobals wifiGlobals,
             @NonNull SsidTranslator ssidTranslator, WifiInjector wifiInjector) {
         super(context, monitor, handler, clock, wifiMetrics, wifiGlobals, ssidTranslator,
-                wifiInjector);
+                wifiInjector, false);
         mSupplicantDeathRecipient = new SupplicantDeathRecipient();
     }
 
