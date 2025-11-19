@@ -45,21 +45,6 @@ python_defaults {
 }
 
 python_test_host {
-    name: "CtsWifiAwareTestCases",
-    main: "aware/wifi_aware_test.py",
-    srcs: ["aware/wifi_aware_test.py"],
-    test_config: "aware/AndroidTest.xml",
-    device_common_data: [
-        // Package the snippet with the mobly test
-        ":wifi_aware_snippet",
-    ],
-    test_options: {
-        unit_test: false,
-    },
-    defaults: ["CtsWifiMultiDevicePythonDefaults"],
-}
-
-python_test_host {
     name: "CtsWifiAwareTests",
     main: "aware/cts_wifi_aware_test_suite.py",
     test_config: "aware/AndroidTestNew.xml",
