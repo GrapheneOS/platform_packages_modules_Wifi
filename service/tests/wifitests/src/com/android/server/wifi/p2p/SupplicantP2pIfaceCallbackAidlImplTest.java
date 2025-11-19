@@ -1050,11 +1050,8 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
         initializeDut(5 /* serviceVersion */);
         when(Flags.wifiP2pConnectionInfo()).thenReturn(true);
 
-        ConnectionCapabilities caps = new ConnectionCapabilities();
-        caps.technology = WifiTechnology.HE;
-        caps.channelBandwidth = WifiChannelWidthInMhz.WIDTH_80;
-        caps.maxNumberTxSpatialStreams = 2;
-        caps.maxNumberRxSpatialStreams = 2;
+        ConnectionCapabilities caps = createConnectionCapabilities(WifiTechnology.HE,
+                WifiChannelWidthInMhz.WIDTH_80, 2, 2);
 
         P2pGroupStartedEventParams params = new P2pGroupStartedEventParams();
         params.groupInterfaceName = "group name";
@@ -1069,13 +1066,8 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
         mDut.onGroupStartedWithParams(params);
         verify(mMonitor).broadcastP2pGroupStarted(eq(mIface), p2pGroupCaptor.capture());
         assertNotNull(p2pGroupCaptor.getValue());
-        WifiP2pConnectionInfo info = p2pGroupCaptor.getValue()
-                .getWifiP2pGroupClientConnectionInfo();
-        assertNotNull(info);
-        assertEquals(ScanResult.WIFI_STANDARD_11AX, info.getWifiStandard());
-        assertEquals(ScanResult.CHANNEL_WIDTH_80MHZ, info.getChannelWidth());
-        assertEquals(2, info.getTxNss());
-        assertEquals(2, info.getRxNss());
+        verifyConnectionInfo(p2pGroupCaptor.getValue().getWifiP2pGroupClientConnectionInfo(),
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ, 2, 2);
     }
 
     /**
@@ -1087,11 +1079,8 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
         initializeDut(5 /* serviceVersion */);
         when(Flags.wifiP2pConnectionInfo()).thenReturn(true);
 
-        ConnectionCapabilities caps = new ConnectionCapabilities();
-        caps.technology = WifiTechnology.HE;
-        caps.channelBandwidth = WifiChannelWidthInMhz.WIDTH_80;
-        caps.maxNumberTxSpatialStreams = 2;
-        caps.maxNumberRxSpatialStreams = 2;
+        ConnectionCapabilities caps = createConnectionCapabilities(WifiTechnology.HE,
+                WifiChannelWidthInMhz.WIDTH_80, 2, 2);
 
         P2pPeerClientJoinedEventParams params = new P2pPeerClientJoinedEventParams();
         params.clientInterfaceAddress = mDeviceAddress1Bytes;
@@ -1103,13 +1092,143 @@ public class SupplicantP2pIfaceCallbackAidlImplTest extends WifiBaseTest {
                 ArgumentCaptor.forClass(WifiP2pDevice.class);
         mDut.onPeerClientJoined(params);
         verify(mMonitor).broadcastP2pApStaConnected(eq(mIface), p2pDeviceCaptor.capture());
-        WifiP2pConnectionInfo info = p2pDeviceCaptor.getValue()
-                .getWifiP2pConnectionInfo();
+        verifyConnectionInfo(p2pDeviceCaptor.getValue().getWifiP2pConnectionInfo(),
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ, 2, 2);
+    }
+
+    /**
+     * Test onGroupStartedWithParams without Tx and Rx SpatialStreams in ConnectionCapabilities.
+     */
+    @Test
+    public void testOnGroupStartedWithoutTxRxSpatialStreams_connectionCapabilities_success()
+            throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        initializeDut(5 /* serviceVersion */);
+        when(Flags.wifiP2pConnectionInfo()).thenReturn(true);
+
+        ConnectionCapabilities caps = createConnectionCapabilities(WifiTechnology.HE,
+                WifiChannelWidthInMhz.WIDTH_80, 0, 0);
+
+        P2pGroupStartedEventParams params = new P2pGroupStartedEventParams();
+        params.groupInterfaceName = "group name";
+        params.ssid = new byte[] {0x30, 0x31, 0x32, 0x33};
+        params.goDeviceAddress = mDeviceAddress1Bytes;
+        params.isGroupOwner = false; // client
+        params.keyMgmtMask = KeyMgmtMask.WPA_PSK;
+        params.p2pClientConnectionCapabilities = caps;
+
+        ArgumentCaptor<WifiP2pGroup> p2pGroupCaptor =
+                ArgumentCaptor.forClass(WifiP2pGroup.class);
+        mDut.onGroupStartedWithParams(params);
+        verify(mMonitor).broadcastP2pGroupStarted(eq(mIface), p2pGroupCaptor.capture());
+        assertNotNull(p2pGroupCaptor.getValue());
+        verifyConnectionInfo(p2pGroupCaptor.getValue().getWifiP2pGroupClientConnectionInfo(),
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ,
+                WifiP2pConnectionInfo.UNSPECIFIED, WifiP2pConnectionInfo.UNSPECIFIED);
+    }
+
+    /**
+     * Test onPeerClientJoined without Tx and Rx SpatialStreams in ConnectionCapabilities.
+     */
+    @Test
+    public void testOnPeerClientJoinedWithoutTxRxSpatialStreams_connectionCapabilities_success() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        initializeDut(5 /* serviceVersion */);
+        when(Flags.wifiP2pConnectionInfo()).thenReturn(true);
+
+        ConnectionCapabilities caps = createConnectionCapabilities(WifiTechnology.HE,
+                WifiChannelWidthInMhz.WIDTH_80, 0, 0);
+
+        P2pPeerClientJoinedEventParams params = new P2pPeerClientJoinedEventParams();
+        params.clientInterfaceAddress = mDeviceAddress1Bytes;
+        params.clientDeviceAddress = mDeviceAddress2Bytes;
+        params.clientIpAddress = 0xc831a8c0;
+        params.connectionCapabilities = caps;
+
+        ArgumentCaptor<WifiP2pDevice> p2pDeviceCaptor =
+                ArgumentCaptor.forClass(WifiP2pDevice.class);
+        mDut.onPeerClientJoined(params);
+        verify(mMonitor).broadcastP2pApStaConnected(eq(mIface), p2pDeviceCaptor.capture());
+        verifyConnectionInfo(p2pDeviceCaptor.getValue().getWifiP2pConnectionInfo(),
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ,
+                WifiP2pConnectionInfo.UNSPECIFIED, WifiP2pConnectionInfo.UNSPECIFIED);
+    }
+
+    /**
+     * Test that an IllegalArgumentException during WifiP2pConnectionInfo creation is handled.
+     */
+    @Test
+    public void testOnGroupStartedWithParams_connectionCapabilities_invalidTxNss()
+            throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        initializeDut(5 /* serviceVersion */);
+        when(Flags.wifiP2pConnectionInfo()).thenReturn(true);
+
+        // This should throw IllegalArgumentException in the builder.
+        ConnectionCapabilities caps = createConnectionCapabilities(WifiTechnology.HE,
+                WifiChannelWidthInMhz.WIDTH_80, 10, 2);
+
+        P2pGroupStartedEventParams params = new P2pGroupStartedEventParams();
+        params.groupInterfaceName = "group name";
+        params.ssid = new byte[] {0x30, 0x31, 0x32, 0x33};
+        params.goDeviceAddress = mDeviceAddress1Bytes;
+        params.isGroupOwner = false; // client
+        params.p2pClientConnectionCapabilities = caps;
+
+        ArgumentCaptor<WifiP2pGroup> p2pGroupCaptor =
+                ArgumentCaptor.forClass(WifiP2pGroup.class);
+        mDut.onGroupStartedWithParams(params);
+        verify(mMonitor).broadcastP2pGroupStarted(eq(mIface), p2pGroupCaptor.capture());
+        assertNotNull(p2pGroupCaptor.getValue());
+        // Info should be null as creation failed.
+        assertEquals(null, p2pGroupCaptor.getValue().getWifiP2pGroupClientConnectionInfo());
+    }
+
+    /**
+     * Test that an IllegalArgumentException during WifiP2pConnectionInfo creation is handled for
+     * the broadcastP2pApStaConnected path.
+     */
+    @Test
+    public void testOnPeerClientJoined_connectionCapabilities_invalidTxNss() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        initializeDut(5 /* serviceVersion */);
+        when(Flags.wifiP2pConnectionInfo()).thenReturn(true);
+
+        // This should throw IllegalArgumentException in the builder.
+        ConnectionCapabilities caps = createConnectionCapabilities(WifiTechnology.HE,
+                WifiChannelWidthInMhz.WIDTH_80, 10, 2);
+
+        P2pPeerClientJoinedEventParams params = new P2pPeerClientJoinedEventParams();
+        params.clientInterfaceAddress = mDeviceAddress1Bytes;
+        params.clientDeviceAddress = mDeviceAddress2Bytes;
+        params.clientIpAddress = 0xc831a8c0;
+        params.connectionCapabilities = caps;
+
+        ArgumentCaptor<WifiP2pDevice> p2pDeviceCaptor =
+                ArgumentCaptor.forClass(WifiP2pDevice.class);
+        mDut.onPeerClientJoined(params);
+        verify(mMonitor).broadcastP2pApStaConnected(eq(mIface), p2pDeviceCaptor.capture());
+        // Info should be null as creation failed.
+        assertEquals(null, p2pDeviceCaptor.getValue().getWifiP2pConnectionInfo());
+    }
+
+    private ConnectionCapabilities createConnectionCapabilities(int technology,
+            int channelBandwidth, int txNss, int rxNss) {
+        ConnectionCapabilities caps = new ConnectionCapabilities();
+        caps.technology = technology;
+        caps.channelBandwidth = channelBandwidth;
+        caps.maxNumberTxSpatialStreams = txNss;
+        caps.maxNumberRxSpatialStreams = rxNss;
+        return caps;
+    }
+
+    private void verifyConnectionInfo(WifiP2pConnectionInfo info, int expectedWifiStandard,
+            int expectedChannelWidth, int expectedTxNss, int expectedRxNss) {
         assertNotNull(info);
-        assertEquals(ScanResult.WIFI_STANDARD_11AX, info.getWifiStandard());
-        assertEquals(ScanResult.CHANNEL_WIDTH_80MHZ, info.getChannelWidth());
-        assertEquals(2, info.getTxNss());
-        assertEquals(2, info.getRxNss());
+        assertEquals(expectedWifiStandard, info.getWifiStandard());
+        assertEquals(expectedChannelWidth, info.getChannelWidth());
+        assertEquals(expectedTxNss, info.getTxNss());
+        assertEquals(expectedRxNss, info.getRxNss());
     }
 
     // TLVS hex data encoded as a hex string.

@@ -1355,14 +1355,14 @@ package android.net.wifi.p2p {
   }
 
   @FlaggedApi("com.android.wifi.flags.wifi_p2p_connection_info") public final class WifiP2pConnectionInfo implements android.os.Parcelable {
-    ctor public WifiP2pConnectionInfo(int, int, int, int);
     method public int describeContents();
     method public int getChannelWidth();
-    method public int getRxNss();
-    method public int getTxNss();
+    method @IntRange(from=0, to=4) public int getRxNss();
+    method @IntRange(from=0, to=4) public int getTxNss();
     method public int getWifiStandard();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.p2p.WifiP2pConnectionInfo> CREATOR;
+    field public static final int UNSPECIFIED = 0; // 0x0
   }
 
   public class WifiP2pDevice implements android.os.Parcelable {
