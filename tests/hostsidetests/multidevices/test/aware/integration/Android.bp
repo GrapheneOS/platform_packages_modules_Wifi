@@ -301,6 +301,8 @@ python_test_host {
         "wifi_aware_message_test.py",
         "wifi_aware_protocols_multi_country_test.py",
         "wifi_aware_protocols_test.py",
+        "wifi_aware_throughput_test.py",
+        "wifi_aware_latencytest_test.py",
     ],
     device_common_data: [
         ":wifi_aware_snippet_new",
