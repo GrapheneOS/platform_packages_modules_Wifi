@@ -16,9 +16,11 @@
 
 package com.android.server.wifi.nl80211;
 
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_EXT_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_FEATURE_FLAGS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFNAME;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_MATCH_SETS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_NUM_AKM_SUITES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_NUM_SCAN_SSIDS;
@@ -34,10 +36,13 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_5GHZ
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_FREQS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_HT_CAPA;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_VHT_CAPA;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_PROTOCOL_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_WIPHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_FREQ;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -75,12 +80,16 @@ public class Nl80211UtilsTest {
     private static final int TEST_WIPHY_INDEX = 4;
     private static final int TEST_IF_INDEX = 5;
     private static final String TEST_IF_NAME = "wlan0";
+    private static final byte[] TEST_MAC_ADDR = new byte[]{0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
 
     // Test request messages
     private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_PROTOCOL_FEATURES =
             new GenericNetlinkMsg(NL80211_CMD_GET_PROTOCOL_FEATURES, (short) 0, (short) 0, 0);
     private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_WIPHY =
             new GenericNetlinkMsg(NL80211_CMD_GET_WIPHY, (short) 0, (short) 0, 0);
+
+    private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_INTERFACE =
+            new GenericNetlinkMsg(NL80211_CMD_GET_INTERFACE, (short) 0, (short) 0, 0);
 
     @Mock private Nl80211Proxy mNl80211Proxy;
     @Mock private NetworkInterface mNetworkInterface;
@@ -105,6 +114,8 @@ public class Nl80211UtilsTest {
                 .thenReturn(TEST_NL80211_REQUEST_GET_WIPHY);
         when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_GET_WIPHY), any()))
                 .thenReturn(TEST_NL80211_REQUEST_GET_WIPHY);
+        when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_GET_INTERFACE), anyShort(), any()))
+                .thenReturn(TEST_NL80211_REQUEST_GET_INTERFACE);
     }
 
     @After
@@ -417,5 +428,85 @@ public class Nl80211UtilsTest {
         mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX);
         verify(mNl80211Proxy, times(2))
                 .sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY);
+    }
+
+    @Test
+    public void testGetInterfaces_success() {
+        GenericNetlinkMsg response = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE, (short) 0,
+                (short) 0, 0);
+        response.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        response.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, TEST_IF_INDEX));
+        response.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, TEST_IF_NAME));
+        response.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, TEST_MAC_ADDR));
+        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_INTERFACE))
+                .thenReturn(List.of(response));
+
+        List<Nl80211Utils.InterfaceInfo> interfaces = mNl80211Utils.getInterfaces(TEST_WIPHY_INDEX);
+
+        assertNotNull(interfaces);
+        assertEquals(1, interfaces.size());
+        assertEquals(TEST_IF_INDEX, interfaces.get(0).ifIndex);
+        assertEquals(TEST_WIPHY_INDEX, interfaces.get(0).wiphyIndex);
+        assertEquals(TEST_IF_NAME, interfaces.get(0).name);
+        assertEquals(TEST_MAC_ADDR, interfaces.get(0).macAddress);
+    }
+
+    @Test
+    public void testGetInterfaces_wildcardWiphyIndex_success() {
+        GenericNetlinkMsg requestAllInterfaces = new GenericNetlinkMsg(
+                NL80211_CMD_GET_INTERFACE, (short) 0, (short) 0, 0);
+        when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_GET_INTERFACE),
+                anyShort())).thenReturn(requestAllInterfaces);
+
+        GenericNetlinkMsg response1 = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE, (short) 0,
+                (short) 0, 0);
+        response1.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, 0));
+        response1.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, 1));
+        response1.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, "wlan0"));
+        response1.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, new byte[6]));
+
+        GenericNetlinkMsg response2 = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE,
+                (short) 0, (short) 0, 0);
+        response2.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, 1));
+        response2.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, 2));
+        response2.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, "wlan1"));
+        response2.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, new byte[6]));
+
+        when(mNl80211Proxy.sendMessageAndReceiveResponses(requestAllInterfaces))
+                .thenReturn(List.of(response1, response2));
+
+        List<Nl80211Utils.InterfaceInfo> interfaces = mNl80211Utils.getInterfaces(-1);
+
+        assertNotNull(interfaces);
+        assertEquals(2, interfaces.size());
+        assertEquals(1, interfaces.get(0).ifIndex);
+        assertEquals(0, interfaces.get(0).wiphyIndex);
+        assertEquals("wlan0", interfaces.get(0).name);
+        assertEquals(2, interfaces.get(1).ifIndex);
+        assertEquals(1, interfaces.get(1).wiphyIndex);
+        assertEquals("wlan1", interfaces.get(1).name);
+    }
+
+    @Test
+    public void testGetInterfaces_failure() {
+        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_INTERFACE))
+                .thenReturn(null);
+        assertNull(mNl80211Utils.getInterfaces(TEST_WIPHY_INDEX));
+    }
+
+    @Test
+    public void testGetInterfaces_malformedResponse() {
+        GenericNetlinkMsg response = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE,
+                (short) 0, (short) 0, 0);
+        // Missing IFNAME
+        response.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, TEST_IF_INDEX));
+        response.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, new byte[6]));
+        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_INTERFACE))
+                .thenReturn(List.of(response));
+
+        List<Nl80211Utils.InterfaceInfo> interfaces = mNl80211Utils.getInterfaces(TEST_WIPHY_INDEX);
+
+        assertNotNull(interfaces);
+        assertTrue(interfaces.isEmpty());
     }
 }
