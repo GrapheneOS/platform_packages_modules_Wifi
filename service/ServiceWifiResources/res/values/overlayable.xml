@@ -361,6 +361,7 @@
           <item type="bool" name="config_prioritizeExternalScorer" />
           <item type="bool" name="config_wifiAwareSdeaHeaderFromFramework" />
           <item type="bool" name="config_preEvaluationEnabled" />
+          <item type="bool" name="config_wifiMainlineSupplicantEnabled" />
 
           <!-- Params from config.xml that can be overlayed -->
 
