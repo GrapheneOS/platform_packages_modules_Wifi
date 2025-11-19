@@ -603,8 +603,8 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return new ArrayList<>();
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path for getting scan results
-        throw new UnsupportedOperationException();
+        // Note: Wificond ignores scanType, so we also don't need to take it into account.
+        return mNl80211Utils.getScanResults(ifaceName);
     }
 
     /**

@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.nl80211;
 
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_BSS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_EXT_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_FEATURE_FLAGS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
@@ -36,14 +37,26 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_5GHZ
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_FREQS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_HT_CAPA;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_VHT_CAPA;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_BSSID;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_CAPABILITY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_CHAIN_SIGNAL;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_FREQUENCY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_INFORMATION_ELEMENTS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_SIGNAL_MBM;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATUS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATUS_ASSOCIATED;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_TSF;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_PROTOCOL_FEATURES;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_INTERFACE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_FREQ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -72,6 +85,7 @@ import org.mockito.quality.Strictness;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,6 +95,12 @@ public class Nl80211UtilsTest {
     private static final int TEST_IF_INDEX = 5;
     private static final String TEST_IF_NAME = "wlan0";
     private static final byte[] TEST_MAC_ADDR = new byte[]{0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+    private static final byte[] TEST_MAC_ADDR_2 = new byte[]{0x22, 0x22, 0x33, 0x44, 0x55, 0x66};
+    private static final byte[] TEST_SSID = new byte[]{'S', 'S', 'I', 'D'};
+    private static final byte[] TEST_SSID_IE = {0x00, 0x04, 'S', 'S', 'I', 'D'};
+    private static final byte[] TEST_SSID_2 = new byte[]{'S', 'S', 'I', 'D', '2'};
+    private static final byte[] TEST_SSID_IE_2 = {0x00, 0x05, 'S', 'S', 'I', 'D', '2'};
+
 
     // Test request messages
     private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_PROTOCOL_FEATURES =
@@ -90,6 +110,8 @@ public class Nl80211UtilsTest {
 
     private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_INTERFACE =
             new GenericNetlinkMsg(NL80211_CMD_GET_INTERFACE, (short) 0, (short) 0, 0);
+    private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_SCAN =
+            new GenericNetlinkMsg(NL80211_CMD_GET_SCAN, (short) 0, (short) 0, 0);
 
     @Mock private Nl80211Proxy mNl80211Proxy;
     @Mock private NetworkInterface mNetworkInterface;
@@ -116,6 +138,8 @@ public class Nl80211UtilsTest {
                 .thenReturn(TEST_NL80211_REQUEST_GET_WIPHY);
         when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_GET_INTERFACE), anyShort(), any()))
                 .thenReturn(TEST_NL80211_REQUEST_GET_INTERFACE);
+        when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_GET_SCAN), anyShort(), any()))
+                .thenReturn(TEST_NL80211_REQUEST_GET_SCAN);
     }
 
     @After
@@ -132,6 +156,181 @@ public class Nl80211UtilsTest {
                 new StructNlAttr(NL80211_ATTR_PROTOCOL_FEATURES, features));
         when(mNl80211Proxy.sendMessageAndReceiveResponse(
                 TEST_NL80211_REQUEST_GET_PROTOCOL_FEATURES)).thenReturn(response);
+    }
+
+    private GenericNetlinkMsg createTestScanResultNetlinkMessage(byte[] bssid, byte[] ie,
+            int freq, int signal, long tsf, short capability, boolean associated,
+            List<RadioChainInfo> radioChainInfos, short command) {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(command, (short) 0, (short) 0, 0);
+
+        ByteBuffer capaBuf = ByteBuffer.allocate(Short.BYTES).order(ByteOrder.LITTLE_ENDIAN);
+        capaBuf.putShort(capability);
+
+        List<StructNlAttr> bssAttrs = new ArrayList<>();
+        bssAttrs.add(new StructNlAttr(NL80211_BSS_BSSID, bssid));
+        bssAttrs.add(new StructNlAttr(NL80211_BSS_FREQUENCY, freq));
+        bssAttrs.add(new StructNlAttr(NL80211_BSS_INFORMATION_ELEMENTS, ie));
+        bssAttrs.add(new StructNlAttr(NL80211_BSS_SIGNAL_MBM, signal));
+        bssAttrs.add(new StructNlAttr(NL80211_BSS_TSF, tsf));
+        bssAttrs.add(new StructNlAttr(NL80211_BSS_CAPABILITY, capaBuf.array()));
+
+        if (associated) {
+            bssAttrs.add(new StructNlAttr(NL80211_BSS_STATUS,
+                    NL80211_BSS_STATUS_ASSOCIATED));
+        }
+
+        if (radioChainInfos != null && !radioChainInfos.isEmpty()) {
+            int chainSignalPayloadLength = 0;
+            List<StructNlAttr> chainSignalAttrs = new ArrayList<>();
+            for (RadioChainInfo info : radioChainInfos) {
+                StructNlAttr chainAttr = new StructNlAttr(
+                        (short) info.chainId, new byte[]{(byte) info.level});
+                chainSignalAttrs.add(chainAttr);
+                chainSignalPayloadLength += chainAttr.getAlignedLength();
+            }
+
+            ByteBuffer chainSignalPayload = ByteBuffer.allocate(chainSignalPayloadLength);
+            for (StructNlAttr chainAttr : chainSignalAttrs) {
+                chainAttr.pack(chainSignalPayload);
+            }
+            bssAttrs.add(new StructNlAttr(NL80211_BSS_CHAIN_SIGNAL,
+                    chainSignalPayload.array()));
+        }
+
+        int bssPayloadLength = 0;
+        for (StructNlAttr attr : bssAttrs) {
+            bssPayloadLength += attr.getAlignedLength();
+        }
+
+        ByteBuffer bssPayload = ByteBuffer.allocate(bssPayloadLength);
+        for (StructNlAttr attr : bssAttrs) {
+            attr.pack(bssPayload);
+        }
+
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_BSS, bssPayload.array()));
+        return msg;
+    }
+
+    @Test
+    public void testGetScanResults_success_singleScanResult() {
+        int freq = 2412;
+        int signal = -50;
+        long tsf = 123456789L;
+        short capability = 0x1000; // ESS
+        boolean associated = true;
+        List<RadioChainInfo> radioChainInfos = new ArrayList<>();
+        radioChainInfos.add(new RadioChainInfo(0, -52));
+        radioChainInfos.add(new RadioChainInfo(1, -55));
+
+        GenericNetlinkMsg scanResultMsg = createTestScanResultNetlinkMessage(
+                TEST_MAC_ADDR, TEST_SSID_IE, freq, signal, tsf, capability, associated,
+                radioChainInfos, NL80211_CMD_NEW_SCAN_RESULTS);
+
+        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_SCAN))
+                .thenReturn(List.of(scanResultMsg));
+
+        List<NativeScanResult> results = mNl80211Utils.getScanResults(TEST_IF_NAME);
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        NativeScanResult result = results.get(0);
+        assertArrayEquals(TEST_SSID, result.ssid);
+        assertArrayEquals(TEST_MAC_ADDR, result.bssid);
+        assertArrayEquals(TEST_SSID_IE, result.infoElement);
+        assertEquals(freq, result.frequency);
+        assertEquals(signal, result.signalMbm);
+        assertEquals(tsf, result.tsf);
+        assertEquals((char) capability, result.capability);
+        assertEquals(associated, result.associated);
+        assertEquals(radioChainInfos.size(), result.radioChainInfos.size());
+        for (int i = 0; i < radioChainInfos.size(); i++) {
+            assertEquals(radioChainInfos.get(i).chainId, result.radioChainInfos.get(i).chainId);
+            assertEquals(radioChainInfos.get(i).level, result.radioChainInfos.get(i).level);
+        }
+    }
+
+    @Test
+    public void testGetScanResults_success_multipleScanResults() {
+        int freq1 = 2412;
+        int signal1 = -50;
+        long tsf1 = 100000000L;
+        short capability1 = 0x1000;
+
+        int freq2 = 5180;
+        int signal2 = -60;
+        long tsf2 = 200000000L;
+        short capability2 = 0x1000;
+
+        GenericNetlinkMsg scanResultMsg1 = createTestScanResultNetlinkMessage(
+                TEST_MAC_ADDR, TEST_SSID_IE, freq1, signal1, tsf1, capability1, true, null,
+                NL80211_CMD_NEW_SCAN_RESULTS);
+        GenericNetlinkMsg scanResultMsg2 = createTestScanResultNetlinkMessage(
+                TEST_MAC_ADDR_2, TEST_SSID_IE_2, freq2, signal2, tsf2, capability2, false, null,
+                NL80211_CMD_NEW_SCAN_RESULTS);
+
+        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_SCAN))
+                .thenReturn(List.of(scanResultMsg1, scanResultMsg2));
+
+        List<NativeScanResult> results = mNl80211Utils.getScanResults(TEST_IF_NAME);
+
+        assertNotNull(results);
+        assertEquals(2, results.size());
+
+        NativeScanResult result1 = results.get(0);
+        assertArrayEquals(TEST_SSID, result1.ssid);
+        assertArrayEquals(TEST_MAC_ADDR, result1.bssid);
+        assertEquals(freq1, result1.frequency);
+        assertTrue(result1.associated);
+
+        NativeScanResult result2 = results.get(1);
+        assertArrayEquals(TEST_SSID_2, result2.ssid);
+        assertArrayEquals(TEST_MAC_ADDR_2, result2.bssid);
+        assertEquals(freq2, result2.frequency);
+        assertFalse(result2.associated);
+    }
+
+    @Test
+    public void testGetScanResults_unexpectedCommandInResponse() {
+        int freq = 2412;
+        int signal = -50;
+        long tsf = 123456789L;
+        short capability = 0x1000; // ESS
+
+        // Create a message with an unexpected command type
+        GenericNetlinkMsg unexpectedMsg = createTestScanResultNetlinkMessage(
+                TEST_MAC_ADDR, TEST_SSID_IE, freq, signal, tsf, capability, false, null,
+                NL80211_CMD_GET_WIPHY);
+
+        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_SCAN))
+                .thenReturn(List.of(unexpectedMsg));
+
+        List<NativeScanResult> results = mNl80211Utils.getScanResults(TEST_IF_NAME);
+
+        assertNotNull(results);
+        assertTrue(results.isEmpty()); // Unexpected command should be ignored
+    }
+
+    @Test
+    public void testGetScanResults_malformedResponse() {
+        // Create a malformed message missing the BSSID
+        int freq = 2412;
+        int signal = -50;
+        long tsf = 123456789L;
+        short capability = 0x1000;
+
+        GenericNetlinkMsg malformedMsg = createTestScanResultNetlinkMessage(
+                TEST_MAC_ADDR, TEST_SSID_IE, freq, signal, tsf, capability, false, null,
+                NL80211_CMD_NEW_SCAN_RESULTS);
+        // Remove the BSS attribute which is required for parsing.
+        malformedMsg.attributes.remove(NL80211_ATTR_BSS);
+
+        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_SCAN))
+                .thenReturn(List.of(malformedMsg));
+
+        List<NativeScanResult> results = mNl80211Utils.getScanResults(TEST_IF_NAME);
+
+        assertNotNull(results);
+        assertTrue(results.isEmpty());
     }
 
     @Test

@@ -78,6 +78,7 @@ import com.android.modules.utils.ParceledListSlice;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
+import com.android.server.wifi.nl80211.NativeScanResult;
 import com.android.server.wifi.nl80211.Nl80211Native;
 import com.android.server.wifi.nl80211.Nl80211Utils;
 
@@ -1157,6 +1158,36 @@ public class WifiShellCommandTest extends WifiBaseTest {
         verify(mWifiService, times(6)).getUsableChannels(eq(WifiScanner.WIFI_BAND_BOTH_WITH_DFS),
                 anyInt(), eq(WifiAvailableChannel.FILTER_REGULATORY), eq(SHELL_PACKAGE_NAME),
                 any());
+    }
+
+    @Test
+    public void testDumpNativeScans() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final String ifaceName = "wlan0";
+        List<NativeScanResult> nativeResults = new ArrayList<>();
+        nativeResults.add(new NativeScanResult());
+        when(mNl80211Native.getScanResults(eq(ifaceName), anyInt()))
+                .thenReturn(nativeResults);
+        mWifiShellCommand.exec(new Binder(), new FileDescriptor(), new FileDescriptor(),
+                new FileDescriptor(), new String[]{"dump-native-scans", ifaceName});
+        verify(mNl80211Native).getScanResults(eq(ifaceName), anyInt());
+        assertFalse(mWifiShellCommand.getOutPrintWriter().toString().isEmpty());
+    }
+
+    @Test
+    public void testDumpNativeScansWithNl80211Override() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final String ifaceName = "wlan0";
+        List<NativeScanResult> nativeResults = new ArrayList<>();
+        nativeResults.add(new NativeScanResult());
+        when(mNl80211Native.getScanResults(eq(ifaceName), anyInt()))
+                .thenReturn(nativeResults);
+        mWifiShellCommand.exec(new Binder(), new FileDescriptor(), new FileDescriptor(),
+                new FileDescriptor(), new String[]{"dump-native-scans", ifaceName, "-n"});
+        verify(mNl80211Native).setUseNl80211Override(true);
+        verify(mNl80211Native).getScanResults(eq(ifaceName), anyInt());
+        verify(mNl80211Native).setUseNl80211Override(false);
+        assertFalse(mWifiShellCommand.getOutPrintWriter().toString().isEmpty());
     }
 
     @Test

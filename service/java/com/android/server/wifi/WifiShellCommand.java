@@ -144,6 +144,7 @@ import com.android.server.wifi.coex.CoexUtils;
 import com.android.server.wifi.hal.WifiChip;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
+import com.android.server.wifi.nl80211.NativeScanResult;
 import com.android.server.wifi.nl80211.Nl80211Native;
 import com.android.server.wifi.nl80211.Nl80211Utils;
 import com.android.server.wifi.util.ApConfigUtil;
@@ -2997,6 +2998,34 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     pw.println("Teardown interface " + (success ? "succeeded" : "failed"));
                     return 0;
                 }
+                case "dump-native-scans": {
+                    String iface = getNextArgRequired();
+                    String option = getNextOption();
+                    boolean useNl80211Override = false;
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+
+                    List<NativeScanResult> nativeResults;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        nativeResults = mNl80211Native.getScanResults(iface,
+                                Nl80211Native.SCAN_TYPE_SINGLE_SCAN);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    if (nativeResults == null || nativeResults.isEmpty()) {
+                        pw.println("No scan results");
+                        return 0;
+                    }
+
+                    NativeScanResult.dumpList(pw, nativeResults);
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -4222,6 +4251,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    For debugging. Tears down an interface via"
                 + " Nl80211Native.teardownClientInterface");
         pw.println("    -n Force use nl80211 implementation.");
+        pw.println("  dump-native-scans <iface-name>");
+        pw.println("    For debugging. Dumps the result of Nl80211Native.getScanResults");
+        pw.println("    -n Use direct nl80211 implementation instead of wificond.");
     }
 
     @Override

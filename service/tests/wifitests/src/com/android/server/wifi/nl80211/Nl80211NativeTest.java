@@ -483,10 +483,38 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testGetScanResults_throwsException() {
+    public void testGetScanResults_nullIfaceName() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.getScanResults(IFACE_NAME, 0));
+        List<NativeScanResult> results = mDut.getScanResults(null, 0);
+        assertTrue(results.isEmpty());
+    }
+
+    @Test
+    public void testGetScanResults_notInitialized() {
+        Nl80211Native nl80211Native = new Nl80211Native(mNl80211Proxy, mNl80211Utils, mNetdWrapper,
+                mWificondManager, false);
+        List<NativeScanResult> results = nl80211Native.getScanResults(IFACE_NAME, 0);
+        assertTrue(results.isEmpty());
+    }
+
+    @Test
+    public void testGetScanResults_success() {
+        mDut = initNl80211Native(false);
+        List<NativeScanResult> expectedScanResults = new ArrayList<>();
+        NativeScanResult scanResult = new NativeScanResult();
+        scanResult.ssid = new byte[] {'T', 'E', 'S', 'T'};
+        scanResult.bssid = new byte[] {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+        expectedScanResults.add(scanResult);
+        when(mNl80211Utils.getScanResults(eq(IFACE_NAME)))
+                .thenReturn(expectedScanResults);
+
+        List<NativeScanResult> results = mDut.getScanResults(IFACE_NAME,
+                Nl80211Native.SCAN_TYPE_SINGLE_SCAN);
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(scanResult, results.get(0));
+        verify(mNl80211Utils).getScanResults(eq(IFACE_NAME));
     }
 
     @Test
