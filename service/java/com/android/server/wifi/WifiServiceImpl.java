@@ -1227,6 +1227,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             if (mFeatureFlags.multiUserWifiEnhancement()) {
                 mActiveModeWarden.handleUserSwitch(userId);
                 mWifiApConfigStore.handleUserSwitch(userId);
+                mSettingsConfigStore.handleUserSwitch(userId);
             }
         }, TAG + "#handleUserSwitch");
     }
@@ -1250,6 +1251,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             if (mFeatureFlags.multiUserWifiEnhancement()) {
                 mActiveModeWarden.handleUserStop(userId);
                 mWifiApConfigStore.handleUserStop(userId);
+                mSettingsConfigStore.handleUserStop(userId);
             }
         }, TAG + "#handleUserStop");
     }
