@@ -31,6 +31,7 @@ import static com.android.server.wifi.WifiShellCommand.SHELL_PACKAGE_NAME;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -66,8 +67,10 @@ import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.util.HexEncoding;
 import android.net.wifi.util.WifiResourceCache;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.PatternMatcher;
 import android.os.Process;
@@ -94,6 +97,7 @@ import java.io.FileDescriptor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Unit tests for {@link com.android.server.wifi.WifiShellCommand}.
@@ -1685,5 +1689,61 @@ public class WifiShellCommandTest extends WifiBaseTest {
         verify(mNl80211Native).getChannelsMhzForBand(WifiScanner.WIFI_BAND_24_GHZ);
         verify(mNl80211Native).setUseNl80211Override(true);
         verify(mNl80211Native).setUseNl80211Override(false);
+    }
+
+    @Test
+    public void testStartNl80211Scan() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final String ifaceName = "wlan0";
+        final String freq1 = "2412";
+        final String freq2 = "5180";
+        final String ssid1 = "hidden1";
+        final String ssid2 = "hidden2";
+        final String vendorIe = "010203";
+
+        ArgumentCaptor<String> ifaceNameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Integer> scanTypeCaptor = ArgumentCaptor.forClass(Integer.class);
+        ArgumentCaptor<Set<Integer>> freqsCaptor = ArgumentCaptor.forClass(Set.class);
+        ArgumentCaptor<List<byte[]>> ssidsCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<Bundle> bundleCaptor = ArgumentCaptor.forClass(Bundle.class);
+
+        when(mNl80211Native.startScan(ifaceNameCaptor.capture(), scanTypeCaptor.capture(),
+                freqsCaptor.capture(), ssidsCaptor.capture(), bundleCaptor.capture()))
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
+
+        assertEquals(0, mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"start-nl80211-scan", ifaceName,
+                        "-t", "low_power",
+                        "-h", ssid1, ssid2,
+                        "-r",
+                        "-v", vendorIe,
+                        "-f", freq1, freq2
+                }));
+
+        assertEquals(ifaceName, ifaceNameCaptor.getValue());
+        assertEquals(WifiScanner.SCAN_TYPE_LOW_POWER, (int) scanTypeCaptor.getValue());
+        assertEquals(Set.of(Integer.parseInt(freq1), Integer.parseInt(freq2)),
+                freqsCaptor.getValue());
+        assertEquals(2, ssidsCaptor.getValue().size());
+        assertEquals(ssid1, new String(ssidsCaptor.getValue().get(0)));
+        assertEquals(ssid2, new String(ssidsCaptor.getValue().get(1)));
+        Bundle capturedBundle = bundleCaptor.getValue();
+        assertTrue(capturedBundle.getBoolean(Nl80211Native.SCANNING_PARAM_ENABLE_6GHZ_RNR));
+        assertEquals(vendorIe,
+                String.copyValueOf(HexEncoding.encode(capturedBundle.getByteArray(
+                        Nl80211Native.EXTRA_SCANNING_PARAM_VENDOR_IES))));
+    }
+
+    @Test
+    public void testStopNl80211Scan() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final String ifaceName = "wlan0";
+
+        assertEquals(0, mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"stop-nl80211-scan", ifaceName}));
+
+        verify(mNl80211Native).abortScan(ifaceName);
     }
 }
