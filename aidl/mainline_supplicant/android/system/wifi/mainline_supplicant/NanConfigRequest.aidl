@@ -31,13 +31,13 @@ parcelable NanConfigRequest {
 
     /**
      * Controls whether the |ISupplicantNanIfaceEventCallback.eventClusterEvent| will be
-     * delivered for |NanClusterEventType.STARTED|.
+     * delivered for |NanClusterEventType.CLUSTER_STARTED|.
      */
     boolean disableStartedClusterIndication;
 
     /**
      * Controls whether the |ISupplicantNanIfaceEventCallback.eventClusterEvent| will be
-     * delivered for |NanClusterEventType.JOINED|.
+     * delivered for |NanClusterEventType.CLUSTER_JOINED|.
      */
     boolean disableJoinedClusterIndication;
 
