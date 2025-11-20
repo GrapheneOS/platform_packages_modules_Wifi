@@ -17,6 +17,8 @@
 package com.android.server.wifi.nl80211;
 
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_ASSOCIATE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DISASSOCIATE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCAN_ABORTED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_RESULTS;
@@ -57,6 +59,7 @@ public class Nl80211Native {
     static class ClientInterfaceInfo {
         public final @NonNull String ifName;
         public final int ifIndex;
+        public boolean associated;
         public final @NonNull Executor scanCallbackExecutor;
         public final @NonNull ScanEventCallback scanEventCallback;
         public final @NonNull ScanEventCallback pnoScanEventCallback;
@@ -144,6 +147,30 @@ public class Nl80211Native {
 
                 executor.execute(() -> pnoScanCallback.onScanFailed());
                 // onScanFailed(int) is missing to match wificond implementation.
+            };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mAssociateCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
+
+                clientIfaceInfo.associated = true;
+            };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mDisassociateCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
+
+                clientIfaceInfo.associated = false;
             };
 
     private ClientInterfaceInfo getClientInterfaceInfoForBroadcast(GenericNetlinkMsg broadcast) {
@@ -412,7 +439,7 @@ public class Nl80211Native {
         mNetdWrapper.setInterfaceUp(ifaceName);
 
         if (mClientInterfaceInfos.isEmpty()) {
-            registerScanCallbacks();
+            registerCallbacksForClientIface();
         }
         mClientInterfaceInfos.put(ifaceName,
                 new ClientInterfaceInfo(ifaceName, foundInterface.ifIndex, executor,
@@ -444,14 +471,14 @@ public class Nl80211Native {
         mNetdWrapper.setInterfaceDown(ifaceName);
         mClientInterfaceInfos.remove(ifaceName);
         if (mClientInterfaceInfos.isEmpty()) {
-            unregisterScanCallbacks();
+            unregisterCallbacksForClientIface();
         }
 
         handleIfaceTeardown(ifaceName);
         return true;
     }
 
-    private void registerScanCallbacks() {
+    private void registerCallbacksForClientIface() {
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_NEW_SCAN_RESULTS,
                 mNewScanResultsCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCAN_ABORTED,
@@ -460,9 +487,14 @@ public class Nl80211Native {
                 mSchedScanResultsCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCHED_SCAN_STOPPED,
                 mSchedScanStoppedCallback);
+
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_ASSOCIATE,
+                mAssociateCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_DISASSOCIATE,
+                mDisassociateCallback);
     }
 
-    private void unregisterScanCallbacks() {
+    private void unregisterCallbacksForClientIface() {
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_NEW_SCAN_RESULTS,
                 mNewScanResultsCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCAN_ABORTED,
@@ -471,6 +503,11 @@ public class Nl80211Native {
                 mSchedScanResultsCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCHED_SCAN_STOPPED,
                 mSchedScanStoppedCallback);
+
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_ASSOCIATE,
+                mAssociateCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_DISASSOCIATE,
+                mDisassociateCallback);
     }
 
     /**

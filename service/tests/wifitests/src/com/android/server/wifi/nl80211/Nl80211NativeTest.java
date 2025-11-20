@@ -25,6 +25,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -276,6 +277,43 @@ public class Nl80211NativeTest {
                 genericNetlinkMessage);
 
         verify(mExecutor, never()).execute(any());
+    }
+
+    /** Test that an associate event updates the client interface info. */
+    @Test
+    public void testBroadcastEvent_onAssociate_updatesClientInfo() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX, null);
+        assertFalse(mDut.getClientInterfaceInfos().get(IFACE_NAME).associated);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NetlinkConstants.NL80211_CMD_ASSOCIATE),
+                mNl80211BroadcastCallbackCaptor.capture());
+
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(IFACE_INDEX);
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(NetlinkConstants.NL80211_CMD_ASSOCIATE,
+                msg);
+
+        assertTrue(mDut.getClientInterfaceInfos().get(IFACE_NAME).associated);
+    }
+
+    /** Test that a disassociate event updates the client interface info. */
+    @Test
+    public void testBroadcastEvent_onDisassociate_updatesClientInfo() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX, null);
+        // First associate the interface to ensure a state change when disassociating
+        mDut.getClientInterfaceInfos().get(IFACE_NAME).associated = true;
+
+        verify(mNl80211Proxy).registerBroadcastCallback(
+                eq(NetlinkConstants.NL80211_CMD_DISASSOCIATE),
+                mNl80211BroadcastCallbackCaptor.capture());
+
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(IFACE_INDEX);
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(
+                NetlinkConstants.NL80211_CMD_DISASSOCIATE, msg);
+
+        assertFalse(mDut.getClientInterfaceInfos().get(IFACE_NAME).associated);
     }
 
     /** Test that {@link Nl80211Native#getInterfaceNames()} returns the expected value. */
