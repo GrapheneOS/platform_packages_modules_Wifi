@@ -462,8 +462,8 @@ public class WifiInjector {
                         mContext,
                         mWifiKeyStore,
                         mWifiConfigStore,
-                        new NetworkListSharedStoreData(mContext),
-                        new NetworkListUserStoreData(mContext),
+                        new NetworkListSharedStoreData(mContext, mWifiPermissionsUtil),
+                        new NetworkListUserStoreData(mContext, mWifiPermissionsUtil),
                         new RandomizedMacStoreData(),
                         mLruConnectionTracker,
                         this,
@@ -1021,7 +1021,7 @@ public class WifiInjector {
      */
     public NetworkSuggestionStoreData makeNetworkSuggestionStoreData(
             NetworkSuggestionStoreData.DataSource dataSource) {
-        return new NetworkSuggestionStoreData(dataSource);
+        return new NetworkSuggestionStoreData(dataSource, mWifiPermissionsUtil);
     }
 
     /**

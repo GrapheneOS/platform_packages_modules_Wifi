@@ -55,6 +55,7 @@ import com.android.internal.util.FastXmlSerializer;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.util.EncryptedData;
 import com.android.server.wifi.util.WifiConfigStoreEncryptionUtil;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.XmlUtilTest;
 import com.android.wifi.flags.Flags;
 
@@ -621,6 +622,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
     @Mock private Context mContext;
     @Mock private PackageManager mPackageManager;
     @Mock private WifiConfigStoreEncryptionUtil mWifiConfigStoreEncryptionUtil;
+    @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
     private Map<EncryptedData, byte[]> mEncryptedDataMap = new HashMap<>();
     private boolean mShouldEncrypt = false;
     private MockitoSession mSession;
@@ -640,7 +642,8 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
                 .thenReturn(false);
         when(mContext.getPackageManager()).thenReturn(mPackageManager);
         when(mPackageManager.getNameForUid(anyInt())).thenReturn(TEST_CREATOR_NAME);
-        mNetworkListSharedStoreData = new NetworkListSharedStoreData(mContext);
+        mNetworkListSharedStoreData = new NetworkListSharedStoreData(mContext,
+                mWifiPermissionsUtil);
         doAnswer(new MockAnswerUtil.AnswerWithArguments() {
             public EncryptedData answer(byte[] data) {
                 EncryptedData encryptedData = new EncryptedData(data, data);
@@ -830,7 +833,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         assertEquals(WifiConfigStore.STORE_FILE_SHARED_GENERAL,
                 mNetworkListSharedStoreData.getStoreFileId());
         assertEquals(WifiConfigStore.STORE_FILE_USER_GENERAL,
-                new NetworkListUserStoreData(mContext).getStoreFileId());
+                new NetworkListUserStoreData(mContext, mWifiPermissionsUtil).getStoreFileId());
     }
 
     /**

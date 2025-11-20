@@ -43,6 +43,7 @@ import com.android.server.wifi.WifiConfigStore.StoreFile;
 import com.android.server.wifi.util.ArrayUtils;
 import com.android.server.wifi.util.EncryptedData;
 import com.android.server.wifi.util.WifiConfigStoreEncryptionUtil;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.XmlUtil;
 import com.android.wifi.flags.Flags;
 
@@ -231,6 +232,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
     // Test mocks
     @Mock private Context mContext;
     @Mock private PackageManager mPackageManager;
+    @Mock private WifiPermissionsUtil mWifiPermissionsUtil;
     private TestAlarmManager mAlarmManager;
     private TestLooper mLooper;
     @Mock private Clock mClock;
@@ -519,7 +521,8 @@ public class WifiConfigStoreTest extends WifiBaseTest {
     @Test
     public void testReadWifiConfigStoreData() throws Exception {
         // Setup network list.
-        NetworkListStoreData networkList = new NetworkListUserStoreData(mContext);
+        NetworkListStoreData networkList = new NetworkListUserStoreData(
+                mContext, mWifiPermissionsUtil);
         mWifiConfigStore.registerStoreData(networkList);
 
         // Changing flag value and run the testing,
@@ -579,7 +582,8 @@ public class WifiConfigStoreTest extends WifiBaseTest {
         // first boolean for flag: multiUserWifiEnhancement
         // second boolean for flag: aapmFeatureDisableInsecureWifiAutojoin
         mWifiConfigStore.switchUserStoresAndRead(mUserStores);
-        NetworkListStoreData networkList = new NetworkListUserStoreData(mContext);
+        NetworkListStoreData networkList = new NetworkListUserStoreData(
+                mContext, mWifiPermissionsUtil);
         mWifiConfigStore.registerStoreData(networkList);
         List<WifiConfiguration> userConfigs = new ArrayList<>();
         boolean[][] testFlagStatusInAndroidC =

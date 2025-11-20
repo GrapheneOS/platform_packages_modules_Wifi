@@ -18,13 +18,16 @@ package com.android.server.wifi;
 
 import android.content.Context;
 
+import com.android.server.wifi.util.WifiPermissionsUtil;
+
 /**
  * Serialization & Deserialization of shared WiFi network configurations.
  */
 public class NetworkListSharedStoreData extends NetworkListStoreData {
 
-    public NetworkListSharedStoreData(Context context) {
-        super(context);
+    public NetworkListSharedStoreData(Context context,
+            WifiPermissionsUtil wifiPermissionsUtil) {
+        super(context, wifiPermissionsUtil);
     }
 
     @Override
