@@ -433,34 +433,34 @@ public class Nl80211Proxy {
 
 
     /**
-     * Register a callback to trigger when the specified broadcast event type is received.
+     * Register a callback to trigger when the specified broadcast event command is received.
      *
-     * @param type Type of broadcast event on which to trigger the callback.
+     * @param command Type of broadcast command on which to trigger the callback.
      * @param callback Callback object that should be called.
      */
     public boolean registerBroadcastCallback(
-            short type, @NonNull Nl80211BroadcastMonitor.Nl80211BroadcastCallback callback) {
+            short command, @NonNull Nl80211BroadcastMonitor.Nl80211BroadcastCallback callback) {
         if (!mIsInitialized || mBroadcastMonitor == null) {
             Log.e(TAG, "Unable to register broadcast callback before initialization");
             return false;
         }
-        mBroadcastMonitor.registerBroadcastCallback(type, callback);
+        mBroadcastMonitor.registerBroadcastCallback(command, callback);
         return true;
     }
 
     /**
      * Unregister a broadcast event callback that was previously registered.
      *
-     * @param type Type of broadcast event which the callback is associated with.
+     * @param command Type of broadcast command which the callback is associated with.
      * @param callback Callback object which was registered.
      */
     public boolean unregisterBroadcastCallback(
-            short type, @NonNull Nl80211BroadcastMonitor.Nl80211BroadcastCallback callback) {
+            short command, @NonNull Nl80211BroadcastMonitor.Nl80211BroadcastCallback callback) {
         if (!mIsInitialized || mBroadcastMonitor == null) {
             Log.e(TAG, "Unable to unregister broadcast callback before initialization");
             return false;
         }
-        mBroadcastMonitor.unregisterBroadcastCallback(type, callback);
+        mBroadcastMonitor.unregisterBroadcastCallback(command, callback);
         return true;
     }
 }

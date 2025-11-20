@@ -83,65 +83,85 @@ public class Nl80211Native {
     private final SparseIntArray mBandToWiphyIndex = new SparseIntArray();
     private final Map<String, ClientInterfaceInfo> mClientInterfaceInfos = new ArrayMap<>();
 
-    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mNl80211BroadcastCallback =
-            (type, message) -> {
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mNewScanResultsCallback =
+            (command, message) -> {
                 if (mVerboseLoggingEnabled) {
-                    Log.d(TAG, "Received NL80211 broadcast: cmd=" + message.getCommand());
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
                 }
 
-                Integer ifindex = message.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
-                if (ifindex == null) {
-                    Log.e(TAG, "Received NL80211 broadcast event without ifindex");
-                    return;
-                }
-
-                // Find the interface by ifIndex
-                ClientInterfaceInfo clientIfaceInfo = null;
-                for (ClientInterfaceInfo info : mClientInterfaceInfos.values()) {
-                    if (info.ifIndex == ifindex) {
-                        clientIfaceInfo = info;
-                        break;
-                    }
-                }
-
-                if (clientIfaceInfo == null) {
-                    // Not an interface we're managing, or ifIndex lookup failed.
-                    return;
-                }
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
 
                 Executor executor = clientIfaceInfo.scanCallbackExecutor;
                 ScanEventCallback scanCallback = clientIfaceInfo.scanEventCallback;
+
+                executor.execute(() -> scanCallback.onScanResultReady());
+            };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mScanAbortedCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
+
+                Executor executor = clientIfaceInfo.scanCallbackExecutor;
+                ScanEventCallback scanCallback = clientIfaceInfo.scanEventCallback;
+
+                // onScanFailed() is missing to match wificond implementation.
+                executor.execute(() -> scanCallback.onScanFailed(
+                        WifiScanner.REASON_ABORT));
+            };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mSchedScanResultsCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
+
+                Executor executor = clientIfaceInfo.scanCallbackExecutor;
                 ScanEventCallback pnoScanCallback = clientIfaceInfo.pnoScanEventCallback;
 
-                switch (type) {
-                    case NL80211_CMD_NEW_SCAN_RESULTS:
-                        if (scanCallback != null) {
-                            executor.execute(() -> scanCallback.onScanResultReady());
-                        }
-                        break;
-                    case NL80211_CMD_SCAN_ABORTED:
-                        if (scanCallback != null) {
-                            // onScanFailed() is missing to match wificond implementation.
-                            executor.execute(() -> scanCallback.onScanFailed(
-                                    WifiScanner.REASON_ABORT));
-                        }
-                        break;
-                    case NL80211_CMD_SCHED_SCAN_RESULTS:
-                        if (pnoScanCallback != null) {
-                            executor.execute(() -> pnoScanCallback.onScanResultReady());
-                        }
-                        break;
-                    case NL80211_CMD_SCHED_SCAN_STOPPED:
-                        if (pnoScanCallback != null) {
-                            executor.execute(() -> pnoScanCallback.onScanFailed());
-                            // onScanFailed(int) is missing to match wificond implementation.
-                        }
-                        break;
-                    default:
-                        Log.e(TAG, "Received unhandled event: " + type);
-                        break;
-                }
+                executor.execute(() -> pnoScanCallback.onScanResultReady());
             };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mSchedScanStoppedCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
+
+                Executor executor = clientIfaceInfo.scanCallbackExecutor;
+                ScanEventCallback pnoScanCallback = clientIfaceInfo.pnoScanEventCallback;
+
+                executor.execute(() -> pnoScanCallback.onScanFailed());
+                // onScanFailed(int) is missing to match wificond implementation.
+            };
+
+    private ClientInterfaceInfo getClientInterfaceInfoForBroadcast(GenericNetlinkMsg broadcast) {
+        Integer ifIndex = broadcast.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
+        if (ifIndex == null) {
+            Log.e(TAG, "Broadcast message does not have ifIndex");
+            return null;
+        }
+
+        // Find the interface by ifIndex
+        for (ClientInterfaceInfo info : mClientInterfaceInfos.values()) {
+            if (info.ifIndex == ifIndex) {
+                return info;
+            }
+            Log.e(TAG, "Could not find iface for broadcast message with ifIndex " + ifIndex);
+        }
+        return null;
+    }
 
     /**
      * Specifies a scan type: single scan initiated by the framework. Can be used in
@@ -433,24 +453,24 @@ public class Nl80211Native {
 
     private void registerScanCallbacks() {
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_NEW_SCAN_RESULTS,
-                mNl80211BroadcastCallback);
+                mNewScanResultsCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCAN_ABORTED,
-                mNl80211BroadcastCallback);
+                mScanAbortedCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCHED_SCAN_RESULTS,
-                mNl80211BroadcastCallback);
+                mSchedScanResultsCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCHED_SCAN_STOPPED,
-                mNl80211BroadcastCallback);
+                mSchedScanStoppedCallback);
     }
 
     private void unregisterScanCallbacks() {
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_NEW_SCAN_RESULTS,
-                mNl80211BroadcastCallback);
+                mNewScanResultsCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCAN_ABORTED,
-                mNl80211BroadcastCallback);
+                mScanAbortedCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCHED_SCAN_RESULTS,
-                mNl80211BroadcastCallback);
+                mSchedScanResultsCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCHED_SCAN_STOPPED,
-                mNl80211BroadcastCallback);
+                mSchedScanStoppedCallback);
     }
 
     /**
