@@ -3482,9 +3482,34 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 setMultiLinkInfoFromScanCache(stateChangeResult.bssid);
             }
             if (state == SupplicantState.ASSOCIATED) {
-                long txBytes = mFacade.getTotalTxBytes() - mFacade.getMobileTxBytes();
-                long rxBytes = mFacade.getTotalRxBytes() - mFacade.getMobileRxBytes();
-                updateLinkLayerStatsRssiSpeedFrequencyCapabilities(txBytes, rxBytes);
+                WifiSignalPollResults pollResults = mWifiNative.signalPoll(mInterfaceName);
+                if (pollResults != null) {
+                    int newRssi = RssiUtil.calculateAdjustedRssi(pollResults.getRssi());
+                    if (newRssi > WifiInfo.INVALID_RSSI) {
+                        int oldRssi = mWifiInfo.getRssi();
+                        mWifiInfo.setRssi(newRssi);
+                        /*
+                         * Rather than sending the raw RSSI out every time it
+                         * changes, we precalculate the signal level that would
+                         * be displayed in the status bar, and only send the
+                         * broadcast if that much more coarse-grained number
+                         * changes. This cuts down greatly on the number of
+                         * broadcasts, at the cost of not informing others
+                         * interested in RSSI of all the changes in signal
+                         * level.
+                         */
+                        int newSignalLevel = RssiUtil.calculateSignalLevel(mContext, newRssi);
+                        if (newSignalLevel != mLastSignalLevel) {
+                            sendRssiChangeBroadcast(newRssi);
+                        } else if (newRssi != oldRssi
+                                && mWifiGlobals.getVerboseLoggingLevel()
+                                != WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED) {
+                            sendRssiChangeBroadcast(newRssi);
+                        }
+                        mLastSignalLevel = newSignalLevel;
+                    }
+                }
+
                 updateWifiInfoLinkParamsAfterAssociation();
             }
             mWifiInfo.setInformationElements(findMatchingInfoElements(stateChangeResult.bssid));
