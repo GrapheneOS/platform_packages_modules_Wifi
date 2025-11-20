@@ -260,7 +260,7 @@ public class Nl80211ProxyTest {
         assertTrue(receivedResponses.isEmpty());
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
-                Nl80211TestUtils.TEST_COMMAND + 15,
+                requestMsg.getCommand(),
                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_ERROR));
     }
 
@@ -300,7 +300,7 @@ public class Nl80211ProxyTest {
         assertTrue(response2.equals(receivedResponses.get(1)));
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
-                Nl80211TestUtils.TEST_COMMAND + 17,
+                requestMsg.getCommand(),
                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_DONE));
     }
 
@@ -327,7 +327,7 @@ public class Nl80211ProxyTest {
 
         ExtendedMockito.verify(() -> WifiStatsLog.write(
                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED,
-                Nl80211TestUtils.TEST_COMMAND,
+                requestMsg.getCommand(),
                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_DONE_NO_MULTI));
     }
 

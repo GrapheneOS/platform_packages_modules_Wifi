@@ -122,33 +122,34 @@ public class Nl80211Proxy {
     }
 
     private static @Nullable List<GenericNetlinkMsg> parseNl80211MessagesFromBuffer(
-            @NonNull ByteBuffer buffer, @NonNull WifiMetrics wifiMetrics) {
+            @NonNull ByteBuffer buffer, @NonNull WifiMetrics wifiMetrics,
+            @NonNull GenericNetlinkMsg sent) {
         if (buffer == null) return null;
         List<GenericNetlinkMsg> messages = new ArrayList<>();
         while (buffer.remaining() > 0) {
             GenericNetlinkMsg message = GenericNetlinkMsg.parse(buffer);
             if (message == null) {
                 Log.e(TAG, "Unable to parse a received message");
-                wifiMetrics.reportNl80211CommandResult(null,
+                wifiMetrics.reportNl80211CommandResult(sent,
                         WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_NULL);
                 return null;
             }
             messages.add(message);
             if (message.isDoneMsg()) {
-                Log.i(TAG, "Received NLMSG_DONE");
-                wifiMetrics.reportNl80211CommandResult(message,
+                Log.i(TAG, "Received NLMSG_DONE for message: " + sent);
+                wifiMetrics.reportNl80211CommandResult(sent,
                         WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_DONE);
                 break;
             }
             if (message.isErrorMsg()) {
-                Log.e(TAG, "Received NLMSG_ERROR: " + message);
-                wifiMetrics.reportNl80211CommandResult(message,
+                Log.e(TAG, "Received NLMSG_ERROR for message: " + sent);
+                wifiMetrics.reportNl80211CommandResult(sent,
                         WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_ERROR);
                 break;
             }
             if (!message.isFlagEnabled(StructNlMsgHdr.NLM_F_MULTI)) {
                 Log.i(TAG, "Multi flag is not set");
-                wifiMetrics.reportNl80211CommandResult(message,
+                wifiMetrics.reportNl80211CommandResult(sent,
                         WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_DONE_NO_MULTI);
                 break;
             }
@@ -156,7 +157,8 @@ public class Nl80211Proxy {
         return messages;
     }
 
-    private @Nullable List<GenericNetlinkMsg> receiveNl80211Messages() {
+    private @Nullable List<GenericNetlinkMsg> receiveNl80211Messages(
+            @NonNull GenericNetlinkMsg sent) {
         List<GenericNetlinkMsg> messages = new ArrayList<>();
         try {
             // The response may arrive in several batches, where each batch
@@ -170,7 +172,8 @@ public class Nl80211Proxy {
                                 NetlinkUtils.DEFAULT_RECV_BUFSIZE,
                                 NetlinkUtils.IO_TIMEOUT_MS);
                 // Parse the individual messages from the batch.
-                List<GenericNetlinkMsg> parsedMessages = parseNl80211MessagesFromBuffer(recvBuffer, mWifiMetrics);
+                List<GenericNetlinkMsg> parsedMessages = parseNl80211MessagesFromBuffer(
+                        recvBuffer, mWifiMetrics, sent);
                 if (parsedMessages == null || parsedMessages.isEmpty()) {
                     return null;
                 }
@@ -188,7 +191,7 @@ public class Nl80211Proxy {
                 }
             }
         } catch (ErrnoException | IllegalArgumentException | InterruptedIOException e) {
-            mWifiMetrics.reportNl80211CommandResult(null,
+            mWifiMetrics.reportNl80211CommandResult(sent,
                     WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_EXCEPTION);
             Log.i(TAG, "Unable to receive Nl80211 messages. " + e);
             return null;
@@ -259,7 +262,7 @@ public class Nl80211Proxy {
                     WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__SEND_NLMSG_FAILED);
             return null;
         }
-        return receiveNl80211Messages();
+        return receiveNl80211Messages(message);
     }
 
     /**
