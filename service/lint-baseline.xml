@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.4.0-alpha08" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha08">
-
+<issues
+    format="6"
+    by="lint 8.4.0-alpha08"
+    type="baseline"
+    client=""
+    dependencies="true"
+    name=""
+    variant="all"
+    version="8.4.0-alpha08">
     <issue
         id="NewApi"
         message="Call requires API level 31 (current min is 30): `android.security.KeyChain#hasWifiKeyGrantAsUser`"
@@ -230,6 +237,39 @@
             file="packages/modules/Wifi/service/java/com/android/server/wifi/WifiShellCommand.java"
             line="3016"
             column="35"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 34 (current min is 30): `android.net.wifi.nl80211.WifiNl80211Manager.ScanEventCallback#onScanFailed`"
+        errorLine1="                            executor.execute(() -&gt; scanCallback.onScanFailed("
+        errorLine2="                                                                ~~~~~~~~~~~~">
+        <location
+            file="packages/modules/Wifi/service/java/com/android/server/wifi/nl80211/Nl80211Native.java"
+            line="122"
+            column="65"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 33 (current min is 30): `android.os.Bundle#getParcelable`"
+        errorLine1="                (AttributionSource) extras.getParcelable("
+        errorLine2="                                           ~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/Wifi/service/java/com/android/server/wifi/rtt/RttServiceImpl.java"
+            line="1064"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Class requires API level 31 (current min is 30): `android.content.AttributionSource`"
+        errorLine1="                        WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE, AttributionSource.class),"
+        errorLine2="                                                                        ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/modules/Wifi/service/java/com/android/server/wifi/rtt/RttServiceImpl.java"
+            line="1065"
+            column="73"/>
     </issue>
 
 </issues>
