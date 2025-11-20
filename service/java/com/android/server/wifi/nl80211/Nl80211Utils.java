@@ -269,34 +269,28 @@ public class Nl80211Utils {
             return mCachedWiphyInfo.get(wiphyIndex);
         }
 
-        List<GenericNetlinkMsg> responses;
+        Nl80211Response response;
+        GenericNetlinkMsg request;
+        StructNlAttr wiphyIndexAttr = new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex);
         if (isSplitWiphyDumpSupported()) {
-            StructNlAttr wiphyIndexAttr = new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex);
             StructNlAttr splitWiphyFlagAttr = new StructNlAttr(NL80211_ATTR_SPLIT_WIPHY_DUMP,
                     new byte[0]);
-            GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_WIPHY,
+            request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_WIPHY,
                     StructNlMsgHdr.NLM_F_DUMP, wiphyIndexAttr, splitWiphyFlagAttr);
-
-            responses = mNl80211Proxy.sendMessageAndReceiveResponses(request);
-            if (responses == null || responses.isEmpty()) {
-                Log.e(TAG, "getWiphyInfo: Got null responses for split wiphy dump");
-                return null;
-            }
         } else {
-            StructNlAttr wiphyIndexAttr = new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex);
-            GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_WIPHY,
+            request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_WIPHY,
                     wiphyIndexAttr);
-            GenericNetlinkMsg response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
-            if (response == null) {
-                Log.e(TAG, "getWiphyInfo: Failed to get response for GET_WIPHY");
-                return null;
-            }
-            responses = List.of(response);
+        }
+
+        response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError()) {
+            Log.e(TAG, "getWiphyInfo: Failed to send NL80211_CMD_GET_WIPHY");
+            return null;
         }
 
         // Verify that the response is for the wiphy we requested.
-        for (GenericNetlinkMsg response : responses) {
-            StructNlAttr attr = response.getAttribute(NL80211_ATTR_WIPHY);
+        for (GenericNetlinkMsg msg : response.getMessages()) {
+            StructNlAttr attr = msg.getAttribute(NL80211_ATTR_WIPHY);
             if (attr == null) {
                 Log.e(TAG, "getWiphyInfo: wiphy dump did not contain wiphy attr");
                 return null;
@@ -310,7 +304,7 @@ public class Nl80211Utils {
             }
         }
 
-        WiphyInfo info = parseWiphyInfo(responses);
+        WiphyInfo info = parseWiphyInfo(response.getMessages());
         if (info != null) {
             mCachedWiphyInfo.put(wiphyIndex, info);
             return info;
@@ -362,22 +356,18 @@ public class Nl80211Utils {
             return -1;
         }
 
-        List<GenericNetlinkMsg> responses = mNl80211Proxy.sendMessageAndReceiveResponses(request);
-        if (responses == null || responses.isEmpty()) {
-            Log.e(TAG, "No response for GET_WIPHY");
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError()) {
+            Log.e(TAG, "Failed to get response for GET_WIPHY");
             return -1;
         }
 
-        for (GenericNetlinkMsg response : responses) {
-            if (response.isErrorMsg()) {
-                Log.e(TAG, "Received error response for GET_WIPHY: " + response);
+        for (GenericNetlinkMsg msg : response.getMessages()) {
+            if (msg.getCommand() != NL80211_CMD_NEW_WIPHY) {
+                Log.e(TAG, "Wrong command in response: " + msg.getCommand());
                 continue;
             }
-            if (response.getCommand() != NL80211_CMD_NEW_WIPHY) {
-                Log.e(TAG, "Wrong command in response: " + response.getCommand());
-                continue;
-            }
-            Integer wiphyIndex = response.getAttributeValueAsInteger(NL80211_ATTR_WIPHY);
+            Integer wiphyIndex = msg.getAttributeValueAsInteger(NL80211_ATTR_WIPHY);
             if (wiphyIndex != null) {
                 mCachedWiphyIndexes.put(ifaceName, wiphyIndex);
                 return wiphyIndex;
@@ -796,12 +786,13 @@ public class Nl80211Utils {
         GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(
                 NL80211_CMD_GET_PROTOCOL_FEATURES);
         if (request == null) return null;
-        GenericNetlinkMsg response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
-        if (response == null || response.isErrorMsg()) {
-            Log.e(TAG, "Failed to get protocol features");
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError() || response.getMessage() == null) {
+            Log.e(TAG, "Failed to send GET_PROTOCOL_FEATURES");
             return null;
         }
-        return response.getAttributeValueAsInteger(NL80211_ATTR_PROTOCOL_FEATURES);
+
+        return response.getMessage().getAttributeValueAsInteger(NL80211_ATTR_PROTOCOL_FEATURES);
     }
 
     private WiphyFeatures createWiphyFeatures(int featureFlags, byte[] extFeatureFlagsBytes) {
@@ -861,24 +852,23 @@ public class Nl80211Utils {
             return null;
         }
 
-        List<GenericNetlinkMsg> responses = mNl80211Proxy.sendMessageAndReceiveResponses(request);
-        if (responses == null) {
-            Log.e(TAG, "Failed to get interface info");
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError()) {
+            Log.e(TAG, "Failed to get response for NL80211_CMD_GET_INTERFACE");
             return null;
         }
 
         List<InterfaceInfo> interfaceInfos = new ArrayList<>();
-        for (GenericNetlinkMsg response : responses) {
-            if (response.getCommand() != NetlinkConstants.NL80211_CMD_NEW_INTERFACE) {
-                Log.e(TAG, "Wrong command in response to GET_INTERFACE: "
-                        + response.getCommand());
+        for (GenericNetlinkMsg msg : response.getMessages()) {
+            if (msg.getCommand() != NetlinkConstants.NL80211_CMD_NEW_INTERFACE) {
+                Log.e(TAG, "Wrong command in response to GET_INTERFACE: " + msg.getCommand());
                 continue;
             }
 
-            Integer replyWiphyIndex = response.getAttributeValueAsInteger(NL80211_ATTR_WIPHY);
-            Integer ifIndex = response.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
-            String ifName = response.getAttributeValueAsString(NL80211_ATTR_IFNAME);
-            byte[] macAddress = response.getAttributeValueAsByteArray(NL80211_ATTR_MAC);
+            Integer replyWiphyIndex = msg.getAttributeValueAsInteger(NL80211_ATTR_WIPHY);
+            Integer ifIndex = msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
+            String ifName = msg.getAttributeValueAsString(NL80211_ATTR_IFNAME);
+            byte[] macAddress = msg.getAttributeValueAsByteArray(NL80211_ATTR_MAC);
 
             if (ifIndex == null || ifName == null || macAddress == null) {
                 Log.w(TAG, "Malformed NEW_INTERFACE response: missing attributes");
@@ -912,20 +902,20 @@ public class Nl80211Utils {
             return new ArrayList<>();
         }
 
-        List<GenericNetlinkMsg> responses = mNl80211Proxy.sendMessageAndReceiveResponses(request);
-        if (responses == null) {
-            Log.e(TAG, "No response for GET_SCAN");
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError()) {
+            Log.e(TAG, "Failed to send GET_SCAN");
             return new ArrayList<>();
         }
 
         // Each response contains one scan result.
         List<NativeScanResult> results = new ArrayList<>();
-        for (GenericNetlinkMsg response : responses) {
-            if (response.getCommand() != NL80211_CMD_NEW_SCAN_RESULTS) {
+        for (GenericNetlinkMsg msg : response.getMessages()) {
+            if (msg.getCommand() != NL80211_CMD_NEW_SCAN_RESULTS) {
                 continue;
             }
 
-            NativeScanResult result = parseScanResult(response);
+            NativeScanResult result = parseScanResult(msg);
             if (result != null) {
                 results.add(result);
             }

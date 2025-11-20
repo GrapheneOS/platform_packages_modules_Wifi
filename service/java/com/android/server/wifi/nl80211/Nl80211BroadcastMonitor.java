@@ -34,6 +34,7 @@ import com.android.net.module.util.netlink.NetlinkUtils;
 
 import java.io.FileDescriptor;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -154,6 +155,7 @@ public class Nl80211BroadcastMonitor extends PacketReader {
     private void handlePacketOnWifiThread(@NonNull byte[] recvbuf) {
         // Assume that the buffer contains a single message.
         ByteBuffer byteBuffer = ByteBuffer.wrap(recvbuf);
+        byteBuffer.order(ByteOrder.nativeOrder());
         GenericNetlinkMsg message = GenericNetlinkMsg.parse(byteBuffer);
         if (message == null) return;
 

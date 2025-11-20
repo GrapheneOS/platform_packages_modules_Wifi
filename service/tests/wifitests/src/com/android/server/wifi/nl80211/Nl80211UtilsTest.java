@@ -150,12 +150,12 @@ public class Nl80211UtilsTest {
     }
 
     private void setupProtocolFeaturesResponse(int features) {
-        GenericNetlinkMsg response = new GenericNetlinkMsg(
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(
                 NL80211_CMD_GET_PROTOCOL_FEATURES, (short) 0, (short) 0, 0);
-        response.addAttribute(
+        msg.addAttribute(
                 new StructNlAttr(NL80211_ATTR_PROTOCOL_FEATURES, features));
         when(mNl80211Proxy.sendMessageAndReceiveResponse(
-                TEST_NL80211_REQUEST_GET_PROTOCOL_FEATURES)).thenReturn(response);
+                TEST_NL80211_REQUEST_GET_PROTOCOL_FEATURES)).thenReturn(new Nl80211Response(msg));
     }
 
     private GenericNetlinkMsg createTestScanResultNetlinkMessage(byte[] bssid, byte[] ie,
@@ -226,8 +226,8 @@ public class Nl80211UtilsTest {
                 TEST_MAC_ADDR, TEST_SSID_IE, freq, signal, tsf, capability, associated,
                 radioChainInfos, NL80211_CMD_NEW_SCAN_RESULTS);
 
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_SCAN))
-                .thenReturn(List.of(scanResultMsg));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_SCAN))
+                .thenReturn(new Nl80211Response(scanResultMsg));
 
         List<NativeScanResult> results = mNl80211Utils.getScanResults(TEST_IF_NAME);
 
@@ -268,8 +268,8 @@ public class Nl80211UtilsTest {
                 TEST_MAC_ADDR_2, TEST_SSID_IE_2, freq2, signal2, tsf2, capability2, false, null,
                 NL80211_CMD_NEW_SCAN_RESULTS);
 
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_SCAN))
-                .thenReturn(List.of(scanResultMsg1, scanResultMsg2));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_SCAN))
+                .thenReturn(new Nl80211Response(scanResultMsg1, scanResultMsg2));
 
         List<NativeScanResult> results = mNl80211Utils.getScanResults(TEST_IF_NAME);
 
@@ -301,8 +301,8 @@ public class Nl80211UtilsTest {
                 TEST_MAC_ADDR, TEST_SSID_IE, freq, signal, tsf, capability, false, null,
                 NL80211_CMD_GET_WIPHY);
 
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_SCAN))
-                .thenReturn(List.of(unexpectedMsg));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_SCAN))
+                .thenReturn(new Nl80211Response(unexpectedMsg));
 
         List<NativeScanResult> results = mNl80211Utils.getScanResults(TEST_IF_NAME);
 
@@ -324,8 +324,8 @@ public class Nl80211UtilsTest {
         // Remove the BSS attribute which is required for parsing.
         malformedMsg.attributes.remove(NL80211_ATTR_BSS);
 
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_SCAN))
-                .thenReturn(List.of(malformedMsg));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_SCAN))
+                .thenReturn(new Nl80211Response(malformedMsg));
 
         List<NativeScanResult> results = mNl80211Utils.getScanResults(TEST_IF_NAME);
 
@@ -357,11 +357,11 @@ public class Nl80211UtilsTest {
 
     @Test
     public void testGetWiphyIndex_success() {
-        GenericNetlinkMsg response = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
                 (short) 0, 0);
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_WIPHY))
-                .thenReturn(List.of(response));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY))
+                .thenReturn(new Nl80211Response(msg));
 
         assertEquals(TEST_WIPHY_INDEX, mNl80211Utils.getWiphyIndex(TEST_IF_NAME));
     }
@@ -380,32 +380,32 @@ public class Nl80211UtilsTest {
 
     @Test
     public void testGetWiphyIndex_noResponse() {
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_WIPHY))
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY))
                 .thenReturn(null);
         assertEquals(-1, mNl80211Utils.getWiphyIndex(TEST_IF_NAME));
     }
 
     @Test
     public void testGetWiphyIndex_emptyResponse() {
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_WIPHY))
-                .thenReturn(new ArrayList<>());
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY))
+                .thenReturn(new Nl80211Response());
         assertEquals(-1, mNl80211Utils.getWiphyIndex(TEST_IF_NAME));
     }
 
-    private GenericNetlinkMsg createBasicWiphyInfoPacket() {
-        GenericNetlinkMsg packet = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
+    private GenericNetlinkMsg createBasicWiphyInfoMsg() {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
                 (short) 0, 0);
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_FEATURE_FLAGS, 0));
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCAN_SSIDS, (byte) 16));
-        packet.addAttribute(
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_FEATURE_FLAGS, 0));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCAN_SSIDS, (byte) 16));
+        msg.addAttribute(
                 new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS, (byte) 16));
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_MATCH_SETS, (byte) 8));
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_AKM_SUITES, (short) 1));
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_PLANS, 2));
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL, 10));
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS, 3));
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_EXT_FEATURES, new byte[1]));
-        return packet;
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_MATCH_SETS, (byte) 8));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_AKM_SUITES, (short) 1));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_PLANS, 2));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL, 10));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS, 3));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_EXT_FEATURES, new byte[1]));
+        return msg;
     }
 
     private StructNlAttr createWiphyBandsAttribute() {
@@ -469,10 +469,10 @@ public class Nl80211UtilsTest {
 
     @Test
     public void testParseWiphyInfo_success() {
-        GenericNetlinkMsg packet = createBasicWiphyInfoPacket();
-        packet.addAttribute(createWiphyBandsAttribute());
+        GenericNetlinkMsg msg = createBasicWiphyInfoMsg();
+        msg.addAttribute(createWiphyBandsAttribute());
 
-        Nl80211Utils.WiphyInfo info = mNl80211Utils.parseWiphyInfo(List.of(packet));
+        Nl80211Utils.WiphyInfo info = mNl80211Utils.parseWiphyInfo(List.of(msg));
 
         assertNotNull(info);
         assertFalse(info.bandInfo.band2g.isEmpty());
@@ -484,30 +484,30 @@ public class Nl80211UtilsTest {
 
     @Test
     public void testParseWiphyInfo_splitDump_success() {
-        // Split the response payload into two different packets.
-        GenericNetlinkMsg packet1 = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
+        // Split the response payload into two different msgs.
+        GenericNetlinkMsg msg1 = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
                 (short) 0, 0);
-        packet1.addAttribute(createWiphyBandsAttribute());
-        packet1.addAttribute(new StructNlAttr(NL80211_ATTR_FEATURE_FLAGS, 0));
+        msg1.addAttribute(createWiphyBandsAttribute());
+        msg1.addAttribute(new StructNlAttr(NL80211_ATTR_FEATURE_FLAGS, 0));
 
-        GenericNetlinkMsg packet2 = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
+        GenericNetlinkMsg msg2 = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
                 (short) 0, 0);
-        packet2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCAN_SSIDS, (byte) 16));
-        packet2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS, (byte) 16));
-        packet2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_MATCH_SETS, (byte) 8));
-        packet2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_AKM_SUITES, (short) 1));
-        packet2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_PLANS, 2));
-        packet2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL, 10));
-        packet2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS, 3));
-        packet2.addAttribute(new StructNlAttr(NL80211_ATTR_EXT_FEATURES, new byte[1]));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCAN_SSIDS, (byte) 16));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS, (byte) 16));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_MATCH_SETS, (byte) 8));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_AKM_SUITES, (short) 1));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_PLANS, 2));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL, 10));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS, 3));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_EXT_FEATURES, new byte[1]));
 
-        Nl80211Utils.WiphyInfo info = mNl80211Utils.parseWiphyInfo(List.of(packet1, packet2));
+        Nl80211Utils.WiphyInfo info = mNl80211Utils.parseWiphyInfo(List.of(msg1, msg2));
 
         assertNotNull(info);
-        // Verify information from packet1
+        // Verify information from msg1
         assertFalse(info.bandInfo.band2g.isEmpty());
         assertFalse(info.bandInfo.band5g.isEmpty());
-        // Verify information from packet2
+        // Verify information from msg2
         assertTrue(info.bandInfo.is80211nSupported);
         assertTrue(info.bandInfo.is80211acSupported);
         assertEquals(16, info.scanCapabilities.maxNumScanSsids);
@@ -515,38 +515,38 @@ public class Nl80211UtilsTest {
 
     @Test
     public void testParseWiphyInfo_missingBands() {
-        GenericNetlinkMsg packet = createBasicWiphyInfoPacket();
-        assertNull(mNl80211Utils.parseWiphyInfo(List.of(packet)));
+        GenericNetlinkMsg msg = createBasicWiphyInfoMsg();
+        assertNull(mNl80211Utils.parseWiphyInfo(List.of(msg)));
     }
 
     @Test
     public void testParseWiphyInfo_missingScanCaps() {
-        GenericNetlinkMsg packet = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
                 (short) 0, 0);
-        packet.addAttribute(createWiphyBandsAttribute());
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_FEATURE_FLAGS, 0));
-        assertNull(mNl80211Utils.parseWiphyInfo(List.of(packet)));
+        msg.addAttribute(createWiphyBandsAttribute());
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_FEATURE_FLAGS, 0));
+        assertNull(mNl80211Utils.parseWiphyInfo(List.of(msg)));
     }
 
     @Test
     public void testParseWiphyInfo_missingFeatureFlags() {
-        GenericNetlinkMsg packet = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
                 (short) 0, 0);
-        packet.addAttribute(createWiphyBandsAttribute());
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCAN_SSIDS, (byte) 16));
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS, (byte) 16));
-        packet.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_MATCH_SETS, (byte) 8));
-        assertNull(mNl80211Utils.parseWiphyInfo(List.of(packet)));
+        msg.addAttribute(createWiphyBandsAttribute());
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCAN_SSIDS, (byte) 16));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS, (byte) 16));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_MATCH_SETS, (byte) 8));
+        assertNull(mNl80211Utils.parseWiphyInfo(List.of(msg)));
     }
 
     @Test
     public void testGetWiphyInfo_noSplitDump_success() {
         mNl80211Utils.initialize(); // This will set split dump to false by default
-        GenericNetlinkMsg response = createBasicWiphyInfoPacket();
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
-        response.addAttribute(createWiphyBandsAttribute());
+        GenericNetlinkMsg msg = createBasicWiphyInfoMsg();
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        msg.addAttribute(createWiphyBandsAttribute());
         when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY))
-                .thenReturn(response);
+                .thenReturn(new Nl80211Response(msg));
 
         Nl80211Utils.WiphyInfo info = mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX);
         assertNotNull(info);
@@ -565,26 +565,26 @@ public class Nl80211UtilsTest {
         setupProtocolFeaturesResponse(NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP);
         mNl80211Utils.initialize();
 
-        GenericNetlinkMsg response1 = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
+        GenericNetlinkMsg msg1 = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
                 (short) 0, 0);
-        response1.addAttribute(createWiphyBandsAttribute());
-        response1.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
-        response1.addAttribute(new StructNlAttr(NL80211_ATTR_FEATURE_FLAGS, 0));
+        msg1.addAttribute(createWiphyBandsAttribute());
+        msg1.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        msg1.addAttribute(new StructNlAttr(NL80211_ATTR_FEATURE_FLAGS, 0));
 
-        GenericNetlinkMsg response2 = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
+        GenericNetlinkMsg msg2 = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,
                 (short) 0, 0);
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCAN_SSIDS, (byte) 16));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS, (byte) 16));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_MATCH_SETS, (byte) 8));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_AKM_SUITES, (short) 1));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_PLANS, 2));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL, 10));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS, 3));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_EXT_FEATURES, new byte[1]));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCAN_SSIDS, (byte) 16));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_SSIDS, (byte) 16));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_MATCH_SETS, (byte) 8));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_AKM_SUITES, (short) 1));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_NUM_SCHED_SCAN_PLANS, 2));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL, 10));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS, 3));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_EXT_FEATURES, new byte[1]));
 
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_WIPHY))
-                .thenReturn(List.of(response1, response2));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY))
+                .thenReturn(new Nl80211Response(msg1, msg2));
 
         Nl80211Utils.WiphyInfo info = mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX);
         assertNotNull(info);
@@ -595,11 +595,11 @@ public class Nl80211UtilsTest {
     @Test
     public void testGetWiphyInfoCachesResult() {
         mNl80211Utils.initialize();
-        GenericNetlinkMsg response = createBasicWiphyInfoPacket();
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
-        response.addAttribute(createWiphyBandsAttribute());
+        GenericNetlinkMsg msg = createBasicWiphyInfoMsg();
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        msg.addAttribute(createWiphyBandsAttribute());
         when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY))
-                .thenReturn(response);
+                .thenReturn(new Nl80211Response(msg));
 
         Nl80211Utils.WiphyInfo info1 = mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX);
         Nl80211Utils.WiphyInfo info2 = mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX);
@@ -612,11 +612,11 @@ public class Nl80211UtilsTest {
     @Test
     public void testClearWiphyInfoCaches() {
         mNl80211Utils.initialize();
-        GenericNetlinkMsg response = createBasicWiphyInfoPacket();
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
-        response.addAttribute(createWiphyBandsAttribute());
+        GenericNetlinkMsg msg = createBasicWiphyInfoMsg();
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        msg.addAttribute(createWiphyBandsAttribute());
         when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_WIPHY))
-                .thenReturn(response);
+                .thenReturn(new Nl80211Response(msg));
 
         mNl80211Utils.getWiphyInfo(TEST_WIPHY_INDEX);
         verify(mNl80211Proxy, times(1))
@@ -631,14 +631,14 @@ public class Nl80211UtilsTest {
 
     @Test
     public void testGetInterfaces_success() {
-        GenericNetlinkMsg response = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE, (short) 0,
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE, (short) 0,
                 (short) 0, 0);
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, TEST_IF_INDEX));
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, TEST_IF_NAME));
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, TEST_MAC_ADDR));
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_INTERFACE))
-                .thenReturn(List.of(response));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, TEST_WIPHY_INDEX));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, TEST_IF_INDEX));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, TEST_IF_NAME));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, TEST_MAC_ADDR));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_INTERFACE))
+                .thenReturn(new Nl80211Response(msg));
 
         List<Nl80211Utils.InterfaceInfo> interfaces = mNl80211Utils.getInterfaces(TEST_WIPHY_INDEX);
 
@@ -657,22 +657,22 @@ public class Nl80211UtilsTest {
         when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_GET_INTERFACE),
                 anyShort())).thenReturn(requestAllInterfaces);
 
-        GenericNetlinkMsg response1 = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE, (short) 0,
+        GenericNetlinkMsg msg1 = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE, (short) 0,
                 (short) 0, 0);
-        response1.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, 0));
-        response1.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, 1));
-        response1.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, "wlan0"));
-        response1.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, new byte[6]));
+        msg1.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, 0));
+        msg1.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, 1));
+        msg1.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, "wlan0"));
+        msg1.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, new byte[6]));
 
-        GenericNetlinkMsg response2 = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE,
+        GenericNetlinkMsg msg2 = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE,
                 (short) 0, (short) 0, 0);
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, 1));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, 2));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, "wlan1"));
-        response2.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, new byte[6]));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, 1));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, 2));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_IFNAME, "wlan1"));
+        msg2.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, new byte[6]));
 
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(requestAllInterfaces))
-                .thenReturn(List.of(response1, response2));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(requestAllInterfaces))
+                .thenReturn(new Nl80211Response(msg1, msg2));
 
         List<Nl80211Utils.InterfaceInfo> interfaces = mNl80211Utils.getInterfaces(-1);
 
@@ -688,20 +688,20 @@ public class Nl80211UtilsTest {
 
     @Test
     public void testGetInterfaces_failure() {
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_INTERFACE))
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_INTERFACE))
                 .thenReturn(null);
         assertNull(mNl80211Utils.getInterfaces(TEST_WIPHY_INDEX));
     }
 
     @Test
     public void testGetInterfaces_malformedResponse() {
-        GenericNetlinkMsg response = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE,
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(NL80211_CMD_NEW_INTERFACE,
                 (short) 0, (short) 0, 0);
         // Missing IFNAME
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, TEST_IF_INDEX));
-        response.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, new byte[6]));
-        when(mNl80211Proxy.sendMessageAndReceiveResponses(TEST_NL80211_REQUEST_GET_INTERFACE))
-                .thenReturn(List.of(response));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, TEST_IF_INDEX));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, new byte[6]));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_GET_INTERFACE))
+                .thenReturn(new Nl80211Response(msg));
 
         List<Nl80211Utils.InterfaceInfo> interfaces = mNl80211Utils.getInterfaces(TEST_WIPHY_INDEX);
 
