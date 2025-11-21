@@ -44,6 +44,7 @@ public class NetworkPreEvaluationManager {
     private final Clock mClock;
     private final WifiDataStall mWifiDataStall;
     private final Handler mHandler;
+    private final WifiGlobals mWifiGlobals;
     private PreEvaluationResultCallback mCallBack;
 
     public static interface PreEvaluationResultCallback {
@@ -51,9 +52,11 @@ public class NetworkPreEvaluationManager {
         void onFail(@NonNull String profileKey);
     }
 
-    public NetworkPreEvaluationManager(Clock clock, WifiDataStall wifiDataStall, Handler handler) {
+    public NetworkPreEvaluationManager(Clock clock, WifiDataStall wifiDataStall,
+            WifiGlobals wifiGlobals, Handler handler) {
         mWifiDataStall = wifiDataStall;
         mClock = clock;
+        mWifiGlobals = wifiGlobals;
         mHandler = handler;
     }
 
@@ -95,7 +98,9 @@ public class NetworkPreEvaluationManager {
      * @return true if the network with the given profileKey should be pre-evaluated.
      */
     public boolean isPreEvaluationNeeded(String profileKey, boolean isUserSelected) {
-        return !isUserSelected && mWifiDataStall.isCellularDataAvailable()
+        return mWifiGlobals.isPreEvaluationEnabled()
+                && !isUserSelected
+                && mWifiDataStall.isCellularDataAvailable()
                 && getPreEvaluationEnabled(profileKey);
     }
 

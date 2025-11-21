@@ -1450,4 +1450,6 @@
 
     <!-- Boolean indicating whether the device needs the SDEA header from the framework. -->
     <bool translatable="false" name="config_wifiAwareSdeaHeaderFromFramework">false</bool>
+    <!-- Boolean indicating whether the Wi-Fi network pre-evaluation is enabled. -->
+    <bool translatable="false" name="config_preEvaluationEnabled">true</bool>
 </resources>
