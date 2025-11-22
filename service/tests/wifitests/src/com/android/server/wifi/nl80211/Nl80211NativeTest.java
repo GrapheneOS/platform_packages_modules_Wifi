@@ -51,6 +51,8 @@ import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.net.module.util.netlink.StructNlMsgHdr;
+import com.android.server.wifi.SelfRecovery;
+import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.util.NetdWrapper;
 
 import org.junit.Before;
@@ -81,6 +83,8 @@ public class Nl80211NativeTest {
     @Mock Nl80211Utils mNl80211Utils;
     @Mock NetdWrapper mNetdWrapper;
     @Mock WifiNl80211Manager mWificondManager;
+    @Mock WifiInjector mWifiInjector;
+    @Mock SelfRecovery mSelfRecovery;
     @Mock Executor mExecutor;
     @Mock Nl80211Native.ScanEventCallback mScanCallback;
     @Mock Nl80211Native.ScanEventCallback mPnoScanCallback;
@@ -102,11 +106,12 @@ public class Nl80211NativeTest {
         when(mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
                 StructNlMsgHdr.NLM_F_DUMP))
                 .thenReturn(Nl80211TestUtils.createTestMessage());
+        when(mWifiInjector.getSelfRecovery()).thenReturn(mSelfRecovery);
     }
 
     private Nl80211Native initNl80211Native(boolean useWificond) {
         Nl80211Native nl80211Native = new Nl80211Native(mNl80211Proxy, mNl80211Utils, mNetdWrapper,
-                mWificondManager, useWificond);
+                mWificondManager, mWifiInjector, useWificond);
         nl80211Native.initialize();
         return nl80211Native;
     }
@@ -550,6 +555,60 @@ public class Nl80211NativeTest {
                 eq(null), eq(null), eq(false), eq(true), eq(vendorIes));
     }
 
+    @Test
+    public void testStartScan_triggersSelfRecoveryOnEnodevThreshold() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX, null, null);
+
+        when(mNl80211Utils.triggerScan(
+                anyInt(), anyInt(), any(), any(), anyBoolean(), anyBoolean(), any()))
+                .thenReturn(WifiScanner.REASON_NO_DEVICE);
+
+        // Call startScan ENODEV_RESTART_THRESHOLD times. It should not trigger SelfRecovery yet.
+        for (int i = 0; i < Nl80211Native.ENODEV_RESTART_THRESHOLD; i++) {
+            int result = mDut.startScan(IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
+                    null, null, null);
+            assertEquals(WifiScanner.REASON_NO_DEVICE, result);
+            verify(mSelfRecovery, never()).trigger(anyInt());
+        }
+
+        // Call startScan one more time, which should trigger SelfRecovery.
+        int result = mDut.startScan(IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
+                null, null, null);
+        assertEquals(WifiScanner.REASON_NO_DEVICE, result);
+        verify(mSelfRecovery).trigger(SelfRecovery.REASON_SUBSYSTEM_RESTART);
+    }
+
+    @Test
+    public void testStartScan_successResetsEnodevCounter() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX, null, null);
+
+        // Fail a few times, but not enough to trigger recovery
+        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), anyBoolean(),
+                anyBoolean(), any())).thenReturn(WifiScanner.REASON_NO_DEVICE);
+        for (int i = 0; i < Nl80211Native.ENODEV_RESTART_THRESHOLD - 1; i++) {
+            mDut.startScan(IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null, null);
+            verify(mSelfRecovery, never()).trigger(anyInt());
+        }
+
+        // One successful scan should reset the counter
+        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), anyBoolean(),
+                anyBoolean(), any())).thenReturn(WifiScanner.REASON_SUCCEEDED);
+        mDut.startScan(IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null, null);
+        verify(mSelfRecovery, never()).trigger(anyInt());
+
+        // Now, trigger failures again, and verify recovery is only triggered after the threshold
+        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), anyBoolean(),
+                anyBoolean(), any())).thenReturn(WifiScanner.REASON_NO_DEVICE);
+        for (int i = 0; i < Nl80211Native.ENODEV_RESTART_THRESHOLD; i++) {
+            mDut.startScan(IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null, null);
+            verify(mSelfRecovery, never()).trigger(anyInt());
+        }
+        mDut.startScan(IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null, null);
+        verify(mSelfRecovery).trigger(SelfRecovery.REASON_SUBSYSTEM_RESTART);
+    }
+
     /** Test that a successful abortScan results in the expected call to Nl80211Utils. */
     @Test
     public void testAbortScan_success() {
@@ -633,7 +692,7 @@ public class Nl80211NativeTest {
     @Test
     public void testGetScanResults_notInitialized() {
         Nl80211Native nl80211Native = new Nl80211Native(mNl80211Proxy, mNl80211Utils, mNetdWrapper,
-                mWificondManager, false);
+                mWificondManager, mWifiInjector, false);
         List<NativeScanResult> results = nl80211Native.getScanResults(IFACE_NAME, 0);
         assertTrue(results.isEmpty());
     }
@@ -851,7 +910,7 @@ public class Nl80211NativeTest {
     @Test
     public void testGetDeviceWiphyCapabilities_notInitialized() {
         Nl80211Native nl80211Native = new Nl80211Native(mNl80211Proxy, mNl80211Utils, mNetdWrapper,
-                mWificondManager, false);
+                mWificondManager, mWifiInjector, false);
         assertNull(nl80211Native.getDeviceWiphyCapabilities(IFACE_NAME));
     }
 

@@ -375,7 +375,8 @@ public class WifiInjector {
                 new Nl80211Utils(nl80211Proxy),
                 makeNetdWrapper(),
                 (WifiNl80211Manager) mContext.getSystemService(Context.WIFI_NL80211_SERVICE),
-                true /* useWificond */);
+                this,
+                /* useWificond */ true);
         mWifiNative = new WifiNative(
                 mWifiVendorHal, mSupplicantStaIfaceHal, mHostapdHal, mNl80211Native,
                 mWifiMonitor, mPropertyService, mWifiMetrics,

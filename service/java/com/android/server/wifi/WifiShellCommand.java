@@ -3123,11 +3123,14 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                 }
                             }
                             case "-f" -> {
-                                try {
-                                    freqs.add(Integer.parseInt(getNextArgRequired()));
-                                } catch (NumberFormatException e) {
-                                    pw.println("Invalid frequency argument, must be an integer.");
-                                    return -1;
+                                while (peekNextArg() != null && !peekNextArg().startsWith("-")) {
+                                    try {
+                                        freqs.add(Integer.parseInt(getNextArgRequired()));
+                                    } catch (NumberFormatException e) {
+                                        pw.println("Invalid frequency argument, must be an"
+                                                + " integer.");
+                                        return -1;
+                                    }
                                 }
                             }
                             default -> {

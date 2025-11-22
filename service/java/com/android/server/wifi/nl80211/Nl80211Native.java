@@ -37,6 +37,8 @@ import android.util.Log;
 import android.util.SparseIntArray;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.wifi.SelfRecovery;
+import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.util.NetdWrapper;
 
 import java.io.PrintWriter;
@@ -54,6 +56,8 @@ public class Nl80211Native {
     private boolean mVerboseLoggingEnabled;
 
     private static final int MAX_SSID_LENGTH = 32;
+    @VisibleForTesting
+    static final int ENODEV_RESTART_THRESHOLD = 3;
 
     /**
      * Wrapper class to store all the information for a client mode interface.
@@ -64,6 +68,7 @@ public class Nl80211Native {
         public final int ifIndex;
         public boolean associated;
         public boolean scanning;
+        public int enodevCounter;
         public final Nl80211Utils.WiphyInfo wiphyInfo;
         public final @NonNull Executor scanCallbackExecutor;
         public final @NonNull ScanEventCallback scanEventCallback;
@@ -87,6 +92,7 @@ public class Nl80211Native {
     private final @NonNull Nl80211Utils mNl80211Utils;
     private final @NonNull NetdWrapper mNetdWrapper;
     private final @NonNull WifiNl80211Manager mWificondManager;
+    private final @NonNull WifiInjector mWifiInjector;
     private final boolean mUseWificond;
     private boolean mUseNl80211Override;
     private boolean mIsInitialized;
@@ -263,11 +269,13 @@ public class Nl80211Native {
             @NonNull Nl80211Utils nl80211Utils,
             @NonNull NetdWrapper netdWrapper,
             @NonNull WifiNl80211Manager wificondManager,
+            @NonNull WifiInjector wifiInjector,
             boolean useWificond) {
         mNl80211Proxy = nl80211Proxy;
         mNl80211Utils = nl80211Utils;
         mNetdWrapper = netdWrapper;
         mWificondManager = wificondManager;
+        mWifiInjector = wifiInjector;
         mUseWificond = useWificond;
         Log.i(TAG, "useWificond: " + useWificond);
     }
@@ -652,8 +660,19 @@ public class Nl80211Native {
 
         int result = mNl80211Utils.triggerScan(ifaceInfo.ifIndex, scanType, freqs,
                 trimmedHiddenSsids, requestRandomMac, enable6GhzRnr, vendorIes);
-        ifaceInfo.scanning = (result == WifiScanner.REASON_SUCCEEDED);
 
+        if (result == WifiScanner.REASON_NO_DEVICE) {
+            ifaceInfo.enodevCounter++;
+            Log.e(TAG, "Scan failed with error ENODEV. Counter: " + ifaceInfo.enodevCounter);
+            if (ifaceInfo.enodevCounter > ENODEV_RESTART_THRESHOLD) {
+                Log.e(TAG, "ENODEV threshold reached, restarting subsystem");
+                mWifiInjector.getSelfRecovery().trigger(SelfRecovery.REASON_SUBSYSTEM_RESTART);
+            }
+            return result;
+        }
+
+        ifaceInfo.scanning = (result == WifiScanner.REASON_SUCCEEDED);
+        ifaceInfo.enodevCounter = 0;
         return result;
     }
 
