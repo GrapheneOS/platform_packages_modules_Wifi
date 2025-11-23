@@ -17,6 +17,8 @@
 package com.android.server.wifi.nl80211;
 
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_ASSOCIATE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DISASSOCIATE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCAN_ABORTED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_RESULTS;
@@ -31,6 +33,7 @@ import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
 import android.util.ArrayMap;
 import android.util.Log;
+import android.util.SparseIntArray;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.util.NetdWrapper;
@@ -56,6 +59,7 @@ public class Nl80211Native {
     static class ClientInterfaceInfo {
         public final @NonNull String ifName;
         public final int ifIndex;
+        public boolean associated;
         public final @NonNull Executor scanCallbackExecutor;
         public final @NonNull ScanEventCallback scanEventCallback;
         public final @NonNull ScanEventCallback pnoScanEventCallback;
@@ -78,67 +82,113 @@ public class Nl80211Native {
     private final boolean mUseWificond;
     private boolean mUseNl80211Override;
     private boolean mIsInitialized;
+    private final Map<String, Integer> mActiveIfaceToWiphyIndex = new ArrayMap<>();
+    private final SparseIntArray mBandToWiphyIndex = new SparseIntArray();
     private final Map<String, ClientInterfaceInfo> mClientInterfaceInfos = new ArrayMap<>();
 
-    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mNl80211BroadcastCallback =
-            (type, message) -> {
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mNewScanResultsCallback =
+            (command, message) -> {
                 if (mVerboseLoggingEnabled) {
-                    Log.d(TAG, "Received NL80211 broadcast: cmd=" + message.getCommand());
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
                 }
 
-                Integer ifindex = message.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
-                if (ifindex == null) {
-                    Log.e(TAG, "Received NL80211 broadcast event without ifindex");
-                    return;
-                }
-
-                // Find the interface by ifIndex
-                ClientInterfaceInfo clientIfaceInfo = null;
-                for (ClientInterfaceInfo info : mClientInterfaceInfos.values()) {
-                    if (info.ifIndex == ifindex) {
-                        clientIfaceInfo = info;
-                        break;
-                    }
-                }
-
-                if (clientIfaceInfo == null) {
-                    // Not an interface we're managing, or ifIndex lookup failed.
-                    return;
-                }
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
 
                 Executor executor = clientIfaceInfo.scanCallbackExecutor;
                 ScanEventCallback scanCallback = clientIfaceInfo.scanEventCallback;
+
+                executor.execute(() -> scanCallback.onScanResultReady());
+            };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mScanAbortedCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
+
+                Executor executor = clientIfaceInfo.scanCallbackExecutor;
+                ScanEventCallback scanCallback = clientIfaceInfo.scanEventCallback;
+
+                // onScanFailed() is missing to match wificond implementation.
+                executor.execute(() -> scanCallback.onScanFailed(
+                        WifiScanner.REASON_ABORT));
+            };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mSchedScanResultsCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
+
+                Executor executor = clientIfaceInfo.scanCallbackExecutor;
                 ScanEventCallback pnoScanCallback = clientIfaceInfo.pnoScanEventCallback;
 
-                switch (type) {
-                    case NL80211_CMD_NEW_SCAN_RESULTS:
-                        if (scanCallback != null) {
-                            executor.execute(() -> scanCallback.onScanResultReady());
-                        }
-                        break;
-                    case NL80211_CMD_SCAN_ABORTED:
-                        if (scanCallback != null) {
-                            // onScanFailed() is missing to match wificond implementation.
-                            executor.execute(() -> scanCallback.onScanFailed(
-                                    WifiScanner.REASON_ABORT));
-                        }
-                        break;
-                    case NL80211_CMD_SCHED_SCAN_RESULTS:
-                        if (pnoScanCallback != null) {
-                            executor.execute(() -> pnoScanCallback.onScanResultReady());
-                        }
-                        break;
-                    case NL80211_CMD_SCHED_SCAN_STOPPED:
-                        if (pnoScanCallback != null) {
-                            executor.execute(() -> pnoScanCallback.onScanFailed());
-                            // onScanFailed(int) is missing to match wificond implementation.
-                        }
-                        break;
-                    default:
-                        Log.e(TAG, "Received unhandled event: " + type);
-                        break;
-                }
+                executor.execute(() -> pnoScanCallback.onScanResultReady());
             };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mSchedScanStoppedCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
+
+                Executor executor = clientIfaceInfo.scanCallbackExecutor;
+                ScanEventCallback pnoScanCallback = clientIfaceInfo.pnoScanEventCallback;
+
+                executor.execute(() -> pnoScanCallback.onScanFailed());
+                // onScanFailed(int) is missing to match wificond implementation.
+            };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mAssociateCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
+
+                clientIfaceInfo.associated = true;
+            };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mDisassociateCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+                if (clientIfaceInfo == null) return;
+
+                clientIfaceInfo.associated = false;
+            };
+
+    private ClientInterfaceInfo getClientInterfaceInfoForBroadcast(GenericNetlinkMsg broadcast) {
+        Integer ifIndex = broadcast.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
+        if (ifIndex == null) {
+            Log.e(TAG, "Broadcast message does not have ifIndex");
+            return null;
+        }
+
+        // Find the interface by ifIndex
+        for (ClientInterfaceInfo info : mClientInterfaceInfos.values()) {
+            if (info.ifIndex == ifIndex) {
+                return info;
+            }
+            Log.e(TAG, "Could not find iface for broadcast message with ifIndex " + ifIndex);
+        }
+        return null;
+    }
 
     /**
      * Specifies a scan type: single scan initiated by the framework. Can be used in
@@ -298,6 +348,30 @@ public class Nl80211Native {
         return interfaceNames;
     }
 
+    private void handleIfaceSetup(@NonNull String ifaceName, int wiphyIndex) {
+        if (!mActiveIfaceToWiphyIndex.containsKey(ifaceName)) {
+            Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(wiphyIndex);
+            if (wiphyInfo == null) {
+                Log.e(TAG, "handleIfaceSetup: Failed to get wiphy info for index " + wiphyIndex);
+                return;
+            }
+            updateBandToWiphyIndexMapping(wiphyIndex, wiphyInfo);
+            mActiveIfaceToWiphyIndex.put(ifaceName, wiphyIndex);
+        }
+    }
+
+    private void handleIfaceTeardown(@NonNull String ifaceName) {
+        if (mActiveIfaceToWiphyIndex.containsKey(ifaceName)) {
+            int wiphyIndex = mActiveIfaceToWiphyIndex.get(ifaceName);
+            mActiveIfaceToWiphyIndex.remove(ifaceName);
+
+            // Erase the band to wiphy mapping if there are no more interfaces set up on the wiphy.
+            if (!mActiveIfaceToWiphyIndex.values().contains(wiphyIndex)) {
+                eraseBandToWiphyIndexMapping(wiphyIndex);
+            }
+        }
+    }
+
     /**
      * Set up an interface for client (STA) mode.
      *
@@ -365,11 +439,13 @@ public class Nl80211Native {
         mNetdWrapper.setInterfaceUp(ifaceName);
 
         if (mClientInterfaceInfos.isEmpty()) {
-            registerScanCallbacks();
+            registerCallbacksForClientIface();
         }
         mClientInterfaceInfos.put(ifaceName,
                 new ClientInterfaceInfo(ifaceName, foundInterface.ifIndex, executor,
                         scanCallback, pnoScanCallback));
+
+        handleIfaceSetup(ifaceName, wiphyIndex);
         return true;
     }
 
@@ -395,32 +471,43 @@ public class Nl80211Native {
         mNetdWrapper.setInterfaceDown(ifaceName);
         mClientInterfaceInfos.remove(ifaceName);
         if (mClientInterfaceInfos.isEmpty()) {
-            unregisterScanCallbacks();
+            unregisterCallbacksForClientIface();
         }
 
+        handleIfaceTeardown(ifaceName);
         return true;
     }
 
-    private void registerScanCallbacks() {
+    private void registerCallbacksForClientIface() {
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_NEW_SCAN_RESULTS,
-                mNl80211BroadcastCallback);
+                mNewScanResultsCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCAN_ABORTED,
-                mNl80211BroadcastCallback);
+                mScanAbortedCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCHED_SCAN_RESULTS,
-                mNl80211BroadcastCallback);
+                mSchedScanResultsCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCHED_SCAN_STOPPED,
-                mNl80211BroadcastCallback);
+                mSchedScanStoppedCallback);
+
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_ASSOCIATE,
+                mAssociateCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_DISASSOCIATE,
+                mDisassociateCallback);
     }
 
-    private void unregisterScanCallbacks() {
+    private void unregisterCallbacksForClientIface() {
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_NEW_SCAN_RESULTS,
-                mNl80211BroadcastCallback);
+                mNewScanResultsCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCAN_ABORTED,
-                mNl80211BroadcastCallback);
+                mScanAbortedCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCHED_SCAN_RESULTS,
-                mNl80211BroadcastCallback);
+                mSchedScanResultsCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCHED_SCAN_STOPPED,
-                mNl80211BroadcastCallback);
+                mSchedScanStoppedCallback);
+
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_ASSOCIATE,
+                mAssociateCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_DISASSOCIATE,
+                mDisassociateCallback);
     }
 
     /**
@@ -806,6 +893,54 @@ public class Nl80211Native {
         return capabilities;
     }
 
+    private void updateBandToWiphyIndexMapping(
+            int wiphyIndex, @NonNull Nl80211Utils.WiphyInfo wiphyInfo) {
+        // 2.4 GHz Band
+        boolean has2gChannels = !wiphyInfo.bandInfo.band2g.isEmpty();
+        boolean is2gAlreadyMapped =
+                mBandToWiphyIndex.indexOfKey(WifiScanner.WIFI_BAND_24_GHZ) >= 0;
+        if (has2gChannels && !is2gAlreadyMapped) {
+            mBandToWiphyIndex.put(WifiScanner.WIFI_BAND_24_GHZ, wiphyIndex);
+            Log.i(TAG, "Added 2.4 GHz support at wiphy index: " + wiphyIndex);
+        }
+
+        // 5 GHz Band
+        boolean has5gChannels =
+                !wiphyInfo.bandInfo.band5g.isEmpty() || !wiphyInfo.bandInfo.bandDfs.isEmpty();
+        boolean is5gAlreadyMapped = mBandToWiphyIndex.indexOfKey(WifiScanner.WIFI_BAND_5_GHZ) >= 0;
+        if (has5gChannels && !is5gAlreadyMapped) {
+            mBandToWiphyIndex.put(WifiScanner.WIFI_BAND_5_GHZ, wiphyIndex);
+            mBandToWiphyIndex.put(WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY, wiphyIndex);
+            Log.i(TAG, "Added 5 GHz support at wiphy index: " + wiphyIndex);
+        }
+
+        // 6 GHz Band
+        boolean has6gChannels = !wiphyInfo.bandInfo.band6g.isEmpty();
+        boolean is6gAlreadyMapped =
+                mBandToWiphyIndex.indexOfKey(WifiScanner.WIFI_BAND_6_GHZ) >= 0;
+        if (has6gChannels && !is6gAlreadyMapped) {
+            mBandToWiphyIndex.put(WifiScanner.WIFI_BAND_6_GHZ, wiphyIndex);
+            Log.i(TAG, "Added 6 GHz support at wiphy index: " + wiphyIndex);
+        }
+
+        // 60 GHz
+        boolean has60gChannels = !wiphyInfo.bandInfo.band60g.isEmpty();
+        boolean is60gAlreadyMapped =
+                mBandToWiphyIndex.indexOfKey(WifiScanner.WIFI_BAND_60_GHZ) >= 0;
+        if (has60gChannels && !is60gAlreadyMapped) {
+            mBandToWiphyIndex.put(WifiScanner.WIFI_BAND_60_GHZ, wiphyIndex);
+            Log.i(TAG, "Added 60 GHz support at wiphy index: " + wiphyIndex);
+        }
+    }
+
+    private void eraseBandToWiphyIndexMapping(int wiphyIndex) {
+        int nextIndex = mBandToWiphyIndex.indexOfValue(wiphyIndex);
+        while (nextIndex >= 0) {
+            mBandToWiphyIndex.removeAt(nextIndex);
+            nextIndex = mBandToWiphyIndex.indexOfValue(wiphyIndex);
+        }
+    }
+
     /**
      * Query the list of valid frequencies (in MHz) for the provided band.
      * The result depends on the on the country code that has been set.
@@ -828,8 +963,46 @@ public class Nl80211Native {
 
         if (!mIsInitialized) return new int[0];
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        if (mBandToWiphyIndex.indexOfKey(band) < 0) {
+            Log.e(TAG, "getChannelsMhzForBand: Wiphy index not recorded for band " + band);
+            return new int[0];
+        }
+        int wiphyIndex = mBandToWiphyIndex.get(band);
+
+        Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(wiphyIndex);
+        if (wiphyInfo == null) {
+            Log.e(TAG, "getChannelsMhzForBand: Could not get wiphy info for index " + wiphyIndex);
+            return new int[0];
+        }
+
+        List<Integer> channelsMhz;
+        switch (band) {
+            case WifiScanner.WIFI_BAND_24_GHZ -> {
+                channelsMhz = wiphyInfo.bandInfo.band2g;
+            }
+            case WifiScanner.WIFI_BAND_5_GHZ -> {
+                channelsMhz = wiphyInfo.bandInfo.band5g;
+            }
+            case WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY -> {
+                channelsMhz = wiphyInfo.bandInfo.bandDfs;
+            }
+            case WifiScanner.WIFI_BAND_6_GHZ -> {
+                channelsMhz = wiphyInfo.bandInfo.band6g;
+            }
+            case WifiScanner.WIFI_BAND_60_GHZ -> {
+                channelsMhz = wiphyInfo.bandInfo.band60g;
+            }
+            default -> {
+                Log.e(TAG, "getChannelsMhzForBand: Unsupported band: " + band);
+                return new int[0];
+            }
+        }
+
+        int[] bandArray = new int[channelsMhz.size()];
+        for (int i = 0; i < channelsMhz.size(); i++) {
+            bandArray[i] = channelsMhz.get(i);
+        }
+        return bandArray;
     }
 
     /**

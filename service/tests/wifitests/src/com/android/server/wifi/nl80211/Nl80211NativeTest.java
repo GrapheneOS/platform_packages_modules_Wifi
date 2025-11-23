@@ -25,6 +25,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.annotation.Nullable;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.WifiNl80211Manager;
@@ -70,6 +72,7 @@ import java.util.concurrent.Executor;
 @SmallTest
 public class Nl80211NativeTest {
     private Nl80211Native mDut;
+    private static final int WIPHY_INDEX = 0;
     private static final String IFACE_NAME = "wlan0";
     private static final int IFACE_INDEX = 3;
     private static final String COUNTRY_CODE = "US";
@@ -106,6 +109,30 @@ public class Nl80211NativeTest {
                 mWificondManager, useWificond);
         nl80211Native.initialize();
         return nl80211Native;
+    }
+
+    /**
+     * Sets up a client mode interface which is a prerequisite for certain methods.
+     */
+    private void setupClientModeInterfaceForTest(int wiphyIndex,
+            @Nullable Nl80211Utils.BandInfo bandInfo) {
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(wiphyIndex);
+        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
+        Nl80211Utils.InterfaceInfo expectedInfo = new Nl80211Utils.InterfaceInfo(
+                IFACE_INDEX, wiphyIndex, IFACE_NAME, new byte[6]);
+        interfaces.add(expectedInfo);
+        when(mNl80211Utils.getInterfaces(wiphyIndex)).thenReturn(interfaces);
+        // Mock a basic WiphyInfo response for setupInterfaceForClientMode to succeed.
+        if (bandInfo == null) {
+            bandInfo = new Nl80211Utils.BandInfo();
+        }
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
+                bandInfo,
+                mock(Nl80211Utils.ScanCapabilities.class),
+                mock(Nl80211Utils.WiphyFeatures.class),
+                mock(Nl80211Utils.DriverCapabilities.class));
+        when(mNl80211Utils.getWiphyInfo(wiphyIndex)).thenReturn(wiphyInfo);
+        mDut.setupInterfaceForClientMode(IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback);
     }
 
     /** Test that a scan result event invokes the correct callback. */
@@ -250,6 +277,43 @@ public class Nl80211NativeTest {
                 genericNetlinkMessage);
 
         verify(mExecutor, never()).execute(any());
+    }
+
+    /** Test that an associate event updates the client interface info. */
+    @Test
+    public void testBroadcastEvent_onAssociate_updatesClientInfo() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX, null);
+        assertFalse(mDut.getClientInterfaceInfos().get(IFACE_NAME).associated);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NetlinkConstants.NL80211_CMD_ASSOCIATE),
+                mNl80211BroadcastCallbackCaptor.capture());
+
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(IFACE_INDEX);
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(NetlinkConstants.NL80211_CMD_ASSOCIATE,
+                msg);
+
+        assertTrue(mDut.getClientInterfaceInfos().get(IFACE_NAME).associated);
+    }
+
+    /** Test that a disassociate event updates the client interface info. */
+    @Test
+    public void testBroadcastEvent_onDisassociate_updatesClientInfo() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX, null);
+        // First associate the interface to ensure a state change when disassociating
+        mDut.getClientInterfaceInfos().get(IFACE_NAME).associated = true;
+
+        verify(mNl80211Proxy).registerBroadcastCallback(
+                eq(NetlinkConstants.NL80211_CMD_DISASSOCIATE),
+                mNl80211BroadcastCallbackCaptor.capture());
+
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(IFACE_INDEX);
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(
+                NetlinkConstants.NL80211_CMD_DISASSOCIATE, msg);
+
+        assertFalse(mDut.getClientInterfaceInfos().get(IFACE_NAME).associated);
     }
 
     /** Test that {@link Nl80211Native#getInterfaceNames()} returns the expected value. */
@@ -730,10 +794,52 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testGetChannelsMhzForBand_throwsException() {
+    public void testGetChannelsMhzForBand_invalidBand() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.getChannelsMhzForBand(0));
+        setupClientModeInterfaceForTest(WIPHY_INDEX, null);
+        int[] channels = mDut.getChannelsMhzForBand(-1);
+        assertEquals(0, channels.length);
+    }
+
+    @Test
+    public void testGetChannelsMhzForBand_wiphyInfoReturnsNull() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX, null);
+        when(mNl80211Utils.getWiphyInfo(0)).thenReturn(null);
+        int[] channels = mDut.getChannelsMhzForBand(WifiScanner.WIFI_BAND_24_GHZ);
+        assertEquals(0, channels.length);
+    }
+
+    @Test
+    public void testGetChannelsMhzForBand_success() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo();
+        bandInfo.band2g.add(2412);
+        bandInfo.band5g.add(5180);
+        bandInfo.bandDfs.add(5260);
+        bandInfo.band6g.add(5955);
+        bandInfo.band60g.add(60480);
+        setupClientModeInterfaceForTest(WIPHY_INDEX, bandInfo);
+
+        // 2.4 GHz
+        int[] channels2g = mDut.getChannelsMhzForBand(WifiScanner.WIFI_BAND_24_GHZ);
+        assertArrayEquals(new int[]{2412}, channels2g);
+
+        // 5 GHz
+        int[] channels5g = mDut.getChannelsMhzForBand(WifiScanner.WIFI_BAND_5_GHZ);
+        assertArrayEquals(new int[]{5180}, channels5g);
+
+        // 5 GHz DFS
+        int[] channelsDfs = mDut.getChannelsMhzForBand(WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY);
+        assertArrayEquals(new int[]{5260}, channelsDfs);
+
+        // 6 GHz
+        int[] channels6g = mDut.getChannelsMhzForBand(WifiScanner.WIFI_BAND_6_GHZ);
+        assertArrayEquals(new int[]{5955}, channels6g);
+
+        // 60 GHz
+        int[] channels60g = mDut.getChannelsMhzForBand(WifiScanner.WIFI_BAND_60_GHZ);
+        assertArrayEquals(new int[]{60480}, channels60g);
     }
 
     @Test
@@ -757,8 +863,8 @@ public class Nl80211NativeTest {
                 mock(Nl80211Utils.WiphyFeatures.class),
                 mock(Nl80211Utils.DriverCapabilities.class));
 
-        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
-        when(mNl80211Utils.getWiphyInfo(0)).thenReturn(wiphyInfo);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(WIPHY_INDEX);
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX)).thenReturn(wiphyInfo);
 
         assertEquals(maxSsids, mDut.getMaxSsidsPerScan(IFACE_NAME));
     }
@@ -773,8 +879,8 @@ public class Nl80211NativeTest {
     @Test
     public void testGetMaxSsidsPerScan_getWiphyInfoFails() {
         mDut = initNl80211Native(false);
-        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(0);
-        when(mNl80211Utils.getWiphyInfo(0)).thenReturn(null);
+        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(WIPHY_INDEX);
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX)).thenReturn(null);
         assertEquals(0, mDut.getMaxSsidsPerScan(IFACE_NAME));
     }
 

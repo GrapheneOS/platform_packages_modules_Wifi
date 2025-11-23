@@ -3026,6 +3026,52 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     NativeScanResult.dumpList(pw, nativeResults);
                     return 0;
                 }
+                case "get-nl80211-channels-mhz": {
+                    String bandString = getNextArgRequired();
+                    String option = getNextOption();
+                    boolean useNl80211Override = false;
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+
+                    int band;
+                    switch (bandString) {
+                        case "2" -> {
+                            band = WifiScanner.WIFI_BAND_24_GHZ;
+                        }
+                        case "5" -> {
+                            band = WifiScanner.WIFI_BAND_5_GHZ;
+                        }
+                        case "dfs" -> {
+                            band = WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY;
+                        }
+                        case "6" -> {
+                            band = WifiScanner.WIFI_BAND_6_GHZ;
+                        }
+                        case "60" -> {
+                            band = WifiScanner.WIFI_BAND_60_GHZ;
+                        }
+                        default -> {
+                            pw.println("Unsupported band " + bandString
+                                    + ". Expected 2|5|dfs|6|60");
+                            return -1;
+                        }
+                    }
+                    int[] channels;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        channels = mNl80211Native.getChannelsMhzForBand(band);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+
+                    pw.println(Arrays.toString(channels));
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -4253,6 +4299,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    -n Force use nl80211 implementation.");
         pw.println("  dump-native-scans <iface-name>");
         pw.println("    For debugging. Dumps the result of Nl80211Native.getScanResults");
+        pw.println("    -n Use direct nl80211 implementation instead of wificond.");
+        pw.println("  get-nl80211-channels-mhz 2|5|dbs|6|60");
+        pw.println("    For debugging. Dumps the result of Nl80211Native.getChannelsMhzForBand");
         pw.println("    -n Use direct nl80211 implementation instead of wificond.");
     }
 

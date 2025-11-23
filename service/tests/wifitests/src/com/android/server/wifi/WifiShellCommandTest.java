@@ -1623,4 +1623,67 @@ public class WifiShellCommandTest extends WifiBaseTest {
         verify(mNl80211Native).setupInterfaceForClientMode(eq(ifaceName), any(), any(), any());
         verify(mNl80211Native).setUseNl80211Override(false);
     }
+
+    @Test
+    public void testGetNl80211ChannelsMhz_InvalidInput() {
+        BinderUtil.setUid(Process.ROOT_UID);
+
+        int result = mWifiShellCommand.exec(new Binder(), new FileDescriptor(),
+                new FileDescriptor(), new FileDescriptor(),
+                new String[]{"get-nl80211-channels-mhz", "invalid"});
+
+        assertEquals(-1, result);
+        verify(mNl80211Native, never()).getChannelsMhzForBand(anyInt());
+    }
+
+    private void testGetNl80211ChannelsMhz_success(String bandArg, int expectedBand) {
+        BinderUtil.setUid(Process.ROOT_UID);
+
+        int result = mWifiShellCommand.exec(new Binder(), new FileDescriptor(),
+                new FileDescriptor(), new FileDescriptor(),
+                new String[]{"get-nl80211-channels-mhz", bandArg});
+
+        assertEquals(0, result);
+        verify(mNl80211Native).getChannelsMhzForBand(expectedBand);
+        verify(mNl80211Native, times(2)).setUseNl80211Override(false);
+    }
+
+    @Test
+    public void testGetNl80211ChannelsMhz_Band2GHz() {
+        testGetNl80211ChannelsMhz_success("2", WifiScanner.WIFI_BAND_24_GHZ);
+    }
+
+    @Test
+    public void testGetNl80211ChannelsMhz_Band5GHz() {
+        testGetNl80211ChannelsMhz_success("5", WifiScanner.WIFI_BAND_5_GHZ);
+    }
+
+    @Test
+    public void testGetNl80211ChannelsMhz_Band5GHzDfs() {
+        testGetNl80211ChannelsMhz_success("dfs", WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY);
+    }
+
+    @Test
+    public void testGetNl80211ChannelsMhz_Band6GHz() {
+        testGetNl80211ChannelsMhz_success("6", WifiScanner.WIFI_BAND_6_GHZ);
+    }
+
+    @Test
+    public void testGetNl80211ChannelsMhz_Band60GHz() {
+        testGetNl80211ChannelsMhz_success("60", WifiScanner.WIFI_BAND_60_GHZ);
+    }
+
+    @Test
+    public void testGetNl80211ChannelsMhz_withNl80211Override() {
+        BinderUtil.setUid(Process.ROOT_UID);
+
+        int result = mWifiShellCommand.exec(new Binder(), new FileDescriptor(),
+                new FileDescriptor(), new FileDescriptor(),
+                new String[]{"get-nl80211-channels-mhz", "2", "-n"});
+
+        assertEquals(0, result);
+        verify(mNl80211Native).getChannelsMhzForBand(WifiScanner.WIFI_BAND_24_GHZ);
+        verify(mNl80211Native).setUseNl80211Override(true);
+        verify(mNl80211Native).setUseNl80211Override(false);
+    }
 }
