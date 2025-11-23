@@ -148,6 +148,8 @@ import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.nl80211.NativeScanResult;
 import com.android.server.wifi.nl80211.Nl80211Native;
 import com.android.server.wifi.nl80211.Nl80211Utils;
+import com.android.server.wifi.nl80211.PnoNetwork;
+import com.android.server.wifi.nl80211.PnoSettings;
 import com.android.server.wifi.util.ApConfigUtil;
 import com.android.server.wifi.util.ArrayUtils;
 
@@ -3193,6 +3195,128 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     return 0;
                 }
+                case "start-nl80211-pno-scan": {
+                    String ifaceName = null;
+                    int intervalMs = 0;
+                    int iterations = 0;
+                    int multiplier = 0;
+                    int min2gRssiDbm = 0;
+                    int min5gRssiDbm = 0;
+                    List<PnoNetwork> pnoNetworks = new ArrayList<>();
+                    boolean useNl80211Override = false;
+
+                    String option = getNextOption();
+                    while (option != null) {
+                        switch (option) {
+                            case "-n" -> useNl80211Override = true;
+                            case "-p" -> {
+                                PnoNetwork pnoNetwork = new PnoNetwork();
+                                pnoNetwork.setSsid(
+                                        getNextArgRequired().getBytes(StandardCharsets.UTF_8));
+                                if ("hidden".equals(peekNextArg())) {
+                                    pnoNetwork.setHidden(true);
+                                    getNextArgRequired(); // consume "hidden"
+                                }
+                                Set<Integer> freqs = new ArraySet<>();
+                                while (peekNextArg() != null && !peekNextArg().startsWith("-")) {
+                                    try {
+                                        freqs.add(Integer.parseInt(getNextArgRequired()));
+                                    } catch (NumberFormatException e) {
+                                        pw.println("Invalid frequency argument, must be an"
+                                                + " integer.");
+                                        return -1;
+                                    }
+                                }
+                                int[] freqsArray = new int[freqs.size()];
+                                int i = 0;
+                                for (int freq : freqs) {
+                                    freqsArray[i] = freq;
+                                    i++;
+                                }
+                                pnoNetwork.setFrequenciesMhz(freqsArray);
+                                pnoNetworks.add(pnoNetwork);
+                            }
+                            case "-i" -> {
+                                ifaceName = getNextArgRequired();
+                            }
+                            case "-v" -> {
+                                intervalMs = Integer.parseInt(getNextArgRequired());
+                            }
+                            case "-k" -> {
+                                iterations = Integer.parseInt(getNextArgRequired());
+                            }
+                            case "-m" -> {
+                                multiplier = Integer.parseInt(getNextArgRequired());
+                            }
+                            case "-2" -> {
+                                min2gRssiDbm = Integer.parseInt(getNextArgRequired());
+                            }
+                            case "-5" -> {
+                                min5gRssiDbm = Integer.parseInt(getNextArgRequired());
+                            }
+                            default -> {
+                                pw.println("Invalid option: " + option);
+                                return -1;
+                            }
+                        }
+                        option = getNextOption();
+                    }
+
+                    if (ifaceName == null) {
+                        pw.println("Interface name is required.");
+                        return -1;
+                    }
+
+                    PnoSettings pnoSettings = new PnoSettings();
+                    pnoSettings.setIntervalMillis(intervalMs);
+                    pnoSettings.setScanIterations(iterations);
+                    pnoSettings.setScanIntervalMultiplier(multiplier);
+                    pnoSettings.setMin2gRssiDbm(min2gRssiDbm);
+                    pnoSettings.setMin5gRssiDbm(min5gRssiDbm);
+                    pnoSettings.setPnoNetworks(pnoNetworks);
+
+                    boolean success;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        success = mNl80211Native.startPnoScan(ifaceName, pnoSettings,
+                                mContext.getMainExecutor(),
+                                new Nl80211Native.PnoScanRequestCallback() {
+                                    @Override
+                                    public void onPnoRequestSucceeded() {
+                                        pw.println("NL80211 PNO scan request succeeded.");
+                                    }
+
+                                    @Override
+                                    public void onPnoRequestFailed() {
+                                        pw.println("NL80211 PNO scan request failed.");
+                                    }
+                                });
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    pw.println("Start PNO scan " + (success ? "succeeded" : "failed"));
+                    return 0;
+                }
+                case "stop-nl80211-pno-scan": {
+                    String ifaceName = getNextArgRequired();
+                    boolean useNl80211Override = false;
+
+                    String option = getNextOption();
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        mNl80211Native.stopPnoScan(ifaceName);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -4436,7 +4560,24 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    -h <ssid...>: A list of hidden SSIDs to scan for.");
         pw.println("    -r: Enable 6GHz Reduced Neighbor Report.");
         pw.println("    -v <hex>: Vendor IE hex data.");
-        pw.println("    -f <freq...>: A list of frequencies to scan.");
+        pw.println("  start-nl80211-pno-scan -i <iface> -v <interval> -k <iterations>"
+                + " -m <multiplier> -2 <min2g_rssi> -5 <min5g_rssi> [-n]"
+                + " [-p <ssid> [hidden] [<freq1> <freq2>...]]...");
+        pw.println("    Start a PNO scan using Nl80211Native.");
+        pw.println("    -n Use direct nl80211 implementation instead of wificond.");
+        pw.println("    -i <iface>: The interface to scan on.");
+        pw.println("    -v <interval>: Fast scan interval in milliseconds.");
+        pw.println("    -k <iterations>: Number of fast scan iterations.");
+        pw.println("    -m <multiplier>: Multiplier for the final interval.");
+        pw.println("    -2 <min2g_rssi>: Minimum 2.4GHz RSSI in dBm.");
+        pw.println("    -5 <min5g_rssi>: Minimum 5GHz RSSI in dBm.");
+        pw.println("    -p <ssid> [hidden] [<freq>...]: A PNO network to scan for.");
+        pw.println("        <ssid>: SSID of the network.");
+        pw.println("        [hidden]: Optional flag to indicate a hidden network.");
+        pw.println("        [<freq>...]: Optional list of frequencies to scan for this network.");
+        pw.println("  stop-nl80211-pno-scan <iface>");
+        pw.println("    Stops an ongoing PNO scan via Nl80211Native.stopPnoScan.");
+        pw.println("    -n Use direct nl80211 implementation instead of wificond.");
     }
 
     @Override
