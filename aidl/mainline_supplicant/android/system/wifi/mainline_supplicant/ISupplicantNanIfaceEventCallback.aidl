@@ -407,4 +407,18 @@ oneway interface ISupplicantNanIfaceEventCallback {
      *        |NanStatusCode.INVALID_NDP_ID|
      */
     void notifyRespondToDataPathIndicationResponse(in char id, in NanStatus status);
+
+    /**
+     * Callback invoked in response to a terminate data path request
+     * |ISupplicantNanIface.terminateDataPathRequest|.
+     *
+     * @param id Command ID corresponding to the original request.
+     * @param status NanStatus of the operation. Possible status codes are:
+     *        |NanStatusCode.SUCCESS|
+     *        |NanStatusCode.INVALID_ARGS|
+     *        |NanStatusCode.INTERNAL_FAILURE|
+     *        |NanStatusCode.PROTOCOL_FAILURE|
+     *        |NanStatusCode.INVALID_NDP_ID|
+     */
+    void notifyTerminateDataPathResponse(in char id, in NanStatus status);
 }

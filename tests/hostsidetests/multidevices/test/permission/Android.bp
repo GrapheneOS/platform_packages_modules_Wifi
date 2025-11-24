@@ -23,6 +23,7 @@ python_test_host {
     srcs: [
         "cts_wifi_permission_test_suite.py",
         "wifi_location_info_foreground_test.py",
+        "wifi_location_info_background_test.py",
     ],
     test_config: "AndroidTest.xml",
     libs: [

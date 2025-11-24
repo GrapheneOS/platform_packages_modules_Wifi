@@ -23,6 +23,8 @@ import android.os.Parcel;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.wifi.flags.Flags;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,9 +74,17 @@ public class WifiConnectedSessionInfoTest {
     }
 
     private static WifiConnectedSessionInfo createResult() {
-        return new WifiConnectedSessionInfo.Builder(101)
-                .setUserSelected(true)
-                .build();
+        if (Flags.feedMoreDataToExternalScorer()) {
+            return new WifiConnectedSessionInfo.Builder(101)
+                    .setUserSelected(true)
+                    .setPreEvaluationActive(true)
+                    .setCarrierNetwork(true)
+                    .build();
+        } else {
+            return new WifiConnectedSessionInfo.Builder(101)
+                    .setUserSelected(true)
+                    .build();
+        }
     }
 
     private static void assertWifiConnectedSessionInfoEquals(
@@ -82,5 +92,9 @@ public class WifiConnectedSessionInfoTest {
             WifiConnectedSessionInfo actual) {
         assertEquals(expected.getSessionId(), actual.getSessionId());
         assertEquals(expected.isUserSelected(), actual.isUserSelected());
+        if (Flags.feedMoreDataToExternalScorer()) {
+            assertEquals(expected.isPreEvaluationActive(), actual.isPreEvaluationActive());
+            assertEquals(expected.isCarrierNetwork(), actual.isCarrierNetwork());
+        }
     }
 }

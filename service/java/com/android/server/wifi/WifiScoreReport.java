@@ -42,6 +42,7 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.Process;
 import android.os.RemoteException;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -299,6 +300,8 @@ public class WifiScoreReport {
                 }
             }
             mWifiInfo.setUsable(mIsUsable);
+            mNetworkPreEvaluationManager.stopPreEvaluation(
+                    mCurrentWifiConfiguration.getProfileKey(), mIsUsable);
             mWifiMetrics.setScorerPredictedWifiUsabilityState(mInterfaceName,
                     mIsUsable ? WifiMetrics.WifiUsabilityState.USABLE
                             : WifiMetrics.WifiUsabilityState.UNUSABLE);
@@ -485,7 +488,8 @@ public class WifiScoreReport {
         /**
          * Starts a new scoring session.
          */
-        public void startSession(int sessionId, boolean isUserSelected) {
+        public void startSession(int sessionId, boolean isUserSelected,
+                boolean isPreEvaluationActive, boolean isCarrierNetwork) {
             if (sessionId == INVALID_SESSION_ID) {
                 throw new IllegalArgumentException();
             }
@@ -504,6 +508,8 @@ public class WifiScoreReport {
                 WifiConnectedSessionInfo sessionInfo =
                         new WifiConnectedSessionInfo.Builder(sessionId)
                                 .setUserSelected(isUserSelected)
+                                .setPreEvaluationActive(isPreEvaluationActive)
+                                .setCarrierNetwork(isCarrierNetwork)
                                 .build();
                 mScorer.onStart(sessionInfo);
             } catch (RemoteException e) {
@@ -1063,8 +1069,11 @@ public class WifiScoreReport {
     /**
      * Start the registered Wi-Fi connected network scorer.
      * @param netId identifies the current android.net.Network
+     * @param isUserSelected whether the user has explicitly selected this network
+     *
+     * @return true if pre-evaluation is needed, false otherwise.
      */
-    public void startConnectedNetworkScorer(int netId, boolean isUserSelected) {
+    public boolean startConnectedNetworkScorer(int netId, boolean isUserSelected) {
         Log.d(TAG, "startConnectedNetworkScorer(" + netId + ", " + isUserSelected + ")");
         mIsUserSelected = isUserSelected;
         final int sessionId = getCurrentSessionId();
@@ -1080,17 +1089,23 @@ public class WifiScoreReport {
             }
             sb.append(" sessionId=").append(sessionId);
             Log.w(TAG, sb.toString());
-            return;
+            return false;
         }
         mCurrentWifiConfiguration = mWifiConfigManager.getConfiguredNetwork(
                 mWifiInfo.getNetworkId());
         mWifiInfo.setScore(isPrimary() ? ConnectedScorer.WIFI_MAX_SCORE
                 : ConnectedScorer.WIFI_SECONDARY_MAX_SCORE);
-        mWifiConnectedNetworkScorerHolder.startSession(sessionId, mIsUserSelected);
+        boolean isPreEvaluationNeeded = mNetworkPreEvaluationManager.isPreEvaluationNeeded(
+                mCurrentWifiConfiguration.getProfileKey(), isUserSelected);
+        mWifiConnectedNetworkScorerHolder.startSession(sessionId,
+                mIsUserSelected,
+                isPreEvaluationNeeded,
+                mCurrentWifiConfiguration.carrierId != TelephonyManager.UNKNOWN_CARRIER_ID);
         mWifiInfoNoReset.setBSSID(mWifiInfo.getBSSID());
         mWifiInfoNoReset.setSSID(mWifiInfo.getWifiSsid());
         mWifiInfoNoReset.setRssi(mWifiInfo.getRssi());
         mLastScoreBreachLowTimeMillis = INVALID_TIMESTAMP_MS;
+        return isPreEvaluationNeeded;
     }
 
     /**

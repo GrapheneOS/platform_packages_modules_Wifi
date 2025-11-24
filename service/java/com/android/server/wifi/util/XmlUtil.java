@@ -905,7 +905,8 @@ public class XmlUtil {
         @SuppressLint("NewApi")
         public static Pair<String, WifiConfiguration> parseFromXml(
                 XmlPullParser in, int outerTagDepth, boolean shouldExpectEncryptedCredentials,
-                @Nullable WifiConfigStoreEncryptionUtil encryptionUtil, boolean fromSuggestion)
+                @Nullable WifiConfigStoreEncryptionUtil encryptionUtil, boolean fromSuggestion,
+                WifiPermissionsUtil wifiPermissionsUtil)
                 throws XmlPullParserException, IOException {
             WifiConfiguration configuration = new WifiConfiguration();
             String configKeyInData = null;
@@ -1238,16 +1239,21 @@ public class XmlUtil {
             if (Environment.isSdkNewerThanB()
                     && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
                 if (!allowedAutoJoinInAdvancedProtectionExists) {
-                    boolean isInsecure = true;
                     for (SecurityParams p : configuration.getSecurityParamsList()) {
-                        if (!p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OPEN)
-                                && !p.isSecurityType(WifiConfiguration.SECURITY_TYPE_WEP)
-                                && !p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OWE)) {
-                            isInsecure = false;
-                            break;
+                        if (p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OPEN)
+                                || p.isSecurityType(WifiConfiguration.SECURITY_TYPE_WEP)
+                                || p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OWE)) {
+                            boolean isDeviceOwnerProfileOwner =
+                                    wifiPermissionsUtil.isDeviceOwner(
+                                    configuration.creatorUid, configuration.creatorName)
+                                            || wifiPermissionsUtil.isProfileOwner(
+                                            configuration.creatorUid, configuration.creatorName);
+                            if (!isDeviceOwnerProfileOwner) {
+                                configuration.setAutoJoinInAdvancedProtectionModeEnabled(false);
+                                break;
+                            }
                         }
                     }
-                    configuration.setAutoJoinInAdvancedProtectionModeEnabled(!isInsecure);
                 }
             }
             configuration.setDppConnectionKeys(dppConnector, dppCSign, dppNetAccessKey);

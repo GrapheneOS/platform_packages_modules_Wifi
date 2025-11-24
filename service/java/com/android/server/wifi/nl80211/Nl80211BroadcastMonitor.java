@@ -34,6 +34,7 @@ import com.android.net.module.util.netlink.NetlinkUtils;
 
 import java.io.FileDescriptor;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -54,7 +55,7 @@ public class Nl80211BroadcastMonitor extends PacketReader {
     private final List<Integer> mMulticastGroupIds;
     private final Object mLock = new Object();
 
-    // Maps an event type to a set of callbacks to trigger when that event occurs.
+    // Maps an event command to a set of callbacks to trigger when that event occurs.
     private final Map<Short, Set<Nl80211BroadcastCallback>> mEventCallbackMap = new HashMap<>();
 
     Nl80211BroadcastMonitor(@NonNull Handler backgroundHandler, @NonNull Handler wifiHandler,
@@ -69,13 +70,13 @@ public class Nl80211BroadcastMonitor extends PacketReader {
      */
     public interface Nl80211BroadcastCallback {
         /**
-         * Called when a broadcast event with the specified type is received.
+         * Called when a broadcast event with the specified command is received.
          *
-         * @param type Type of broadcast that was received. See the
+         * @param command Type of broadcast command that was received. See the
          *             NL80211_CMD values in {@link NetlinkConstants}.
          * @param message Full message sent by the broadcast.
          */
-        void onEvent(short type, @NonNull GenericNetlinkMsg message);
+        void onEvent(short command, @NonNull GenericNetlinkMsg message);
     }
 
     /**
@@ -154,52 +155,54 @@ public class Nl80211BroadcastMonitor extends PacketReader {
     private void handlePacketOnWifiThread(@NonNull byte[] recvbuf) {
         // Assume that the buffer contains a single message.
         ByteBuffer byteBuffer = ByteBuffer.wrap(recvbuf);
+        byteBuffer.order(ByteOrder.nativeOrder());
         GenericNetlinkMsg message = GenericNetlinkMsg.parse(byteBuffer);
         if (message == null) return;
 
         synchronized (mLock) {
-            short type = message.genNlHeader.command;
-            Set<Nl80211BroadcastCallback> callbacks = mEventCallbackMap.get(type);
+            short command = message.genNlHeader.command;
+            Set<Nl80211BroadcastCallback> callbacks = mEventCallbackMap.get(command);
             if (callbacks == null || callbacks.isEmpty()) return;
             for (Nl80211BroadcastCallback callback : callbacks) {
-                callback.onEvent(type, message);
+                callback.onEvent(command, message);
             }
         }
     }
 
     /**
-     * Register a callback to trigger when the specified broadcast event type is received.
+     * Register a callback to trigger when the specified broadcast event command is received.
      *
-     * @param type Type of broadcast event on which to trigger the callback. See the
+     * @param command Type of broadcast command on which to trigger the callback. See the
      *             NL80211_CMD values in {@link NetlinkConstants}.
      * @param callback Callback object that should be called.
      */
-    public void registerBroadcastCallback(short type, @NonNull Nl80211BroadcastCallback callback) {
+    public void registerBroadcastCallback(
+            short command, @NonNull Nl80211BroadcastCallback callback) {
         synchronized (mLock) {
             if (callback == null) return;
-            if (!mEventCallbackMap.containsKey(type)) {
-                mEventCallbackMap.put(type, new HashSet<>());
+            if (!mEventCallbackMap.containsKey(command)) {
+                mEventCallbackMap.put(command, new HashSet<>());
             }
-            mEventCallbackMap.get(type).add(callback);
+            mEventCallbackMap.get(command).add(callback);
         }
     }
 
     /**
      * Unregister a broadcast event callback that was previously registered.
      *
-     * @param type Type of broadcast event which the callback is associated with. See the
+     * @param command Command of broadcast event which the callback is associated with. See the
      *             NL80211_CMD values in {@link NetlinkConstants}.
      * @param callback Callback object which was registered.
      */
     public void unregisterBroadcastCallback(
-            short type, @NonNull Nl80211BroadcastCallback callback) {
+            short command, @NonNull Nl80211BroadcastCallback callback) {
         synchronized (mLock) {
-            if (callback == null || !mEventCallbackMap.containsKey(type)) return;
-            Set<Nl80211BroadcastCallback> callbacks = mEventCallbackMap.get(type);
+            if (callback == null || !mEventCallbackMap.containsKey(command)) return;
+            Set<Nl80211BroadcastCallback> callbacks = mEventCallbackMap.get(command);
             callbacks.remove(callback);
             if (callbacks.isEmpty()) {
-                // Remove this event type from the map if it has no registered callbacks.
-                mEventCallbackMap.remove(type);
+                // Remove this event command from the map if it has no registered callbacks.
+                mEventCallbackMap.remove(command);
             }
         }
     }

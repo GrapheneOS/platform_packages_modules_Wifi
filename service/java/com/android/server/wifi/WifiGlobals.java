@@ -681,6 +681,17 @@ public class WifiGlobals {
         return mWifiResourceCache.getBoolean(R.bool.config_prioritizeExternalScorer);
     }
 
+    /**
+     * Returns true if the pre-evaluation is enabled.
+     *
+     * <p>Pre-evaluation is a feature that allows the scorer to evaluate networks before the
+     * connection. This helps to avoid unnecessary connection attempts to networks that are known to
+     * be bad.
+     */
+    public boolean isPreEvaluationEnabled() {
+        return mWifiResourceCache.getBoolean(R.bool.config_preEvaluationEnabled);
+    }
+
     /** Dump method for debugging */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("Dump of WifiGlobals");

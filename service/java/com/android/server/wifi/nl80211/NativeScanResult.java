@@ -25,8 +25,10 @@ import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
 
+import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -290,6 +292,86 @@ public final class NativeScanResult {
             for (android.net.wifi.nl80211.RadioChainInfo chainInfo :
                     wificondScanResult.getRadioChainInfos()) {
                 this.radioChainInfos.add(new RadioChainInfo(chainInfo));
+            }
+        }
+    }
+
+    /**
+     * Dumps the contents of a list of scan results.
+     */
+    public static void dumpList(
+            @NonNull PrintWriter pw, @NonNull List<NativeScanResult> nativeResults) {
+
+        // Updated header to include IE Length and Associated status
+        pw.printf("%-18s %-10s %-7s %-12s %-10s %-8s %-8s %-10s %-10s %s\n",
+                "BSSID", "Frequency", "Signal", "TSF", "Capability", "ESS", "Privacy", "IE Length",
+                "Associated", "SSID");
+
+        for (NativeScanResult result : nativeResults) {
+            // BSSID
+            String bssidStr = "XX:XX:XX:XX:XX:XX";
+            if (result.bssid != null && result.bssid.length == 6) {
+                bssidStr = MacAddress.fromBytes(result.bssid).toString();
+            }
+
+            // SSID
+            String ssidStr = "";
+            if (result.ssid != null) {
+                // Use StandardCharsets.UTF_8 for robust decoding
+                ssidStr = new String(result.ssid, StandardCharsets.UTF_8);
+            }
+
+            // Signal (convert mBm to dBm)
+            int signalDbm = result.signalMbm / 100;
+
+            // TSF
+            long tsf = result.tsf;
+
+            // Capability (as hex for debugging)
+            String capabilityHex = Integer.toHexString(result.capability);
+
+            // ESS/IBSS check
+            String essStatus;
+            if ((result.capability & BSS_CAPABILITY_ESS) != 0) {
+                essStatus = "ESS";
+            } else if ((result.capability & BSS_CAPABILITY_IBSS) != 0) {
+                essStatus = "IBSS";
+            } else {
+                essStatus = "N/A";
+            }
+
+            // Privacy check (WPA/WPA2/etc. indicator)
+            String privacyStatus = (result.capability & BSS_CAPABILITY_PRIVACY) != 0 ? "Yes" : "No";
+
+            // Associated check
+            String associatedStatus = result.associated ? "Yes" : "No";
+
+            // IE Length
+            int ieLength = result.infoElement != null ? result.infoElement.length : 0;
+
+
+            // Print main BSS line with new columns
+            pw.printf("%-18s %-10d %-7d %-12d %-10s %-8s %-8s %-10d %-10s %s\n",
+                    bssidStr,
+                    result.frequency,
+                    signalDbm,
+                    tsf,
+                    capabilityHex,
+                    essStatus,
+                    privacyStatus,
+                    ieLength,       // IE Length column
+                    associatedStatus, // Associated column
+                    ssidStr);
+
+            // Print Radio Chain Info (indented on subsequent lines)
+            if (result.radioChainInfos != null && !result.radioChainInfos.isEmpty()) {
+                // Small header for the chain info
+                pw.printf("  %-16s %-6s %-6s\n", "Chain Info:", "ID", "RSSI");
+                for (RadioChainInfo chainInfo : result.radioChainInfos) {
+                    // Indented line showing ID and RSSI
+                    pw.printf("  %-16s %-6d %-6d\n", "", chainInfo.getChainId(),
+                            chainInfo.getLevelDbm());
+                }
             }
         }
     }

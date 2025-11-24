@@ -5381,13 +5381,48 @@ public class WifiServiceImplTest extends WifiBaseTest {
      * Verify that a call to {@link WifiServiceImpl#retrieveBackupData()} is only allowed from
      * callers with the signature only NETWORK_SETTINGS permission.
      */
-    @Test(expected = SecurityException.class)
-    public void testRetrieveBackupDataNotApprovedCaller() {
+    @Test
+    public void testRetrieveBackupData() {
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(false);
+
+        // Scenario 1: Permission denied.
         doThrow(new SecurityException()).when(mContext)
                 .enforceCallingOrSelfPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
                         eq("WifiService"));
-        mWifiServiceImpl.retrieveBackupData();
+        assertThrows(SecurityException.class,
+                () -> mWifiServiceImpl.retrieveBackupData());
         verify(mWifiBackupRestore, never()).retrieveBackupDataFromConfigurations(any(List.class));
+
+        // Scenario 2: Permission granted and verify the tasks.
+        doNothing().when(mContext)
+                .enforceCallingOrSelfPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
+                        eq("WifiService"));
+        mLooper.startAutoDispatch();
+        mWifiServiceImpl.retrieveBackupData();
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+        verify(mWifiConfigManager).getConfiguredNetworksWithPasswords();
+        verify(mWifiConfigManager, never()).getConfiguredNetworksCreatedByCurrentUserWithPassword();
+        verify(mWifiBackupRestore).retrieveBackupDataFromConfigurations(any(List.class));
+    }
+
+    /**
+     * Verify that a call to {@link WifiServiceImpl#retrieveBackupData()} only retrieves networks
+     * created by the current foreground user for backup.
+     */
+    @Test
+    public void testRetrieveBackupDataLimitingToNetworkCreators() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+
+        doNothing().when(mContext)
+                .enforceCallingOrSelfPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
+                        eq("WifiService"));
+        mLooper.startAutoDispatch();
+        mWifiServiceImpl.retrieveBackupData();
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+        verify(mWifiConfigManager, never()).getConfiguredNetworksWithPasswords();
+        verify(mWifiConfigManager).getConfiguredNetworksCreatedByCurrentUserWithPassword();
+        verify(mWifiBackupRestore).retrieveBackupDataFromConfigurations(any(List.class));
     }
 
     /**

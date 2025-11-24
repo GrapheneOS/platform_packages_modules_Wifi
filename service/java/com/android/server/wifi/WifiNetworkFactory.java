@@ -1007,6 +1007,8 @@ public class WifiNetworkFactory extends NetworkFactory {
         pw.println(TAG + ": mGenericConnectionReqCount " + mGenericConnectionReqCount);
         pw.println(TAG + ": mActiveSpecificNetworkRequest " + mActiveSpecificNetworkRequest);
         pw.println(TAG + ": mUserApprovedAccessPointMap " + mUserApprovedAccessPointMap);
+        pw.println(TAG + ": mLocalOnlyDisconnectionStatusListenerPerApp "
+                + mLocalOnlyDisconnectionStatusListenerPerApp);
     }
 
     /**

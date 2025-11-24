@@ -19,6 +19,7 @@ package com.android.server.wifi;
 import static android.net.wifi.WifiUsabilityStatsEntry.SCORER_TYPE_INVALID;
 import static android.net.wifi.WifiUsabilityStatsEntry.SCORER_TYPE_ML;
 import static android.net.wifi.WifiUsabilityStatsEntry.SCORER_TYPE_VELOCITY;
+import static android.telephony.TelephonyManager.UNKNOWN_CARRIER_ID;
 
 import static com.android.server.wifi.ClientModeImpl.WIFI_WORK_SOURCE;
 import static com.android.server.wifi.Clock.INVALID_TIMESTAMP_MS;
@@ -122,6 +123,7 @@ public class WifiScoreReportTest extends WifiBaseTest {
 
     private static final int TEST_LOW_CONNECTED_SCORE_SCAN_PERIOD_SECONDS = 60;
     private static final int TEST_NETWORK_ID = 860370;
+    private static final int TEST_CARRIER_ID = 123;
     private static final int TEST_SESSION_ID = 8603703; // last digit is a check digit
     private static final String TEST_PROFILE_KEY = "1234567890";
     private static final String TEST_IFACE_NAME = "wlan0";
@@ -175,6 +177,7 @@ public class WifiScoreReportTest extends WifiBaseTest {
     @Mock MlConnectedScorer mMockMlConnectedScorer;
     @Mock NetworkPreEvaluationManager mMockNetworkPreEvaluationManager;
     @Captor ArgumentCaptor<WifiManager.ScoreUpdateObserver> mExternalScoreUpdateObserverCbCaptor;
+    private WifiConfiguration mWifiConfiguration = new WifiConfiguration();
     private TestLooper mLooper;
 
     public class WifiConnectedNetworkScorerImpl extends IWifiConnectedNetworkScorer.Stub {
@@ -2097,4 +2100,98 @@ public class WifiScoreReportTest extends WifiBaseTest {
         mWifiScoreReport.onL3DataStallSuspected();
         verifyNoMoreInteractions(mWifiConnectedNetworkScorer);
     }
+
+    @Test
+    public void setWifiConnectedNetworkScorer_noPreEvaluation() throws Exception {
+        mWifiConfiguration.carrierId = TEST_CARRIER_ID;
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(mWifiConfiguration);
+        // Register Client for verification.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(any());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+        verify(mWifiConnectedNetworkScorer).onStart(
+                argThat(sessionInfo -> sessionInfo.getSessionId() == TEST_SESSION_ID
+                        && sessionInfo.isUserSelected() == TEST_USER_SELECTED
+                        && !sessionInfo.isPreEvaluationActive()));
+    }
+
+    @Test
+    public void startConnectedNetworkScorer_preEvaluation() throws Exception {
+        mWifiConfiguration.carrierId = TEST_CARRIER_ID;
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(mWifiConfiguration);
+        when(mMockNetworkPreEvaluationManager.isPreEvaluationNeeded(anyString(), anyBoolean()))
+                .thenReturn(true);
+        // Register Client for verification.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(any());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+
+        verify(mWifiConnectedNetworkScorer).onStart(
+                argThat(sessionInfo -> sessionInfo.getSessionId() == TEST_SESSION_ID
+                        && sessionInfo.isUserSelected() == TEST_USER_SELECTED
+                        && sessionInfo.isPreEvaluationActive()
+                        && sessionInfo.isCarrierNetwork()));
+    }
+
+    @Test
+    public void startConnectedNetworkScorer_noPreEvaluation() throws Exception {
+        mWifiConfiguration.carrierId = TEST_CARRIER_ID;
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(mWifiConfiguration);
+        when(mMockNetworkPreEvaluationManager.isPreEvaluationNeeded(anyString(), anyBoolean()))
+                .thenReturn(false);
+        // Register Client for verification.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(any());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+
+        verify(mWifiConnectedNetworkScorer).onStart(
+                argThat(sessionInfo -> sessionInfo.getSessionId() == TEST_SESSION_ID
+                        && sessionInfo.isUserSelected() == TEST_USER_SELECTED
+                        && !sessionInfo.isPreEvaluationActive()));
+    }
+
+    @Test
+    public void startConnectedNetworkScorer_carrierNetwork() throws Exception {
+        mWifiConfiguration.carrierId = TEST_CARRIER_ID;
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(mWifiConfiguration);
+        // Register Client for verification.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(any());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+
+        verify(mWifiConnectedNetworkScorer).onStart(
+                argThat(sessionInfo -> sessionInfo.getSessionId() == TEST_SESSION_ID
+                        && sessionInfo.isUserSelected() == TEST_USER_SELECTED
+                        && sessionInfo.isCarrierNetwork()));
+    }
+
+    @Test
+    public void startConnectedNetworkScorer_notCarrierNetwork() throws Exception {
+        mWifiConfiguration.carrierId = UNKNOWN_CARRIER_ID;
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(mWifiConfiguration);
+        // Register Client for verification.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(any());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+
+        verify(mWifiConnectedNetworkScorer).onStart(
+                argThat(sessionInfo -> sessionInfo.getSessionId() == TEST_SESSION_ID
+                        && sessionInfo.isUserSelected() == TEST_USER_SELECTED
+                        && !sessionInfo.isCarrierNetwork()));
+    }
+
 }

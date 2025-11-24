@@ -48,6 +48,7 @@ import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_P2P;
 import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_STA;
 import static com.android.server.wifi.SelfRecovery.REASON_API_CALL;
 
+import android.annotation.RequiresNoPermission;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -67,6 +68,7 @@ import android.net.TetheringManager.TetheringRequest;
 import android.net.wifi.IActionListener;
 import android.net.wifi.IDppCallback;
 import android.net.wifi.ILastCallerListener;
+import android.net.wifi.ILocalOnlyDisconnectionStatusListener;
 import android.net.wifi.ILocalOnlyHotspotCallback;
 import android.net.wifi.IPnoScanResultsCallback;
 import android.net.wifi.IScoreUpdateObserver;
@@ -142,7 +144,9 @@ import com.android.server.wifi.coex.CoexUtils;
 import com.android.server.wifi.hal.WifiChip;
 import com.android.server.wifi.hotspot2.NetworkDetail;
 import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
+import com.android.server.wifi.nl80211.NativeScanResult;
 import com.android.server.wifi.nl80211.Nl80211Native;
+import com.android.server.wifi.nl80211.Nl80211Utils;
 import com.android.server.wifi.util.ApConfigUtil;
 import com.android.server.wifi.util.ArrayUtils;
 
@@ -180,6 +184,8 @@ import java.util.stream.Collectors;
 public class WifiShellCommand extends BasicShellCommandHandler {
     @VisibleForTesting
     public static String SHELL_PACKAGE_NAME = "com.android.shell";
+    // Use this package name when posted call to wifi thread needs to run checkPackage.
+    public static String WIFI_SERVICE_PACKAGE_NAME = "android";
 
     // These don't require root access.
     // However, these do perform permission checks in the corresponding WifiService methods.
@@ -237,6 +243,19 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             .addTransportType(TRANSPORT_WIFI)
             .build();
 
+    private static final ILocalOnlyDisconnectionStatusListener.Stub
+            sLocalOnlyDisconnectionStatusListener =
+            new ILocalOnlyDisconnectionStatusListener.Stub() {
+                @Override
+                @RequiresNoPermission
+                public void onDisconnectionStatus(WifiNetworkSpecifier wifiNetworkSpecifier,
+                        boolean isTriggeredByUser, int reason) throws RemoteException {
+                    Log.i(TAG, "LocalOnlyDisconnectionStatusListener: SSID="
+                            + wifiNetworkSpecifier.wifiConfiguration.SSID
+                            + " isTriggeredByUser=" + isTriggeredByUser
+                            + " reason=" + reason);
+                }
+            };
     private static final ConnectivityDiagnosticsManager.ConnectivityDiagnosticsCallback
             sConnectivityDiagnosticsCallback =
             new ConnectivityDiagnosticsManager.ConnectivityDiagnosticsCallback() {
@@ -1461,6 +1480,22 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                     .unregisterConnectivityDiagnosticsCallback(
                                             sConnectivityDiagnosticsCallback),
                             "shell#remove-connectivity-diagnostic-callback");
+                    return 0;
+                }
+                case "add-local-disconnection-status-listener": {
+                    mWifiThreadRunner.post(() ->
+                                    mWifiService.addLocalOnlyDisconnectionStatusListener(
+                                            sLocalOnlyDisconnectionStatusListener,
+                                            WIFI_SERVICE_PACKAGE_NAME),
+                            "shell#add-local-disconnection-status-listener");
+                    return 0;
+                }
+                case "remove-local-disconnection-status-listener": {
+                    mWifiThreadRunner.post(() ->
+                                    mWifiService.removeLocalOnlyDisconnectionStatusListener(
+                                            sLocalOnlyDisconnectionStatusListener,
+                                            WIFI_SERVICE_PACKAGE_NAME),
+                            "shell#remove-local-disconnection-status-listener");
                     return 0;
                 }
                 case "add-request": {
@@ -2896,6 +2931,147 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     pw.println(maxScanSsids);
                     return 0;
                 }
+                case "get-interfaces":
+                    return getInterfaces(pw);
+                case "setup-client-interface": {
+                    String iface = getNextArgRequired();
+                    String option = getNextOption();
+                    boolean useNl80211Override = false;
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+                    boolean success;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        success = mNl80211Native.setupInterfaceForClientMode(iface,
+                                mContext.getMainExecutor(),
+                                new Nl80211Native.ScanEventCallback() {
+                                    @Override
+                                    public void onScanResultReady() {
+                                        Log.i(TAG, "NL80211 scan results ready.");
+                                    }
+
+                                    @Override
+                                    public void onScanFailed() {
+                                        pw.println("NL80211 scan failed.");
+                                    }
+                                },
+                                new Nl80211Native.ScanEventCallback() {
+                                    @Override
+                                    public void onScanResultReady() {
+                                        pw.println("NL80211 pno scan results ready.");
+                                    }
+
+                                    @Override
+                                    public void onScanFailed() {
+                                        pw.println("NL80211 pno scan failed.");
+                                    }
+                                });
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    pw.println("Setup interface " + (success ? "succeeded" : "failed"));
+                    return 0;
+                }
+                case "teardown-client-interface": {
+                    String iface = getNextArgRequired();
+                    String option = getNextOption();
+                    boolean useNl80211Override = false;
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+                    boolean success;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        success = mNl80211Native.tearDownClientInterface(iface);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    pw.println("Teardown interface " + (success ? "succeeded" : "failed"));
+                    return 0;
+                }
+                case "dump-native-scans": {
+                    String iface = getNextArgRequired();
+                    String option = getNextOption();
+                    boolean useNl80211Override = false;
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+
+                    List<NativeScanResult> nativeResults;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        nativeResults = mNl80211Native.getScanResults(iface,
+                                Nl80211Native.SCAN_TYPE_SINGLE_SCAN);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    if (nativeResults == null || nativeResults.isEmpty()) {
+                        pw.println("No scan results");
+                        return 0;
+                    }
+
+                    NativeScanResult.dumpList(pw, nativeResults);
+                    return 0;
+                }
+                case "get-nl80211-channels-mhz": {
+                    String bandString = getNextArgRequired();
+                    String option = getNextOption();
+                    boolean useNl80211Override = false;
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+
+                    int band;
+                    switch (bandString) {
+                        case "2" -> {
+                            band = WifiScanner.WIFI_BAND_24_GHZ;
+                        }
+                        case "5" -> {
+                            band = WifiScanner.WIFI_BAND_5_GHZ;
+                        }
+                        case "dfs" -> {
+                            band = WifiScanner.WIFI_BAND_5_GHZ_DFS_ONLY;
+                        }
+                        case "6" -> {
+                            band = WifiScanner.WIFI_BAND_6_GHZ;
+                        }
+                        case "60" -> {
+                            band = WifiScanner.WIFI_BAND_60_GHZ;
+                        }
+                        default -> {
+                            pw.println("Unsupported band " + bandString
+                                    + ". Expected 2|5|dfs|6|60");
+                            return -1;
+                        }
+                    }
+                    int[] channels;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        channels = mNl80211Native.getChannelsMhzForBand(band);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+
+                    pw.println(Arrays.toString(channels));
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -3378,6 +3554,33 @@ public class WifiShellCommand extends BasicShellCommandHandler {
             pw.println("Link probe timed out");
         } else {
             pw.println(msg);
+        }
+        return 0;
+    }
+
+    private int getInterfaces(PrintWriter pw) {
+        int wiphyIndex = -1;
+        String wiphyArg = getNextArg();
+        if (wiphyArg != null) {
+            try {
+                wiphyIndex = Integer.parseInt(wiphyArg);
+            } catch (NumberFormatException e) {
+                pw.println("Invalid wiphyIndex specified.");
+                return -1;
+            }
+        }
+
+        List<Nl80211Utils.InterfaceInfo> interfaces =
+                mNl80211Native.getInterfaces(wiphyIndex);
+        if (interfaces == null || interfaces.isEmpty()) {
+            pw.println("No interfaces found.");
+        } else {
+            pw.println("Interfaces:");
+            for (Nl80211Utils.InterfaceInfo iface : interfaces) {
+                pw.println("  " + iface.name + ": ifIndex=" + iface.ifIndex
+                        + ", wiphyIndex=" + iface.wiphyIndex
+                        + ", macAddress=" + MacAddress.fromBytes(iface.macAddress));
+            }
         }
         return 0;
     }
@@ -4083,6 +4286,23 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  get-max-scan-ssids <interface>");
         pw.println("    Gets the max scan ssids of the interface.");
         pw.println("    -n Force use nl80211 implementation.");
+        pw.println("  get-interfaces <wiphyIndex>");
+        pw.println("    Lists all interfaces for the given wiphy index.");
+        pw.println("  setup-client-interface <interface>");
+        pw.println("    For debugging. Sets up an interface via"
+                + " Nl80211Native.setupInterfaceForClientMode and outputs to logcat whenever scan"
+                + " results are received.");
+        pw.println("    -n Force use nl80211 implementation.");
+        pw.println("  teardown-client-interface <interface>");
+        pw.println("    For debugging. Tears down an interface via"
+                + " Nl80211Native.teardownClientInterface");
+        pw.println("    -n Force use nl80211 implementation.");
+        pw.println("  dump-native-scans <iface-name>");
+        pw.println("    For debugging. Dumps the result of Nl80211Native.getScanResults");
+        pw.println("    -n Use direct nl80211 implementation instead of wificond.");
+        pw.println("  get-nl80211-channels-mhz 2|5|dbs|6|60");
+        pw.println("    For debugging. Dumps the result of Nl80211Native.getChannelsMhzForBand");
+        pw.println("    -n Use direct nl80211 implementation instead of wificond.");
     }
 
     @Override

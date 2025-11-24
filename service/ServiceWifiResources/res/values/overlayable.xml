@@ -360,6 +360,7 @@
           <item type="integer" name="config_internalScorerType" />
           <item type="bool" name="config_prioritizeExternalScorer" />
           <item type="bool" name="config_wifiAwareSdeaHeaderFromFramework" />
+          <item type="bool" name="config_preEvaluationEnabled" />
 
           <!-- Params from config.xml that can be overlayed -->
 

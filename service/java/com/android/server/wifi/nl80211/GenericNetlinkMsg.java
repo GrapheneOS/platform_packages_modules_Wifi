@@ -16,9 +16,6 @@
 
 package com.android.server.wifi.nl80211;
 
-import static com.android.server.wifi.nl80211.NetlinkConstants.NLMSG_DONE;
-import static com.android.server.wifi.nl80211.NetlinkConstants.NLMSG_ERROR;
-
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.util.Log;
@@ -160,6 +157,19 @@ public class GenericNetlinkMsg {
     }
 
     /**
+     * Retrieve the value of a string attribute, if it exists.
+     *
+     * @param attributeId of the attribute to retrieve
+     * @return value if it exists, or null if an error was encountered
+     */
+    @Nullable
+    public String getAttributeValueAsString(short attributeId) {
+        StructNlAttr attribute = getAttribute(attributeId);
+        if (attribute == null) return null;
+        return attribute.getValueAsString();
+    }
+
+    /**
      * Retrieve the inner attributes from a nested attribute.
      *
      * @param outerAttribute containing nested inner attributes
@@ -191,20 +201,6 @@ public class GenericNetlinkMsg {
             }
         }
         return true;
-    }
-
-    /**
-     * @return true if this message is a Netlink error message.
-     */
-    public boolean isErrorMsg() {
-        return nlHeader.nlmsg_type == NLMSG_ERROR;
-    }
-
-    /**
-     * @return true if this message is a Netlink done message.
-     */
-    public boolean isDoneMsg() {
-        return nlHeader.nlmsg_type == NLMSG_DONE;
     }
 
     /**
@@ -289,7 +285,7 @@ public class GenericNetlinkMsg {
     }
 
     /**
-     * Read a GenericNetlinkMsg from a ByteBuffer.
+     * Read a GenericNetlinkMsg from a native-order ByteBuffer.
      *
      * @return Parsed GenericNetlinkMsg object, or null if an error occurred.
      */
@@ -300,27 +296,21 @@ public class GenericNetlinkMsg {
             return null;
         }
 
-        ByteOrder originalByteOrder = byteBuffer.order();
-        byteBuffer.order(ByteOrder.nativeOrder());
-        try {
-            StructNlMsgHdr nlHeader = StructNlMsgHdr.parse(byteBuffer);
-            StructGenNlMsgHdr genNlHeader = StructGenNlMsgHdr.parse(byteBuffer);
-            if (nlHeader == null || genNlHeader == null) {
-                Log.e(TAG, "Unable to parse message headers");
-                return null;
-            }
-
-            int remainingSize = nlHeader.nlmsg_len - MIN_STRUCT_SIZE;
-            if (byteBuffer.remaining() < remainingSize) {
-                Log.e(TAG, "Byte buffer is smaller than the expected message size");
-                return null;
-            }
-            Map<Short, StructNlAttr> attributes = parseAttributesToMap(byteBuffer, remainingSize);
-            if (attributes == null) return null;
-            return new GenericNetlinkMsg(nlHeader, genNlHeader, attributes);
-        } finally {
-            byteBuffer.order(originalByteOrder);
+        StructNlMsgHdr nlHeader = StructNlMsgHdr.parse(byteBuffer);
+        StructGenNlMsgHdr genNlHeader = StructGenNlMsgHdr.parse(byteBuffer);
+        if (nlHeader == null || genNlHeader == null) {
+            Log.e(TAG, "Unable to parse message headers");
+            return null;
         }
+
+        int remainingSize = nlHeader.nlmsg_len - MIN_STRUCT_SIZE;
+        if (byteBuffer.remaining() < remainingSize) {
+            Log.e(TAG, "Byte buffer is smaller than the expected message size");
+            return null;
+        }
+        Map<Short, StructNlAttr> attributes = parseAttributesToMap(byteBuffer, remainingSize);
+        if (attributes == null) return null;
+        return new GenericNetlinkMsg(nlHeader, genNlHeader, attributes);
     }
 
     private static boolean attributesAreEqual(Map<Short, StructNlAttr> attributes,

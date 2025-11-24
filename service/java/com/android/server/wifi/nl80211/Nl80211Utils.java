@@ -16,10 +16,12 @@
 
 package com.android.server.wifi.nl80211;
 
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_BSS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_EXT_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_FEATURE_FLAGS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFNAME;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_MATCH_SETS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_NUM_AKM_SUITES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_NUM_SCAN_SSIDS;
@@ -40,8 +42,23 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_CAP_PHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_BEACON_TSF;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_BSSID;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_CAPABILITY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_CHAIN_SIGNAL;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_FREQUENCY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_INFORMATION_ELEMENTS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_LAST_SEEN_BOOTTIME;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_SIGNAL_MBM;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATUS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATUS_ASSOCIATED;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATUS_AUTHENTICATED;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_TSF;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_PROTOCOL_FEATURES;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_WIPHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_DFS_AVAILABLE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_DFS_USABLE;
@@ -55,6 +72,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_DISABLED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_FREQ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_NO_IR;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -201,6 +219,23 @@ public class Nl80211Utils {
         }
     }
 
+    public static class InterfaceInfo {
+        public final int ifIndex;
+        public final int wiphyIndex;
+        @NonNull
+        public final String name;
+        @NonNull
+        public final byte[] macAddress;
+
+        public InterfaceInfo(int ifIndex, int wiphyIndex, @NonNull String name,
+                @NonNull byte[] macAddress) {
+            this.ifIndex = ifIndex;
+            this.wiphyIndex = wiphyIndex;
+            this.name = name;
+            this.macAddress = macAddress;
+        }
+    }
+
     private final Map<String, Integer> mCachedWiphyIndexes = new ArrayMap<>();
     // TODO(b/394409845): The cached band info must be refreshed when the country code changes.
     private final SparseArray<WiphyInfo> mCachedWiphyInfo = new SparseArray<>();
@@ -234,34 +269,28 @@ public class Nl80211Utils {
             return mCachedWiphyInfo.get(wiphyIndex);
         }
 
-        List<GenericNetlinkMsg> responses;
+        Nl80211Response response;
+        GenericNetlinkMsg request;
+        StructNlAttr wiphyIndexAttr = new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex);
         if (isSplitWiphyDumpSupported()) {
-            StructNlAttr wiphyIndexAttr = new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex);
             StructNlAttr splitWiphyFlagAttr = new StructNlAttr(NL80211_ATTR_SPLIT_WIPHY_DUMP,
                     new byte[0]);
-            GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_WIPHY,
+            request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_WIPHY,
                     StructNlMsgHdr.NLM_F_DUMP, wiphyIndexAttr, splitWiphyFlagAttr);
-
-            responses = mNl80211Proxy.sendMessageAndReceiveResponses(request);
-            if (responses == null || responses.isEmpty()) {
-                Log.e(TAG, "getWiphyInfo: Got null responses for split wiphy dump");
-                return null;
-            }
         } else {
-            StructNlAttr wiphyIndexAttr = new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex);
-            GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_WIPHY,
+            request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_WIPHY,
                     wiphyIndexAttr);
-            GenericNetlinkMsg response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
-            if (response == null) {
-                Log.e(TAG, "getWiphyInfo: Failed to get response for GET_WIPHY");
-                return null;
-            }
-            responses = List.of(response);
+        }
+
+        response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError()) {
+            Log.e(TAG, "getWiphyInfo: Failed to send NL80211_CMD_GET_WIPHY");
+            return null;
         }
 
         // Verify that the response is for the wiphy we requested.
-        for (GenericNetlinkMsg response : responses) {
-            StructNlAttr attr = response.getAttribute(NL80211_ATTR_WIPHY);
+        for (GenericNetlinkMsg msg : response.getMessages()) {
+            StructNlAttr attr = msg.getAttribute(NL80211_ATTR_WIPHY);
             if (attr == null) {
                 Log.e(TAG, "getWiphyInfo: wiphy dump did not contain wiphy attr");
                 return null;
@@ -275,13 +304,29 @@ public class Nl80211Utils {
             }
         }
 
-        WiphyInfo info = parseWiphyInfo(responses);
+        WiphyInfo info = parseWiphyInfo(response.getMessages());
         if (info != null) {
             mCachedWiphyInfo.put(wiphyIndex, info);
             return info;
         }
 
         return null;
+    }
+
+    private int getIfaceIndex(@NonNull String ifaceName) {
+        Objects.requireNonNull(ifaceName);
+
+        try {
+            NetworkInterface netIface = NetworkInterface.getByName(ifaceName);
+            if (netIface == null) {
+                Log.e(TAG, "Failed to get NetworkInterface for " + ifaceName);
+                return -1;
+            }
+            return netIface.getIndex();
+        } catch (SocketException e) {
+            Log.e(TAG, "Failed to get iface index for " + ifaceName, e);
+            return -1;
+        }
     }
 
     /**
@@ -296,16 +341,8 @@ public class Nl80211Utils {
             return mCachedWiphyIndexes.get(ifaceName);
         }
 
-        int ifIndex;
-        try {
-            NetworkInterface netIface = NetworkInterface.getByName(ifaceName);
-            if (netIface == null) {
-                Log.e(TAG, "Failed to get NetworkInterface for " + ifaceName);
-                return -1;
-            }
-            ifIndex = netIface.getIndex();
-        } catch (SocketException e) {
-            Log.e(TAG, "Failed to get iface index for " + ifaceName, e);
+        int ifIndex = getIfaceIndex(ifaceName);
+        if (ifIndex == -1) {
             return -1;
         }
 
@@ -319,22 +356,18 @@ public class Nl80211Utils {
             return -1;
         }
 
-        List<GenericNetlinkMsg> responses = mNl80211Proxy.sendMessageAndReceiveResponses(request);
-        if (responses == null || responses.isEmpty()) {
-            Log.e(TAG, "No response for GET_WIPHY");
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError()) {
+            Log.e(TAG, "Failed to get response for GET_WIPHY");
             return -1;
         }
 
-        for (GenericNetlinkMsg response : responses) {
-            if (response.isErrorMsg()) {
-                Log.e(TAG, "Received error response for GET_WIPHY: " + response);
+        for (GenericNetlinkMsg msg : response.getMessages()) {
+            if (msg.getCommand() != NL80211_CMD_NEW_WIPHY) {
+                Log.e(TAG, "Wrong command in response: " + msg.getCommand());
                 continue;
             }
-            if (response.getCommand() != NL80211_CMD_NEW_WIPHY) {
-                Log.e(TAG, "Wrong command in response: " + response.getCommand());
-                continue;
-            }
-            Integer wiphyIndex = response.getAttributeValueAsInteger(NL80211_ATTR_WIPHY);
+            Integer wiphyIndex = msg.getAttributeValueAsInteger(NL80211_ATTR_WIPHY);
             if (wiphyIndex != null) {
                 mCachedWiphyIndexes.put(ifaceName, wiphyIndex);
                 return wiphyIndex;
@@ -753,12 +786,13 @@ public class Nl80211Utils {
         GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(
                 NL80211_CMD_GET_PROTOCOL_FEATURES);
         if (request == null) return null;
-        GenericNetlinkMsg response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
-        if (response == null || response.isErrorMsg()) {
-            Log.e(TAG, "Failed to get protocol features");
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError() || response.getMessage() == null) {
+            Log.e(TAG, "Failed to send GET_PROTOCOL_FEATURES");
             return null;
         }
-        return response.getAttributeValueAsInteger(NL80211_ATTR_PROTOCOL_FEATURES);
+
+        return response.getMessage().getAttributeValueAsInteger(NL80211_ATTR_PROTOCOL_FEATURES);
     }
 
     private WiphyFeatures createWiphyFeatures(int featureFlags, byte[] extFeatureFlagsBytes) {
@@ -796,11 +830,320 @@ public class Nl80211Utils {
     }
 
     /**
+     * Gets information about all interfaces associated with a given wiphy.
+     * @param wiphyIndex The index of the wiphy device, or -1 to query all wiphys.
+     * @return A list of {@link InterfaceInfo} objects, or null on failure.
+     */
+    @Nullable
+    public List<InterfaceInfo> getInterfaces(int wiphyIndex) {
+        GenericNetlinkMsg request;
+        if (wiphyIndex != -1) {
+            StructNlAttr wiphyIndexAttr = new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex);
+            request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
+                    StructNlMsgHdr.NLM_F_DUMP,
+                    wiphyIndexAttr);
+        } else {
+            request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
+                    StructNlMsgHdr.NLM_F_DUMP);
+        }
+
+        if (request == null) {
+            Log.e(TAG, "Failed to create GET_INTERFACE request");
+            return null;
+        }
+
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError()) {
+            Log.e(TAG, "Failed to get response for NL80211_CMD_GET_INTERFACE");
+            return null;
+        }
+
+        List<InterfaceInfo> interfaceInfos = new ArrayList<>();
+        for (GenericNetlinkMsg msg : response.getMessages()) {
+            if (msg.getCommand() != NetlinkConstants.NL80211_CMD_NEW_INTERFACE) {
+                Log.e(TAG, "Wrong command in response to GET_INTERFACE: " + msg.getCommand());
+                continue;
+            }
+
+            Integer replyWiphyIndex = msg.getAttributeValueAsInteger(NL80211_ATTR_WIPHY);
+            Integer ifIndex = msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
+            String ifName = msg.getAttributeValueAsString(NL80211_ATTR_IFNAME);
+            byte[] macAddress = msg.getAttributeValueAsByteArray(NL80211_ATTR_MAC);
+
+            if (ifIndex == null || ifName == null || macAddress == null) {
+                Log.w(TAG, "Malformed NEW_INTERFACE response: missing attributes");
+                continue;
+            }
+
+            interfaceInfos.add(new InterfaceInfo(ifIndex, replyWiphyIndex, ifName, macAddress));
+        }
+
+        return interfaceInfos;
+    }
+
+    /**
+     * Returns a list of scan results retrieved by NL80211_CMD_GET_SCAN for the given interface.
+     */
+    @NonNull
+    public List<NativeScanResult> getScanResults(@NonNull String ifaceName) {
+        Objects.requireNonNull(ifaceName);
+
+        int ifIndex = getIfaceIndex(ifaceName);
+        if (ifIndex == -1) {
+            return new ArrayList<>();
+        }
+
+        GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(
+                NL80211_CMD_GET_SCAN,
+                StructNlMsgHdr.NLM_F_DUMP,
+                new StructNlAttr(NL80211_ATTR_IFINDEX, ifIndex));
+        if (request == null) {
+            Log.e(TAG, "Failed to create GET_SCAN request");
+            return new ArrayList<>();
+        }
+
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError()) {
+            Log.e(TAG, "Failed to send GET_SCAN");
+            return new ArrayList<>();
+        }
+
+        // Each response contains one scan result.
+        List<NativeScanResult> results = new ArrayList<>();
+        for (GenericNetlinkMsg msg : response.getMessages()) {
+            if (msg.getCommand() != NL80211_CMD_NEW_SCAN_RESULTS) {
+                continue;
+            }
+
+            NativeScanResult result = parseScanResult(msg);
+            if (result != null) {
+                results.add(result);
+            }
+        }
+        return results;
+    }
+
+    @Nullable
+    private NativeScanResult parseScanResult(GenericNetlinkMsg response) {
+        StructNlAttr bssAttr = response.getAttribute(NL80211_ATTR_BSS);
+        if (bssAttr == null) {
+            Log.e(TAG, "No BSS attribute in scan result");
+            return null;
+        }
+        Map<Short, StructNlAttr> bssNestedAttrs =
+                GenericNetlinkMsg.getInnerNestedAttributes(bssAttr);
+        if (bssNestedAttrs == null) {
+            Log.e(TAG, "Empty BSS attribute in scan result");
+            return null;
+        }
+
+        // BSSID
+        StructNlAttr bssidAttr = bssNestedAttrs.get(NL80211_BSS_BSSID);
+        if (bssidAttr == null) {
+            Log.e(TAG, "No BSSID attribute in scan result");
+            return null;
+        }
+        ByteBuffer bssidBuf = bssidAttr.getValueAsByteBuffer();
+        if (bssidBuf == null) {
+            Log.e(TAG, "Failed to parse BSSID attribute");
+            return null;
+        }
+        byte[] bssid = bssidBuf.array();
+
+        // Frequency
+        StructNlAttr freqAttr = bssNestedAttrs.get(NL80211_BSS_FREQUENCY);
+        if (freqAttr == null) {
+            Log.e(TAG, "No FREQUENCY attribute in scan result");
+            return null;
+        }
+        Integer freq = freqAttr.getValueAsInteger();
+        if (freq == null) {
+            Log.e(TAG, "Failed to parse FREQUENCY attribute");
+            return null;
+        }
+
+        // Information Elements
+        StructNlAttr ieAttr = bssNestedAttrs.get(NL80211_BSS_INFORMATION_ELEMENTS);
+        if (ieAttr == null) {
+            Log.e(TAG, "No INFORMATION_ELEMENTS attribute in scan result");
+            return null;
+        }
+        ByteBuffer ieBuf = ieAttr.getValueAsByteBuffer();
+        if (ieBuf == null) {
+            Log.e(TAG, "Failed to parse INFORMATION_ELEMENTS attribute");
+            return null;
+        }
+        byte[] ies = ieBuf.array();
+
+        // SSID
+        byte[] ssid = getSsidFromIe(ies);
+        if (ssid == null) {
+            Log.d(TAG, "SSID not found in IE");
+            return null;
+        }
+
+        // Timestamp
+        Long timestampMicroseconds = getBssTimestampMicroseconds(bssNestedAttrs);
+        if (timestampMicroseconds == null) {
+            Log.e(TAG, "Failed to parse timestamp");
+            return null;
+        }
+
+        // Signal MBM
+        StructNlAttr signalMbmAttr = bssNestedAttrs.get(NL80211_BSS_SIGNAL_MBM);
+        if (signalMbmAttr == null) {
+            Log.e(TAG, "No SIGNAL_MBM attribute in scan result");
+            return null;
+        }
+        Integer signalMbm = signalMbmAttr.getValueAsInteger();
+        if (signalMbm == null) {
+            Log.e(TAG, "Failed to parse SIGNAL_MBM attribute");
+            return null;
+        }
+
+        // Capability
+        StructNlAttr capabilityAttr = bssNestedAttrs.get(NL80211_BSS_CAPABILITY);
+        if (capabilityAttr == null) {
+            Log.e(TAG, "No SIGNAL_MBM attribute in scan result");
+            return null;
+        }
+        Short capability = getByteBufferAsShort(capabilityAttr.getValueAsByteBuffer());
+        if (capability == null) {
+            Log.e(TAG, "Failed to parse SIGNAL_MBM attribute");
+            return null;
+        }
+
+        // Association Status
+        boolean associated = false;
+        StructNlAttr statusAttr = bssNestedAttrs.get(NL80211_BSS_STATUS);
+        if (statusAttr != null) {
+            Integer status = statusAttr.getValueAsInteger();
+            associated = status != null
+                    && status == NL80211_BSS_STATUS_ASSOCIATED
+                    || status == NL80211_BSS_STATUS_AUTHENTICATED;
+        }
+
+        // Radio Chain Infos
+        List<RadioChainInfo> radioChainInfos = parseRadioChainInfos(bssNestedAttrs);
+
+        NativeScanResult result = new NativeScanResult();
+        result.ssid = ssid;
+        result.bssid = bssid;
+        result.infoElement = ies;
+        result.frequency = freq;
+        result.signalMbm = signalMbm;
+        result.tsf = timestampMicroseconds;
+        result.capability = (char) capability.shortValue();
+        result.associated = associated;
+        result.radioChainInfos = radioChainInfos;
+        return result;
+    }
+
+    @Nullable
+    private Long getBssTimestampMicroseconds(@NonNull Map<Short, StructNlAttr> bssNestedAttrs) {
+        StructNlAttr lastSeenAttr =
+                bssNestedAttrs.get(NL80211_BSS_LAST_SEEN_BOOTTIME);
+        if (lastSeenAttr != null) {
+            Long lastSeenBootTime = lastSeenAttr.getValueAsLong();
+            if (lastSeenBootTime != null) {
+                return lastSeenBootTime / 1000;
+            }
+        }
+
+        // Fallback to TSF
+        StructNlAttr tsfAttr = bssNestedAttrs.get(NL80211_BSS_TSF);
+        if (tsfAttr == null) {
+            Log.e(TAG, "Failed to get TSF from scan result");
+            return null;
+        }
+        Long tsf = tsfAttr.getValueAsLong();
+        if (tsf == null) {
+            Log.e(TAG, "Failed to parse TSF attr");
+            return null;
+        }
+
+        // Use the beacon TSF if it is newer
+        StructNlAttr beaconTsfAttr = bssNestedAttrs.get(NL80211_BSS_BEACON_TSF);
+        if (beaconTsfAttr != null) {
+            Long beaconTsf = beaconTsfAttr.getValueAsLong();
+            if (beaconTsf != null) {
+                return Math.max(tsf, beaconTsf);
+            }
+        }
+
+        return tsf;
+    }
+
+    @NonNull
+    private List<RadioChainInfo> parseRadioChainInfos(@NonNull Map<Short, StructNlAttr> bssInfo) {
+        StructNlAttr chainSignalAttr = bssInfo.get(NL80211_BSS_CHAIN_SIGNAL);
+        if (chainSignalAttr == null) {
+            return new ArrayList<>();
+        }
+
+        Map<Short, StructNlAttr> chainInfos =
+                GenericNetlinkMsg.getInnerNestedAttributes(chainSignalAttr);
+        if (chainInfos == null) {
+            Log.e(TAG, "Failed to get nested radio chain info attributes");
+            return new ArrayList<>();
+        }
+
+        List<RadioChainInfo> results = new ArrayList<>();
+        for (Map.Entry<Short, StructNlAttr> entry : chainInfos.entrySet()) {
+            Short chainId = entry.getKey();
+            Byte level = getByteBufferAsByte(entry.getValue().getValueAsByteBuffer());
+            if (level != null) {
+                results.add(new RadioChainInfo(chainId, level));
+            }
+        }
+        return results;
+    }
+
+    @Nullable
+    private byte[] getSsidFromIe(byte[] ies) {
+        if (ies == null) return null;
+        ByteBuffer buffer = ByteBuffer.wrap(ies).order(ByteOrder.LITTLE_ENDIAN);
+        while (buffer.remaining() > 1) {
+            int type = buffer.get() & 0xFF;
+            int length = buffer.get() & 0xFF;
+            if (length > buffer.remaining()) {
+                Log.e(TAG, "Invalid IE length");
+                return null; // Malformed IE
+            }
+            if (type == ScanResult.InformationElement.EID_SSID) {
+                byte[] ssid = new byte[length];
+                buffer.get(ssid);
+                return ssid;
+            }
+            buffer.position(buffer.position() + length);
+        }
+        return null; // SSID IE not found
+    }
+
+    /**
      * Clears the internal wiphy information caches.
      */
     @VisibleForTesting
     public void clearWiphyInfoCaches() {
         mCachedWiphyInfo.clear();
         mCachedWiphyIndexes.clear();
+    }
+
+    @Nullable
+    private Byte getByteBufferAsByte(@Nullable ByteBuffer buf) {
+        if (buf == null || buf.remaining() != Byte.BYTES) {
+            return null;
+        }
+
+        return buf.get();
+    }
+
+    @Nullable
+    private Short getByteBufferAsShort(@Nullable ByteBuffer buf) {
+        if (buf == null || buf.remaining() != Short.BYTES) {
+            return null;
+        }
+
+        return buf.getShort();
     }
 }

@@ -58,6 +58,14 @@ public class Nl80211TestUtils {
     }
 
     /**
+     * Create a test GenericNetlinkMsg with ack flag.
+     */
+    public static GenericNetlinkMsg createTestMessageWithAckFlag() {
+        return new GenericNetlinkMsg(TEST_COMMAND, TEST_TYPE,
+                (short) (TEST_FLAGS | StructNlMsgHdr.NLM_F_ACK), TEST_SEQUENCE);
+    }
+
+    /**
      * Create a test GenericNetlinkMsg with attributes.
      */
     public static GenericNetlinkMsg createTestMessageWithAttributes() {

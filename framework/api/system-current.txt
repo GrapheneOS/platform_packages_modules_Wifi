@@ -705,6 +705,8 @@ package android.net.wifi {
   public final class WifiConnectedSessionInfo implements android.os.Parcelable {
     method public int describeContents();
     method public int getSessionId();
+    method @FlaggedApi("com.android.wifi.flags.feed_more_data_to_external_scorer") public boolean isCarrierNetwork();
+    method @FlaggedApi("com.android.wifi.flags.feed_more_data_to_external_scorer") public boolean isPreEvaluationActive();
     method public boolean isUserSelected();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.WifiConnectedSessionInfo> CREATOR;
@@ -713,6 +715,8 @@ package android.net.wifi {
   public static final class WifiConnectedSessionInfo.Builder {
     ctor public WifiConnectedSessionInfo.Builder(int);
     method @NonNull public android.net.wifi.WifiConnectedSessionInfo build();
+    method @FlaggedApi("com.android.wifi.flags.feed_more_data_to_external_scorer") @NonNull public android.net.wifi.WifiConnectedSessionInfo.Builder setCarrierNetwork(boolean);
+    method @FlaggedApi("com.android.wifi.flags.feed_more_data_to_external_scorer") @NonNull public android.net.wifi.WifiConnectedSessionInfo.Builder setPreEvaluationActive(boolean);
     method @NonNull public android.net.wifi.WifiConnectedSessionInfo.Builder setUserSelected(boolean);
   }
 

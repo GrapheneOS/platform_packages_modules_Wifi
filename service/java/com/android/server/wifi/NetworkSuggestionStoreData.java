@@ -32,6 +32,7 @@ import com.android.server.wifi.WifiNetworkSuggestionsManager.ExtendedWifiNetwork
 import com.android.server.wifi.WifiNetworkSuggestionsManager.PerAppInfo;
 import com.android.server.wifi.hotspot2.PasspointXmlUtils;
 import com.android.server.wifi.util.WifiConfigStoreEncryptionUtil;
+import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.XmlUtil;
 import com.android.server.wifi.util.XmlUtil.WifiConfigurationXmlUtil;
 
@@ -109,9 +110,12 @@ public class NetworkSuggestionStoreData implements WifiConfigStore.StoreData {
     }
 
     private final DataSource mDataSource;
+    private final WifiPermissionsUtil mWifiPermissionsUtil;
 
-    public NetworkSuggestionStoreData(DataSource dataSource) {
+    public NetworkSuggestionStoreData(DataSource dataSource,
+            WifiPermissionsUtil wifiPermissionsUtil) {
         mDataSource = dataSource;
+        mWifiPermissionsUtil = wifiPermissionsUtil;
     }
 
     @Override
@@ -438,7 +442,7 @@ public class NetworkSuggestionStoreData implements WifiConfigStore.StoreData {
                         parsedConfig = WifiConfigurationXmlUtil.parseFromXml(
                                 in, outerTagDepth + 1,
                                 version >= ENCRYPT_CREDENTIALS_CONFIG_STORE_DATA_VERSION,
-                                encryptionUtil, true);
+                                encryptionUtil, true, mWifiPermissionsUtil);
                         break;
                     case XML_TAG_SECTION_HEADER_WIFI_ENTERPRISE_CONFIGURATION:
                         if (enterpriseConfig != null) {

@@ -373,6 +373,7 @@ public class WifiInjector {
         mNl80211Native = new Nl80211Native(
                 nl80211Proxy,
                 new Nl80211Utils(nl80211Proxy),
+                makeNetdWrapper(),
                 (WifiNl80211Manager) mContext.getSystemService(Context.WIFI_NL80211_SERVICE),
                 true /* useWificond */);
         mWifiNative = new WifiNative(
@@ -461,8 +462,8 @@ public class WifiInjector {
                         mContext,
                         mWifiKeyStore,
                         mWifiConfigStore,
-                        new NetworkListSharedStoreData(mContext),
-                        new NetworkListUserStoreData(mContext),
+                        new NetworkListSharedStoreData(mContext, mWifiPermissionsUtil),
+                        new NetworkListUserStoreData(mContext, mWifiPermissionsUtil),
                         new RandomizedMacStoreData(),
                         mLruConnectionTracker,
                         this,
@@ -543,7 +544,7 @@ public class WifiInjector {
                 mThroughputPredictor, mActiveModeWarden, mCmiMonitor, mWifiGlobals);
         mWifiMetrics.setWifiDataStall(mWifiDataStall);
         mNetworkPreEvaluationManager = new NetworkPreEvaluationManager(mClock, mWifiDataStall,
-                 mWifiHandler);
+                mWifiGlobals, mWifiHandler);
         mWifiMetrics.setWifiHealthMonitor(mWifiHealthMonitor);
         mWifiP2pConnection = new WifiP2pConnection(mContext, wifiLooper, mActiveModeWarden);
         mConnectHelper = new ConnectHelper(mActiveModeWarden, mWifiConfigManager);
@@ -950,7 +951,7 @@ public class WifiInjector {
                 mWifiP2pConnection, mWifiGlobals, ifaceName, clientModeManager,
                 mCmiMonitor, mBroadcastQueue, mWifiNetworkSelector, makeTelephonyManager(),
                 this, mSettingsConfigStore, verboseLoggingEnabled, mWifiNotificationManager,
-                mWifiConnectivityHelper);
+                mWifiConnectivityHelper, mNetworkPreEvaluationManager);
     }
 
     public WifiNetworkAgent makeWifiNetworkAgent(
@@ -1020,7 +1021,7 @@ public class WifiInjector {
      */
     public NetworkSuggestionStoreData makeNetworkSuggestionStoreData(
             NetworkSuggestionStoreData.DataSource dataSource) {
-        return new NetworkSuggestionStoreData(dataSource);
+        return new NetworkSuggestionStoreData(dataSource, mWifiPermissionsUtil);
     }
 
     /**

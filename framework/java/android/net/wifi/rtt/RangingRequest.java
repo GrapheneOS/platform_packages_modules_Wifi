@@ -145,7 +145,7 @@ public final class RangingRequest implements Parcelable {
     }
 
     /**
-     * Returns the minimum RTT burst size that can be used to determine a average range.
+     * Returns the maximum RTT burst size that can be used to determine a average range.
      *
      * @return the maximum RTT burst size that can be used
      */

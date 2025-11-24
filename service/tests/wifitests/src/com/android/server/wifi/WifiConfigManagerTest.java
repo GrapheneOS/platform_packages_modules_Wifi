@@ -33,7 +33,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
@@ -8809,5 +8808,78 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never())
                 .switchUserStoresAndRead(any(List.class));
         mContextConfigStoreMockOrder.verify(mWifiConfigStore, never()).write();
+    }
+
+    /**
+     * Verify that {@link WifiConfigManager#getConfiguredNetworksCreatedByCurrentUserWithPassword()}
+     * only fetches networks created by the current user.
+     * Note that this test case assumes {@link WifiConfiguration#getCreatorUserIdInternal()} returns
+     * the userId of the creator based on mCreatorUserId, instead of userId parsed from creatorUid,
+     * because all uids in this test correspond to system user.
+     */
+    @Test
+    public void testGetConfiguredNetworksCreatedByCurrentUserWithPassword() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+
+        // Setup of two userIds and their mock contexts for handleUserSwitch. User1 is by default
+        // the current user in test.
+        int user1 = TEST_DEFAULT_USER;
+        int user2 = TEST_DEFAULT_USER + 1;
+        setupUserProfiles(user2);
+        Context user1Context = mock(Context.class);
+        when(user1Context.getSystemService(eq(UserManager.class))).thenReturn(mUserManager);
+        Context user2Context = mock(Context.class);
+        when(user2Context.getSystemService(eq(UserManager.class))).thenReturn(mUserManager);
+        when(mUserManager.isAdminUser()).thenReturn(false);
+
+        // Currently on user1 by default. Create config1 under this user and its mCreatorUserId will
+        // be populated as the current userId through the AddOrUpdateNetwork flow.
+        WifiConfiguration config1 = WifiConfigurationTestUtil.createOpenNetwork();
+        verifyAddNetworkToWifiConfigManager(config1);
+
+        // Switch to user2, and create config2.
+        when(mContext.createContextAsUser(any(), eq(0))).thenReturn(user2Context);
+        mWifiConfigManager.handleUserSwitch(user2);
+        WifiConfiguration config2 = WifiConfigurationTestUtil.createOpenNetwork();
+        verifyAddNetworkToWifiConfigManager(config2);
+
+        // Under user2, verify that getConfiguredNetworksCreatedByCurrentUserWithPassword will only
+        // include config2 and not config1.
+        List<WifiConfiguration> expectedWifiConfigurationsForUser2 = List.of(config2);
+        WifiConfigurationTestUtil.assertConfigurationsEqualForConfigManagerAddOrUpdate(
+                expectedWifiConfigurationsForUser2,
+                mWifiConfigManager.getConfiguredNetworksCreatedByCurrentUserWithPassword());
+
+        // Switch back to user1, verify that getConfiguredNetworksCreatedByCurrentUserWithPassword
+        // will only include config1 and not config2.
+        when(mContext.createContextAsUser(any(), eq(0))).thenReturn(user1Context);
+        mWifiConfigManager.handleUserSwitch(user1);
+        List<WifiConfiguration> expectedWifiConfigurationsForUser1 = List.of(config1);
+        WifiConfigurationTestUtil.assertConfigurationsEqualForConfigManagerAddOrUpdate(
+                expectedWifiConfigurationsForUser1,
+                mWifiConfigManager.getConfiguredNetworksCreatedByCurrentUserWithPassword());
+    }
+
+    @Test
+    public void testAapmFeatureNotDisableInsecureWifiAutojoinWhenCreatorUidIsDOPO() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
+        when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), any())).thenReturn(true);
+        // Test with a secure network type
+        WifiConfiguration secureConfig = WifiConfigurationTestUtil.createPskNetwork();
+        NetworkUpdateResult secureResult = addNetworkToWifiConfigManager(secureConfig);
+        assertTrue(secureResult.isSuccess());
+        WifiConfiguration retrievedSecureConfig =
+                mWifiConfigManager.getConfiguredNetwork(secureResult.getNetworkId());
+        assertTrue(retrievedSecureConfig.isAutoJoinInAdvancedProtectionModeEnabled());
+
+        // Test with an insecure network type
+        WifiConfiguration insecureConfig = WifiConfigurationTestUtil.createOpenNetwork();
+        NetworkUpdateResult insecureResult = addNetworkToWifiConfigManager(insecureConfig);
+        assertTrue(insecureResult.isSuccess());
+        WifiConfiguration retrievedInsecureConfig =
+                mWifiConfigManager.getConfiguredNetwork(insecureResult.getNetworkId());
+        assertTrue(retrievedInsecureConfig.isAutoJoinInAdvancedProtectionModeEnabled());
     }
 }

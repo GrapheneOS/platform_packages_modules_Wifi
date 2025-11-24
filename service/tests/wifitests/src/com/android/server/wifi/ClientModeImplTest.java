@@ -607,6 +607,7 @@ public class ClientModeImplTest extends WifiBaseTest {
 
     @Mock DeviceWiphyCapabilities mDeviceWiphyCapabilities;
     @Mock ConnectivityDiagnosticsManager mConnectivityDiagnosticsManager;
+    @Mock NetworkPreEvaluationManager mMockNetworkPreEvaluationManager;
 
     @Captor ArgumentCaptor<WifiConfigManager.OnNetworkUpdateListener> mConfigUpdateListenerCaptor;
     @Captor ArgumentCaptor<WifiNetworkAgent.Callback> mWifiNetworkAgentCallbackCaptor;
@@ -847,7 +848,7 @@ public class ClientModeImplTest extends WifiBaseTest {
                 WIFI_IFACE_NAME, mClientModeManager, mCmiMonitor,
                 mBroadcastQueue, mWifiNetworkSelector, mTelephonyManager, mWifiInjector,
                 mSettingsConfigStore, false, mWifiNotificationManager,
-                mWifiConnectivityHelper);
+                mWifiConnectivityHelper, mMockNetworkPreEvaluationManager);
         mCmi.mInsecureEapNetworkHandler = mInsecureEapNetworkHandler;
 
         mWifiCoreThread = getCmiHandlerThread(mCmi);
