@@ -57,6 +57,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.LocationManager;
+import android.multiuser.Flags;
 import android.net.NetworkStack;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiSsid;
@@ -97,7 +98,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
 
-/** Unit tests for {@link WifiPermissionsUtil}. */
 @RunWith(JUnit4.class)
 @SmallTest
 public class WifiPermissionsUtilTest extends WifiBaseTest {
@@ -2061,6 +2061,47 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
      * Test areTwoAppsFromSameUser
      */
     @Test
+    public void testIsSharedOrPrivateConfigUserRestrictionSet() throws Exception {
+        mSession = ExtendedMockito.mockitoSession()
+                .mockStatic(Flags.class, withSettings().lenient())
+                .strictness(Strictness.LENIENT)
+                .startMocking();
+        setupTestCase();
+        WifiPermissionsUtil codeUnderTest = new WifiPermissionsUtil(mMockPermissionsWrapper,
+                mMockContext, mMockUserManager, mWifiInjector);
+        when(mMockPermissionsWrapper.getCurrentUser()).thenReturn(UserHandle.USER_SYSTEM);
+        UserHandle systemUser = UserHandle.of(UserHandle.USER_SYSTEM);
+
+        // Flag is disabled.
+        when(Flags.userRestrictionConfigWifiSharedPrivate()).thenReturn(false);
+        assertFalse(codeUnderTest.isSharedOrPrivateConfigUserRestrictionSet(true));
+        assertFalse(codeUnderTest.isSharedOrPrivateConfigUserRestrictionSet(false));
+        verify(mMockUserManager, never()).hasUserRestrictionForUser(anyString(), any());
+
+        // Flag is enabled.
+        when(Flags.userRestrictionConfigWifiSharedPrivate()).thenReturn(true);
+
+        // Shared config, restriction is set.
+        when(mMockUserManager.hasUserRestrictionForUser(
+                UserManager.DISALLOW_CONFIG_WIFI_SHARED, systemUser)).thenReturn(true);
+        assertTrue(codeUnderTest.isSharedOrPrivateConfigUserRestrictionSet(true));
+
+        // Shared config, restriction is not set.
+        when(mMockUserManager.hasUserRestrictionForUser(
+                UserManager.DISALLOW_CONFIG_WIFI_SHARED, systemUser)).thenReturn(false);
+        assertFalse(codeUnderTest.isSharedOrPrivateConfigUserRestrictionSet(true));
+
+        // Private config, restriction is set.
+        when(mMockUserManager.hasUserRestrictionForUser(
+                UserManager.DISALLOW_CONFIG_WIFI_PRIVATE, systemUser)).thenReturn(true);
+        assertTrue(codeUnderTest.isSharedOrPrivateConfigUserRestrictionSet(false));
+
+        // Private config, restriction is not set.
+        when(mMockUserManager.hasUserRestrictionForUser(
+                UserManager.DISALLOW_CONFIG_WIFI_PRIVATE, systemUser)).thenReturn(false);
+        assertFalse(codeUnderTest.isSharedOrPrivateConfigUserRestrictionSet(false));
+    }
+
     public void testAreTwoAppsFromSameUser()
              throws Exception {
         // static mocking

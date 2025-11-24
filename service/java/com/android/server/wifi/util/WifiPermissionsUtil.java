@@ -1384,4 +1384,24 @@ public class WifiPermissionsUtil {
         }
         return false;
     }
+
+    /** Checks if shared or private user restriction is set. */
+    public boolean isSharedOrPrivateConfigUserRestrictionSet(boolean isSharedConfig) {
+        long ident = Binder.clearCallingIdentity();
+        try {
+            if (android.multiuser.Flags.userRestrictionConfigWifiSharedPrivate()) {
+                if (isSharedConfig) {
+                    return mUserManager.hasUserRestrictionForUser(
+                        UserManager.DISALLOW_CONFIG_WIFI_SHARED,
+                        UserHandle.of(getCurrentUser()));
+                }
+                return mUserManager.hasUserRestrictionForUser(
+                        UserManager.DISALLOW_CONFIG_WIFI_PRIVATE,
+                        UserHandle.of(getCurrentUser()));
+            }
+        } finally {
+            Binder.restoreCallingIdentity(ident);
+        }
+        return false;
+    }
 }
