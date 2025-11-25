@@ -1405,7 +1405,7 @@ public class WifiNative {
      */
     public Iface createNanIface(
             HalDeviceManager.InterfaceDestroyedListener nanInterfaceDestroyedListener,
-            Handler handler, WorkSource requestorWs) {
+            Handler handler, WorkSource requestorWs, boolean skipHalCreation) {
         synchronized (mLock) {
             // Make sure HAL is started for Nan
             if (!startHal()) {
@@ -1416,7 +1416,7 @@ public class WifiNative {
             Iface iface = mIfaceMgr.allocateIface(Iface.IFACE_TYPE_NAN);
             if (iface != null) {
                 WifiNanIface nanIface = mWifiInjector.getHalDeviceManager().createNanIface(
-                        nanInterfaceDestroyedListener, handler, requestorWs);
+                        nanInterfaceDestroyedListener, handler, requestorWs, skipHalCreation);
                 if (nanIface != null) {
                     iface.iface = nanIface;
                     iface.name = nanIface.getName();

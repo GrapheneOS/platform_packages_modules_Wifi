@@ -77,6 +77,13 @@ public class WifiHal {
          * Get the name of this interface.
          */
         String getName();
+
+        /**
+         * Check if the interface is managed by the supplicant.
+         */
+        default boolean isSupplicantManaged() {
+            return false;
+        }
     }
 
     /**
