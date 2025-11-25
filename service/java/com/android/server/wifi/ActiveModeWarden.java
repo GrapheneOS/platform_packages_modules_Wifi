@@ -91,6 +91,7 @@ import com.android.server.wifi.ActiveModeManager.ClientConnectivityRole;
 import com.android.server.wifi.ActiveModeManager.ClientInternetConnectivityRole;
 import com.android.server.wifi.ActiveModeManager.ClientRole;
 import com.android.server.wifi.ActiveModeManager.SoftApRole;
+import com.android.server.wifi.rtt.RttServiceImpl;
 import com.android.server.wifi.util.ApConfigUtil;
 import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.NativeUtil;
@@ -229,6 +230,10 @@ public class ActiveModeWarden {
                 if (mWifiState.get() != newState) {
                     mWifiState.set(newState);
                     notifyRemoteWifiStateChangedListeners();
+                    RttServiceImpl rttService = mWifiInjector.getRttServiceImpl();
+                    if (rttService != null) {
+                        rttService.setWifiState(newState);
+                    }
                 }
                 break;
             default:

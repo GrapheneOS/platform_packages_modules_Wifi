@@ -27,6 +27,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.usd.PublishConfig;
 import android.net.wifi.usd.SubscribeConfig;
 
+import com.android.server.wifi.rtt.SupplicantWifiRttController;
 import com.android.server.wifi.usd.UsdRequestManager;
 
 import java.io.PrintWriter;
@@ -859,6 +860,16 @@ interface ISupplicantStaIfaceHal {
      * @param ifaceName Name of the interface.
      */
     default void disableMscs(String ifaceName) {}
+
+    /**
+     * Creates a SupplicantWifiRttController for the given interface name.
+     *
+     * @param ifaceName The name of the interface.
+     * @return A new SupplicantWifiRttController instance.
+     */
+    default SupplicantWifiRttController createRttController(@NonNull String ifaceName) {
+        return null;
+    }
 
     /**
      * Returns true if this device supports RSN Overriding, false otherwise.

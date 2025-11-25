@@ -32,6 +32,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -46,6 +47,7 @@ import android.util.Range;
 
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyClassifierParams;
 import com.android.server.wifi.SupplicantStaIfaceHal.QosPolicyRequest;
+import com.android.server.wifi.rtt.SupplicantWifiRttController;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -1029,6 +1031,23 @@ public class SupplicantStaIfaceHalTest extends WifiBaseTest {
                 .getConnectionCapabilities(anyString())).thenReturn(capabilities);
         assertEquals(capabilities, mDut.getConnectionCapabilities(IFACE_NAME));
         verify(mStaIfaceHalAidlMock).getConnectionCapabilities(eq(IFACE_NAME));
+    }
+
+    /**
+     * Test that we can call createRttController
+     */
+    @Test
+    public void testCreateRttController() {
+        initializeWithAidlVendorImpl(true);
+        SupplicantWifiRttController rttController = mock(SupplicantWifiRttController.class);
+        when(mStaIfaceHalAidlMock.createRttController(anyString())).thenReturn(rttController);
+        assertEquals(rttController, mDut.createRttController(IFACE_NAME));
+        verify(mStaIfaceHalAidlMock).createRttController(eq(IFACE_NAME));
+
+        // Test with null return from underlying HAL
+        when(mStaIfaceHalAidlMock.createRttController(anyString())).thenReturn(null);
+        assertEquals(null, mDut.createRttController(IFACE_NAME));
+        verify(mStaIfaceHalAidlMock, times(2)).createRttController(eq(IFACE_NAME));
     }
 
     /**

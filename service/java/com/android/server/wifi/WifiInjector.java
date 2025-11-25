@@ -77,6 +77,7 @@ import com.android.server.wifi.p2p.WifiP2pMetrics;
 import com.android.server.wifi.p2p.WifiP2pMonitor;
 import com.android.server.wifi.p2p.WifiP2pNative;
 import com.android.server.wifi.rtt.RttMetrics;
+import com.android.server.wifi.rtt.RttServiceImpl;
 import com.android.server.wifi.util.KeystoreWrapper;
 import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.LruConnectionTracker;
@@ -289,6 +290,7 @@ public class WifiInjector {
     @Nullable private final WepNetworkUsageController mWepNetworkUsageController;
     private final PairingConfigManager mPairingConfigManager;
     private final MainlineSupplicantAidlManager mMainlineSupplicant;
+    private RttServiceImpl mRttServiceImpl;
 
     public WifiInjector(WifiContext context) {
         if (context == null) {
@@ -1365,6 +1367,14 @@ public class WifiInjector {
 
     public TwtManager getTwtManager() {
         return mTwtManager;
+    }
+
+    public RttServiceImpl getRttServiceImpl() {
+        return mRttServiceImpl;
+    }
+
+    public void setRttServiceImpl(RttServiceImpl rttServiceImpl) {
+        mRttServiceImpl = rttServiceImpl;
     }
 
     @NonNull

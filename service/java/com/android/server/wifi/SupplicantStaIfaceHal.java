@@ -17,6 +17,7 @@ package com.android.server.wifi;
 
 import android.annotation.IntDef;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.content.Context;
 import android.net.MacAddress;
 import android.net.wifi.MscsParams;
@@ -30,6 +31,7 @@ import android.util.Log;
 import android.util.Range;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.wifi.rtt.SupplicantWifiRttController;
 import com.android.server.wifi.usd.UsdRequestManager;
 
 import java.io.PrintWriter;
@@ -2422,6 +2424,19 @@ public class SupplicantStaIfaceHal {
             return;
         }
         mStaIfaceHal.disableMscs(ifaceName);
+    }
+
+    /**
+     * See comments for {@link ISupplicantStaIfaceHal#createRttController(String)}
+     */
+    @Nullable
+    public SupplicantWifiRttController createRttController(@NonNull String ifaceName) {
+        String methodStr = "createRttController";
+        if (mStaIfaceHal == null) {
+            handleNullHal(methodStr);
+            return null;
+        }
+        return mStaIfaceHal.createRttController(ifaceName);
     }
 
     private boolean handleNullHal(String methodStr) {

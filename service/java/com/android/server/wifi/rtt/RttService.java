@@ -55,6 +55,7 @@ public class RttService extends SystemService {
                 return;
             }
 
+            wifiInjector.setRttServiceImpl(mImpl);
             HandlerThread handlerThread = wifiInjector.getWifiHandlerThread();
             WifiPermissionsUtil wifiPermissionsUtil = wifiInjector.getWifiPermissionsUtil();
             RttMetrics rttMetrics = wifiInjector.getWifiMetrics().getRttMetrics();
@@ -63,7 +64,9 @@ public class RttService extends SystemService {
             mImpl.start(handlerThread.getLooper(), wifiInjector.getClock(), awareManager,
                     rttMetrics, wifiPermissionsUtil, wifiInjector.getSettingsConfigStore(),
                     wifiInjector.getHalDeviceManager(), wifiInjector.getWifiConfigManager(),
-                    wifiInjector.getSsidTranslator());
+                    wifiInjector.getSsidTranslator(),
+                    wifiInjector.getWifiNative(),
+                    wifiInjector.getActiveModeWarden());
         } else if (phase == SystemService.PHASE_BOOT_COMPLETED) {
             mImpl.handleBootCompleted();
         }

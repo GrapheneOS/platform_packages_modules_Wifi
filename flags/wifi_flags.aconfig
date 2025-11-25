@@ -512,6 +512,13 @@ flag {
 }
 
 flag {
+    name: "proximity_ranging_impl"
+    namespace: "wifi"
+    description: "Proximity Detection(Ranging) (PD) feature framework implementation"
+    bug: "465464585"
+}
+
+flag {
     name: "feed_more_data_to_external_scorer"
     is_exported: true
     namespace: "wifi"
