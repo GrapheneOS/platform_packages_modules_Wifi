@@ -28,11 +28,11 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
 import android.hardware.wifi.supplicant.ISupplicant;
 import android.net.wifi.WifiContext;
 import android.net.wifi.util.BuildProperties;
 import android.net.wifi.util.Environment;
+import android.net.wifi.util.WifiResourceCache;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.test.TestLooper;
@@ -71,7 +71,7 @@ public class MainlineSupplicantAidlManagerTest extends WifiBaseTest {
     @Mock
     WifiContext mWifiContext;
     @Mock
-    Resources mResources;
+    WifiResourceCache mResources;
     @Mock
     PackageManager mPackageManager;
     @Mock
@@ -110,7 +110,7 @@ public class MainlineSupplicantAidlManagerTest extends WifiBaseTest {
         mIMainlineSupplicantSpy = mIMainlineSupplicant;
         mWifiThreadRunner = new WifiThreadRunner(new Handler(mTestLooper.getLooper()));
         when(mWifiInjector.getContext()).thenReturn(mWifiContext);
-        when(mWifiContext.getResources()).thenReturn(mResources);
+        when(mWifiContext.getResourceCache()).thenReturn(mResources);
         when(mWifiContext.getPackageManager()).thenReturn(mPackageManager);
         when(mWifiInjector.getWifiThreadRunner()).thenReturn(mWifiThreadRunner);
         when(BuildProperties.getInstance()).thenReturn(mBuildProperties);
@@ -271,5 +271,15 @@ public class MainlineSupplicantAidlManagerTest extends WifiBaseTest {
         mTestLooper.dispatchAll();
         // Should not have any more interactions.
         verifyNoMoreInteractions(deathEventHandler);
+    }
+
+    @Test
+    public void testIsAwareSupported() {
+        when(mResources.getBoolean(
+                com.android.wifi.resources.R.bool.config_supplicantAwareEnabled)).thenReturn(false);
+        assertFalse(mDut.isAwareSupported());
+        when(mResources.getBoolean(
+                com.android.wifi.resources.R.bool.config_supplicantAwareEnabled)).thenReturn(true);
+        assertTrue(mDut.isAwareSupported());
     }
 }
