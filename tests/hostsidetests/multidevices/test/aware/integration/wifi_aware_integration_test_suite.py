@@ -53,9 +53,7 @@ class WifiAwareIntegrationTestSuite(base_suite.BaseSuite):
     )
     self.add_test_class(wifi_aware_protocols_test.WifiAwareProtocolsTest)
     self.add_test_class(wifi_aware_throughput_test.WifiAwareThroughputTest)
-    self.add_test_class(
-        wifi_aware_latencytest_test.WifiAwareLatencyTestTest
-    )
+    self.add_test_class(wifi_aware_latencytest_test.WifiAwareLatencyTest)
 
 
 if __name__ == '__main__':
