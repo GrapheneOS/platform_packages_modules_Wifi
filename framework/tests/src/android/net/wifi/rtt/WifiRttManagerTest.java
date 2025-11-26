@@ -25,6 +25,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -109,6 +110,9 @@ public class WifiRttManagerTest {
 
         when(mockContext.getOpPackageName()).thenReturn(packageName);
         when(mockContext.getAttributionTag()).thenReturn(featureId);
+        if (SdkLevel.isAtLeastU()) {
+            when(mockContext.createDeviceContext(anyInt())).thenReturn(mockContext);
+        }
     }
 
     /**
