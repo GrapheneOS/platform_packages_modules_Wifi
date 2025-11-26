@@ -1162,7 +1162,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         res.lcr = new android.hardware.wifi.WifiInformationElement();
         res.addr = MacAddress.byteAddrFromStringAddr("05:06:07:08:09:0A");
         res.status = android.hardware.wifi.RttStatus.FAIL_BUSY_TRY_LATER;
-        res.retryAfterDuration = 5; // 5 seconds
+        res.retryAfterDuration = 40; // 5120 ms (40 * 128)
         results[0] = res;
 
         halCallback.notifyRangingResults(results, (byte) 0);
@@ -1178,6 +1178,6 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         collector.checkThat("mac", rttResult.getMacAddress().toByteArray(),
                 equalTo(MacAddress.fromString("05:06:07:08:09:0A").toByteArray()));
         collector.checkThat("retryAfterDuration", rttResult.getRetryAfterDurationMillis(),
-                equalTo(5000));
+                equalTo(40 * 128));
     }
 }
