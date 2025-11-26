@@ -20,6 +20,7 @@ import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_6_GHZ;
 
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
@@ -28,6 +29,8 @@ import android.net.MacAddress;
 import android.net.NetworkCapabilities;
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import com.android.wifi.flags.Flags;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -109,9 +112,19 @@ public final class MloLink implements Parcelable {
     private int mRxLinkSpeed;
 
     /**
+     * Max supported Rx(receive) link speed in Mbps
+     */
+    private int mMaxSupportedRxLinkSpeed;
+
+    /**
      * Tx(transmit) Link speed in Mbps
      */
     private int mTxLinkSpeed;
+
+    /**
+     * Max supported Tx(transmit) link speed in Mbps
+     */
+    private int mMaxSupportedTxLinkSpeed;
 
     /**
      * Constructor for a MloLInk.
@@ -125,7 +138,9 @@ public final class MloLink implements Parcelable {
         mLinkId = INVALID_MLO_LINK_ID;
         mRssi =  WifiInfo.INVALID_RSSI;
         mRxLinkSpeed = WifiInfo.LINK_SPEED_UNKNOWN;
+        mMaxSupportedRxLinkSpeed = WifiInfo.LINK_SPEED_UNKNOWN;
         mTxLinkSpeed = WifiInfo.LINK_SPEED_UNKNOWN;
+        mMaxSupportedTxLinkSpeed = WifiInfo.LINK_SPEED_UNKNOWN;
     }
 
     /**
@@ -140,7 +155,9 @@ public final class MloLink implements Parcelable {
         mState = source.mState;
         mRssi = source.mRssi;
         mRxLinkSpeed = source.mRxLinkSpeed;
+        mMaxSupportedRxLinkSpeed = source.mMaxSupportedRxLinkSpeed;
         mTxLinkSpeed = source.mTxLinkSpeed;
+        mMaxSupportedTxLinkSpeed = source.mMaxSupportedTxLinkSpeed;
         mLostTxPacketsPerSecond = source.mLostTxPacketsPerSecond;
         mTxRetriedTxPacketsPerSecond = source.mTxRetriedTxPacketsPerSecond;
         mSuccessfulRxPacketsPerSecond = source.mSuccessfulRxPacketsPerSecond;
@@ -291,6 +308,26 @@ public final class MloLink implements Parcelable {
     }
 
     /**
+     * Update the maximum supported receive link speed in Mbps.
+     * @hide
+     */
+    public void setMaxSupportedRxLinkSpeedMbps(int linkSpeed) {
+        mMaxSupportedRxLinkSpeed = linkSpeed;
+    }
+
+    /**
+     * Returns the maximum supported receive link speed in Mbps.
+     * @return the maximum supported Rx link speed or {@link WifiInfo#LINK_SPEED_UNKNOWN} if link
+     * speed is unknown.
+     * @see WifiInfo#LINK_SPEED_UNKNOWN
+     */
+    @IntRange(from = -1)
+    @FlaggedApi(Flags.FLAG_MLO_LINK_SPEED_API)
+    public int getMaxSupportedRxLinkSpeedMbps() {
+        return mMaxSupportedRxLinkSpeed;
+    }
+
+    /**
      * Update the last transmitted packet bit rate in Mbps.
      * @hide
      */
@@ -306,6 +343,26 @@ public final class MloLink implements Parcelable {
     @IntRange(from = -1)
     public int getTxLinkSpeedMbps() {
         return mTxLinkSpeed;
+    }
+
+    /**
+     * Update the maximum supported transmit link speed in Mbps.
+     * @hide
+     */
+    public void setMaxSupportedTxLinkSpeedMbps(int linkSpeed) {
+        mMaxSupportedTxLinkSpeed = linkSpeed;
+    }
+
+    /**
+     * Returns the maximum supported transmit link speed in Mbps.
+     * @return the maximum supported Tx link speed or {@link WifiInfo#LINK_SPEED_UNKNOWN} if link
+     * speed is unknown.
+     * @see WifiInfo#LINK_SPEED_UNKNOWN
+     */
+    @IntRange(from = -1)
+    @FlaggedApi(Flags.FLAG_MLO_LINK_SPEED_API)
+    public int getMaxSupportedTxLinkSpeedMbps() {
+        return mMaxSupportedTxLinkSpeed;
     }
 
     /**
@@ -440,7 +497,9 @@ public final class MloLink implements Parcelable {
                 && mState == that.mState
                 && mRssi == that.mRssi
                 && mRxLinkSpeed == that.mRxLinkSpeed
+                && mMaxSupportedRxLinkSpeed == that.mMaxSupportedRxLinkSpeed
                 && mTxLinkSpeed == that.mTxLinkSpeed
+                && mMaxSupportedTxLinkSpeed == that.mMaxSupportedTxLinkSpeed
                 && mTxRetriedTxPacketsPerSecond == that.mTxRetriedTxPacketsPerSecond
                 && mSuccessfulTxPacketsPerSecond == that.mSuccessfulTxPacketsPerSecond
                 && mLostTxPacketsPerSecond == that.mLostTxPacketsPerSecond
@@ -462,7 +521,9 @@ public final class MloLink implements Parcelable {
                 mState,
                 mRssi,
                 mRxLinkSpeed,
+                mMaxSupportedRxLinkSpeed,
                 mTxLinkSpeed,
+                mMaxSupportedTxLinkSpeed,
                 mTxRetriedTxPacketsPerSecond,
                 mSuccessfulTxPacketsPerSecond,
                 mLostTxPacketsPerSecond,
@@ -521,8 +582,14 @@ public final class MloLink implements Parcelable {
         sb.append(", RSSI: ").append(getRssi());
         sb.append(", Rx Link speed: ").append(getRxLinkSpeedMbps()).append(
                 WifiInfo.LINK_SPEED_UNITS);
+        sb.append(", Max Supported Rx Link speed: ")
+                .append(getMaxSupportedRxLinkSpeedMbps())
+                .append(WifiInfo.LINK_SPEED_UNITS);
         sb.append(", Tx Link speed: ").append(getTxLinkSpeedMbps()).append(
                 WifiInfo.LINK_SPEED_UNITS);
+        sb.append(", Max Supported Tx Link speed: ")
+                .append(getMaxSupportedTxLinkSpeedMbps())
+                .append(WifiInfo.LINK_SPEED_UNITS);
         if (mApMacAddress != null) {
             sb.append(", AP MAC Address: ").append(mApMacAddress.toString());
         }
@@ -548,7 +615,9 @@ public final class MloLink implements Parcelable {
         dest.writeInt(mState);
         dest.writeInt(mRssi);
         dest.writeInt(mRxLinkSpeed);
+        dest.writeInt(mMaxSupportedRxLinkSpeed);
         dest.writeInt(mTxLinkSpeed);
+        dest.writeInt(mMaxSupportedTxLinkSpeed);
         dest.writeParcelable(mApMacAddress, flags);
         dest.writeParcelable(mStaMacAddress, flags);
         dest.writeDouble(mLostTxPacketsPerSecond);
@@ -572,7 +641,9 @@ public final class MloLink implements Parcelable {
                     link.mState = in.readInt();
                     link.mRssi = in.readInt();
                     link.mRxLinkSpeed = in.readInt();
+                    link.mMaxSupportedRxLinkSpeed = in.readInt();
                     link.mTxLinkSpeed = in.readInt();
+                    link.mMaxSupportedTxLinkSpeed = in.readInt();
                     link.mApMacAddress = in.readParcelable(MacAddress.class.getClassLoader());
                     link.mStaMacAddress = in.readParcelable(MacAddress.class.getClassLoader());
                     link.mLostTxPacketsPerSecond = in.readDouble();

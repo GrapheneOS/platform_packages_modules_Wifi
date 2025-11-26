@@ -4369,15 +4369,22 @@ public class WifiNative {
         private final BitSet mTidsDownlinkMap;
         private final MacAddress mApMacAddress;
         private final int mFrequencyMHz;
+        private final int mChannelBandwidth;
+        private final int mMaxNumberTxSpatialStreams;
+        private final int mMaxNumberRxSpatialStreams;
 
         ConnectionMloLink(int id, MacAddress staMacAddress, MacAddress apMacAddress,
-                byte tidsUplink, byte tidsDownlink, int frequencyMHz) {
+                byte tidsUplink, byte tidsDownlink, int frequencyMHz, int channelBandwidth,
+                int maxNumberTxSpatialStreams, int maxNumberRxSpatialStreams) {
             mLinkId = id;
             mStaMacAddress = staMacAddress;
             mApMacAddress = apMacAddress;
             mTidsDownlinkMap = BitSet.valueOf(new byte[] { tidsDownlink });
             mTidsUplinkMap = BitSet.valueOf(new byte[] { tidsUplink });
             mFrequencyMHz = frequencyMHz;
+            mChannelBandwidth = channelBandwidth;
+            mMaxNumberTxSpatialStreams = maxNumberTxSpatialStreams;
+            mMaxNumberRxSpatialStreams = maxNumberRxSpatialStreams;
         };
 
         /**
@@ -4452,6 +4459,27 @@ public class WifiNative {
          */
         public int getFrequencyMHz() {
             return mFrequencyMHz;
+        }
+
+        /**
+         * Get channel band width
+         */
+        public int getChannelBandwidth() {
+            return mChannelBandwidth;
+        }
+
+        /**
+         * Get the maximum number of spatial streams supported by the link in the up direction.
+         */
+        public int getMaxNumberTxSpatialStreams() {
+            return mMaxNumberTxSpatialStreams;
+        }
+
+        /**
+         * Get the maximum number of spatial streams supported by the link in the down direction.
+         */
+        public int getMaxNumberRxSpatialStreams() {
+            return mMaxNumberRxSpatialStreams;
         }
     }
 

@@ -1356,6 +1356,35 @@ public class ClientModeImplTest extends WifiBaseTest {
         validateConnectionInfo();
     }
 
+    /**
+     * Tests MLO link speed update.
+     */
+    @Test
+    public void testMloLinkSpeedUpdate() throws Exception {
+
+        // Initialize
+        when(mThroughputPredictor.predicMaxRxThroughputForMloLink(any(), any())).thenReturn(100);
+        when(mThroughputPredictor.predicMaxTxThroughputForMloLink(any(), any())).thenReturn(200);
+
+        connect();
+        setScanResultWithMloInfo();
+        setConnectionMloLinksInfo();
+        mLooper.dispatchAll();
+
+        // Association
+        mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
+                new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
+                        SupplicantState.ASSOCIATED));
+        mLooper.dispatchAll();
+
+        // Verify
+        List<MloLink> affiliatedMloLinks = mWifiInfo.getAffiliatedMloLinks();
+        assertEquals(2, affiliatedMloLinks.size());
+        MloLink link = affiliatedMloLinks.get(0);
+        assertEquals(100, link.getMaxSupportedRxLinkSpeedMbps());
+        assertEquals(200, link.getMaxSupportedTxLinkSpeedMbps());
+    }
+
     private void connectWithIpProvisionTimeout(boolean lateDhcpResponse) throws Exception {
         mResources.setBoolean(R.bool.config_wifiRemainConnectedAfterIpProvisionTimeout, true);
         assertNull(mCmi.getConnectingWifiConfiguration());
@@ -10645,9 +10674,11 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
         info.links = new WifiNative.ConnectionMloLink[2];
         info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
-                TEST_AP_MLD_MAC_ADDRESS, Byte.MIN_VALUE, Byte.MAX_VALUE, 5160);
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MIN_VALUE, Byte.MAX_VALUE, 5160,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         info.links[1] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID_1, TEST_MLO_LINK_ADDR_1,
-                TEST_AP_MLD_MAC_ADDRESS, Byte.MAX_VALUE, Byte.MIN_VALUE, 2437);
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MAX_VALUE, Byte.MIN_VALUE, 2437,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
     }
 
@@ -10788,9 +10819,11 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
         info.links = new WifiNative.ConnectionMloLink[2];
         info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
-                TEST_AP_MLD_MAC_ADDRESS, (byte) 0xFF, (byte) 0xFF, 2437);
+                TEST_AP_MLD_MAC_ADDRESS, (byte) 0xFF, (byte) 0xFF, 2437,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         info.links[1] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID_1, TEST_MLO_LINK_ADDR_1,
-                TEST_AP_MLD_MAC_ADDRESS, (byte) 0, (byte) 0, 5160);
+                TEST_AP_MLD_MAC_ADDRESS, (byte) 0, (byte) 0, 5160,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
     }
 
@@ -10799,7 +10832,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
         info.links = new WifiNative.ConnectionMloLink[1];
         info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
-                TEST_AP_MLD_MAC_ADDRESS, (byte) 0xFF, (byte) 0xFF, 2437);
+                TEST_AP_MLD_MAC_ADDRESS, (byte) 0xFF, (byte) 0xFF, 2437,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
     }
 
@@ -10808,9 +10842,11 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
         info.links = new WifiNative.ConnectionMloLink[2];
         info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
-                TEST_AP_MLD_MAC_ADDRESS, (byte) 0xFF, (byte) 0xFF, 2437);
+                TEST_AP_MLD_MAC_ADDRESS, (byte) 0xFF, (byte) 0xFF, 2437,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         info.links[1] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID_1, TEST_MLO_LINK_ADDR_1,
-                TEST_AP_MLD_MAC_ADDRESS, (byte) 0xFF, (byte) 0xFF, 5160);
+                TEST_AP_MLD_MAC_ADDRESS, (byte) 0xFF, (byte) 0xFF, 5160,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
     }
 
@@ -11478,7 +11514,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
         info.links = new WifiNative.ConnectionMloLink[1];
         info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
-                TEST_AP_MLD_MAC_ADDRESS, Byte.MAX_VALUE, Byte.MAX_VALUE, 2437);
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MAX_VALUE, Byte.MAX_VALUE, 2437,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
 
         mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
@@ -11622,9 +11659,11 @@ public class ClientModeImplTest extends WifiBaseTest {
         WifiNative.ConnectionMloLinksInfo info = new WifiNative.ConnectionMloLinksInfo();
         info.links = new WifiNative.ConnectionMloLink[2];
         info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
-                TEST_AP_MLD_MAC_ADDRESS, Byte.MIN_VALUE, Byte.MAX_VALUE, TEST_MLO_LINK_FREQ);
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MIN_VALUE, Byte.MAX_VALUE, TEST_MLO_LINK_FREQ,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         info.links[1] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID_1, TEST_MLO_LINK_ADDR_1,
-                TEST_AP_MLD_MAC_ADDRESS, Byte.MAX_VALUE, Byte.MIN_VALUE, TEST_MLO_LINK_FREQ_1);
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MAX_VALUE, Byte.MIN_VALUE, TEST_MLO_LINK_FREQ_1,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
         mCmi.sendMessage(WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT, 0, 0,
                 new StateChangeResult(FRAMEWORK_NETWORK_ID, TEST_WIFI_SSID, TEST_BSSID_STR, sFreq,
@@ -11634,7 +11673,8 @@ public class ClientModeImplTest extends WifiBaseTest {
                 mWifiInfo.getAffiliatedMloLinks().size());
 
         info.links[0] = new WifiNative.ConnectionMloLink(TEST_MLO_LINK_ID, TEST_MLO_LINK_ADDR,
-                TEST_AP_MLD_MAC_ADDRESS, Byte.MIN_VALUE, Byte.MAX_VALUE, 6215);
+                TEST_AP_MLD_MAC_ADDRESS, Byte.MIN_VALUE, Byte.MAX_VALUE, 6215,
+                ScanResult.CHANNEL_WIDTH_20MHZ, 2, 2);
         when(mWifiNative.getConnectionMloLinksInfo(WIFI_IFACE_NAME)).thenReturn(info);
         mCmi.sendMessage(WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT, 6215);
         mLooper.dispatchAll();

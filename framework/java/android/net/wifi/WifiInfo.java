@@ -1093,6 +1093,20 @@ public class WifiInfo implements TransportInfo, Parcelable {
     }
 
     /**
+     * Update the maximum supported transmit link speed in Mbps
+     * @hide
+     */
+    public boolean updateMaxSupportedMloTxLinkSpeedMbps(int linkId, int maxSupportedTxLinkSpeed) {
+        for (MloLink link : mAffiliatedMloLinks) {
+            if (link.getLinkId() == linkId) {
+                link.setMaxSupportedTxLinkSpeedMbps(maxSupportedTxLinkSpeed);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Returns the current receive link speed in Mbps. In case of Multi Link Operation (MLO),
      * returned value is the receive link speed of the associated link with the highest RSSI.
      *
@@ -1111,6 +1125,20 @@ public class WifiInfo implements TransportInfo, Parcelable {
      */
     public int getMaxSupportedRxLinkSpeedMbps() {
         return mMaxSupportedRxLinkSpeed;
+    }
+
+    /**
+     * Update the maximum supported receive link speed in Mbps
+     * @hide
+     */
+    public boolean updateMaxSupportedMloRxLinkSpeedMbps(int linkId, int maxSupportedRxLinkSpeed) {
+        for (MloLink link : mAffiliatedMloLinks) {
+            if (link.getLinkId() == linkId) {
+                link.setMaxSupportedRxLinkSpeedMbps(maxSupportedRxLinkSpeed);
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
