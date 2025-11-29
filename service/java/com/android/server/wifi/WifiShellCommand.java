@@ -106,6 +106,7 @@ import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
 import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.net.wifi.aware.WifiAwareSession;
+import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.net.wifi.util.ScanResultUtil;
 import android.net.wifi.util.WifiResourceCache;
 import android.os.Binder;
@@ -3317,6 +3318,67 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     return 0;
                 }
+                case "register-nl80211-ap-callback": {
+                    String ifaceName = getNextArgRequired();
+                    boolean useNl80211Override = false;
+
+                    String option = getNextOption();
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        if (!mNl80211Native.setupInterfaceForSoftApMode(ifaceName)) {
+                            pw.println("Failed to setup AP interface");
+                            return -1;
+                        }
+                        CountDownLatch latch = new CountDownLatch(1);
+                        WifiNl80211Manager.SoftApCallback callback =
+                                new WifiNl80211Manager.SoftApCallback() {
+                                    @Override
+                                    public void onFailure() {
+                                        pw.println("onFailure() called");
+                                        pw.flush();
+                                    }
+
+                                    @Override
+                                    public void onConnectedClientsChanged(
+                                            android.net.wifi.nl80211.NativeWifiClient client,
+                                            boolean isConnected) {
+                                        pw.println("Client " + client.getMacAddress()
+                                                + (isConnected ? " connected" : " disconnected"));
+                                        pw.flush();
+                                    }
+
+                                    @Override
+                                    public void onSoftApChannelSwitched(
+                                            int frequency, int bandwidth) {
+                                        pw.println("Channel switched to " + frequency
+                                                + " MHz with bandwidth " + bandwidth);
+                                        pw.flush();
+                                    }
+                                };
+                        if (!mNl80211Native.registerApCallback(
+                                ifaceName, Runnable::run, callback)) {
+                            pw.println("Failed to register AP callback");
+                            return -1;
+                        }
+                        pw.println("AP listener registered on " + ifaceName
+                                + ". Press Ctrl-C to exit.");
+                        pw.flush();
+                        // Wait indefinitely until the user cancels.
+                        latch.await();
+                    } finally {
+                        mNl80211Native.tearDownSoftApInterface(ifaceName);
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -4577,6 +4639,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("        [<freq>...]: Optional list of frequencies to scan for this network.");
         pw.println("  stop-nl80211-pno-scan <iface>");
         pw.println("    Stops an ongoing PNO scan via Nl80211Native.stopPnoScan.");
+        pw.println("    -n Use direct nl80211 implementation instead of wificond.");
+        pw.println("  register-nl80211-ap-callback <iface> [-n]");
+        pw.println("    Sets up an AP interface and registers a callback to listen for AP events.");
         pw.println("    -n Use direct nl80211 implementation instead of wificond.");
     }
 

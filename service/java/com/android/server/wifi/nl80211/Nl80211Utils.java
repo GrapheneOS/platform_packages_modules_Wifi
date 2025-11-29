@@ -928,6 +928,34 @@ public class Nl80211Utils {
     }
 
     /**
+     * Returns the InterfaceInfo for a given interface.
+     */
+    @Nullable
+    public InterfaceInfo getInterfaceInfo(@NonNull String ifaceName) {
+        int wiphyIndex = getWiphyIndex(ifaceName);
+        if (wiphyIndex == -1) {
+            Log.e(TAG, "Failed to get wiphy index for " + ifaceName);
+            return null;
+        }
+
+        List<Nl80211Utils.InterfaceInfo> interfaces = getInterfaces(wiphyIndex);
+        if (interfaces == null) {
+            Log.e(TAG, "Failed to get interfaces for wiphy " + wiphyIndex);
+            return null;
+        }
+
+        Nl80211Utils.InterfaceInfo foundInterface = null;
+        for (Nl80211Utils.InterfaceInfo info : interfaces) {
+            if (ifaceName.equals(info.name)) {
+                foundInterface = info;
+                break;
+            }
+        }
+
+        return foundInterface;
+    }
+
+    /**
      * Returns a list of scan results retrieved by NL80211_CMD_GET_SCAN for the given interface.
      */
     @NonNull

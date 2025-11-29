@@ -2539,7 +2539,7 @@ public class WifiNative {
         } else {
             SoftApHalCallbackFromWificond softApHalCallbackFromWificond =
                     new SoftApHalCallbackFromWificond(ifaceName, callback);
-            if (!mNl80211Native.registerWificondApCallback(ifaceName,
+            if (!mNl80211Native.registerApCallback(ifaceName,
                     Runnable::run, softApHalCallbackFromWificond)) {
                 Log.e(TAG, "Failed to register ap hal event callback from wificond");
                 return SoftApManager.START_RESULT_FAILURE_REGISTER_AP_CALLBACK_WIFICOND;
