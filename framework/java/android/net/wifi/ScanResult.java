@@ -70,7 +70,6 @@ public final class ScanResult implements Parcelable {
      * @hide
      */
     @Deprecated
-    // TODO(b/231433398): add maxTargetSdk = Build.VERSION_CODES.S
     @UnsupportedAppUsage(publicAlternatives = "{@link #getWifiSsid()}")
     public WifiSsid wifiSsid;
 
