@@ -34,6 +34,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_PROTOCOL_FEATURES;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_TYPE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_FLAGS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_FREQUENCIES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_SSIDS;
@@ -59,16 +60,19 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATU
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_TSF;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_PROTOCOL_FEATURES;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_REG;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_WIPHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_REG_CHANGE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_START_SCHED_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_STOP_SCHED_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_TRIGGER_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_FREQ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_COUNTRY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_POWER;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_RANDOM_ADDR;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCAN_MATCH_ATTR_RSSI;
@@ -137,6 +141,9 @@ public class Nl80211UtilsTest {
     private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_SCAN =
             new GenericNetlinkMsg(NL80211_CMD_GET_SCAN, (short) 0, (short) 0, 0);
 
+    private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_REG =
+            new GenericNetlinkMsg(NetlinkConstants.NL80211_CMD_GET_REG, (short) 0, (short) 0, 0);
+
     @Mock private Nl80211Proxy mNl80211Proxy;
     @Mock private NetworkInterface mNetworkInterface;
     private Nl80211Utils mNl80211Utils;
@@ -164,6 +171,8 @@ public class Nl80211UtilsTest {
                 .thenReturn(TEST_NL80211_REQUEST_GET_INTERFACE);
         when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_GET_SCAN), anyShort(), any()))
                 .thenReturn(TEST_NL80211_REQUEST_GET_SCAN);
+        when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_GET_REG)))
+                .thenReturn(TEST_NL80211_REQUEST_GET_REG);
     }
 
     @After
@@ -806,6 +815,47 @@ public class Nl80211UtilsTest {
         Nl80211Utils.InterfaceInfo info = mNl80211Utils.getInterfaceInfo(TEST_IF_NAME);
 
         assertNull(info);
+    }
+
+    @Test
+    public void testGetCountryCode_success() {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(NL80211_CMD_REG_CHANGE,
+                (short) 0, (short) 0, 0);
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_REG_ALPHA2, "US"));
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_REG_TYPE,
+                NL80211_REGDOM_TYPE_COUNTRY));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(eq(TEST_NL80211_REQUEST_GET_REG)))
+                .thenReturn(new Nl80211Response(msg));
+
+        assertEquals("US", mNl80211Utils.getCountryCode(TEST_WIPHY_INDEX));
+    }
+
+    @Test
+    public void testGetCountryCode_nullResponse() {
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(eq(TEST_NL80211_REQUEST_GET_REG)))
+                .thenReturn(null);
+
+        assertNull(mNl80211Utils.getCountryCode(TEST_WIPHY_INDEX));
+    }
+
+    @Test
+    public void testGetCountryCode_emptyResponse() {
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(eq(TEST_NL80211_REQUEST_GET_REG)))
+                .thenReturn(new Nl80211Response());
+
+        assertNull(mNl80211Utils.getCountryCode(TEST_WIPHY_INDEX));
+    }
+
+    @Test
+    public void testGetCountryCode_missingRegAlpha2Attribute() {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(NL80211_CMD_REG_CHANGE,
+                (short) 0, (short) 0, 0);
+        // Only add reg type, no alpha2
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_REG_TYPE, NL80211_REGDOM_TYPE_COUNTRY));
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(eq(TEST_NL80211_REQUEST_GET_REG)))
+                .thenReturn(new Nl80211Response(msg));
+
+        assertNull(mNl80211Utils.getCountryCode(TEST_WIPHY_INDEX));
     }
 
     @Test

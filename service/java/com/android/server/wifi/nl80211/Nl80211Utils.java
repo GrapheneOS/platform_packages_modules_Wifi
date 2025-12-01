@@ -36,6 +36,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_PROTOCOL_FEATURES;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_ALPHA2;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_FLAGS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_FREQUENCIES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_SSIDS;
@@ -69,6 +70,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_TSF;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_ABORT_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_PROTOCOL_FEATURES;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_REG;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
@@ -1472,6 +1474,28 @@ public class Nl80211Utils {
         }
 
         return true;
+    }
+
+    /**
+     * Queries the current country code via NL80211_CMD_GET_REG.
+     */
+    public @Nullable String getCountryCode(int wiphyIndex) {
+        GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_REG);
+        request.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex));
+
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError() || response.getMessage() == null) {
+            Log.e(TAG, "Failed to send NL80211_CMD_GET_REG");
+            return null;
+        }
+
+        String countryCode =
+                response.getMessage().getAttributeValueAsString(NL80211_ATTR_REG_ALPHA2);
+        if (countryCode == null) {
+            Log.e(TAG, "Failed to get NL80211_ATTR_REG_ALPHA2");
+        }
+
+        return countryCode;
     }
 
     /**

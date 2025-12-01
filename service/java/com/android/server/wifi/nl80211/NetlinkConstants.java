@@ -1141,4 +1141,10 @@ public class NetlinkConstants {
     public static final int NL80211_CHAN_WIDTH_8 = 11;
     public static final int NL80211_CHAN_WIDTH_16 = 12;
     public static final int NL80211_CHAN_WIDTH_320 = 13;
+
+    // Nl80211 regulatory domain types. See kernel/uapi/linux/nl80211.h
+    public static final int NL80211_REGDOM_TYPE_COUNTRY = 0;
+    public static final int NL80211_REGDOM_TYPE_WORLD = 1;
+    public static final int NL80211_REGDOM_TYPE_CUSTOM_WORLD = 2;
+    public static final int NL80211_REGDOM_TYPE_INTERSECTION = 3;
 }
