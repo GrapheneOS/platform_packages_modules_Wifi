@@ -44,6 +44,7 @@ import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.NetworkRequestUserSelectionCallback;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiScanner.ScanData;
@@ -79,11 +80,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -109,6 +112,7 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     private final Context mContext;
     private final WifiManager mWifiManager;
     private final ConnectivityManager mConnectivityManager;
+    private final EventCache mEventCache = EventCache.getInstance();
     private final Handler mHandler;
     private final Object mLock = new Object();
     private final JsonSerializer mJsonSerializer = new JsonSerializer();
@@ -117,6 +121,8 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     private BroadcastReceiver mWifiStateReceiver;
     private WifiManager.SuggestionConnectionStatusListener mSuggestionConnectionStatusListener;
     private WifiManager.SuggestionUserApprovalStatusListener mSuggestionUserApprovalStatusListener;
+    private WifiManager.NetworkRequestUserSelectionCallback mNetworkRequestUserSelectionCallback;
+    private WifiNetworkRequestMatchCallback mNetworkRequestMatchCallback;
     private BroadcastReceiver mNetworkSuggestionPostConnectionReceiver;
     private volatile boolean mIsScanResultAvailable = false;
 
@@ -1442,6 +1448,146 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     }
 
     /**
+     * Simulates a user selecting a network to fulfill an ongoing network request.
+     *
+     * <p>This method should be called after the {@code onMatch} event has been received from
+     * the {@link #wifiRegisterNetworkRequestMatchCallback}. It triggers the connection attempt
+     * to the specified network.
+     *
+     * @param jsonConfig A {@link JSONObject} containing the parameters of the network to connect
+     *                   to. At a minimum, it should contain the "SSID".
+     * @throws JSONException if the provided {@code jsonConfig} is malformed.
+     * @throws IllegalStateException if this method is called before a network request has been
+     *                               matched and the user selection callback is available.
+     * @see #wifiRegisterNetworkRequestMatchCallback(String)
+     */
+    @Rpc(description = "Connect to the specified network for the ongoing network request.")
+    public void wifiSendUserSelectionForNetworkRequestMatch(JSONObject jsonConfig)
+            throws JSONException, GeneralSecurityException {
+        synchronized (mLock) {
+            if (mNetworkRequestUserSelectionCallback == null) {
+                throw new IllegalStateException("user callback is null");
+            }
+            // Create a WifiConfiguration object for the user's selection.
+            WifiConfiguration config = new WifiConfiguration();
+            if (jsonConfig.has("SSID")) {
+                // The SSID must be enclosed in double quotes.
+                config.SSID = "\"" + jsonConfig.getString("SSID") + "\"";
+            }
+            mNetworkRequestUserSelectionCallback.select(config);
+        }
+    }
+
+    /**
+     * Rejects network request.
+     *
+     */
+    @Rpc(description = "Rejects ongoing network request")
+    public void wifiSendUserRejectionForNetworkRequestMatch()
+            throws JSONException, GeneralSecurityException {
+        synchronized (mLock) {
+            if (mNetworkRequestUserSelectionCallback == null) {
+                throw new IllegalStateException("user callback is null");
+            }
+            mNetworkRequestUserSelectionCallback.reject();
+        }
+    }
+
+    /**
+     * Registers a callback to listen for events related to Wi-Fi network requests.
+     *
+     * <p>When an app makes a {@link NetworkRequest} that can be fulfilled by Wi-Fi, the
+     * registered callback will receive events. This method initiates the listening process.
+     * Events are posted asynchronously to the Mobly {@link EventCache} and can be retrieved
+     * using the provided {@code callbackId}.
+     *
+     * @param callbackId A unique identifier for this asynchronous operation, used to retrieve
+     *                   events from the {@link EventCache}.
+     * @throws GeneralSecurityException if the operation fails due to a permission issue.
+     * @see #wifiSendUserSelectionForNetworkRequestMatch(JSONObject)
+     */
+    @AsyncRpc(description = "Register network request match callback.")
+    public void wifiRegisterNetworkRequestMatchCallback(String callbackId)
+            throws GeneralSecurityException {
+        // Listen for UI interaction callbacks
+        mNetworkRequestMatchCallback =
+                new WifiNetworkRequestMatchCallback(
+                        "NetworkRequestMatch", callbackId);
+        // Create an executor that runs tasks on the snippet's background handler thread.
+        Executor executor = command -> mHandler.post(command);
+        executeWithShellPermission(
+                () ->
+                        mWifiManager.registerNetworkRequestMatchCallback(
+                                executor,
+                                mNetworkRequestMatchCallback));
+        Log.d(TAG, "NetworkRequestMatchCallback registered with callbackId: " + callbackId);
+    }
+
+    private class WifiNetworkRequestMatchCallback implements
+            WifiManager.NetworkRequestMatchCallback {
+        private final String mEventPrefix;
+        private final String mCallbackId;
+        private final EventCache mEventCache = EventCache.getInstance();
+
+        WifiNetworkRequestMatchCallback(String eventTag, String callbackId) {
+            this.mEventPrefix = eventTag;
+            this.mCallbackId = callbackId;
+        }
+
+        @Override
+        public void onUserSelectionCallbackRegistration(
+                NetworkRequestUserSelectionCallback userSelectionCallback) {
+            synchronized (mLock) {
+                mNetworkRequestUserSelectionCallback = userSelectionCallback;
+            }
+        }
+
+        @Override
+        public void onAbort() {
+            String eventName = mEventPrefix + "OnAbort";
+            SnippetEvent event = new SnippetEvent(mCallbackId, eventName);
+            mEventCache.postEvent(event);
+            Log.d(TAG, "NetworkRequestMatchCallback called for " + eventName);
+        }
+
+        @Override
+        public void onMatch(List<ScanResult> scanResults) {
+            String eventName = mEventPrefix + "OnMatch";
+            SnippetEvent event = new SnippetEvent(mCallbackId, eventName);
+            event.getData().putString("SSID", scanResults.get(0).getWifiSsid().toString());
+            mEventCache.postEvent(event);
+            Log.d(TAG, "NetworkRequestMatchCallback called for " + eventName);
+        }
+
+        @Override
+        public void onUserSelectionConnectSuccess(WifiConfiguration wifiConfiguration) {
+            String eventName = mEventPrefix + "OnUserSelectionConnectSuccess";
+            SnippetEvent event = new SnippetEvent(mCallbackId, eventName);
+            mEventCache.postEvent(event);
+            Log.d(TAG, "NetworkRequestMatchCallback called for " + eventName);
+        }
+
+        @Override
+        public void onUserSelectionConnectFailure(WifiConfiguration wifiConfiguration) {
+            String eventName = mEventPrefix + "OnUserSelectionConnectFailure";
+            SnippetEvent event = new SnippetEvent(mCallbackId, eventName);
+            mEventCache.postEvent(event);
+            Log.d(TAG, "NetworkRequestMatchCallback called for " + eventName);
+        }
+    }
+
+    /**
+     * Clears all events that have been cached by the Mobly eventing system.
+     *
+     * <p>This is useful to call at the beginning of a test to ensure no stale events from
+     * previous tests interfere with the current one.
+     */
+    @Rpc(description = "Clears all cached events.")
+    public void clearEventCache() {
+        mEventCache.clearAll();
+    }
+
+    /**
      * Get the factory MAC addresses.
      *
      * @return an array of factory MAC addresses, or an empty array if not available.
@@ -1482,4 +1628,5 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         Log.d(TAG, "No matching network found for SSID: " + targetSsid);
         return null;
     }
+
 }
