@@ -747,8 +747,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             if (!mP2pStateMachine.isWifiP2pAvailable()) {
                 Log.i(TAG, "D2d isn't allowed anymore when infra sta is disabled");
                 mP2pStateMachine.sendMessage(DISABLE_P2P);
-                mP2pStateMachine.checkAndSendP2pStateChangedBroadcast();
             }
+            mP2pStateMachine.checkAndSendP2pStateChangedBroadcast();
         }
     }
 
