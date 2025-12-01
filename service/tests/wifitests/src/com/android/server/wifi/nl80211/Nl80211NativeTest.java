@@ -1972,10 +1972,34 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testNotifyCountryCodeChanged_throwsException() {
+    public void testNotifyCountryCodeChanged_success() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.notifyCountryCodeChanged(COUNTRY_CODE));
+        // Initial setup with no 6GHz support
+        Nl80211Utils.BandInfo bandInfoNo6g = new Nl80211Utils.BandInfo();
+        bandInfoNo6g.band6g.clear();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, bandInfoNo6g, null, null);
+        assertEquals(bandInfoNo6g,
+                mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME).wiphyInfo.bandInfo);
+
+        // Verify that 6GHz is not supported initially
+        assertEquals(0, mDut.getChannelsMhzForBand(WifiScanner.WIFI_BAND_6_GHZ).length);
+
+        // Mock the new WiphyInfo that will be returned after the country code change
+        Nl80211Utils.BandInfo bandInfoWith6g = new Nl80211Utils.BandInfo();
+        bandInfoWith6g.band6g.add(6150); // Add a 6GHz channel
+        Nl80211Utils.WiphyInfo wiphyInfoWith6g = new Nl80211Utils.WiphyInfo(
+                bandInfoWith6g,
+                mock(Nl80211Utils.ScanCapabilities.class),
+                mock(Nl80211Utils.WiphyFeatures.class),
+                mock(Nl80211Utils.DriverCapabilities.class));
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfoWith6g);
+
+        mDut.notifyCountryCodeChanged(COUNTRY_CODE);
+
+        verify(mNl80211Utils).clearWiphyInfoCaches();
+        // The wiphy info in ClientInterfaceInfo should be updated to support 6Ghz.
+        assertEquals(bandInfoWith6g,
+                mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME).wiphyInfo.bandInfo);
     }
 
     @Test

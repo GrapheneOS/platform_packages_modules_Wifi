@@ -1669,8 +1669,8 @@ public class Nl80211Native {
 
         if (!mIsInitialized) return;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        Log.i(TAG, "notifyCountryCodeChanged called with " + newCountryCode);
+        updateIfaceInfoAfterRegChanged();
     }
 
     /**
