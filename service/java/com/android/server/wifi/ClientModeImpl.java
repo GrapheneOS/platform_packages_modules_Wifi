@@ -3274,7 +3274,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     + " newState=" + state
                     + " hidden=" + hidden);
         }
-        if (hidden || state == mNetworkAgentState) return;
+        if (hidden || state == mNetworkAgentState) {
+            if (mVerboseLoggingEnabled) {
+                log("sendNetworkChangeBroadcast skipped due to hidden or same state");
+            }
+            return;
+        }
         mNetworkAgentState = state;
         sendNetworkChangeBroadcastWithCurrentState();
     }
@@ -7025,9 +7030,9 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     mWifiInfo.setMacAddress(mWifiNative.getMacAddress(mInterfaceName));
                     updateLayer2Information();
                     updateCurrentConnectionInfo();
+                    sendNetworkChangeBroadcastWithCurrentState();
                     if (!Objects.equals(mLastBssid, connectionInfo.bssid)) {
                         mLastBssid = connectionInfo.bssid;
-                        sendNetworkChangeBroadcastWithCurrentState();
                     }
                     if (mIsLinkedNetworkRoaming) {
                         mIsLinkedNetworkRoaming = false;
