@@ -3273,17 +3273,23 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
         links[0].linkId = 1;
         links[0].staLinkMacAddress = new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x01};
         links[0].tidsDownlinkMap = Byte.MAX_VALUE;
-        links[0].tidsDownlinkMap = Byte.MIN_VALUE;
+        links[0].tidsUplinkMap = Byte.MIN_VALUE;
         links[0].apLinkMacAddress = new byte[]{0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x01};
         links[0].frequencyMHz = 5160;
+        links[0].channelBandwidth = ScanResult.CHANNEL_WIDTH_20MHZ;
+        links[0].maxNumberTxSpatialStreams = 1;
+        links[0].maxNumberRxSpatialStreams = 1;
         // link 1
         links[1] = new android.hardware.wifi.supplicant.MloLink();
         links[1].linkId = 2;
         links[1].staLinkMacAddress = new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x02};
-        links[1].tidsDownlinkMap =  1 << mDownlinkTid;
+        links[1].tidsDownlinkMap = 1 << mDownlinkTid;
         links[1].tidsUplinkMap = 1 << mUplinkTid;
         links[1].apLinkMacAddress = new byte[]{0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x02};
         links[1].frequencyMHz = 2437;
+        links[1].channelBandwidth = ScanResult.CHANNEL_WIDTH_40MHZ;
+        links[1].maxNumberTxSpatialStreams = 2;
+        links[1].maxNumberRxSpatialStreams = 2;
         // link 2
         links[2] = new android.hardware.wifi.supplicant.MloLink();
         links[2].linkId = 3;
@@ -3292,6 +3298,9 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
         links[2].tidsUplinkMap = 0;
         links[2].apLinkMacAddress = new byte[]{0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x03};
         links[2].frequencyMHz = 6835;
+        links[2].channelBandwidth = ScanResult.CHANNEL_WIDTH_80MHZ;
+        links[2].maxNumberTxSpatialStreams = 2;
+        links[2].maxNumberRxSpatialStreams = 2;
         info.links = links;
         executeAndValidateInitializationSequence();
         // Mock MloLinksInfo as null.
@@ -3318,6 +3327,11 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
         assertEquals(nativeInfo.links[0].getApMacAddress(),
                 MacAddress.fromBytes(info.links[0].apLinkMacAddress));
         assertEquals(nativeInfo.links[0].getFrequencyMHz(), info.links[0].frequencyMHz);
+        assertEquals(nativeInfo.links[0].getChannelBandwidth(), info.links[0].channelBandwidth);
+        assertEquals(nativeInfo.links[0].getMaxNumberTxSpatialStreams(),
+                info.links[0].maxNumberTxSpatialStreams);
+        assertEquals(nativeInfo.links[0].getMaxNumberRxSpatialStreams(),
+                info.links[0].maxNumberRxSpatialStreams);
         // link 1
         assertEquals(nativeInfo.links[1].getLinkId(), info.links[1].linkId);
         assertEquals(nativeInfo.links[1].getStaMacAddress(),
@@ -3328,6 +3342,11 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
         assertEquals(nativeInfo.links[1].getApMacAddress(),
                 MacAddress.fromBytes(info.links[1].apLinkMacAddress));
         assertEquals(nativeInfo.links[1].getFrequencyMHz(), info.links[1].frequencyMHz);
+        assertEquals(nativeInfo.links[1].getChannelBandwidth(), info.links[1].channelBandwidth);
+        assertEquals(nativeInfo.links[1].getMaxNumberTxSpatialStreams(),
+                info.links[1].maxNumberTxSpatialStreams);
+        assertEquals(nativeInfo.links[1].getMaxNumberRxSpatialStreams(),
+                info.links[1].maxNumberRxSpatialStreams);
         // link 2
         assertEquals(nativeInfo.links[2].getLinkId(), info.links[2].linkId);
         assertEquals(nativeInfo.links[2].getStaMacAddress(),
@@ -3336,6 +3355,11 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
         assertEquals(nativeInfo.links[2].getApMacAddress(),
                 MacAddress.fromBytes(info.links[2].apLinkMacAddress));
         assertEquals(nativeInfo.links[2].getFrequencyMHz(), info.links[2].frequencyMHz);
+        assertEquals(nativeInfo.links[2].getChannelBandwidth(), info.links[2].channelBandwidth);
+        assertEquals(nativeInfo.links[2].getMaxNumberTxSpatialStreams(),
+                info.links[2].maxNumberTxSpatialStreams);
+        assertEquals(nativeInfo.links[2].getMaxNumberRxSpatialStreams(),
+                info.links[2].maxNumberRxSpatialStreams);
     }
 
     /*

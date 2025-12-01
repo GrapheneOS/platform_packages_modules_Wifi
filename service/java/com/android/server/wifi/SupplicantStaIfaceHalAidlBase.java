@@ -3178,6 +3178,12 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
                 nativeInfo.links = new WifiNative.ConnectionMloLink[halInfo.links.length];
 
                 for (int i = 0; i < halInfo.links.length; i++) {
+                    int channelBandwidth = isServiceVersionAtLeast(4)
+                            ? halInfo.links[i].channelBandwidth : -1;
+                    int maxNumberTxSpatialStreams = isServiceVersionAtLeast(4)
+                            ? halInfo.links[i].maxNumberTxSpatialStreams : -1;
+                    int maxNumberRxSpatialStreams = isServiceVersionAtLeast(4)
+                            ? halInfo.links[i].maxNumberRxSpatialStreams : -1;
                     // The parameter 'apLinkMacAddress' can come as null.
                     nativeInfo.links[i] = new WifiNative.ConnectionMloLink(
                             halInfo.links[i].linkId,
@@ -3185,7 +3191,8 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
                             (halInfo.links[i].apLinkMacAddress != null) ? MacAddress.fromBytes(
                                     halInfo.links[i].apLinkMacAddress) : null,
                             halInfo.links[i].tidsUplinkMap, halInfo.links[i].tidsDownlinkMap,
-                            halInfo.links[i].frequencyMHz);
+                            halInfo.links[i].frequencyMHz, channelBandwidth,
+                            maxNumberTxSpatialStreams, maxNumberRxSpatialStreams);
                 }
                 return nativeInfo;
             } catch (RemoteException e) {

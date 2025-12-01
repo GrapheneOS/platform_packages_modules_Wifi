@@ -520,6 +520,14 @@ flag {
 }
 
 flag {
+    name: "mlo_link_speed_api"
+    is_exported: true
+    namespace: "wifi"
+    description: "API to get max supported Tx/Rx link speed for MLO links"
+    bug: "385329999"
+}
+
+flag {
     name: "upgrade_single_6ghz_hotspot_to_dual_band"
     namespace: "wifi"
     description: "Add option to temporarily upgrade single 6ghz hotspot config to dual band if available"

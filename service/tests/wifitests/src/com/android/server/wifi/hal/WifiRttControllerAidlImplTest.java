@@ -675,7 +675,7 @@ public class WifiRttControllerAidlImplTest extends WifiBaseTest {
         RttResult res = createRttResult();
         res.addr = MacAddress.byteAddrFromStringAddr("05:06:07:08:09:0A");
         res.status = RttStatus.FAIL_BUSY_TRY_LATER;
-        res.retryAfterDuration = 5; // 5 seconds
+        res.retryAfterDuration = 5; // 640 ms (5 * 128)
         results[0] = res;
 
         // (1) have the HAL call us with results
@@ -695,7 +695,7 @@ public class WifiRttControllerAidlImplTest extends WifiBaseTest {
         collector.checkThat("mac", rttResult.getMacAddress().toByteArray(),
                 equalTo(MacAddress.fromString("05:06:07:08:09:0A").toByteArray()));
         collector.checkThat("retryAfterDuration", rttResult.getRetryAfterDurationMillis(),
-                equalTo(5000));
+                equalTo(5 * 128));
         verifyNoMoreInteractions(mIWifiRttControllerMock);
     }
 

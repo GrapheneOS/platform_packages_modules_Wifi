@@ -1089,4 +1089,26 @@ public class NetlinkConstants {
     // Nl80211 BSS Status values. See kernel/uapi/linux/nl80211.h
     public static final int NL80211_BSS_STATUS_AUTHENTICATED = 1;
     public static final int NL80211_BSS_STATUS_ASSOCIATED = 2;
+
+    // Nl80211 scan flag values. See kernel/uapi/linux/nl80211.h
+    public static final int NL80211_SCAN_FLAG_LOW_PRIORITY = 1 << 0;
+    public static final int NL80211_SCAN_FLAG_FLUSH = 1 << 1;
+    public static final int NL80211_SCAN_FLAG_AP = 1 << 2;
+    public static final int NL80211_SCAN_FLAG_RANDOM_ADDR = 1 << 3;
+    public static final int NL80211_SCAN_FLAG_FILS_MAX_CHANNEL_TIME = 1 << 4;
+    public static final int NL80211_SCAN_FLAG_ACCEPT_BCAST_PROBE_RESP = 1 << 5;
+    public static final int NL80211_SCAN_FLAG_OCE_PROBE_REQ_HIGH_TX_RATE = 1 << 6;
+    public static final int NL80211_SCAN_FLAG_OCE_PROBE_REQ_DEFERRAL_SUPPRESSION = 1 << 7;
+    public static final int NL80211_SCAN_FLAG_LOW_SPAN = 1 << 8;
+    public static final int NL80211_SCAN_FLAG_LOW_POWER = 1 << 9;
+    public static final int NL80211_SCAN_FLAG_HIGH_ACCURACY = 1 << 10;
+    public static final int NL80211_SCAN_FLAG_RANDOM_SN = 1 << 11;
+    public static final int NL80211_SCAN_FLAG_MIN_PREQ_CONTENT = 1 << 12;
+    public static final int NL80211_SCAN_FLAG_FREQ_KHZ = 1 << 13;
+    public static final int NL80211_SCAN_FLAG_COLOCATED_6GHZ = 1 << 14;
+    public static final int NL80211_SCAN_FLAG_ANDROID_KABI_RESERVED_1 = 1 << 15;
+    public static final int NL80211_SCAN_FLAG_ANDROID_KABI_RESERVED_2 = 1 << 16;
+    public static final int NL80211_SCAN_FLAG_ANDROID_KABI_RESERVED_3 = 1 << 17;
+    public static final int NL80211_SCAN_FLAG_ANDROID_KABI_RESERVED_4 = 1 << 18;
+    public static final int NL80211_SCAN_FLAG_ANDROID_KABI_RESERVED_5 = 1 << 19;
 }

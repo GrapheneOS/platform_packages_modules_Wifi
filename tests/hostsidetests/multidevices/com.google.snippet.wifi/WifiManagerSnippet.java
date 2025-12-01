@@ -63,6 +63,7 @@ import com.android.wifi.flags.Flags;
 
 import com.google.android.mobly.snippet.Snippet;
 import com.google.android.mobly.snippet.bundled.utils.JsonDeserializer;
+import com.google.android.mobly.snippet.bundled.utils.JsonSerializer;
 import com.google.android.mobly.snippet.bundled.utils.Utils;
 import com.google.android.mobly.snippet.event.EventCache;
 import com.google.android.mobly.snippet.event.SnippetEvent;
@@ -108,6 +109,7 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     private final ConnectivityManager mConnectivityManager;
     private final Handler mHandler;
     private final Object mLock = new Object();
+    private final JsonSerializer mJsonSerializer = new JsonSerializer();
     private WifiManagerSnippet.SnippetSoftApCallback mSoftApCallback;
     private WifiManager.LocalOnlyHotspotReservation mLocalOnlyHotspotReservation;
     private BroadcastReceiver mWifiStateReceiver;
@@ -1413,5 +1415,27 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     @Rpc(description = "Clears the country code for the device.")
     public void clearOverrideWifiCountryCode() {
         executeWithShellPermission(() -> mWifiManager.clearOverrideCountryCode());
+    }
+
+    /**
+     * Gets the list of configured Wi-Fi networks, with each network serialized into a JSONObject.
+     *
+     * <p>This method requires shell permissions to retrieve the list of {@link WifiConfiguration}
+     * objects from the WifiManager.
+     *
+     * @return A list of {@link JSONObject}s, where each object represents a configured Wi-Fi
+     *         network based on the {@link WifiConfiguration} object.
+     * @throws JSONException if an error occurs during the serialization of a WifiConfiguration
+     *         object into a JSONObject.
+     */
+    @Rpc(description = "Get the list of configured Wi-Fi networks with permission,"
+                            + " each is a serialized WifiConfiguration object.")
+    public List<JSONObject> wifiGetConfiguredNetworklist() throws JSONException {
+        List<JSONObject> networks = new ArrayList<>();
+        for (WifiConfiguration config : executeWithShellPermission(
+                ()-> mWifiManager.getConfiguredNetworks())) {
+            networks.add(mJsonSerializer.toJson(config));
+        }
+        return networks;
     }
 }

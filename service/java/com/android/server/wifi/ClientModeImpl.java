@@ -3675,6 +3675,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         // to a new AP which is not in scan detailed cache. Update MLO links with the details
         // provided by the supplicant in ConnectionMloLinksInfo. The supplicant provides only the
         // associated links.
+        WifiNative.ConnectionCapabilities capabilities = mWifiNative.getConnectionCapabilities(
+                mInterfaceName);
         if (mWifiInfo.getAffiliatedMloLinks().isEmpty()) {
             mWifiInfo.setApMldMacAddress(info.apMldMacAddress);
             mWifiInfo.setApMloLinkId(info.apMloLinkId);
@@ -3689,6 +3691,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 link.setBand(ScanResult.toBand(info.links[i].getFrequencyMHz()));
                 link.setState(info.links[i].isAnyTidMapped() ? MloLink.MLO_LINK_STATE_ACTIVE
                         : MloLink.MLO_LINK_STATE_IDLE);
+                link.setMaxSupportedRxLinkSpeedMbps(
+                        mThroughputPredictor.predicMaxRxThroughputForMloLink(
+                                capabilities, info.links[i]));
+                link.setMaxSupportedTxLinkSpeedMbps(
+                        mThroughputPredictor.predicMaxTxThroughputForMloLink(
+                                capabilities, info.links[i]));
                 affiliatedMloLinks.add(link);
             }
             mWifiInfo.setAffiliatedMloLinks(affiliatedMloLinks);
@@ -3699,6 +3707,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 mWifiInfo.updateMloLinkState(info.links[i].getLinkId(),
                         info.links[i].isAnyTidMapped() ? MloLink.MLO_LINK_STATE_ACTIVE
                                 : MloLink.MLO_LINK_STATE_IDLE);
+                mWifiInfo.updateMaxSupportedMloTxLinkSpeedMbps(info.links[i].getLinkId(),
+                        mThroughputPredictor.predicMaxTxThroughputForMloLink(
+                                capabilities, info.links[i]));
+                mWifiInfo.updateMaxSupportedMloRxLinkSpeedMbps(info.links[i].getLinkId(),
+                        mThroughputPredictor.predicMaxRxThroughputForMloLink(
+                                capabilities, info.links[i]));
             }
         }
     }

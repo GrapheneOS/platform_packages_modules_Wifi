@@ -16,6 +16,11 @@
 
 package com.android.server.wifi.nl80211;
 
+import static android.system.OsConstants.EBUSY;
+import static android.system.OsConstants.EINVAL;
+import static android.system.OsConstants.ENODEV;
+
+import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_ACK;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_BSS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_EXT_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_FEATURE_FLAGS;
@@ -30,6 +35,9 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_SCAN_PLAN_INTERVAL;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAX_SCAN_PLAN_ITERATIONS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_PROTOCOL_FEATURES;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_FLAGS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_FREQUENCIES;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_SSIDS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SPLIT_WIPHY_DUMP;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_BANDS;
@@ -54,12 +62,14 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATU
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATUS_ASSOCIATED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATUS_AUTHENTICATED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_TSF;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_ABORT_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_PROTOCOL_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_WIPHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_TRIGGER_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_DFS_AVAILABLE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_DFS_USABLE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_EXT_FEATURE_HIGH_ACCURACY_SCAN;
@@ -73,10 +83,17 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_FREQ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_NO_IR;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_COLOCATED_6GHZ;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_HIGH_ACCURACY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_POWER;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_SPAN;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_RANDOM_ADDR;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiAnnotations;
+import android.net.wifi.WifiScanner;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.util.Pair;
@@ -94,6 +111,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Provides nl80211 utility functions, similar to the C++ wificond's netlink_utils.
@@ -1118,6 +1136,121 @@ public class Nl80211Utils {
             buffer.position(buffer.position() + length);
         }
         return null; // SSID IE not found
+    }
+
+    /**
+     * Triggers a scan on the given interface.
+     * @return a WifiScanner.REASON_ code indicating the success status of the request.
+     */
+    public int triggerScan(int ifIndex,
+            @WifiAnnotations.ScanType int scanType,
+            @Nullable Set<Integer> freqs,
+            @Nullable List<byte[]> hiddenNetworkSSIDs,
+            boolean requestRandomMac,
+            boolean enable6GhzRnr,
+            @Nullable byte[] vendorIes) {
+        GenericNetlinkMsg request =
+                mNl80211Proxy.createNl80211Request(NL80211_CMD_TRIGGER_SCAN, NLM_F_ACK);
+
+        // Interface index
+        StructNlAttr ifIndexAttr = new StructNlAttr(NL80211_ATTR_IFINDEX, ifIndex);
+        request.addAttribute(ifIndexAttr);
+
+        // SSIDs
+        if (hiddenNetworkSSIDs != null && !hiddenNetworkSSIDs.isEmpty()) {
+            StructNlAttr[] nestedSsids = new StructNlAttr[hiddenNetworkSSIDs.size()];
+            short index = 0;
+            for (byte[] ssid : hiddenNetworkSSIDs) {
+                nestedSsids[index] = new StructNlAttr(index, ssid);
+                index++;
+            }
+            StructNlAttr ssidsAttr = new StructNlAttr(NL80211_ATTR_SCAN_SSIDS, nestedSsids);
+            request.addAttribute(ssidsAttr);
+        }
+
+        // Frequencies
+        // Note: An absence of NL80211_ATTR_SCAN_FREQUENCIES will scan all supported frequencies.
+        if (freqs != null && !freqs.isEmpty()) {
+            StructNlAttr[] nestedFreqs = new StructNlAttr[freqs.size()];
+            short index = 0;
+            for (int freq : freqs) {
+                nestedFreqs[index] = new StructNlAttr(index, freq);
+                index++;
+            }
+            StructNlAttr freqsAttr = new StructNlAttr(NL80211_ATTR_SCAN_FREQUENCIES, nestedFreqs);
+            request.addAttribute(freqsAttr);
+        }
+
+        int scanFlags = 0;
+        if (requestRandomMac) {
+            scanFlags |= NL80211_SCAN_FLAG_RANDOM_ADDR;
+        }
+        switch (scanType) {
+            case WifiScanner.SCAN_TYPE_LOW_LATENCY -> {
+                scanFlags |= NL80211_SCAN_FLAG_LOW_SPAN;
+            }
+            case WifiScanner.SCAN_TYPE_LOW_POWER -> {
+                scanFlags |= NL80211_SCAN_FLAG_LOW_POWER;
+            }
+            case WifiScanner.SCAN_TYPE_HIGH_ACCURACY -> {
+                scanFlags |= NL80211_SCAN_FLAG_HIGH_ACCURACY;
+            }
+            default -> {
+                Log.e(TAG, "Unsupported scan type: " + scanType);
+                return WifiScanner.REASON_INVALID_ARGS;
+            }
+        }
+        if (enable6GhzRnr) {
+            scanFlags |= NL80211_SCAN_FLAG_COLOCATED_6GHZ;
+        }
+        request.addAttribute(new StructNlAttr(NL80211_ATTR_SCAN_FLAGS, scanFlags));
+
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null) {
+            Log.e(TAG, "Failed to send NL80211_CMD_TRIGGER_SCAN");
+            return WifiScanner.REASON_UNSPECIFIED;
+        }
+
+        return convertStdErrNumToScanStatus(response.getErrorCode());
+    }
+
+    private int convertStdErrNumToScanStatus(int stdErr) {
+        // Note: OsConstant error codes are not statically known at compile time, so we must use
+        // an else-if chain instead of the more sensible switch/case.
+        if (stdErr == EINVAL) {
+            return WifiScanner.REASON_INVALID_ARGS;
+        } else if (stdErr == EBUSY) {
+            return WifiScanner.REASON_BUSY;
+        } else if (stdErr == ENODEV) {
+            return WifiScanner.REASON_NO_DEVICE;
+        } else if (stdErr != 0) {
+            return WifiScanner.REASON_UNSPECIFIED;
+        }
+
+        return WifiScanner.REASON_SUCCEEDED;
+    }
+
+    /**
+     * Aborts a scan on the given interface.
+     */
+    public void abortScan(int ifIndex) {
+        GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(
+                NL80211_CMD_ABORT_SCAN, NLM_F_ACK);
+        request.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, ifIndex));
+        if (request == null) {
+            Log.e(TAG, "Failed to create ABORT_SCAN request");
+            return;
+        }
+
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null) {
+            Log.e(TAG, "Failed to send ABORT_SCAN");
+            return;
+        }
+
+        if (response.isError()) {
+            Log.e(TAG, "ABORT_SCAN failed with error: " + response.getErrorCode());
+        }
     }
 
     /**

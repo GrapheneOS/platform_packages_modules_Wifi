@@ -39,6 +39,8 @@ package android.net.wifi {
     method public int getBand();
     method @IntRange(from=1) public int getChannel();
     method @IntRange(from=android.net.wifi.MloLink.INVALID_MLO_LINK_ID, to=0xf) public int getLinkId();
+    method @FlaggedApi("com.android.wifi.flags.mlo_link_speed_api") @IntRange(from=0xffffffff) public int getMaxSupportedRxLinkSpeedMbps();
+    method @FlaggedApi("com.android.wifi.flags.mlo_link_speed_api") @IntRange(from=0xffffffff) public int getMaxSupportedTxLinkSpeedMbps();
     method public int getRssi();
     method @IntRange(from=0xffffffff) public int getRxLinkSpeedMbps();
     method @Nullable public android.net.MacAddress getStaMacAddress();

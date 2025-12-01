@@ -121,6 +121,7 @@ import android.telephony.PhysicalChannelConfig;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
@@ -3072,6 +3073,126 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     pw.println(Arrays.toString(channels));
                     return 0;
                 }
+                case "start-nl80211-scan": {
+                    String ifaceName = getNextArgRequired();
+                    int scanType = WifiScanner.SCAN_TYPE_HIGH_ACCURACY;
+                    List<byte[]> hiddenNetworkSSIDs = new ArrayList<>();
+                    Bundle extraScanningParams = new Bundle();
+                    boolean useNl80211Override = false;
+                    Set<Integer> freqs = new ArraySet<>();
+
+                    String option = getNextOption();
+                    while (option != null) {
+                        switch (option) {
+                            case "-n" -> useNl80211Override = true;
+                            case "-t" -> {
+                                String typeStr = getNextArgRequired().toLowerCase();
+                                switch (typeStr) {
+                                    case "high_accuracy" -> {
+                                        scanType = WifiScanner.SCAN_TYPE_HIGH_ACCURACY;
+                                    }
+                                    case "low_power" -> {
+                                        scanType = WifiScanner.SCAN_TYPE_LOW_POWER;
+                                    }
+                                    case "low_latency" -> {
+                                        scanType = WifiScanner.SCAN_TYPE_LOW_LATENCY;
+                                    }
+                                    default -> {
+                                        pw.println("Invalid scan type: " + typeStr);
+                                        return -1;
+                                    }
+                                }
+                            }
+                            case "-h" -> {
+                                while (peekNextArg() != null && !peekNextArg().startsWith("-")) {
+                                    hiddenNetworkSSIDs.add(
+                                            getNextArgRequired().getBytes(StandardCharsets.UTF_8));
+                                }
+                            }
+                            case "-r" -> extraScanningParams.putBoolean(
+                                    Nl80211Native.SCANNING_PARAM_ENABLE_6GHZ_RNR, true);
+                            case "-v" -> {
+                                String hex = getNextArgRequired();
+                                try {
+                                    extraScanningParams.putByteArray(
+                                            Nl80211Native.EXTRA_SCANNING_PARAM_VENDOR_IES,
+                                            HexEncoding.decode(hex));
+                                } catch (IllegalArgumentException e) {
+                                    pw.println("Invalid hex string for vendor IEs.");
+                                    return -1;
+                                }
+                            }
+                            case "-f" -> {
+                                while (peekNextArg() != null && !peekNextArg().startsWith("-")) {
+                                    try {
+                                        freqs.add(Integer.parseInt(getNextArgRequired()));
+                                    } catch (NumberFormatException e) {
+                                        pw.println("Invalid frequency argument, must be an"
+                                                + " integer.");
+                                        return -1;
+                                    }
+                                }
+                            }
+                            default -> {
+                                pw.println("Invalid option: " + option);
+                                return -1;
+                            }
+                        }
+                        option = getNextOption();
+                    }
+
+                    int result;
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        result = mNl80211Native.startScan(ifaceName, scanType, freqs,
+                                hiddenNetworkSSIDs, extraScanningParams);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    String resultString;
+                    switch (result) {
+                        case WifiScanner.REASON_INVALID_ARGS -> {
+                            resultString = "INVALID_ARGS";
+                        }
+                        case WifiScanner.REASON_BUSY -> {
+                            resultString = "BUSY";
+                        }
+                        case WifiScanner.REASON_NO_DEVICE -> {
+                            resultString = "NO_DEVICE";
+                        }
+                        case WifiScanner.REASON_UNSPECIFIED -> {
+                            resultString = "UNSPECIFIED";
+                        }
+                        case WifiScanner.REASON_SUCCEEDED -> {
+                            resultString = "SUCCEEDED";
+                        }
+                        default -> {
+                            resultString = Integer.toString(result);
+                        }
+                    }
+                    pw.println("Result: " + resultString);
+                    return 0;
+                }
+                case "stop-nl80211-scan": {
+                    String ifaceName = getNextArgRequired();
+                    boolean useNl80211Override = false;
+
+                    String option = getNextOption();
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        mNl80211Native.abortScan(ifaceName);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -4303,6 +4424,19 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  get-nl80211-channels-mhz 2|5|dbs|6|60");
         pw.println("    For debugging. Dumps the result of Nl80211Native.getChannelsMhzForBand");
         pw.println("    -n Use direct nl80211 implementation instead of wificond.");
+        pw.println("  stop-nl80211-scan <iface>");
+        pw.println("    For debugging. Aborts an ongoing scan via Nl80211Native.abortScan.");
+        pw.println("    -n Use direct nl80211 implementation instead of wificond.");
+        pw.println("  start-nl80211-scan <iface> [-t <type>] [-h <ssid1>...] [-r] [-v <hex>] "
+                + "[-f <freq1>...]");
+        pw.println("    Trigger a scan using Nl80211Native.");
+        pw.println("    <iface>: The interface to scan on.");
+        pw.println("    -t <type>: Scan type. One of high_accuracy, low_power, low_latency."
+                + " Defaults to high_accuracy.");
+        pw.println("    -h <ssid...>: A list of hidden SSIDs to scan for.");
+        pw.println("    -r: Enable 6GHz Reduced Neighbor Report.");
+        pw.println("    -v <hex>: Vendor IE hex data.");
+        pw.println("    -f <freq...>: A list of frequencies to scan.");
     }
 
     @Override

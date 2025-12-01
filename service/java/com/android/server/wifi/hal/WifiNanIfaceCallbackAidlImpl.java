@@ -929,7 +929,8 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
                 resultBuilder.setVendorData(
                         HalAidlUtil.halToFrameworkOuiKeyedDataList(rttResult.vendorData));
             }
-            resultBuilder.setRetryAfterDurationMillis(rttResult.retryAfterDuration * 1000);
+            // rttResult.retryAfterDuration is in units of 128 milliseconds.
+            resultBuilder.setRetryAfterDurationMillis(rttResult.retryAfterDuration * 128);
             rangingResults.add(resultBuilder.build());
         }
         return rangingResults;
