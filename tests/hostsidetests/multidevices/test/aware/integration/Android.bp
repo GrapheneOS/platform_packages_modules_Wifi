@@ -267,9 +267,9 @@ python_test_host {
 }
 
 python_test_host {
-    name: "WifiAwarelatencytest",
-    main: "wifi_aware_latencytest_test.py",
-    srcs: ["wifi_aware_latencytest_test.py"],
+    name: "WifiAwareLatencyTest",
+    main: "wifi_aware_latency_test.py",
+    srcs: ["wifi_aware_latency_test.py"],
     device_common_data: [":wifi_aware_snippet_new"],
     libs: [
         "aware_lib_utils",
@@ -302,7 +302,7 @@ python_test_host {
         "wifi_aware_protocols_multi_country_test.py",
         "wifi_aware_protocols_test.py",
         "wifi_aware_throughput_test.py",
-        "wifi_aware_latencytest_test.py",
+        "wifi_aware_latency_test.py",
     ],
     device_common_data: [
         ":wifi_aware_snippet_new",

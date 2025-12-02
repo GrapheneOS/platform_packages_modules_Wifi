@@ -24,7 +24,7 @@ import wifi_aware_capabilities_test
 import wifi_aware_datapath_test
 import wifi_aware_discovery_test
 import wifi_aware_discovery_with_ranging_test
-import wifi_aware_latencytest_test
+import wifi_aware_latency_test
 import wifi_aware_mac_random_test
 import wifi_aware_matchfilter_test
 import wifi_aware_message_test
@@ -53,7 +53,7 @@ class WifiAwareIntegrationTestSuite(base_suite.BaseSuite):
     )
     self.add_test_class(wifi_aware_protocols_test.WifiAwareProtocolsTest)
     self.add_test_class(wifi_aware_throughput_test.WifiAwareThroughputTest)
-    self.add_test_class(wifi_aware_latencytest_test.WifiAwareLatencyTest)
+    self.add_test_class(wifi_aware_latency_test.WifiAwareLatencyTest)
 
 
 if __name__ == '__main__':
