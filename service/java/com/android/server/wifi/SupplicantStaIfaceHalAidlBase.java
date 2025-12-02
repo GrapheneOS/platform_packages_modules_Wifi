@@ -3178,11 +3178,11 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
                 nativeInfo.links = new WifiNative.ConnectionMloLink[halInfo.links.length];
 
                 for (int i = 0; i < halInfo.links.length; i++) {
-                    int channelBandwidth = isServiceVersionAtLeast(4)
+                    int channelBandwidth = isServiceVersionAtLeast(5)
                             ? halInfo.links[i].channelBandwidth : -1;
-                    int maxNumberTxSpatialStreams = isServiceVersionAtLeast(4)
+                    int maxNumberTxSpatialStreams = isServiceVersionAtLeast(5)
                             ? halInfo.links[i].maxNumberTxSpatialStreams : -1;
-                    int maxNumberRxSpatialStreams = isServiceVersionAtLeast(4)
+                    int maxNumberRxSpatialStreams = isServiceVersionAtLeast(5)
                             ? halInfo.links[i].maxNumberRxSpatialStreams : -1;
                     // The parameter 'apLinkMacAddress' can come as null.
                     nativeInfo.links[i] = new WifiNative.ConnectionMloLink(
