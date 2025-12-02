@@ -51,7 +51,7 @@
     <string name="wifi_connect_alert_message" msgid="7226456300982080746">"‏برنامه %1$s می‌خواهد به شبکه Wifi ‏%2$s وصل شود"</string>
     <string name="wifi_connect_default_application" msgid="8917703737222707062">"برنامه"</string>
     <string name="accept" msgid="8346431649376483879">"پذیرفتن"</string>
-    <string name="decline" msgid="4172251727603762084">"نپذیرفتن"</string>
+    <string name="decline" msgid="4172251727603762084">"رد کردن"</string>
     <string name="ok" msgid="847575529546290102">"تأیید"</string>
     <string name="wifi_p2p_invitation_sent_title" msgid="6552639940428040869">"دعوت‌نامه ارسال شد"</string>
     <string name="wifi_p2p_invitation_to_connect_title" msgid="8917157937652519251">"دعوت‌نامه برای اتصال"</string>
