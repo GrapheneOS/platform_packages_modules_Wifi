@@ -2238,7 +2238,11 @@ public class WifiP2pManager {
      */
     private Bundle prepareExtrasBundleWithAttributionSource(Context context) {
         Bundle bundle = new Bundle();
-        if (SdkLevel.isAtLeastS()) {
+        if (SdkLevel.isAtLeastU()) {
+            // Need to set DEVICE_ID_DEFAULT to prevent AttributionSource from being stale later
+            bundle.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
+                    context.createDeviceContext(Context.DEVICE_ID_DEFAULT).getAttributionSource());
+        } else if (SdkLevel.isAtLeastS()) {
             bundle.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
                     context.getAttributionSource());
         }
@@ -2246,7 +2250,13 @@ public class WifiP2pManager {
     }
 
     private Object maybeGetAttributionSource(Context context) {
-        return SdkLevel.isAtLeastS() ? context.getAttributionSource() : null;
+        if (SdkLevel.isAtLeastU()) {
+            // Need to set DEVICE_ID_DEFAULT to prevent AttributionSource from being stale later
+            return context.createDeviceContext(Context.DEVICE_ID_DEFAULT).getAttributionSource();
+        } else if (SdkLevel.isAtLeastS()) {
+            return context.getAttributionSource();
+        }
+        return null;
     }
 
     private Channel initializeChannel(Context srcContext, Looper srcLooper,

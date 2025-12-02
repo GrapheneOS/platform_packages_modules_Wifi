@@ -362,6 +362,9 @@ public class WifiManagerTest {
             AttributionSource attributionSource = mock(AttributionSource.class);
             when(mContext.getAttributionSource()).thenReturn(attributionSource);
         }
+        if (SdkLevel.isAtLeastU()) {
+            when(mContext.createDeviceContext(anyInt())).thenReturn(mContext);
+        }
         mRestartCallback = new SubsystemRestartTrackingCallback() {
             @Override
             public void onSubsystemRestarting() {

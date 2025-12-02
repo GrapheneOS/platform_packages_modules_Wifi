@@ -133,6 +133,9 @@ public class WifiAwareManagerTest {
                 mockApplicationInfo);
         when(mockContext.getOpPackageName()).thenReturn("XXX");
         when(mockContext.getPackageManager()).thenReturn(mockPackageManager);
+        if (SdkLevel.isAtLeastU()) {
+            when(mockContext.createDeviceContext(anyInt())).thenReturn(mockContext);
+        }
 
         mDut = new WifiAwareManager(mockContext, mockAwareService);
         mMockLooper = new TestLooper();

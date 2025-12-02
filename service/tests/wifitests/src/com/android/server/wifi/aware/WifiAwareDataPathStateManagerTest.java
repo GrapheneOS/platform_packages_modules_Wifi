@@ -220,6 +220,9 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
         mResources.setBoolean(R.bool.config_wifiAwareNdpSecurityUpdateOnSameNdi, false);
         mResources.setInteger(R.integer.config_wifiConfigurationWifiRunnerThresholdInMs, 4000);
         when(mMockContext.getResources()).thenReturn(mResources);
+        if (SdkLevel.isAtLeastU()) {
+            when(mMockContext.createDeviceContext(anyInt())).thenReturn(mMockContext);
+        }
 
         when(mInterfaceConflictManager.manageInterfaceConflictForStateMachine(any(), any(), any(),
                 any(), any(), eq(HalDeviceManager.HDM_CREATE_IFACE_NAN), any(), anyBoolean()))
