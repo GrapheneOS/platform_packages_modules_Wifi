@@ -19,6 +19,9 @@ android_app {
         shrink_resources: true,
     },
     updatable: true,
+    lint: {
+        baseline_filename: "lint-baseline.xml",
+    },
 }
 
 android_app_certificate {
