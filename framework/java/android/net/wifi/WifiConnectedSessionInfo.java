@@ -145,7 +145,11 @@ public final class WifiConnectedSessionInfo implements Parcelable {
         return mIsPreEvaluationActive;
     }
 
-    /** Indicate whether current Wi-Fi network is a carrier network */
+    /**
+     * Indicate whether current Wi-Fi network is a carrier network.
+     * A carrier network is a Wi-Fi network operated by a mobile network operator, and typically
+     * requires SIM based authentication.
+     */
     @FlaggedApi(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
     public boolean isCarrierNetwork() {
         return mIsCarrierNetwork;

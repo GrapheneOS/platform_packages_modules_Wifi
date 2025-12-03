@@ -11017,13 +11017,40 @@ public class WifiManager {
         default void unblockAllBssids() {}
 
         /**
-         * Called by applications to enable/disable pre-evaluation the next time the current Wi-Fi
-         * network is connected.
-         * During the pre-evaluation stage, the Wi-Fi network is restricted to privileged apps only.
-         * The external scorer app can test the Wi-Fi connection quality during the pre-evaluation
-         * stage to assess whether it meets the current requirement to become default network.
+         * Controls whether the Wi-Fi network undergoes a pre-evaluation stage before becoming the
+         * default network.
+         * <p>
+         * By default, pre-evaluation is disabled. When disabled, Wi-Fi immediately becomes the
+         * default network once internet availability is confirmed. If the network quality is poor,
+         * this immediate switch can cause connectivity interruptions (e.g., call drops, video
+         * buffering).
          *
-         * @param enabled The boolean representing whether the pre-evaluation is enabled or not.
+         * <h3>Pre-evaluation Workflow</h3>
+         * When set to {@code true}, the system enters a restricted state upon connecting to the
+         * network. The external scorer is then expected to perform the following:
+         * <ol>
+         * <li><b>Test the Connection:</b> Access the restricted network by requesting a network
+         * with
+         * {@link android.net.NetworkCapabilities#TRANSPORT_WIFI} and explicitly removing the
+         * {@link android.net.NetworkCapabilities#NET_CAPABILITY_NOT_RESTRICTED} capability.
+         * <li><b>Report Results:</b>
+         * <ul>
+         * <li>If the network is sufficient, call
+         * {@link ScoreUpdateObserver#notifyStatusUpdate(int, boolean) notifyStatusUpdate(sessionId, true)}
+         * to pass pre-evaluation and make the network available to other apps.
+         * <li>If the network is insufficient, call
+         * {@link ScoreUpdateObserver#notifyStatusUpdate(int, boolean) notifyStatusUpdate(sessionId, false)}
+         * to fail pre-evaluation and trigger a disconnect.
+         * </ul>
+         * </ol>
+         *
+         * <p>
+         * <i>Note: Before failing the evaluation, the scorer may optionally call
+         * {@link ScoreUpdateObserver#blocklistCurrentBssid(int)} to temporarily prevent
+         * auto-joining the problematic access point.</i>
+         *
+         * @param enabled {@code true} to enable pre-evaluation for the next connection to the
+         * current network; {@code false} to disable it.
          */
         @FlaggedApi(Flags.FLAG_FEED_MORE_DATA_TO_EXTERNAL_SCORER)
         default void setPreEvaluationEnabled(boolean enabled) {}
