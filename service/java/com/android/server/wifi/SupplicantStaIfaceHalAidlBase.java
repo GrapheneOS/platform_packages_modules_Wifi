@@ -203,6 +203,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
      * this default implementation.
      */
     private UsdNativeManager.UsdEventsCallback mUsdEventsCallback = null;
+    private final boolean mIsUsingMainlineSupplicant;
 
     @VisibleForTesting
     protected class KeystoreMigrationStatusConsumer implements IntConsumer {
@@ -226,7 +227,8 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
 
     public SupplicantStaIfaceHalAidlBase(Context context, WifiMonitor monitor, Handler handler,
             Clock clock, WifiMetrics wifiMetrics, WifiGlobals wifiGlobals,
-            @NonNull SsidTranslator ssidTranslator, WifiInjector wifiInjector) {
+            @NonNull SsidTranslator ssidTranslator, WifiInjector wifiInjector,
+            boolean isUsingMainlineSupplicant) {
         mContext = context;
         mWifiMonitor = monitor;
         mEventHandler = handler;
@@ -236,6 +238,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
         mSsidTranslator = ssidTranslator;
         mPmkCacheManager = new PmkCacheManager(mClock, mEventHandler);
         mWifiInjector = wifiInjector;
+        mIsUsingMainlineSupplicant = isUsingMainlineSupplicant;
     }
 
     // Abstract methods to be implemented by the derived classes
@@ -357,6 +360,24 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
         }
     }
 
+    private boolean setCurrentUserIdentity(int userId) {
+        synchronized (mLock) {
+            final String methodStr = "setCurrentUserIdentity";
+            if (!checkSupplicantAndLogFailure(methodStr)) {
+                return false;
+            }
+            try {
+                mISupplicant.setCurrentUserIdentity(userId);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return false;
+        }
+    }
+
     /**
      * Setup a STA interface for the specified iface name.
      *
@@ -369,7 +390,14 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
                 Log.e(TAG, "Iface " + ifaceName + " already exists.");
                 return false;
             }
-
+            if (mIsUsingMainlineSupplicant) {
+                int userId = mWifiInjector.getWifiConfigManager().getCurrentUserId();
+                if (!setCurrentUserIdentity(userId)) {
+                    Log.e(TAG, "Fail to configure userId to " + userId  + " for iface: "
+                            + ifaceName);
+                    return false;
+                }
+            }
             ISupplicantStaIface iface = addIface(ifaceName);
             if (iface == null) {
                 Log.e(TAG, "Unable to add iface " + ifaceName);
@@ -2594,7 +2622,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
     }
 
     private BitSet aidlWpaDrvFeatureSetToFrameworkV2(int drvCapabilitiesMask) {
-        if (!isServiceVersionAtLeast(2)) return new BitSet();
+        if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(2)) return new BitSet();
 
         final String methodStr = "getWpaDriverFeatureSetV2";
         BitSet featureSet = new BitSet();
@@ -2672,7 +2700,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
     public boolean isRsnOverridingSupported(@NonNull String ifaceName) {
         synchronized (mLock) {
             final String methodStr = "isRsnOverridingSupported";
-            if (!isServiceVersionAtLeast(4)) {
+            if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(4)) {
                 return false;
             }
             int drvCapabilitiesMask = getWpaDriverCapabilities(ifaceName);
@@ -3014,7 +3042,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
             paramsMask |= QosPolicyClassifierParamsMask.FLOW_LABEL;
             classifierParams.flowLabelIpv6 = params.getFlowLabel();
         }
-        if (SdkLevel.isAtLeastV() && isServiceVersionAtLeast(3)) {
+        if (SdkLevel.isAtLeastV() && (isServiceVersionAtLeast(3) || mIsUsingMainlineSupplicant)) {
             halData.direction = frameworkToHalPolicyDirection(params.getDirection());
             if (params.getQosCharacteristics() != null) {
                 halData.QosCharacteristics =
@@ -3089,7 +3117,8 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
                 capOut.maxNumberTxSpatialStreams = cap.maxNumberTxSpatialStreams;
                 capOut.maxNumberRxSpatialStreams = cap.maxNumberRxSpatialStreams;
                 capOut.apTidToLinkMapNegotiationSupported = cap.apTidToLinkMapNegotiationSupported;
-                if (isServiceVersionAtLeast(3) && cap.vendorData != null) {
+                if ((mIsUsingMainlineSupplicant || isServiceVersionAtLeast(3))
+                        && cap.vendorData != null) {
                     capOut.vendorData = HalAidlUtil.halToFrameworkOuiKeyedDataList(cap.vendorData);
                 }
                 return capOut;
@@ -3110,7 +3139,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
      * @return Signal poll results or null if error.
      */
     public WifiSignalPollResults getSignalPollResults(@NonNull String ifaceName) {
-        if (!isServiceVersionAtLeast(2)) return null;
+        if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(2)) return null;
         synchronized (mLock) {
             final String methodStr = "getSignalPollResult";
             ISupplicantStaIface iface;
@@ -3893,7 +3922,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
     @Override
     public void enableMscs(@NonNull MscsParams mscsParams, String ifaceName) {
         synchronized (mLock) {
-            if (!isServiceVersionAtLeast(3)) {
+            if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(3)) {
                 return;
             }
             configureMscsInternal(mscsParams, ifaceName);
@@ -3906,7 +3935,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
      */
     public void resendMscs(String ifaceName) {
         synchronized (mLock) {
-            if (!isServiceVersionAtLeast(3)) {
+            if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(3)) {
                 return;
             }
             if (mLastMscsParams == null) {
@@ -3918,7 +3947,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
 
     private void configureMscsInternal(@NonNull MscsParams mscsParams, String ifaceName) {
         synchronized (mLock) {
-            if (!isServiceVersionAtLeast(3)) {
+            if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(3)) {
                 return;
             }
             String methodStr = "configureMscsInternal";
@@ -3943,7 +3972,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
      */
     @Override
     public void disableMscs(String ifaceName) {
-        if (!isServiceVersionAtLeast(3)) {
+        if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(3)) {
             return;
         }
         String methodStr = "disableMscs";
@@ -3998,7 +4027,8 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
     protected void registerNonStandardCertCallback() {
         synchronized (mLock) {
             final String methodStr = "registerNonStandardCertCallback";
-            if (!checkSupplicantAndLogFailure(methodStr) || !isServiceVersionAtLeast(2)) {
+            if (!checkSupplicantAndLogFailure(methodStr)
+                    || (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(2))) {
                 return;
             } else if (mNonStandardCertCallback != null) {
                 Log.i(TAG, "Non-standard cert callback has already been registered");
@@ -4031,7 +4061,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
     @Override
     public SupplicantStaIfaceHal.UsdCapabilitiesInternal getUsdCapabilities(String ifaceName) {
         synchronized (mLock) {
-            if (!isServiceVersionAtLeast(4)) {
+            if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(4)) {
                 return null;
             }
             String methodStr = "getUsdCapabilities";
@@ -4061,7 +4091,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
     @Override
     public boolean startUsdPublish(String interfaceName, int cmdId, PublishConfig publishConfig) {
         synchronized (mLock) {
-            if (!isServiceVersionAtLeast(4)) {
+            if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(4)) {
                 return false;
             }
             String methodStr = "startUsdPublish";
@@ -4130,7 +4160,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
     @Override
     public boolean startUsdSubscribe(String interfaceName, int cmdId,
             SubscribeConfig subscribeConfig) {
-        if (!isServiceVersionAtLeast(4)) {
+        if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(4)) {
             return false;
         }
         String methodStr = "startUsdSubscribe";
@@ -4182,7 +4212,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
 
     @Override
     public void updateUsdPublish(String interfaceName, int publishId, byte[] ssi) {
-        if (!isServiceVersionAtLeast(4)) {
+        if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(4)) {
             return;
         }
         String methodStr = "updateUsdPublish";
@@ -4201,7 +4231,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
 
     @Override
     public void cancelUsdPublish(String interfaceName, int publishId) {
-        if (!isServiceVersionAtLeast(4)) {
+        if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(4)) {
             return;
         }
         String methodStr = "updateUsdPublish";
@@ -4220,7 +4250,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
 
     @Override
     public void cancelUsdSubscribe(String interfaceName, int subscribeId) {
-        if (!isServiceVersionAtLeast(4)) {
+        if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(4)) {
             return;
         }
         String methodStr = "cancelUsdSubscribe";
@@ -4240,7 +4270,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
     @Override
     public boolean sendUsdMessage(String interfaceName, int ownId, int peerId,
             MacAddress peerMacAddress, byte[] message) {
-        if (!isServiceVersionAtLeast(4)) {
+        if (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(4)) {
             return false;
         }
         String methodStr = "sendUsdMessage";
