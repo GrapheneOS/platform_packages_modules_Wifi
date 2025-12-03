@@ -33,6 +33,7 @@ import android.net.wifi.WifiSsid;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
 import android.util.ArrayMap;
+import android.util.ArraySet;
 import android.util.Log;
 import android.util.SparseIntArray;
 
@@ -58,6 +59,11 @@ public class Nl80211Native {
     private static final int MAX_SSID_LENGTH = 32;
     @VisibleForTesting
     static final int ENODEV_RESTART_THRESHOLD = 3;
+    private static final int PERCENT_NETWORKS_WITH_FREQ_FOR_PNO_SCAN = 30;
+    private static final int[] PNO_SCAN_DEFAULT_FREQS_2G =
+            {2412, 2417, 2422, 2427, 2432, 2437, 2447, 2452, 2457, 2462};
+    private static final int[] PNO_SCAN_DEFAULT_FREQS_5G =
+            {5180, 5200, 5220, 5240, 5745, 5765, 5785, 5805};
 
     /**
      * Wrapper class to store all the information for a client mode interface.
@@ -68,6 +74,7 @@ public class Nl80211Native {
         public final int ifIndex;
         public boolean associated;
         public boolean scanning;
+        public boolean pnoScanStarted;
         public int enodevCounter;
         public final Nl80211Utils.WiphyInfo wiphyInfo;
         public final @NonNull Executor scanCallbackExecutor;
@@ -165,6 +172,7 @@ public class Nl80211Native {
 
                 ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
                 if (clientIfaceInfo == null) return;
+                clientIfaceInfo.pnoScanStarted = false;
 
                 Executor executor = clientIfaceInfo.scanCallbackExecutor;
                 ScanEventCallback pnoScanCallback = clientIfaceInfo.pnoScanEventCallback;
@@ -830,8 +838,143 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        ClientInterfaceInfo ifaceInfo = mClientInterfaceInfos.get(ifaceName);
+        if (ifaceInfo == null) {
+            Log.e(TAG, "No active interface found for " + ifaceName);
+            return false;
+        }
+
+        if (ifaceInfo.pnoScanStarted) {
+            Log.w(TAG, "Pno scan already started");
+        }
+
+        List<byte[]> scanSsids = new ArrayList<>();
+        List<byte[]> matchSsids = new ArrayList<>();
+        Set<Integer> uniqueFreqs = new ArraySet<>();
+        int networksWithoutFreqs = 0;
+
+        Set<Integer> allSupportedFreqs = new ArraySet<>();
+        allSupportedFreqs.addAll(ifaceInfo.wiphyInfo.bandInfo.band2g);
+        allSupportedFreqs.addAll(ifaceInfo.wiphyInfo.bandInfo.band5g);
+        allSupportedFreqs.addAll(ifaceInfo.wiphyInfo.bandInfo.bandDfs);
+        allSupportedFreqs.addAll(ifaceInfo.wiphyInfo.bandInfo.band6g);
+        allSupportedFreqs.addAll(ifaceInfo.wiphyInfo.bandInfo.band60g);
+
+        // Extract scan parameters from PnoSettings
+        List<PnoNetwork> pnoNetworks = pnoSettings.getPnoNetworks();
+        for (PnoNetwork network : pnoNetworks) {
+            // Hidden SSIDs
+            if (network.isHidden()) {
+                if (scanSsids.size() < ifaceInfo.wiphyInfo.scanCapabilities.maxNumSchedScanSsids) {
+                    scanSsids.add(network.getSsid());
+                } else {
+                    Log.w(TAG, "Max scheduled scan SSIDs exceeded, skipping: "
+                            + WifiSsid.fromBytes(network.getSsid()));
+                }
+            }
+
+            // Match SSIDs
+            if (matchSsids.size() < ifaceInfo.wiphyInfo.scanCapabilities.maxMatchSets) {
+                matchSsids.add(network.getSsid());
+            } else {
+                Log.w(TAG, "Max PNO match SSIDs exceeded, skipping: "
+                        + WifiSsid.fromBytes(network.getSsid()));
+            }
+
+            // Filter unsupported frequencies
+            int[] freqs = network.getFrequenciesMhz();
+            if (freqs.length == 0) {
+                networksWithoutFreqs++;
+                continue;
+            }
+            for (int freq : freqs) {
+                if (!allSupportedFreqs.contains(freq)) continue;
+                uniqueFreqs.add(freq);
+            }
+        }
+
+        // Scan the default frequencies if we have too many networks without frequency data.
+        if (!pnoNetworks.isEmpty()
+                && (networksWithoutFreqs * 100
+                > pnoNetworks.size() * PERCENT_NETWORKS_WITH_FREQ_FOR_PNO_SCAN)) {
+            for (int freq : PNO_SCAN_DEFAULT_FREQS_2G) {
+                if (allSupportedFreqs.contains(freq)) uniqueFreqs.add(freq);
+            }
+            // Note: PNO_SCAN_DEFAULT_FREQS_5G doesn't contain DFS frequencies.
+            for (int freq : PNO_SCAN_DEFAULT_FREQS_5G) {
+                if (allSupportedFreqs.contains(freq)) uniqueFreqs.add(freq);
+            }
+        }
+
+        Nl80211Utils.WiphyFeatures wiphyFeatures = ifaceInfo.wiphyInfo.wiphyFeatures;
+        boolean requestRandomMac = wiphyFeatures.supportsRandomMacSchedScan
+                && !ifaceInfo.associated;
+        boolean requestLowPower = wiphyFeatures.supportsLowPowerOneShotScan;
+        boolean requestSchedScanRelativeRssi = wiphyFeatures.supportsExtSchedScanRelativeRssi;
+
+        List<Nl80211Utils.PnoScanPlan> scanPlans =
+                generatePnoScanPlans(pnoSettings, ifaceInfo.wiphyInfo.scanCapabilities);
+
+        int result = mNl80211Utils.startPnoScan(
+                ifaceInfo.ifIndex,
+                scanPlans,
+                pnoSettings.getIntervalMillis(),
+                pnoSettings.getMin2gRssiDbm(),
+                pnoSettings.getMin5gRssiDbm(),
+                requestRandomMac,
+                requestLowPower,
+                requestSchedScanRelativeRssi,
+                scanSsids,
+                matchSsids,
+                new ArrayList<>(uniqueFreqs));
+
+        if (result != WifiScanner.REASON_SUCCEEDED) {
+            if (result == WifiScanner.REASON_NO_DEVICE) {
+                ifaceInfo.enodevCounter++;
+                Log.e(TAG, "Pno scan failed with error ENODEV. Counter: "
+                        + ifaceInfo.enodevCounter);
+                if (ifaceInfo.enodevCounter > ENODEV_RESTART_THRESHOLD) {
+                    Log.e(TAG, "ENODEV threshold reached, restarting subsystem");
+                    mWifiInjector.getSelfRecovery().trigger(SelfRecovery.REASON_SUBSYSTEM_RESTART);
+                }
+            } else {
+                ifaceInfo.enodevCounter = 0;
+            }
+
+            Log.e(TAG, "PNO scan failed with reason: " + result);
+            executor.execute(callback::onPnoRequestFailed);
+            return false;
+        }
+
+        Log.e(TAG, "PNO scan started successfully for frequencies: " + uniqueFreqs);
+        executor.execute(callback::onPnoRequestSucceeded);
+        ifaceInfo.enodevCounter = 0;
+        ifaceInfo.pnoScanStarted = true;
+        return true;
+    }
+
+    /**
+     * Generates list of PNO scan plans for the given PnoSettings and scan capabilities.
+     * If the given settings are not supported, returns an empty list.
+     */
+    private List<Nl80211Utils.PnoScanPlan> generatePnoScanPlans(
+            @NonNull PnoSettings pnoSettings,
+            @NonNull Nl80211Utils.ScanCapabilities scanCapabilities) {
+        int maxRequestedScanIntervalSeconds = (int) ((pnoSettings.getIntervalMillis()
+                * pnoSettings.getScanIntervalMultiplier()) / 1000);
+        int numRequestedScanPlans = 2;
+
+        if (numRequestedScanPlans > scanCapabilities.maxNumScanPlans
+                || maxRequestedScanIntervalSeconds > scanCapabilities.maxScanPlanIntervalSeconds
+                || pnoSettings.getScanIterations() > scanCapabilities.maxScanPlanIterations) {
+            return new ArrayList<>();
+        }
+
+        List<Nl80211Utils.PnoScanPlan> plans = new ArrayList<>();
+        plans.add(new Nl80211Utils.PnoScanPlan(
+                (int) pnoSettings.getIntervalMillis(), pnoSettings.getScanIterations()));
+        plans.add(new Nl80211Utils.PnoScanPlan(maxRequestedScanIntervalSeconds, 0 /* ignored */));
+        return plans;
     }
 
     /**
@@ -857,8 +1000,18 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        ClientInterfaceInfo ifaceInfo = mClientInterfaceInfos.get(ifaceName);
+        if (ifaceInfo == null) {
+            Log.e(TAG, "No active interface found for " + ifaceName);
+            return false;
+        }
+
+        if (!ifaceInfo.pnoScanStarted) {
+            Log.w(TAG, "No pno scan started");
+        }
+        ifaceInfo.pnoScanStarted = false;
+
+        return mNl80211Utils.stopPnoScan(ifaceInfo.ifIndex);
     }
 
     /**

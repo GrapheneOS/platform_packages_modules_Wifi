@@ -18,9 +18,6 @@ package com.android.server.wifi.nl80211;
 
 import android.annotation.DurationMillisLong;
 import android.annotation.NonNull;
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
 
 import com.android.modules.utils.build.SdkLevel;
 
@@ -132,7 +129,6 @@ public final class PnoSettings {
      *
      * @return PNO scan iterations.
      */
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public int getScanIterations() {
         return mScanIterations;
     }
@@ -142,7 +138,6 @@ public final class PnoSettings {
      *
      * @param scanIterations the PNO scan iterations.
      */
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public void setScanIterations(int scanIterations) {
         this.mScanIterations = scanIterations;
     }
@@ -152,7 +147,6 @@ public final class PnoSettings {
      *
      * @return PNO scan interval multiplier.
      */
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public int getScanIntervalMultiplier() {
         return mScanIntervalMultiplier;
     }
@@ -162,7 +156,6 @@ public final class PnoSettings {
      *
      * @param scanIntervalMultiplier the PNO scan interval multiplier.
      */
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public void setScanIntervalMultiplier(int scanIntervalMultiplier) {
         this.mScanIntervalMultiplier = scanIntervalMultiplier;
     }

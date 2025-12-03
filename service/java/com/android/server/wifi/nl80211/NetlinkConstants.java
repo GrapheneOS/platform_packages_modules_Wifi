@@ -1111,4 +1111,18 @@ public class NetlinkConstants {
     public static final int NL80211_SCAN_FLAG_ANDROID_KABI_RESERVED_3 = 1 << 17;
     public static final int NL80211_SCAN_FLAG_ANDROID_KABI_RESERVED_4 = 1 << 18;
     public static final int NL80211_SCAN_FLAG_ANDROID_KABI_RESERVED_5 = 1 << 19;
+
+    // Nl80211 scheduled scan match attributes. See kernel/uapi/linux/nl80211.h
+    public static final short NL80211_SCHED_SCAN_MATCH_ATTR_INVALID = 0;
+    public static final short NL80211_SCHED_SCAN_MATCH_ATTR_SSID = 1;
+    public static final short NL80211_SCHED_SCAN_MATCH_ATTR_RSSI = 2;
+    public static final short NL80211_SCHED_SCAN_MATCH_ATTR_RELATIVE_RSSI = 3;
+    public static final short NL80211_SCHED_SCAN_MATCH_ATTR_RSSI_ADJUST = 4;
+    public static final short NL80211_SCHED_SCAN_MATCH_ATTR_BSSID = 5;
+    public static final short NL80211_SCHED_SCAN_MATCH_PER_BAND_RSSI = 6;
+
+    // Nl80211 scheduled scan plan attributes. See kernel/uapi/linux/nl80211.h
+    public static final short NL80211_SCHED_SCAN_PLAN_INVALID = 0;
+    public static final short NL80211_SCHED_SCAN_PLAN_INTERVAL = 1;
+    public static final short NL80211_SCHED_SCAN_PLAN_ITERATIONS = 2;
 }

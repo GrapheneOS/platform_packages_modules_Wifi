@@ -19,6 +19,7 @@ package com.android.server.wifi.nl80211;
 import static android.system.OsConstants.EBUSY;
 import static android.system.OsConstants.EINVAL;
 import static android.system.OsConstants.ENODEV;
+import static android.system.OsConstants.ENOENT;
 
 import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_ACK;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_BSS;
@@ -38,6 +39,9 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_PROT
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_FLAGS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_FREQUENCIES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCAN_SSIDS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCHED_SCAN_INTERVAL;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCHED_SCAN_MATCH;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCHED_SCAN_PLANS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SPLIT_WIPHY_DUMP;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_BANDS;
@@ -69,6 +73,8 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_S
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_WIPHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_START_SCHED_SCAN;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_STOP_SCHED_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_TRIGGER_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_DFS_AVAILABLE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_DFS_USABLE;
@@ -88,6 +94,9 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_POWER;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_SPAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_RANDOM_ADDR;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCAN_MATCH_ATTR_SSID;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCAN_PLAN_INTERVAL;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCAN_PLAN_ITERATIONS;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -189,17 +198,17 @@ public class Nl80211Utils {
         public final int maxNumSchedScanSsids;
         public final int maxMatchSets;
         public final int maxNumScanPlans;
-        public final int maxScanPlanInterval;
+        public final int maxScanPlanIntervalSeconds;
         public final int maxScanPlanIterations;
 
         public ScanCapabilities(int maxNumScanSsids, int maxNumSchedScanSsids,
-                int maxMatchSets, int maxNumScanPlans, int maxScanPlanInterval,
+                int maxMatchSets, int maxNumScanPlans, int maxScanPlanIntervalSeconds,
                 int maxScanPlanIterations) {
             this.maxNumScanSsids = maxNumScanSsids;
             this.maxNumSchedScanSsids = maxNumSchedScanSsids;
             this.maxMatchSets = maxMatchSets;
             this.maxNumScanPlans = maxNumScanPlans;
-            this.maxScanPlanInterval = maxScanPlanInterval;
+            this.maxScanPlanIntervalSeconds = maxScanPlanIntervalSeconds;
             this.maxScanPlanIterations = maxScanPlanIterations;
         }
     }
@@ -251,6 +260,25 @@ public class Nl80211Utils {
             this.wiphyIndex = wiphyIndex;
             this.name = name;
             this.macAddress = macAddress;
+        }
+    }
+
+    /**
+     * Scan plan settings for a PNO scan.
+     */
+    public static class PnoScanPlan {
+        /**
+         * Amount of time in milliseconds between each scan.
+         */
+        public int intervalMs;
+        /**
+         * Number of iterations to perform for this plan. This is ignored for the last plan.
+         */
+        public int iterations;
+
+        public PnoScanPlan(int intervalMs, int iterations) {
+            this.intervalMs = intervalMs;
+            this.iterations = iterations;
         }
     }
 
@@ -785,9 +813,9 @@ public class Nl80211Utils {
             maxNumScanPlans = maxScanPlansAttr;
         }
 
-        int maxScanPlanInterval = 0;
+        int maxScanPlanIntervalSeconds = 0;
         if (maxScanPlanIntervalAttr != null) {
-            maxScanPlanInterval = maxScanPlanIntervalAttr;
+            maxScanPlanIntervalSeconds = maxScanPlanIntervalAttr;
         }
 
         int maxScanPlanIterations = 0;
@@ -796,7 +824,7 @@ public class Nl80211Utils {
         }
 
         return new ScanCapabilities(maxNumScanSsids, maxNumSchedScanSsids, maxMatchSets,
-                maxNumScanPlans, maxScanPlanInterval, maxScanPlanIterations);
+                maxNumScanPlans, maxScanPlanIntervalSeconds, maxScanPlanIterations);
     }
 
     @Nullable
@@ -1158,26 +1186,14 @@ public class Nl80211Utils {
 
         // SSIDs
         if (hiddenNetworkSSIDs != null && !hiddenNetworkSSIDs.isEmpty()) {
-            StructNlAttr[] nestedSsids = new StructNlAttr[hiddenNetworkSSIDs.size()];
-            short index = 0;
-            for (byte[] ssid : hiddenNetworkSSIDs) {
-                nestedSsids[index] = new StructNlAttr(index, ssid);
-                index++;
-            }
-            StructNlAttr ssidsAttr = new StructNlAttr(NL80211_ATTR_SCAN_SSIDS, nestedSsids);
+            StructNlAttr ssidsAttr = createNestedSsidsAttribute(hiddenNetworkSSIDs);
             request.addAttribute(ssidsAttr);
         }
 
         // Frequencies
         // Note: An absence of NL80211_ATTR_SCAN_FREQUENCIES will scan all supported frequencies.
         if (freqs != null && !freqs.isEmpty()) {
-            StructNlAttr[] nestedFreqs = new StructNlAttr[freqs.size()];
-            short index = 0;
-            for (int freq : freqs) {
-                nestedFreqs[index] = new StructNlAttr(index, freq);
-                index++;
-            }
-            StructNlAttr freqsAttr = new StructNlAttr(NL80211_ATTR_SCAN_FREQUENCIES, nestedFreqs);
+            StructNlAttr freqsAttr = createNestedFrequenciesAttribute(new ArrayList<>(freqs));
             request.addAttribute(freqsAttr);
         }
 
@@ -1251,6 +1267,183 @@ public class Nl80211Utils {
         if (response.isError()) {
             Log.e(TAG, "ABORT_SCAN failed with error: " + response.getErrorCode());
         }
+    }
+
+    /**
+     * Starts a PNO scan.
+     * @return a stderr code indicating the success status of the request.
+     */
+    public int startPnoScan(
+            int ifIndex,
+            @NonNull List<PnoScanPlan> scanPlans,
+            long singleScanIntervalMs,
+            int min2gRssiDbm,
+            int min5gRssiDbm,
+            boolean requestRandomMac,
+            boolean requestLowPower,
+            boolean requestSchedScanRelativeRssi,
+            @NonNull List<byte[]> scanSsids,
+            @NonNull List<byte[]> matchSsids,
+            @NonNull List<Integer> freqs) {
+        GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(
+                NL80211_CMD_START_SCHED_SCAN, NLM_F_ACK);
+        if (request == null) {
+            Log.e(TAG, "Failed to create START_SCHED_SCAN request");
+            return WifiScanner.REASON_UNSPECIFIED;
+        }
+
+        // Interface index
+        request.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, ifIndex));
+
+        // Scan plans & interval
+        if (!scanPlans.isEmpty()) {
+            request.addAttribute(createSchedScanIntervalAttribute(scanPlans));
+        } else {
+            request.addAttribute(
+                    new StructNlAttr(NL80211_ATTR_SCHED_SCAN_INTERVAL, (int) singleScanIntervalMs));
+        }
+
+        // Scan SSIDs.
+        if (scanSsids.isEmpty()) {
+            // If empty, add a wildcard SSID since Nl80211 expects at least one scan SSID attr.
+            scanSsids.add(new byte[0]);
+        }
+        request.addAttribute(createNestedSsidsAttribute(scanSsids));
+
+        // Match SSIDs
+        if (!matchSsids.isEmpty()) {
+            request.addAttribute(createSchedScanMatchAttribute(matchSsids, min5gRssiDbm));
+        }
+
+        // Frequencies
+        if (!freqs.isEmpty()) {
+            request.addAttribute(createNestedFrequenciesAttribute(freqs));
+        }
+
+        // Set the relative threshold between 2Ghz and the default 5GHz threshold we set in the scan
+        // match attribute
+        if (requestSchedScanRelativeRssi) {
+            byte[] rssiAdjust = new byte[8];
+            ByteBuffer buf = ByteBuffer.wrap(rssiAdjust).order(ByteOrder.nativeOrder());
+            buf.putInt(NetlinkConstants.NL80211_BAND_2GHZ);
+            buf.put((byte) (min2gRssiDbm - min5gRssiDbm));
+            request.addAttribute(new StructNlAttr(
+                    NetlinkConstants.NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST, rssiAdjust));
+        }
+
+        // Scan flags
+        int scanFlags = 0;
+        if (requestRandomMac) {
+            scanFlags |= NL80211_SCAN_FLAG_RANDOM_ADDR;
+        }
+        if (requestLowPower) {
+            scanFlags |= NL80211_SCAN_FLAG_LOW_POWER;
+        }
+        if (scanFlags != 0) {
+            request.addAttribute(new StructNlAttr(NL80211_ATTR_SCAN_FLAGS, scanFlags));
+        }
+
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null) {
+            Log.e(TAG, "Failed to send NL80211_CMD_START_SCHED_SCAN");
+            return WifiScanner.REASON_UNSPECIFIED;
+        }
+        return convertStdErrNumToScanStatus(response.getErrorCode());
+    }
+
+    private StructNlAttr createNestedSsidsAttribute(@NonNull List<byte[]> ssids) {
+        StructNlAttr[] nestedSsids = new StructNlAttr[ssids.size()];
+        short index = 0;
+        for (byte[] ssid : ssids) {
+            nestedSsids[index] = new StructNlAttr(index, ssid);
+            index++;
+        }
+        return new StructNlAttr(NL80211_ATTR_SCAN_SSIDS, nestedSsids);
+    }
+
+    private StructNlAttr createNestedFrequenciesAttribute(@NonNull List<Integer> freqs) {
+        StructNlAttr[] nestedFreqs = new StructNlAttr[freqs.size()];
+        short index = 0;
+        for (int freq : freqs) {
+            nestedFreqs[index] = new StructNlAttr(index, freq);
+            index++;
+        }
+        return new StructNlAttr(NL80211_ATTR_SCAN_FREQUENCIES, nestedFreqs);
+    }
+
+    private StructNlAttr createSchedScanMatchAttribute(@NonNull List<byte[]> ssids,
+            int rssiThreshold) {
+        StructNlAttr[] nestedMatches = new StructNlAttr[ssids.size()];
+        short index = 0;
+        for (byte[] ssid : ssids) {
+            StructNlAttr matchSsidAttr = new StructNlAttr(
+                    NL80211_SCHED_SCAN_MATCH_ATTR_SSID, ssid);
+            StructNlAttr matchRssiAttr = new StructNlAttr(
+                    NetlinkConstants.NL80211_SCHED_SCAN_MATCH_ATTR_RSSI, rssiThreshold);
+            nestedMatches[index] = new StructNlAttr(index, matchSsidAttr, matchRssiAttr);
+            index++;
+        }
+        return new StructNlAttr(NL80211_ATTR_SCHED_SCAN_MATCH, nestedMatches);
+    }
+
+    private StructNlAttr createSchedScanIntervalAttribute(
+            @NonNull List<PnoScanPlan> scanPlans) {
+        StructNlAttr[] nestedPlansAttr = new StructNlAttr[scanPlans.size()];
+
+        // Add everything but the last plan with both interval and iterations.
+        for (short index = 0; index < scanPlans.size() - 1; index++) {
+            PnoScanPlan plan = scanPlans.get(index);
+            StructNlAttr intervalAttr = new StructNlAttr(
+                    NL80211_SCHED_SCAN_PLAN_INTERVAL, plan.intervalMs / 1000);
+            StructNlAttr iterationsAttr = new StructNlAttr(
+                    NL80211_SCHED_SCAN_PLAN_ITERATIONS, plan.iterations);
+            nestedPlansAttr[index] = new StructNlAttr(index, intervalAttr, iterationsAttr);
+        }
+
+        if (!scanPlans.isEmpty()) {
+            // The last scan plan must not specify an interval since it continues indefinitely.
+            PnoScanPlan lastPlan = scanPlans.get(scanPlans.size() - 1);
+            StructNlAttr lastIntervalAttr = new StructNlAttr(
+                    NL80211_SCHED_SCAN_PLAN_INTERVAL,
+                    lastPlan.intervalMs / 1000);
+            short lastIndex = (short) (scanPlans.size() - 1);
+            nestedPlansAttr[lastIndex] = new StructNlAttr(lastIndex, lastIntervalAttr);
+        }
+
+        return new StructNlAttr(NL80211_ATTR_SCHED_SCAN_PLANS, nestedPlansAttr);
+    }
+
+    /**
+     * Stop a PNO scan on the given interface.
+     * @return true if successful, otherwise false.
+     */
+    public boolean stopPnoScan(int ifIndex) {
+        GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(
+                NL80211_CMD_STOP_SCHED_SCAN, NLM_F_ACK);
+        if (request == null) {
+            Log.e(TAG, "Failed to create STOP_SCHED_SCAN request");
+            return false;
+        }
+
+        // Interface index
+        request.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, ifIndex));
+
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null) {
+            Log.e(TAG, "Failed to send NL80211_CMD_STOP_SCHED_SCAN");
+            return false;
+        }
+
+        if (response.isError()) {
+            if (response.getErrorCode() == ENOENT) {
+                Log.w(TAG, "Scheduled scan is not running!");
+            } else {
+                Log.e(TAG, "STOP_SCHED_SCAN failed with error: " + response.getErrorCode());
+            }
+            return false;
+        }
+
+        return true;
     }
 
     /**

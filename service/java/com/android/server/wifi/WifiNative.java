@@ -3789,10 +3789,8 @@ public class WifiNative {
             nl80211NativePnoSettings.setMin2gRssiDbm(min24GHzRssi);
             nl80211NativePnoSettings.setMin5gRssiDbm(min5GHzRssi);
             nl80211NativePnoSettings.setMin6gRssiDbm(min6GHzRssi);
-            if (SdkLevel.isAtLeastU()) {
-                nl80211NativePnoSettings.setScanIterations(scanIterations);
-                nl80211NativePnoSettings.setScanIntervalMultiplier(scanIntervalMultiplier);
-            }
+            nl80211NativePnoSettings.setScanIterations(scanIterations);
+            nl80211NativePnoSettings.setScanIntervalMultiplier(scanIntervalMultiplier);
 
             List<com.android.server.wifi.nl80211.PnoNetwork> pnoNetworks = new ArrayList<>();
             if (networkList != null) {
