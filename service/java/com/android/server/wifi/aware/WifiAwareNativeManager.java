@@ -148,7 +148,7 @@ public class WifiAwareNativeManager {
 
         mInterfaceDestroyedListener = new InterfaceDestroyedListener();
         mWifiNativeNanIface = mWifiNative.createNanIface(mInterfaceDestroyedListener,
-                mHandler, requestorWs);
+                mHandler, requestorWs, useSupplicant);
         if (mWifiNativeNanIface != null) {
             mVendorHalNanIface = (WifiNanIface) mWifiNativeNanIface.iface;
         }

@@ -30,8 +30,8 @@ import android.util.SparseIntArray;
 
 import com.android.modules.utils.BasicShellCommandHandler;
 import com.android.server.wifi.hal.WifiNanIface;
-import com.android.wifi.resources.R;
 import com.android.server.wifi.hal.WifiNanIface.PowerParameters;
+import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -332,7 +332,10 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
     public boolean getCapabilities(short transactionId) {
         if (mVerboseLoggingEnabled) Log.v(TAG, "getCapabilities: transactionId=" + transactionId);
         recordTransactionId(transactionId);
-
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.getCapabilities(transactionId);
+        }
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
             Log.e(TAG, "getCapabilities: null interface");
@@ -369,7 +372,11 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                 + ", instantModeChannel=" + instantModeChannel
                 + ", clusterId=" + clusterId);
         recordTransactionId(transactionId);
-
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.enableAndConfigure(transactionId, configRequest, notifyIdentityChange,
+                    initialConfiguration, getPowerParameters(isInteractive, isIdle));
+        }
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
             Log.e(TAG, "enableAndConfigure: null interface");
@@ -392,7 +399,10 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
     public boolean disable(short transactionId) {
         if (mVerboseLoggingEnabled) Log.d(TAG, "disable");
         recordTransactionId(transactionId);
-
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.disableRequest(transactionId);
+        }
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
             Log.e(TAG, "disable: null interface");
@@ -419,6 +429,11 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         }
         recordTransactionId(transactionId);
 
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.publish(transactionId, publishId, publishConfig, nik);
+        }
+
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
             Log.e(TAG, "publish: null interface");
@@ -444,6 +459,11 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                     + ", config=" + subscribeConfig);
         }
         recordTransactionId(transactionId);
+
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.subscribe(transactionId, subscribeId, subscribeConfig, nik);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -480,6 +500,19 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                             ? 0 : message.length));
         }
         recordTransactionId(transactionId);
+        MacAddress destMac = null;
+        try {
+            destMac = MacAddress.fromBytes(dest);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid dest mac received: " + Arrays.toString(dest));
+            return false;
+        }
+
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.sendMessage(transactionId, pubSubId, requestorInstanceId,
+                    destMac, message);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -487,15 +520,9 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             return false;
         }
 
-        try {
-            MacAddress destMac = MacAddress.fromBytes(dest);
-            return iface.sendMessage(
-                    transactionId, pubSubId, requestorInstanceId, destMac, message,
-                    isSdeaHeaderNeeded() ? SDEA_HEADER : null);
-        } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Invalid dest mac received: " + Arrays.toString(dest));
-            return false;
-        }
+        return iface.sendMessage(
+                transactionId, pubSubId, requestorInstanceId, destMac, message,
+                isSdeaHeaderNeeded() ? SDEA_HEADER : null);
     }
 
     /**
@@ -511,6 +538,10 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.d(TAG, "stopPublish: transactionId=" + transactionId + ", pubSubId=" + pubSubId);
         }
         recordTransactionId(transactionId);
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.stopPublish(transactionId, pubSubId);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -533,6 +564,10 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.d(TAG, "stopSubscribe: transactionId=" + transactionId + ", pubSubId=" + pubSubId);
         }
         recordTransactionId(transactionId);
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.stopSubscribe(transactionId, pubSubId);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -554,6 +589,10 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         Log.d(TAG, "createAwareNetworkInterface: transactionId=" + transactionId + ", "
                     + "interfaceName=" + interfaceName);
         recordTransactionId(transactionId);
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.createAwareNetworkInterface(transactionId, interfaceName);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -574,6 +613,10 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         Log.d(TAG, "deleteAwareNetworkInterface: transactionId=" + transactionId + ", "
                 + "interfaceName=" + interfaceName);
         recordTransactionId(transactionId);
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.deleteAwareNetworkInterface(transactionId, interfaceName);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
