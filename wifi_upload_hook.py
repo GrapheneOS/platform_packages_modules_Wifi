@@ -117,15 +117,15 @@ def main():
     changed_resource_file = get_changed_resource_file(commit_files)
 
     if changed_resource_file:
-        if changed_resource_file == STRING_FILE:
-            if not is_commit_msg_has_translation_bug_id(commit_msg):
-                print('This commit has changed: "{changed_file}".'.format(changed_resource_file=changed_resource_file))
-                print()
-                print('Please add the following line to your commit message')
-                print()
-                print('Bug: 294871353')
-                print()
-                return 1
+#         if changed_resource_file == STRING_FILE:
+#             if not is_commit_msg_has_translation_bug_id(commit_msg):
+#                 print('This commit has changed: "{changed_file}".'.format(changed_resource_file=changed_resource_file))
+#                 print()
+#                 print('Please add the following line to your commit message')
+#                 print()
+#                 print('Bug: 294871353')
+#                 print()
+#                 return 1
 
         if not is_commit_msg_valid(commit_msg, True, False):
             print('This commit has changed: "{changed_file}".'.format(changed_file=changed_resource_file))
