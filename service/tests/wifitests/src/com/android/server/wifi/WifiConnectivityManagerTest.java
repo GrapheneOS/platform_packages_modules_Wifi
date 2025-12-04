@@ -237,6 +237,12 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(mDialogBuilder.setCallback(any(), any())).thenReturn(mDialogBuilder);
         when(mDialogBuilder.build()).thenReturn(mDialogHandle);
         when(Flags.filterCarrierNetworksWhileInMotion()).thenReturn(true);
+        when(mWifiNative.getSupportedBandCombinations(any()))
+                .thenReturn(Set.of(
+                        List.of(1),
+                        List.of(2),
+                        List.of(1, 2)
+                ));
     }
 
     private void setUpResources(MockResources resources) {
@@ -337,9 +343,9 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
     @Mock private WifiCountryCode mWifiCountryCode;
     @Mock private DppManager mDppManager;
     @Mock private WifiDialogManager mWifiDialogManager;
+    @Mock private WifiNative mWifiNative;
     @Mock private WifiDialogManager.SimpleDialogBuilder mDialogBuilder;
     @Mock private WifiDialogManager.DialogHandle mDialogHandle;
-    @Mock private WifiInjector mWifiInjector;
     @Mock private HalDeviceManager mHalDeviceManager;
     @Mock private WifiResourceCache mResourceCache;
     @Mock WifiCandidates.Candidate mCandidate1;
@@ -661,7 +667,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
                         mWifiCarrierInfoManager,
                         mWifiCountryCode,
                         mWifiDialogManager,
-                        mWifiDeviceStateChangeManager);
+                        mWifiDeviceStateChangeManager,
+                        mWifiNative);
         mLooper.dispatchAll();
         verify(mActiveModeWarden, atLeastOnce()).registerModeChangeCallback(
                 mModeChangeCallbackCaptor.capture());
@@ -5385,40 +5392,51 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
 
     @Test
     public void testMultiInternetSimultaneous5GHz() {
+        String ifaceName = "wlan0";
         // Enable dual 5GHz multi-internet mode
         when(mWifiGlobals.isSupportMultiInternetDual5G()).thenReturn(true);
 
         // 2.4GHz + 5GHz should be allowed
         assertTrue(mWifiConnectivityManager.filterMultiInternetFrequency(TEST_FREQUENCY,
-                TEST_FREQUENCY_5G));
+                TEST_FREQUENCY_5G, ifaceName));
 
         // 5GHz low + 5GHz high should be allowed
         assertTrue(mWifiConnectivityManager.filterMultiInternetFrequency(
                 ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ,
-                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ));
+                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ, ifaceName));
 
         // 5GHz low + other 5GHz (that's neither low nor high) should not be allowed
         assertFalse(mWifiConnectivityManager.filterMultiInternetFrequency(
                 ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ,
-                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ - 1));
+                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ - 1, ifaceName));
 
         // 2 frequencies in 5GHz low band should not be allowed
         assertFalse(mWifiConnectivityManager.filterMultiInternetFrequency(
                 ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ,
-                ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ - 1));
+                ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ - 1, ifaceName));
 
         // 2 frequencies in 5GHz high band should not be allowed
         assertFalse(mWifiConnectivityManager.filterMultiInternetFrequency(
                 ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ,
-                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ + 1));
+                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ + 1, ifaceName));
 
         // Disable dual 5GHz multi-internet mode
         when(mWifiGlobals.isSupportMultiInternetDual5G()).thenReturn(false);
 
-        // 5GHz low + 5GHz high should no longer be allowed
+        // 5Ghz high and low should fail when dual 5GHz mode is disabled
         assertFalse(mWifiConnectivityManager.filterMultiInternetFrequency(
                 ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ,
-                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ));
+                ScanResult.BAND_5_GHZ_HIGH_LOWEST_FREQ_MHZ, ifaceName));
+
+        // 5Ghz + 6Ghz should also fail
+        assertFalse(mWifiConnectivityManager.filterMultiInternetFrequency(
+                ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ,
+                ScanResult.BAND_6_GHZ_START_FREQ_MHZ, ifaceName));
+
+        // 2.4Ghz + 5Ghz should pass
+        assertTrue(mWifiConnectivityManager.filterMultiInternetFrequency(
+                ScanResult.BAND_5_GHZ_LOW_HIGHEST_FREQ_MHZ,
+                ScanResult.BAND_24_GHZ_START_FREQ_MHZ, ifaceName));
     }
 
     /**

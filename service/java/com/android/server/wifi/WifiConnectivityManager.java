@@ -189,6 +189,7 @@ public class WifiConnectivityManager {
     private final FrameworkFacade mFrameworkFacade;
     private final WifiPermissionsUtil mWifiPermissionsUtil;
     private final WifiDialogManager mWifiDialogManager;
+    private final WifiNative mWifiNative;
     private final WifiThreadRunner mWifiThreadRunner;
     private final WifiResourceCache mResourceCache;
 
@@ -421,10 +422,35 @@ public class WifiConnectivityManager {
      * Utility band filter method for multi-internet use-case.
      */
     @VisibleForTesting
-    public boolean filterMultiInternetFrequency(int primaryFreq, int secondaryFreq) {
+    public boolean filterMultiInternetFrequency(int primaryFreq, int secondaryFreq,
+            String interfaceName) {
         return mWifiGlobals.isSupportMultiInternetDual5G()
                 ? ScanResult.isValidCombinedBandForDual5GHz(primaryFreq, secondaryFreq)
-                : ScanResult.toBand(primaryFreq) != ScanResult.toBand(secondaryFreq);
+                : isSimultaneousBandSupported(
+                        ScanResult.toBand(primaryFreq), ScanResult.toBand(secondaryFreq),
+                        interfaceName);
+    }
+
+    private boolean isSimultaneousBandSupported(@ScanResult.WifiBand int band1,
+            @ScanResult.WifiBand int band2, String interfaceName) {
+        if (band1 == band2) {
+            return false;
+        }
+        Set<List<Integer>> supportedBandSet = mWifiNative.getSupportedBandCombinations(
+                interfaceName);
+        if (supportedBandSet == null) {
+            Log.e(TAG, "getSupportedBandCombinations is null");
+            return false;
+        }
+        for (List<Integer> supportedBands : supportedBandSet) {
+            if (supportedBands.contains(band1) && supportedBands.contains(band2)) {
+                return true;
+            }
+        }
+        if (mVerboseLoggingEnabled) {
+            Log.i(TAG, "band " + band1 + " and " + band2 + " are not supported simultaneously");
+        }
+        return false;
     }
 
     /**
@@ -470,14 +496,16 @@ public class WifiConnectivityManager {
                 secondaryCmmCandidates = candidates.stream()
                         .filter(c -> {
                             return filterMultiInternetFrequency(
-                                    primaryInfo.getFrequency(), c.getFrequency());
+                                    primaryInfo.getFrequency(), c.getFrequency(),
+                                    primaryCcm.getInterfaceName());
                         })
                         .collect(Collectors.toList());
             }
         } else {
             // Only allow the candidates have the same SSID as the primary.
             secondaryCmmCandidates = candidates.stream().filter(c -> {
-                return filterMultiInternetFrequency(primaryInfo.getFrequency(), c.getFrequency())
+                return filterMultiInternetFrequency(primaryInfo.getFrequency(), c.getFrequency(),
+                        primaryCcm.getInterfaceName())
                         && !primaryCcm.isAffiliatedLinkBssid(c.getKey().bssid) && TextUtils.equals(
                         c.getKey().matchInfo.networkSsid, primaryInfo.getSSID())
                         && c.getKey().networkId == primaryInfo.getNetworkId()
@@ -1531,7 +1559,8 @@ public class WifiConnectivityManager {
             WifiCarrierInfoManager wifiCarrierInfoManager,
             WifiCountryCode wifiCountryCode,
             @NonNull WifiDialogManager wifiDialogManager,
-            WifiDeviceStateChangeManager wifiDeviceStateChangeManager) {
+            WifiDeviceStateChangeManager wifiDeviceStateChangeManager,
+            WifiNative wifiNative) {
         mContext = context;
         mScoringParams = scoringParams;
         mConfigManager = configManager;
@@ -1563,6 +1592,7 @@ public class WifiConnectivityManager {
         mWifiCarrierInfoManager = wifiCarrierInfoManager;
         mWifiCountryCode = wifiCountryCode;
         mWifiDialogManager = wifiDialogManager;
+        mWifiNative = wifiNative;
         mResourceCache = mContext.getResourceCache();
 
         mDelayedCarrierSelectionTimeMs = mContext.getResources().getInteger(
