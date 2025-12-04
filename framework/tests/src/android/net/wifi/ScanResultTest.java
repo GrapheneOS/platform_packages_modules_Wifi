@@ -371,6 +371,35 @@ public class ScanResultTest {
         }
     }
 
+    @Test
+    public void testSetInformationElementsDeepCopy() {
+        InformationElement ie1 = new InformationElement(InformationElement.EID_SSID, 0,
+                "test1".getBytes());
+        InformationElement ie2 = new InformationElement(InformationElement.EID_HT_CAPABILITIES,
+                0, new byte[] {0x01, 0x02});
+        InformationElement[] originalIeArray = {ie1, ie2};
+
+        ScanResult.Builder builder = new ScanResult.Builder();
+        builder.setInformationElements(originalIeArray);
+        ScanResult scanResult = builder.build();
+
+        // Modify the original array and elements
+        originalIeArray[0] = new InformationElement(InformationElement.EID_COUNTRY, 0,
+                "US".getBytes());
+        ie2.bytes[0] = 0x03;
+
+        // Verify that the ScanResult's informationElements are a deep copy (unchanged)
+        InformationElement[] retrievedIeArray = scanResult.informationElements;
+        assertThat(retrievedIeArray).isNotNull();
+        assertThat(retrievedIeArray.length).isEqualTo(2);
+
+        assertThat(retrievedIeArray[0].id).isEqualTo(InformationElement.EID_SSID);
+        assertThat(retrievedIeArray[0].bytes).isEqualTo("test1".getBytes());
+
+        assertThat(retrievedIeArray[1].id).isEqualTo(InformationElement.EID_HT_CAPABILITIES);
+        assertThat(retrievedIeArray[1].bytes).isEqualTo(new byte[] {0x01, 0x02});
+    }
+
     /**
      * Write the provided {@link ScanResult} to a parcel and deserialize it.
      */
