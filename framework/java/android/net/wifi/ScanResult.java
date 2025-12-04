@@ -1528,6 +1528,7 @@ public final class ScanResult implements Parcelable {
         private boolean mIsTwtResponder = false;
         private boolean mIsSecureHeLtfSupported = false;
         private boolean mIsRangingFrameProtectionRequired = false;
+        private InformationElement[] mInformationElements;
 
         /** @hide */
         @NonNull
@@ -1685,6 +1686,7 @@ public final class ScanResult implements Parcelable {
             mIs80211McRTTResponder = false;
             mIs80211azNtbRTTResponder = false;
             mIsTwtResponder = false;
+            mInformationElements = null;
         }
 
         /** @hide */
@@ -1701,6 +1703,19 @@ public final class ScanResult implements Parcelable {
         /** @hide */
         public Builder setRangingFrameProtectionRequired(boolean required) {
             mIsRangingFrameProtectionRequired = required;
+            return this;
+        }
+
+        /** @hide */
+        public Builder setInformationElements(@Nullable InformationElement[] informationElements) {
+            if (informationElements != null) {
+                mInformationElements = new InformationElement[informationElements.length];
+                for (int i = 0; i < informationElements.length; i++) {
+                    mInformationElements[i] = new InformationElement(informationElements[i]);
+                }
+            } else {
+                mInformationElements = null;
+            }
             return this;
         }
     }
@@ -1744,6 +1759,14 @@ public final class ScanResult implements Parcelable {
         this.flags |= (builder.mIsSecureHeLtfSupported) ? FLAG_SECURE_HE_LTF_SUPPORTED : 0;
         this.flags |= (builder.mIsRangingFrameProtectionRequired)
                 ? FLAG_RANGING_FRAME_PROTECTION_REQUIRED : 0;
+        if (builder.mInformationElements != null) {
+            informationElements = new InformationElement[builder.mInformationElements.length];
+            for (int i = 0; i < builder.mInformationElements.length; i++) {
+                informationElements[i] = new InformationElement(builder.mInformationElements[i]);
+            }
+        } else {
+            informationElements = null;
+        }
     }
 
     /**
