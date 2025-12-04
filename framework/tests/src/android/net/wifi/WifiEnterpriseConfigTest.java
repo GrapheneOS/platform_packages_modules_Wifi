@@ -407,6 +407,32 @@ public class WifiEnterpriseConfigTest {
         assertEquals(enterpriseConfig.getOcsp(), mEnterpriseConfig.getOcsp());
     }
 
+    /**
+     * Verifies that the copy constructor does not crash when the source config is null.
+     */
+    @Test
+    public void testCopyConstructorWithNullSource() {
+        // Test copy constructor with null source. Should not crash.
+        WifiEnterpriseConfig config = new WifiEnterpriseConfig(null);
+        assertNotNull(config);
+        // The config should be in its default state.
+        assertEquals(Eap.NONE, config.getEapMethod());
+        assertEquals("", config.getIdentity());
+    }
+
+    /**
+     * Verifies that copyFromExternal does not crash when the source config is null.
+     */
+    @Test
+    public void testCopyFromExternalWithNullSource() {
+        // Test copyFromExternal with null source. Should not crash.
+        WifiEnterpriseConfig config = new WifiEnterpriseConfig();
+        config.setEapMethod(Eap.PEAP); // Set some initial value
+        config.copyFromExternal(null, "mask");
+        // Ensure the original value is retained.
+        assertEquals(Eap.PEAP, config.getEapMethod());
+    }
+
     /** Verfies that parceling a WifiEnterpriseConfig preseves method information. */
     @Test
     public void parcelConstructor() {
