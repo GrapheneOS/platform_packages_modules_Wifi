@@ -200,7 +200,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         when(mNl80211Native.tearDownClientInterface(any())).thenReturn(true);
         when(mNl80211Native.tearDownSoftApInterface(any())).thenReturn(true);
         when(mNl80211Native.tearDownInterfaces()).thenReturn(true);
-        when(mNl80211Native.registerWificondApCallback(any(), any(), any())).thenReturn(true);
+        when(mNl80211Native.registerApCallback(any(), any(), any())).thenReturn(true);
 
         when(mSupplicantStaIfaceHal.registerDeathHandler(mSupplicantDeathHandlerCaptor.capture()))
             .thenReturn(true);
@@ -1011,7 +1011,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
 
         verify(mStatusListener).onStatusChanged(false);
         verify(mStatusListener).onStatusChanged(true);
-        verify(mNl80211Native, never()).registerWificondApCallback(any(), any(), any());
+        verify(mNl80211Native, never()).registerApCallback(any(), any(), any());
     }
 
     /**
@@ -1029,7 +1029,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
                         true, mock(WifiNative.SoftApHalCallback.class), false));
 
         mInOrder.verify(mHostapdHal).isApInfoCallbackSupported();
-        mInOrder.verify(mNl80211Native).registerWificondApCallback(any(), any(), any());
+        mInOrder.verify(mNl80211Native).registerApCallback(any(), any(), any());
         verify(mHostapdHal, never()).registerApCallback(any(), any());
         mInOrder.verify(mWifiVendorHal).isVendorHalSupported();
         mInOrder.verify(mWifiVendorHal).getBridgedApInstances(IFACE_NAME_0);

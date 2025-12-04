@@ -1125,4 +1125,20 @@ public class NetlinkConstants {
     public static final short NL80211_SCHED_SCAN_PLAN_INVALID = 0;
     public static final short NL80211_SCHED_SCAN_PLAN_INTERVAL = 1;
     public static final short NL80211_SCHED_SCAN_PLAN_ITERATIONS = 2;
+
+    // Nl80211 channel width definitions. See kernel/uapi/linux/nl80211.h
+    public static final int NL80211_CHAN_WIDTH_20_NOHT = 0;
+    public static final int NL80211_CHAN_WIDTH_20 = 1;
+    public static final int NL80211_CHAN_WIDTH_40 = 2;
+    public static final int NL80211_CHAN_WIDTH_80 = 3;
+    public static final int NL80211_CHAN_WIDTH_80P80 = 4;
+    public static final int NL80211_CHAN_WIDTH_160 = 5;
+    public static final int NL80211_CHAN_WIDTH_5 = 6;
+    public static final int NL80211_CHAN_WIDTH_10 = 7;
+    public static final int NL80211_CHAN_WIDTH_1 = 8;
+    public static final int NL80211_CHAN_WIDTH_2 = 9;
+    public static final int NL80211_CHAN_WIDTH_4 = 10;
+    public static final int NL80211_CHAN_WIDTH_8 = 11;
+    public static final int NL80211_CHAN_WIDTH_16 = 12;
+    public static final int NL80211_CHAN_WIDTH_320 = 13;
 }

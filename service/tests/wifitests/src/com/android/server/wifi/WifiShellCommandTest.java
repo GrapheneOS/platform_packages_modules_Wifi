@@ -1823,4 +1823,29 @@ public class WifiShellCommandTest extends WifiBaseTest {
 
         verify(mNl80211Native).stopPnoScan(ifaceName);
     }
+
+    @Test
+    public void testRegisterNl80211ApCallback() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final String ifaceName = "wlan0";
+        when(mNl80211Native.setupInterfaceForSoftApMode(eq(ifaceName))).thenReturn(true);
+
+        // Since there isn't a good way to interrupt the latch from unit testing, forcefully exit
+        // the try-catch block with an uncaught exception.
+        RuntimeException blockingException = new RuntimeException(
+                "Test Exception: Simulating interrupt/failure");
+        when(mNl80211Native.registerApCallback(eq(ifaceName), any(), any()))
+                .thenThrow(blockingException);
+
+        mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"register-nl80211-ap-callback", ifaceName, "-n"});
+
+        verify(mNl80211Native).setUseNl80211Override(true);
+        verify(mNl80211Native).setupInterfaceForSoftApMode(ifaceName);
+        verify(mNl80211Native).registerApCallback(eq(ifaceName), any(), any());
+
+        verify(mNl80211Native).tearDownSoftApInterface(ifaceName);
+        verify(mNl80211Native).setUseNl80211Override(false);
+    }
 }

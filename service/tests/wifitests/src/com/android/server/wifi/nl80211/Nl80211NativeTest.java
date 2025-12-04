@@ -16,9 +16,15 @@
 
 package com.android.server.wifi.nl80211;
 
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_CHANNEL_WIDTH;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_FREQ;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_CH_SWITCH_NOTIFY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DEL_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCAN_ABORTED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_STOPPED;
@@ -43,8 +49,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.annotation.Nullable;
+import android.net.MacAddress;
 import android.net.wifi.ScanResult;
+import android.net.wifi.SoftApInfo;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.nl80211.NativeWifiClient;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
 
@@ -139,12 +148,9 @@ public class Nl80211NativeTest {
             @Nullable Nl80211Utils.BandInfo bandInfo,
             @Nullable Nl80211Utils.ScanCapabilities scanCapabilities,
             @Nullable Nl80211Utils.WiphyFeatures wiphyFeatures) {
-        when(mNl80211Utils.getWiphyIndex(IFACE_NAME)).thenReturn(wiphyIndex);
-        List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
-        Nl80211Utils.InterfaceInfo expectedInfo = new Nl80211Utils.InterfaceInfo(
+        Nl80211Utils.InterfaceInfo ifaceInfo = new Nl80211Utils.InterfaceInfo(
                 IFACE_INDEX, wiphyIndex, IFACE_NAME, new byte[6]);
-        interfaces.add(expectedInfo);
-        when(mNl80211Utils.getInterfaces(wiphyIndex)).thenReturn(interfaces);
+        when(mNl80211Utils.getInterfaceInfo(IFACE_NAME)).thenReturn(ifaceInfo);
         // Mock a basic WiphyInfo response for setupInterfaceForClientMode to succeed.
         if (bandInfo == null) {
             bandInfo = new Nl80211Utils.BandInfo();
@@ -253,6 +259,75 @@ public class Nl80211NativeTest {
         runnableCaptor.getValue().run();
         verify(mPnoScanCallback).onScanFailed();
         verify(mScanCallback, never()).onScanFailed();
+    }
+
+    @Test
+    public void testBroadcastEvent_onNewStation_invokesApCallback() {
+        mDut = initNl80211Native(false);
+        setupSoftApInterfaceForTest(WIPHY_INDEX, null);
+        mDut.registerApCallback(IFACE_NAME, mExecutor, mSoftApCallback);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_NEW_STATION),
+                mNl80211BroadcastCallbackCaptor.capture());
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(IFACE_INDEX);
+        byte[] macAddress = new byte[]{0x00, 0x11, 0x22, 0x33, 0x44, 0x55};
+        when(msg.getAttributeValueAsByteArray(NL80211_ATTR_MAC)).thenReturn(macAddress);
+
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(NL80211_CMD_NEW_STATION, msg);
+
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(runnableCaptor.capture());
+        runnableCaptor.getValue().run();
+        ArgumentCaptor<NativeWifiClient> clientCaptor =
+                ArgumentCaptor.forClass(NativeWifiClient.class);
+        verify(mSoftApCallback).onConnectedClientsChanged(clientCaptor.capture(), eq(true));
+        assertEquals(MacAddress.fromBytes(macAddress), clientCaptor.getValue().getMacAddress());
+    }
+
+    @Test
+    public void testBroadcastEvent_onDelStation_invokesApCallback() {
+        mDut = initNl80211Native(false);
+        setupSoftApInterfaceForTest(WIPHY_INDEX, null);
+        mDut.registerApCallback(IFACE_NAME, mExecutor, mSoftApCallback);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_DEL_STATION),
+                mNl80211BroadcastCallbackCaptor.capture());
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(IFACE_INDEX);
+        byte[] macAddress = new byte[]{0x00, 0x11, 0x22, 0x33, 0x44, 0x55};
+        when(msg.getAttributeValueAsByteArray(NL80211_ATTR_MAC)).thenReturn(macAddress);
+
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(NL80211_CMD_DEL_STATION, msg);
+
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(runnableCaptor.capture());
+        runnableCaptor.getValue().run();
+        ArgumentCaptor<NativeWifiClient> clientCaptor =
+                ArgumentCaptor.forClass(NativeWifiClient.class);
+        verify(mSoftApCallback).onConnectedClientsChanged(clientCaptor.capture(), eq(false));
+        assertEquals(MacAddress.fromBytes(macAddress), clientCaptor.getValue().getMacAddress());
+    }
+
+    @Test
+    public void testBroadcastEvent_onChannelSwitch_invokesApCallback() {
+        mDut = initNl80211Native(false);
+        setupSoftApInterfaceForTest(WIPHY_INDEX, null);
+        mDut.registerApCallback(IFACE_NAME, mExecutor, mSoftApCallback);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_CH_SWITCH_NOTIFY),
+                mNl80211BroadcastCallbackCaptor.capture());
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(IFACE_INDEX);
+        int frequency = 5220;
+        int channelWidth = NetlinkConstants.NL80211_CHAN_WIDTH_80;
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_WIPHY_FREQ)).thenReturn(frequency);
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_CHANNEL_WIDTH)).thenReturn(channelWidth);
+
+        mNl80211BroadcastCallbackCaptor.getValue().onEvent(NL80211_CMD_CH_SWITCH_NOTIFY, msg);
+
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(runnableCaptor.capture());
+        runnableCaptor.getValue().run();
+        verify(mSoftApCallback).onSoftApChannelSwitched(frequency,
+                SoftApInfo.CHANNEL_WIDTH_80MHZ);
     }
 
     /** Test that an event for an unknown interface is ignored. */
@@ -418,10 +493,23 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testSetupInterfaceForSoftApMode_throwsException() {
+    public void testSetupInterfaceForSoftApMode_success() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.setupInterfaceForSoftApMode(IFACE_NAME));
+        setupSoftApInterfaceForTest(WIPHY_INDEX, null);
+
+        assertTrue(mDut.getApInterfaceInfos().containsKey(IFACE_NAME));
+        assertEquals(1, mDut.getApInterfaceInfos().size());
+        Nl80211Native.ApInterfaceInfo apInterfaceInfo =
+                mDut.getApInterfaceInfos().get(IFACE_NAME);
+        assertNotNull(apInterfaceInfo);
+        assertEquals(IFACE_NAME, apInterfaceInfo.ifName);
+
+        verify(mNl80211Proxy).registerBroadcastCallback(
+                eq(NL80211_CMD_NEW_STATION), any());
+        verify(mNl80211Proxy).registerBroadcastCallback(
+                eq(NL80211_CMD_DEL_STATION), any());
+        verify(mNl80211Proxy).registerBroadcastCallback(
+                eq(NL80211_CMD_CH_SWITCH_NOTIFY), any());
     }
 
     @Test
@@ -433,10 +521,21 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testTearDownSoftApInterface_throwsException() {
+    public void testTearDownSoftApInterface_success() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.tearDownSoftApInterface(IFACE_NAME));
+        setupSoftApInterfaceForTest(WIPHY_INDEX, null);
+        assertTrue(mDut.getApInterfaceInfos().containsKey(IFACE_NAME));
+
+        assertTrue(mDut.tearDownSoftApInterface(IFACE_NAME));
+
+        verify(mNetdWrapper).setInterfaceDown(IFACE_NAME);
+        assertFalse(mDut.getApInterfaceInfos().containsKey(IFACE_NAME));
+        verify(mNl80211Proxy).unregisterBroadcastCallback(
+                eq(NL80211_CMD_NEW_STATION), any());
+        verify(mNl80211Proxy).unregisterBroadcastCallback(
+                eq(NL80211_CMD_DEL_STATION), any());
+        verify(mNl80211Proxy).unregisterBroadcastCallback(
+                eq(NL80211_CMD_CH_SWITCH_NOTIFY), any());
     }
 
     @Test
@@ -455,19 +554,25 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testRegisterWificondApCallback_useWificondEnabled_callsWificond() {
+    public void testRegisterApCallback_useWificondEnabled_callsWificond() {
         mDut = initNl80211Native(true);
         when(mWificondManager.registerApCallback(IFACE_NAME, mExecutor, mSoftApCallback))
                 .thenReturn(true);
-        assertTrue(mDut.registerWificondApCallback(IFACE_NAME, mExecutor, mSoftApCallback));
+        assertTrue(mDut.registerApCallback(IFACE_NAME, mExecutor, mSoftApCallback));
         verify(mWificondManager).registerApCallback(IFACE_NAME, mExecutor, mSoftApCallback);
     }
 
     @Test
-    public void testRegisterWificondApCallback_throwsException() {
+    public void testRegisterApCallback_success() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.registerWificondApCallback(IFACE_NAME, mExecutor, mSoftApCallback));
+        setupSoftApInterfaceForTest(WIPHY_INDEX, null);
+
+        assertTrue(mDut.registerApCallback(IFACE_NAME, mExecutor, mSoftApCallback));
+
+        Nl80211Native.ApInterfaceInfo apInterfaceInfo =
+                mDut.getApInterfaceInfos().get(IFACE_NAME);
+        assertEquals(mExecutor, apInterfaceInfo.executor);
+        assertEquals(mSoftApCallback, apInterfaceInfo.callback);
     }
 
     @Test
@@ -485,6 +590,22 @@ public class Nl80211NativeTest {
                 IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, freqs, ssids, extras));
         verify(mWificondManager).startScan2(
                 IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, freqs, ssids, extras);
+    }
+
+    private void setupSoftApInterfaceForTest(int wiphyIndex,
+            @Nullable Nl80211Utils.WiphyInfo wiphyInfo) {
+        when(mNl80211Utils.getInterfaceInfo(IFACE_NAME))
+                .thenReturn(new Nl80211Utils.InterfaceInfo(
+                        IFACE_INDEX, wiphyIndex, IFACE_NAME, new byte[6]));
+        if (wiphyInfo == null) {
+            wiphyInfo = new Nl80211Utils.WiphyInfo(
+                    new Nl80211Utils.BandInfo(),
+                    mock(Nl80211Utils.ScanCapabilities.class),
+                    mock(Nl80211Utils.WiphyFeatures.class),
+                    mock(Nl80211Utils.DriverCapabilities.class));
+        }
+        when(mNl80211Utils.getWiphyInfo(wiphyIndex)).thenReturn(wiphyInfo);
+        mDut.setupInterfaceForSoftApMode(IFACE_NAME);
     }
 
     /** Test that a successful scan results in the expected calls to Nl80211Utils. */
