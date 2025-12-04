@@ -1452,4 +1452,6 @@
     <bool translatable="false" name="config_wifiAwareSdeaHeaderFromFramework">false</bool>
     <!-- Boolean indicating whether the Wi-Fi network pre-evaluation is enabled. -->
     <bool translatable="false" name="config_preEvaluationEnabled">true</bool>
+    <!-- Config if supplicant aware should be enabled. -->
+    <bool translatable="false" name="config_supplicantAwareEnabled">false</bool>
 </resources>

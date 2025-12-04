@@ -260,7 +260,7 @@ public class MainlineSupplicantAidlManager {
      */
     public static boolean isServiceAvailable(WifiContext context) {
         // Requires an Android 17+ Selinux policy, a copy of the binary, and device support.
-        boolean isEnabledInOverlay = context.getResources().getBoolean(
+        boolean isEnabledInOverlay = context.getResourceCache().getBoolean(
                 com.android.wifi.resources.R.bool.config_wifiMainlineSupplicantEnabled);
         // TODO (b/421247744): Remove the user build check once ready to deploy to user devices.
         BuildProperties buildProperties = BuildProperties.getInstance();
@@ -347,5 +347,14 @@ public class MainlineSupplicantAidlManager {
      */
     public void unregisterDeathHandler(SupplicantDeathEventHandler deathEventHandler) {
         mDeathEventHandler.remove(deathEventHandler);
+    }
+
+    /**
+     * Check if Supplicant Aware is supported or not.
+     * @return true if supports, false otherwise
+     */
+    public boolean isAwareSupported() {
+        return mWifiContext.getResourceCache().getBoolean(
+                com.android.wifi.resources.R.bool.config_supplicantAwareEnabled);
     }
 }
