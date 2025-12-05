@@ -8882,4 +8882,56 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 mWifiConfigManager.getConfiguredNetwork(insecureResult.getNetworkId());
         assertTrue(retrievedInsecureConfig.isAutoJoinInAdvancedProtectionModeEnabled());
     }
+
+    /**
+     * Verify that {@link WifiConfigManager#isNetworkConfigured} can check the
+     * existence of a network in internal database correctly.
+     */
+    @Test
+    public void testIsNetworkConfigured() {
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+        assertFalse(mWifiConfigManager.isNetworkConfigured(config));
+        verifyAddNetworkToWifiConfigManager(config);
+        assertTrue(mWifiConfigManager.isNetworkConfigured(config));
+    }
+
+    /**
+     * Verify that {@link WifiConfigManager#updateNetworkWithUidAndCurrentUserIdIfNeeded} can update
+     * the uid and userId of the provided WifiConfiguration correctly.
+     */
+    @Test
+    public void testUpdateNetworkWithUidAndCurrentUserIdIfNeeded() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+
+        // Switch to a non-default user.
+        final int otherUser = TEST_DEFAULT_USER + 1;
+        setupUserProfiles(otherUser);
+        Context otherUserContext = mock(Context.class);
+        when(mContext.createContextAsUser(any(), eq(0))).thenReturn(otherUserContext);
+        when(otherUserContext.getSystemService(eq(UserManager.class))).thenReturn(mUserManager);
+        when(mUserManager.isAdminUser()).thenReturn(false);
+        mWifiConfigManager.handleUserSwitch(otherUser);
+
+        // When uid has been assigned (by WifiConfigurationTestUtil#createOpenNetwork), this method
+        // does no-op.
+        mWifiConfigManager.updateNetworkWithUidAndCurrentUserIdIfNeeded(config,
+                TEST_OTHER_USER_UID);
+        assertNotEquals(TEST_OTHER_USER_UID, config.creatorUid);
+        assertNotEquals(TEST_OTHER_USER_UID, config.lastUpdateUid);
+        assertNotEquals(otherUser, config.getStoredCreatorUserId());
+
+        // Reset uid and userId to default values.
+        config.creatorUid = -1;
+        config.lastUpdateUid = -1;
+        config.setCreatorUserId(-2);
+
+        // When uid hasn't been assigned, this method updates uid and userId.
+        mWifiConfigManager.updateNetworkWithUidAndCurrentUserIdIfNeeded(config,
+                TEST_OTHER_USER_UID);
+        assertEquals(TEST_OTHER_USER_UID, config.creatorUid);
+        assertEquals(TEST_OTHER_USER_UID, config.lastUpdateUid);
+        assertEquals(otherUser, config.getStoredCreatorUserId());
+    }
 }

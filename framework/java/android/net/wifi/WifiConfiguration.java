@@ -4629,7 +4629,7 @@ public class WifiConfiguration implements Parcelable {
 
         String key = getSsidAndSecurityTypeString();
         if (!shared) {
-            key += "-" + UserHandle.getUserHandleForUid(creatorUid).getIdentifier();
+            key += "-" + getCreatorUserIdInternal();
         }
         if (fromWifiNetworkSuggestion) {
             key += "_" + creatorName + "-" + carrierId + "-" + subscriptionId;

@@ -6804,7 +6804,30 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             boolean notOverrideExisting = CompatChanges
                     .isChangeEnabled(NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE, callingUid);
             int networkId;
+            boolean sharedDevice = false;
+            // TODO: b/449013275 Add Environment.isSdkNewerThanB()
+            if (mFeatureFlags.multiUserWifiEnhancement()) {
+                sharedDevice = mUserManager.getUserCount() > 1;
+            }
             for (WifiConfiguration configuration : configurations) {
+                // TODO: b/449013275 Add Environment.isSdkNewerThanB()
+                if (mFeatureFlags.multiUserWifiEnhancement() && sharedDevice) {
+                    if (configuration == null) {
+                        continue;
+                    }
+                    // The existence check of private networks requires user-related fields.
+                    // Populate these fields in advance.
+                    mWifiConfigManager.updateNetworkWithUidAndCurrentUserIdIfNeeded(configuration,
+                            callingUid);
+                    if (configuration.shared && (!mWifiConfigManager.isNetworkConfigured(
+                            configuration) || !notOverrideExisting)) {
+                        // Shared networks will be converted to private networks if they are not
+                        // already configured by the user, or overridden is allowed.
+                        configuration.shared = false;
+                        mLog.info("Shared network % converted to private network").c(
+                                configuration.getProfileKey()).flush();
+                    }
+                }
                 if (notOverrideExisting) {
                     networkId = mWifiConfigManager.addNetwork(configuration, callingUid)
                             .getNetworkId();
