@@ -558,10 +558,20 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testTearDownInterfaces_throwsException() {
+    public void testTeardownInterfaces_success() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.tearDownInterfaces());
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+        setupSoftApInterfaceForTest(WIPHY_INDEX_1, null);
+
+        assertFalse(mDut.getClientInterfaceInfos().isEmpty());
+        assertFalse(mDut.getApInterfaceInfos().isEmpty());
+
+        assertTrue(mDut.tearDownInterfaces());
+
+        assertTrue(mDut.getClientInterfaceInfos().isEmpty());
+        assertTrue(mDut.getApInterfaceInfos().isEmpty());
+        verify(mNetdWrapper).setInterfaceDown(CLIENT_IFACE_NAME);
+        verify(mNetdWrapper).setInterfaceDown(AP_IFACE_NAME);
     }
 
     @Test

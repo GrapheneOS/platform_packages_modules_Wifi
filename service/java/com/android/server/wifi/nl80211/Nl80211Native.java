@@ -903,8 +903,13 @@ public class Nl80211Native {
 
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        for (String clientIface : new ArrayList<>(mClientInterfaceInfos.keySet())) {
+            tearDownClientInterface(clientIface);
+        }
+        for (String apIface : new ArrayList<>(mApInterfaceInfos.keySet())) {
+            tearDownSoftApInterface(apIface);
+        }
+        return true;
     }
 
     /**
