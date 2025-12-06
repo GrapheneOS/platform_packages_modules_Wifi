@@ -576,7 +576,7 @@ public class WifiInjector {
                 mDeviceConfigFacade, mActiveModeWarden, mFrameworkFacade, mWifiGlobals,
                 mExternalPnoScanRequestManager, mSsidTranslator, mWifiPermissionsUtil,
                 mWifiCarrierInfoManager, mCountryCode, mWifiDialogManager,
-                mWifiDeviceStateChangeManager);
+                mWifiDeviceStateChangeManager, mWifiNative);
         mConnectedScorerHelper = new ConnectedScorerHelper(mScoringParams, mWifiGlobals,
             mWifiConnectivityManager);
         mMboOceController = new MboOceController(makeTelephonyManager(), mActiveModeWarden,
