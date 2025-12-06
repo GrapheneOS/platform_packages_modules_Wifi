@@ -2232,7 +2232,7 @@ public class WifiConfigManager {
         WifiConfiguration[] copiedConfigs =
                 mConfiguredNetworks.valuesForAllUsers().toArray(new WifiConfiguration[0]);
         for (WifiConfiguration config : copiedConfigs) {
-            if (userId != UserHandle.getUserHandleForUid(config.creatorUid).getIdentifier()) {
+            if (userId != config.getCreatorUserIdInternal()) {
                 continue;
             }
             localLog("Removing network " + config.SSID + ", user " + userId + " removed");
