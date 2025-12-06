@@ -7826,7 +7826,9 @@ public class ClientModeImplTest extends WifiBaseTest {
                 callbackCaptor.capture(),
                 any());
         verify(mockDialogHandle).launchDialog();
-        verify(mContext).getString(R.string.wifi_disconnect_dialog_title, mConnectedNetwork.SSID);
+        verify(mContext).getString(R.string.wifi_disconnect_dialog_new_connection_title);
+        verify(mContext).getString(eq(R.string.wifi_disconnect_dialog_new_connection_message),
+                any(), any());
         WifiDialogManager.SimpleDialogCallback callback = callbackCaptor.getValue();
         verify(mWifiNetworkFactory, never()).onDisconnectionExpected(
                 WifiManager.STATUS_LOCAL_ONLY_DISCONNECTION_NEW_CONNECTION, true);

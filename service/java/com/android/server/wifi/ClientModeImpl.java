@@ -1596,10 +1596,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             Runnable onConnectApproved = () -> {
                 continueConnectToUserSelectNetwork(connectedConfig, attributionTag, netId, uid);
             };
-            launchLocalOnlyDisconnectExpectedDialog(connectedConfig,
-                    mContext.getString(
-                            R.string.wifi_disconnect_dialog_new_connection_message,
-                            connectedConfig.SSID),
+            String appName = mNetworkFactory.getConnectedAppName();
+            String title = mContext.getString(R.string.wifi_disconnect_dialog_new_connection_title);
+            WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(netId);
+            String message = mContext.getString(
+                    R.string.wifi_disconnect_dialog_new_connection_message,
+                    appName, config.SSID);
+            String positiveButton = mContext.getString(
+                    R.string.wifi_disconnect_dialog_new_connection_positive_button);
+            String negativeButton = mContext.getString(
+                    R.string.wifi_disconnect_dialog_negative_button);
+            launchLocalOnlyDisconnectExpectedDialog(title, message, positiveButton, negativeButton,
                     onConnectApproved);
         } else {
             continueConnectToUserSelectNetwork(connectedConfig, attributionTag, netId, uid);
@@ -2056,20 +2063,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         sendMessage(CMD_DISCONNECT, StaEvent.DISCONNECT_GENERIC);
     }
 
-    private void launchLocalOnlyDisconnectExpectedDialog(WifiConfiguration config,
-            String message,
-            Runnable onApprovedMessage) {
+    private void launchLocalOnlyDisconnectExpectedDialog(String title, String message,
+            String positiveButton, String negativeButton, Runnable onApprovedMessage) {
         if (mActiveLocalOnlyDisconnectDialogHandle != null) {
             mActiveLocalOnlyDisconnectDialogHandle.dismissDialog();
             mActiveLocalOnlyDisconnectDialogHandle = null;
         }
-        String appName = mNetworkFactory.getConnectedAppName();
-        final String title = mContext.getString(R.string.wifi_disconnect_dialog_title,
-                appName.isEmpty() ? config.SSID : appName);
-        final String positiveButton = mContext.getString(
-                R.string.wifi_disconnect_dialog_positive_button);
-        final String negativeButton = mContext.getString(
-                R.string.wifi_disconnect_dialog_negative_button);
         WifiDialogManager.DialogHandle dialogHandle = mWifiInjector.getWifiDialogManager()
                 .createLegacySimpleDialog(
                         title, message, positiveButton, negativeButton, null,
@@ -2129,10 +2128,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     }
                     disconnect();
                 };
-                launchLocalOnlyDisconnectExpectedDialog(config,
-                        mContext.getString(R.string.wifi_disconnect_dialog_message,
-                                config.SSID),
-                        onUserApprovedAction);
+                String appName = mNetworkFactory.getConnectedAppName();
+                String title = mContext.getString(R.string.wifi_disconnect_dialog_title,
+                        appName.isEmpty() ? config.SSID : appName);
+                String message = mContext.getString(
+                        R.string.wifi_disconnect_dialog_message, appName);
+                String positiveButton = mContext.getString(
+                        R.string.wifi_disconnect_dialog_positive_button);
+                String negativeButton = mContext.getString(
+                        R.string.wifi_disconnect_dialog_negative_button);
+                launchLocalOnlyDisconnectExpectedDialog(title, message, positiveButton,
+                        negativeButton, onUserApprovedAction);
                 return;
             }
             if (isConnectedToLocalOnlyNetwork) {
