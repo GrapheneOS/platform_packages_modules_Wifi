@@ -1197,8 +1197,8 @@ public final class PasspointConfiguration implements Parcelable {
 
     /**
      * Get a unique identifier for a PasspointConfiguration object. The identifier depends on the
-     * configuration that identify the service provider under the HomeSp subtree, and on the
-     * credential configuration under the Credential subtree.
+     * subscription ID, the configuration that identify the service provider under the HomeSp
+     * subtree, and the credential configuration under the Credential subtree.
      * The method throws an {@link IllegalStateException} if the configuration under HomeSp subtree
      * or the configuration under Credential subtree are not initialized.
      *
@@ -1210,8 +1210,12 @@ public final class PasspointConfiguration implements Parcelable {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%s_%x%x", mHomeSp.getFqdn(), mHomeSp.getUniqueId(),
-                mCredential.getUniqueId()));
+        sb.append(mHomeSp.getFqdn())
+                .append("_")
+                .append(mSubscriptionId)
+                .append("_")
+                .append(mHomeSp.getUniqueId())
+                .append(mCredential.getUniqueId());
         return sb.toString();
     }
 

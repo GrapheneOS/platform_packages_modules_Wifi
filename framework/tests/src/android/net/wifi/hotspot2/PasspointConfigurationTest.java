@@ -64,6 +64,9 @@ public class PasspointConfigurationTest {
     private static final int CERTIFICATE_FINGERPRINT_BYTES = 32;
     private static final String TEST_DECORATED_IDENTITY_PREFIX = "androidwifi.dev!";
     private static final long SUBSCRIPTION_EXPIRATION_TIME_MS = 1643996661000L;
+    private static final int SUBSCRIPTION_ID_1 = 1;
+    private static final int SUBSCRIPTION_ID_2 = 2;
+
     /**
      * Verify parcel write and read consistency for the given configuration.
      *
@@ -537,6 +540,22 @@ public class PasspointConfigurationTest {
         PasspointConfiguration config2 = PasspointTestUtils.createConfig();
         credential = createCredentialWithCertificateCredential(false, false);
         config2.setCredential(credential);
+
+        assertNotEquals(config1.getUniqueId(), config2.getUniqueId());
+    }
+
+    /**
+     * Verify that the unique identifier generated is different for two instances with different
+     * Subscription ID.
+     */
+    @Test
+    public void validateUniqueIdDifferentSubscriptionId() throws Exception {
+        PasspointConfiguration config1 = PasspointTestUtils.createConfig();
+        config1.setSubscriptionId(SUBSCRIPTION_ID_1);
+
+        // Modify config2's subscription ID to a different value
+        PasspointConfiguration config2 = PasspointTestUtils.createConfig();
+        config2.setSubscriptionId(SUBSCRIPTION_ID_2);
 
         assertNotEquals(config1.getUniqueId(), config2.getUniqueId());
     }
