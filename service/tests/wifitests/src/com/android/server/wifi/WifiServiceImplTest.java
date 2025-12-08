@@ -119,6 +119,7 @@ import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import android.Manifest;
 import android.app.ActivityManager;
@@ -542,7 +543,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mSession = mockitoSession()
                 .mockStatic(SubscriptionManager.class)
                 .mockStatic(CompatChanges.class)
-                .mockStatic(Flags.class)
+                .mockStatic(Flags.class, withSettings().lenient())
                 .startMocking();
 
         mLog = spy(new LogcatLog(TAG));
@@ -5361,6 +5362,72 @@ public class WifiServiceImplTest extends WifiBaseTest {
         testRestoreNetworkConfiguration(20 /* configNum */, 50 /* batchNum*/, false);
         testRestoreNetworkConfiguration(700 /* configNum */, 50 /* batchNum*/, false);
         testRestoreNetworkConfiguration(700 /* configNum */, 0 /* batchNum*/, false);
+    }
+
+
+    /**
+     * Verify that a call to {@link WifiServiceImpl#restoreNetworks} will trigger shared network to
+     * private network coversion when the restored network does not exsit in internal database or
+     * it is allowed to override networks on restore.
+     */
+    @Test
+    public void testRestoreConvertSharedNetworkToPrivate() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        WifiConfiguration configuration = new WifiConfiguration();
+        List<WifiConfiguration> configurations = List.of(configuration);
+        when(mUserManager.getUserCount()).thenReturn(2);
+        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt()))
+                .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
+        when(mWifiConfigManager.addNetwork(any(), anyInt()))
+                .thenReturn(new NetworkUpdateResult(TEST_NETWORK_ID));
+        InOrder inorder = inOrder(mWifiConfigManager);
+
+        // 1. When the restored network already exists and it is not allowed to override on restore.
+        lenient().when(CompatChanges.isChangeEnabled(eq(NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE),
+                anyInt())).thenReturn(true);
+        when(mWifiConfigManager.isNetworkConfigured(any())).thenReturn(true);
+        mWifiServiceImpl.restoreNetworks(configurations);
+        mLooper.dispatchAll();
+        inorder.verify(mWifiConfigManager).updateNetworkWithUidAndCurrentUserIdIfNeeded(any(),
+                anyInt());
+        assertTrue(configuration.shared);
+
+        // 2. When the restored network already exists and it is allowed to override on restore.
+        lenient().when(CompatChanges.isChangeEnabled(eq(NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE),
+                anyInt())).thenReturn(false);
+        mWifiServiceImpl.restoreNetworks(configurations);
+        mLooper.dispatchAll();
+        inorder.verify(mWifiConfigManager).updateNetworkWithUidAndCurrentUserIdIfNeeded(any(),
+                anyInt());
+        assertFalse(configuration.shared);
+
+        // 3. When the restore network doesn't exist in internal database.
+        configuration.shared = true;
+        when(mWifiConfigManager.isNetworkConfigured(any())).thenReturn(false);
+        mWifiServiceImpl.restoreNetworks(configurations);
+        mLooper.dispatchAll();
+        inorder.verify(mWifiConfigManager).updateNetworkWithUidAndCurrentUserIdIfNeeded(any(),
+                anyInt());
+        assertFalse(configuration.shared);
+
+        // 4. No-op for private networks.
+        configuration.shared = false;
+        mWifiServiceImpl.restoreNetworks(configurations);
+        mLooper.dispatchAll();
+        inorder.verify(mWifiConfigManager).updateNetworkWithUidAndCurrentUserIdIfNeeded(any(),
+                anyInt());
+        assertFalse(configuration.shared);
+
+        // 5. No-op on non-shared devices.
+        configuration.shared = true;
+        when(mUserManager.getUserCount()).thenReturn(1);
+        mWifiServiceImpl.restoreNetworks(configurations);
+        mLooper.dispatchAll();
+        inorder.verify(mWifiConfigManager, never()).updateNetworkWithUidAndCurrentUserIdIfNeeded(
+                any(),
+                anyInt());
+        assertTrue(configuration.shared);
     }
 
     /**
@@ -14037,7 +14104,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
             throws Exception {
         when(Flags.userRestrictionConfigWifiSharedPrivate()).thenReturn(true);
         when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
-            anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
         when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
         doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
                 .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
@@ -14045,37 +14112,55 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiPermissionsUtil.checkCameraPermission(Binder.getCallingUid())).thenReturn(true);
         when(mWifiPermissionsUtil.isAdmin(Binder.getCallingUid(), TEST_PACKAGE_NAME))
                 .thenReturn(false);
-        when(mWifiConfigManager.addOrUpdateNetwork(any(),  anyInt(), any(), eq(false))).thenReturn(
-                new NetworkUpdateResult(0));
-        when(mUserManager.hasUserRestrictionForUser(eq(UserManager.DISALLOW_CONFIG_WIFI_SHARED),
-                any())).thenReturn(true);
-        when(mUserManager.hasUserRestrictionForUser(eq(UserManager.DISALLOW_CONFIG_WIFI_PRIVATE),
-                any())).thenReturn(true);
+        when(mWifiConfigManager.addOrUpdateNetwork(any(), anyInt(), anyString(), eq(false)))
+                .thenReturn(new NetworkUpdateResult(0));
 
+        // Shared network is disallowed to add, update or remove.
+        when(mWifiPermissionsUtil.isSharedOrPrivateConfigUserRestrictionSet(true))
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.isSharedOrPrivateConfigUserRestrictionSet(false))
+                .thenReturn(false);
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
         mLooper.startAutoDispatch();
-        // Shared network is disallowed to add or update
         assertEquals(-1,
                 mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME, mAttribution));
-
-        verify(mWifiConfigManager, never()).addOrUpdateNetwork(any(),  anyInt(), any(), eq(false));
-        verify(mWifiMetrics, never()).incrementNumAddOrUpdateNetworkCalls();
-
-        // Shared network is disallowed to remove
+        verify(mWifiConfigManager, never()).addOrUpdateNetwork(any(), anyInt(), any(), eq(false));
         when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(config);
         mWifiServiceImpl.forget(TEST_NETWORK_ID, mock(IActionListener.class));
+        mLooper.dispatchAll();
         verify(mWifiConfigManager, never()).removeNetwork(anyInt(), anyInt(), anyString());
 
-        // Private network is disallowed to add or update
+        // Private network is allowed to add, update or remove
         WifiConfiguration privateConfig = WifiConfigurationTestUtil.createOpenNetwork();
         privateConfig.shared = false;
-        // Shared network is disallowed
+        assertEquals(0,
+                mWifiServiceImpl.addOrUpdateNetwork(privateConfig, TEST_PACKAGE_NAME,
+                mAttribution));
+        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(privateConfig);
+        when(mWifiConfigManager.removeNetwork(eq(TEST_NETWORK_ID), anyInt(), any()))
+                .thenReturn(true);
+        mWifiServiceImpl.forget(TEST_NETWORK_ID, mock(IActionListener.class));
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).removeNetwork(eq(TEST_NETWORK_ID), anyInt(), any());
+
+
+        // Private network is disallowed to add, update.
+        when(mWifiPermissionsUtil.isSharedOrPrivateConfigUserRestrictionSet(true))
+                .thenReturn(false);
+        when(mWifiPermissionsUtil.isSharedOrPrivateConfigUserRestrictionSet(false))
+                .thenReturn(true);
         assertEquals(-1,
                 mWifiServiceImpl.addOrUpdateNetwork(privateConfig, TEST_PACKAGE_NAME,
                 mAttribution));
+        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(privateConfig);
 
-        verify(mWifiConfigManager, never()).addOrUpdateNetwork(any(),  anyInt(), any(), eq(false));
-        verify(mWifiMetrics, never()).incrementNumAddOrUpdateNetworkCalls();
+        // Shared network is allowed to add, update or remove.
+        assertEquals(0,
+                mWifiServiceImpl.addOrUpdateNetwork(config, TEST_PACKAGE_NAME, mAttribution));
+        when(mWifiConfigManager.getConfiguredNetwork(TEST_NETWORK_ID)).thenReturn(config);
+        mWifiServiceImpl.forget(TEST_NETWORK_ID, mock(IActionListener.class));
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager, times(2)).removeNetwork(eq(TEST_NETWORK_ID), anyInt(), any());
         mLooper.stopAutoDispatchAndIgnoreExceptions();
     }
 
@@ -14105,6 +14190,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConfigManager).handleUserSwitch(userId);
         verify(mActiveModeWarden).handleUserSwitch(userId);
         verify(mWifiApConfigStore).handleUserSwitch(userId);
+        verify(mWifiSettingsConfigStore).handleUserSwitch(userId);
         verify(mWifiNotificationManager).createNotificationChannels();
         verify(mWifiNetworkSuggestionsManager).resetNotification();
         verify(mWifiCarrierInfoManager).resetNotification();
@@ -14121,5 +14207,48 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConfigManager).handleUserStop(userId);
         verify(mActiveModeWarden).handleUserStop(userId);
         verify(mWifiApConfigStore).handleUserStop(userId);
+        verify(mWifiSettingsConfigStore).handleUserStop(userId);
+    }
+
+    @Test
+    public void testAddOrUpdateNetworkPrivilegedIsNotAllowedForDisallowConfigPrivateSharedWifi() {
+        when(mContext.checkPermission(eq(android.Manifest.permission.NETWORK_SETTINGS),
+                anyInt(), anyInt())).thenReturn(PackageManager.PERMISSION_GRANTED);
+        when(mWifiPermissionsUtil.isSharedOrPrivateConfigUserRestrictionSet(anyBoolean()))
+                .thenReturn(true);
+        WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
+
+        mLooper.startAutoDispatch();
+        WifiManager.AddNetworkResult result = mWifiServiceImpl.addOrUpdateNetworkPrivileged(
+                config, TEST_PACKAGE_NAME);
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+
+        assertEquals(WifiManager.AddNetworkResult.STATUS_NO_PERMISSION, result.statusCode);
+        assertEquals(-1, result.networkId);
+        verify(mWifiConfigManager, never()).addOrUpdateNetwork(any(), anyInt(), anyString(),
+                eq(false));
+    }
+
+    @Test
+    public void testAddOrUpdatePasspointConfigurationIsNotAllowedForDisallowConfigPrivateWifi()
+            throws Exception {
+        doReturn(AppOpsManager.MODE_ALLOWED).when(mAppOpsManager)
+                .noteOp(AppOpsManager.OPSTR_CHANGE_WIFI_STATE, Process.myUid(), TEST_PACKAGE_NAME);
+        when(mWifiPermissionsUtil.isTargetSdkLessThan(anyString(),
+                eq(Build.VERSION_CODES.R), anyInt())).thenReturn(false);
+        when(mWifiPermissionsUtil.isSystem(anyString(), anyInt())).thenReturn(true);
+        when(mWifiPermissionsUtil.isSharedOrPrivateConfigUserRestrictionSet(eq(false)))
+                .thenReturn(true);
+        PasspointConfiguration config = new PasspointConfiguration();
+        HomeSp homeSp = new HomeSp();
+        homeSp.setFqdn("test.com");
+        config.setHomeSp(homeSp);
+
+        mLooper.startAutoDispatch();
+        assertFalse(mWifiServiceImpl.addOrUpdatePasspointConfiguration(config, TEST_PACKAGE_NAME));
+        mLooper.stopAutoDispatchAndIgnoreExceptions();
+        verify(mPasspointManager, never())
+                .addOrUpdateProvider(any(), anyInt(), anyString(), anyBoolean(), anyBoolean(),
+                        eq(false));
     }
 }

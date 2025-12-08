@@ -508,4 +508,75 @@ public class WifiSettingsConfigStoreTest extends WifiBaseTest {
         XmlUtil.gotoDocumentStart(in, "Test");
         return in;
     }
+
+    @Test
+    public void testUserSwitchResetsUserSessionData() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        initializeWifiSettingsConfigStore();
+
+        // Capture user-specific StoreData.
+        ArgumentCaptor<WifiConfigStore.StoreData> storeDataCaptor = ArgumentCaptor.forClass(
+                WifiConfigStore.StoreData.class);
+        verify(mWifiConfigStore, times(2)).registerStoreData(storeDataCaptor.capture());
+        WifiConfigStore.StoreData userStoreData = storeDataCaptor.getAllValues().get(1);
+
+        // Write both a shared setting (as control) and a private setting with their non-default
+        // values.
+        assertFalse(userStoreData.hasNewDataToSerialize());
+        mWifiSettingsConfigStore.put(TEST_SHARED_SETTING, TEST_SHARED_SETTING_NON_DEFAULT_VALUE);
+        mWifiSettingsConfigStore.put(TEST_PRIVATE_SETTING, TEST_PRIVATE_SETTING_NON_DEFAULT_VALUE);
+        mLooper.dispatchAll();
+        assertTrue(userStoreData.hasNewDataToSerialize());
+
+        // When switching to a new user, WifiConfigStore#handleUserSwitch will reset data for the
+        // old user with UserStoreData#resetData before loading data for the new user. Note
+        // WifiSettingsConfigStore#handleUserSwitch only updates the userId and is trivial for now,
+        // so it is not covered here.
+        userStoreData.resetData();
+        assertFalse(userStoreData.hasNewDataToSerialize());
+        assertEquals(TEST_SHARED_SETTING_NON_DEFAULT_VALUE,
+                mWifiSettingsConfigStore.get(TEST_SHARED_SETTING));
+        assertEquals(TEST_PRIVATE_SETTING.defaultValue,
+                mWifiSettingsConfigStore.get(TEST_PRIVATE_SETTING));
+    }
+
+    @Test
+    public void testUserStopResetsUserSessionData() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        initializeWifiSettingsConfigStore();
+        final int testUser = TEST_USER_HANDLE.getIdentifier();
+
+        // Capture user-specific StoreData.
+        ArgumentCaptor<WifiConfigStore.StoreData> storeDataCaptor = ArgumentCaptor.forClass(
+                WifiConfigStore.StoreData.class);
+        verify(mWifiConfigStore, times(2)).registerStoreData(storeDataCaptor.capture());
+        WifiConfigStore.StoreData userStoreData = storeDataCaptor.getAllValues().get(1);
+
+        // Write both a shared setting (as control) and a private setting with their non-default
+        // values under a test user.
+        mWifiSettingsConfigStore.handleUserSwitch(testUser);
+        assertFalse(userStoreData.hasNewDataToSerialize());
+        mWifiSettingsConfigStore.put(TEST_SHARED_SETTING, TEST_SHARED_SETTING_NON_DEFAULT_VALUE);
+        mWifiSettingsConfigStore.put(TEST_PRIVATE_SETTING, TEST_PRIVATE_SETTING_NON_DEFAULT_VALUE);
+        mLooper.dispatchAll();
+        assertTrue(userStoreData.hasNewDataToSerialize());
+
+        // User-stop for a non-current user does nothing.
+        mWifiSettingsConfigStore.handleUserStop(testUser + 1);
+        assertTrue(userStoreData.hasNewDataToSerialize());
+        assertEquals(TEST_SHARED_SETTING_NON_DEFAULT_VALUE,
+                mWifiSettingsConfigStore.get(TEST_SHARED_SETTING));
+        assertEquals(TEST_PRIVATE_SETTING_NON_DEFAULT_VALUE,
+                mWifiSettingsConfigStore.get(TEST_PRIVATE_SETTING));
+
+        // User-stop for the current user.
+        mWifiSettingsConfigStore.handleUserStop(testUser);
+        assertFalse(userStoreData.hasNewDataToSerialize());
+        assertEquals(TEST_SHARED_SETTING_NON_DEFAULT_VALUE,
+                mWifiSettingsConfigStore.get(TEST_SHARED_SETTING));
+        assertEquals(TEST_PRIVATE_SETTING.defaultValue,
+                mWifiSettingsConfigStore.get(TEST_PRIVATE_SETTING));
+    }
 }

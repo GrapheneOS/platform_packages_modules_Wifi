@@ -25,6 +25,7 @@ import static android.Manifest.permission.OVERRIDE_WIFI_CONFIG;
 import static android.annotation.RestrictedForEnvironment.ENVIRONMENT_SDK_RUNTIME;
 import static android.net.wifi.ScanResult.WIFI_BAND_24_GHZ;
 import static android.net.wifi.ScanResult.WIFI_BAND_5_GHZ;
+
 import static com.android.wifi.flags.Flags.FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST;
 
 import android.annotation.CallbackExecutor;
@@ -38,6 +39,7 @@ import android.annotation.SdkConstant;
 import android.annotation.SdkConstant.SdkConstantType;
 import android.annotation.SystemApi;
 import android.annotation.SystemService;
+import android.content.AttributionSource;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.MacAddress;
@@ -591,7 +593,7 @@ public class WifiAwareManager {
                 Bundle extras = new Bundle();
                 if (SdkLevel.isAtLeastS()) {
                     extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
-                            mContext.getAttributionSource());
+                            getAttributionSourceInternal());
                 }
                 mService.connect(binder, mContext.getOpPackageName(), mContext.getAttributionTag(),
                         new WifiAwareEventCallbackProxy(this, localExecutor, binder,
@@ -601,6 +603,13 @@ public class WifiAwareManager {
                 throw e.rethrowFromSystemServer();
             }
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private AttributionSource getAttributionSourceInternal() {
+        return SdkLevel.isAtLeastU()
+                ? mContext.createDeviceContext(Context.DEVICE_ID_DEFAULT).getAttributionSource()
+                : mContext.getAttributionSource();
     }
 
     /** @hide */
@@ -658,7 +667,7 @@ public class WifiAwareManager {
             Bundle extras = new Bundle();
             if (SdkLevel.isAtLeastS()) {
                 extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
-                        mContext.getAttributionSource());
+                        getAttributionSourceInternal());
             }
             mService.publish(mContext.getOpPackageName(), mContext.getAttributionTag(), clientId,
                     publishConfig,
@@ -701,7 +710,7 @@ public class WifiAwareManager {
             Bundle extras = new Bundle();
             if (SdkLevel.isAtLeastS()) {
                 extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
-                        mContext.getAttributionSource());
+                        getAttributionSourceInternal());
             }
             mService.subscribe(mContext.getOpPackageName(), mContext.getAttributionTag(), clientId,
                     subscribeConfig,

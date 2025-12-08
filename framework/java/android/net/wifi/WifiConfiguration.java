@@ -1017,7 +1017,7 @@ public class WifiConfiguration implements Parcelable {
 
     /**
      * Set SAE Hash-toElement only mode enabled.
-     * Before calling this API, call {@link WifiManager#isWpa3SaeH2eSupported()
+     * Before calling this API, call {@link WifiManager#isWpa3SaeH2eSupported()}
      * to know whether WPA3 SAE Hash-toElement is supported or not.
      *
      * @param enable true if enabled; false otherwise.
@@ -1034,7 +1034,7 @@ public class WifiConfiguration implements Parcelable {
 
     /**
      * Set SAE Public-Key only mode enabled.
-     * Before calling this API, call {@link WifiManager#isWpa3SaePkSupported()
+     * Before calling this API, call {@link WifiManager#isWpa3SaePublicKeySupported()}
      * to know whether WPA3 SAE Public-Key is supported or not.
      *
      * @param enable true if enabled; false otherwise.
@@ -4629,7 +4629,7 @@ public class WifiConfiguration implements Parcelable {
 
         String key = getSsidAndSecurityTypeString();
         if (!shared) {
-            key += "-" + UserHandle.getUserHandleForUid(creatorUid).getIdentifier();
+            key += "-" + getCreatorUserIdInternal();
         }
         if (fromWifiNetworkSuggestion) {
             key += "_" + creatorName + "-" + carrierId + "-" + subscriptionId;

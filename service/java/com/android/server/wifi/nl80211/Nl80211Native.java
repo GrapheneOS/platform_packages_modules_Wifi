@@ -16,23 +16,40 @@
 
 package com.android.server.wifi.nl80211;
 
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_CHANNEL_WIDTH;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_FREQ;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_160;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_20;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_20_NOHT;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_320;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_40;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_80;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_80P80;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_ASSOCIATE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_CH_SWITCH_NOTIFY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DEL_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DISASSOCIATE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCAN_ABORTED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_STOPPED;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.net.MacAddress;
 import android.net.wifi.ScanResult;
+import android.net.wifi.SoftApInfo;
 import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.nl80211.NativeWifiClient;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
 import android.util.ArrayMap;
+import android.util.ArraySet;
 import android.util.Log;
 import android.util.SparseIntArray;
 
@@ -58,6 +75,11 @@ public class Nl80211Native {
     private static final int MAX_SSID_LENGTH = 32;
     @VisibleForTesting
     static final int ENODEV_RESTART_THRESHOLD = 3;
+    private static final int PERCENT_NETWORKS_WITH_FREQ_FOR_PNO_SCAN = 30;
+    private static final int[] PNO_SCAN_DEFAULT_FREQS_2G =
+            {2412, 2417, 2422, 2427, 2432, 2437, 2447, 2452, 2457, 2462};
+    private static final int[] PNO_SCAN_DEFAULT_FREQS_5G =
+            {5180, 5200, 5220, 5240, 5745, 5765, 5785, 5805};
 
     /**
      * Wrapper class to store all the information for a client mode interface.
@@ -68,6 +90,7 @@ public class Nl80211Native {
         public final int ifIndex;
         public boolean associated;
         public boolean scanning;
+        public boolean pnoScanStarted;
         public int enodevCounter;
         public final Nl80211Utils.WiphyInfo wiphyInfo;
         public final @NonNull Executor scanCallbackExecutor;
@@ -88,6 +111,22 @@ public class Nl80211Native {
         }
     }
 
+    /**
+     * Wrapper class to store all the information for an AP mode interface.
+     */
+    @VisibleForTesting
+    static class ApInterfaceInfo {
+        public final @NonNull String ifName;
+        public final int ifIndex;
+        public @Nullable WifiNl80211Manager.SoftApCallback callback;
+        public @Nullable Executor executor;
+
+        ApInterfaceInfo(@NonNull String ifName, int ifIndex) {
+            this.ifName = ifName;
+            this.ifIndex = ifIndex;
+        }
+    }
+
     private final @NonNull Nl80211Proxy mNl80211Proxy;
     private final @NonNull Nl80211Utils mNl80211Utils;
     private final @NonNull NetdWrapper mNetdWrapper;
@@ -99,6 +138,7 @@ public class Nl80211Native {
     private final Map<String, Integer> mActiveIfaceToWiphyIndex = new ArrayMap<>();
     private final SparseIntArray mBandToWiphyIndex = new SparseIntArray();
     private final Map<String, ClientInterfaceInfo> mClientInterfaceInfos = new ArrayMap<>();
+    private final Map<String, ApInterfaceInfo> mApInterfaceInfos = new ArrayMap<>();
 
     private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mNewScanResultsCallback =
             (command, message) -> {
@@ -165,6 +205,7 @@ public class Nl80211Native {
 
                 ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
                 if (clientIfaceInfo == null) return;
+                clientIfaceInfo.pnoScanStarted = false;
 
                 Executor executor = clientIfaceInfo.scanCallbackExecutor;
                 ScanEventCallback pnoScanCallback = clientIfaceInfo.pnoScanEventCallback;
@@ -197,10 +238,128 @@ public class Nl80211Native {
                 clientIfaceInfo.associated = false;
             };
 
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mStationAddedCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ApInterfaceInfo apIfaceInfo = getApInterfaceInfoForBroadcast(message);
+                if (apIfaceInfo == null) {
+                    Log.e(TAG, "Station added broadcast received but no AP iface was created!");
+                    return;
+                }
+                if (apIfaceInfo.callback == null || apIfaceInfo.executor == null) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "No AP callback registered to receive station added broadcast");
+                    }
+                    return;
+                }
+
+                byte[] macAddress = message.getAttributeValueAsByteArray(NL80211_ATTR_MAC);
+                if (macAddress == null) {
+                    Log.e(TAG, "Failed to get mac address from station event");
+                    return;
+                }
+                apIfaceInfo.executor.execute(() ->
+                        apIfaceInfo.callback.onConnectedClientsChanged(
+                                new NativeWifiClient(MacAddress.fromBytes(macAddress)),
+                                true));
+            };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mStationRemovedCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ApInterfaceInfo apIfaceInfo = getApInterfaceInfoForBroadcast(message);
+                if (apIfaceInfo == null) {
+                    Log.e(TAG, "Station removed broadcast received but no AP iface was created!");
+                    return;
+                }
+                if (apIfaceInfo.callback == null || apIfaceInfo.executor == null) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "No AP callback registered to receive station deleted"
+                                + " broadcast");
+                    }
+                    return;
+                }
+
+                byte[] macAddress = message.getAttributeValueAsByteArray(NL80211_ATTR_MAC);
+                if (macAddress == null) {
+                    Log.e(TAG, "Failed to get mac address from station event");
+                    return;
+                }
+                apIfaceInfo.executor.execute(() ->
+                        apIfaceInfo.callback.onConnectedClientsChanged(
+                                new NativeWifiClient(MacAddress.fromBytes(macAddress)),
+                                false));
+            };
+
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mChannelSwitchCallback =
+            (command, message) -> {
+                if (mVerboseLoggingEnabled) {
+                    Log.d(TAG, "Received NL80211 broadcast: " + message);
+                }
+
+                ApInterfaceInfo apIfaceInfo = getApInterfaceInfoForBroadcast(message);
+                if (apIfaceInfo == null) {
+                    Log.e(TAG, "Channel switch broadcast received but no AP iface was created!");
+                    return;
+                }
+                if (apIfaceInfo.callback == null || apIfaceInfo.executor == null) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "No AP callback registered to receive channel switch"
+                                + " broadcast");
+                    }
+                    return;
+                }
+
+                Integer frequencyMhz = message.getAttributeValueAsInteger(NL80211_ATTR_WIPHY_FREQ);
+                if (frequencyMhz == null) {
+                    Log.e(TAG, "Failed to get frequency from channel switch event");
+                    return;
+                }
+                Integer channelWidth =
+                        message.getAttributeValueAsInteger(NL80211_ATTR_CHANNEL_WIDTH);
+                if (channelWidth == null) {
+                    Log.e(TAG, "Failed to get channel width from channel switch event");
+                    return;
+                }
+                apIfaceInfo.executor.execute(() ->
+                        apIfaceInfo.callback.onSoftApChannelSwitched(
+                                frequencyMhz,
+                                convertNl80211ChannelWidthToSoftApInfoChannelWidth(channelWidth)));
+            };
+
+    private int convertNl80211ChannelWidthToSoftApInfoChannelWidth(int nl80211ChannelWidth) {
+        // Convert enum nl80211_chan_width to enum ChannelBandwidth
+        switch (nl80211ChannelWidth) {
+            case NL80211_CHAN_WIDTH_20_NOHT:
+                return SoftApInfo.CHANNEL_WIDTH_20MHZ_NOHT;
+            case NL80211_CHAN_WIDTH_20:
+                return SoftApInfo.CHANNEL_WIDTH_20MHZ;
+            case NL80211_CHAN_WIDTH_40:
+                return SoftApInfo.CHANNEL_WIDTH_40MHZ;
+            case NL80211_CHAN_WIDTH_80:
+                return SoftApInfo.CHANNEL_WIDTH_80MHZ;
+            case NL80211_CHAN_WIDTH_80P80:
+                return SoftApInfo.CHANNEL_WIDTH_80MHZ_PLUS_MHZ;
+            case NL80211_CHAN_WIDTH_160:
+                return SoftApInfo.CHANNEL_WIDTH_160MHZ;
+            case NL80211_CHAN_WIDTH_320:
+                return SoftApInfo.CHANNEL_WIDTH_320MHZ;
+            default:
+                Log.e(TAG, "Unknown channel width: " + nl80211ChannelWidth);
+                return SoftApInfo.CHANNEL_WIDTH_INVALID;
+        }
+    }
+
     private ClientInterfaceInfo getClientInterfaceInfoForBroadcast(GenericNetlinkMsg broadcast) {
         Integer ifIndex = broadcast.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
         if (ifIndex == null) {
-            Log.e(TAG, "Broadcast message does not have ifIndex");
+            Log.e(TAG, "Client iface broadcast message does not have ifIndex");
             return null;
         }
 
@@ -209,8 +368,26 @@ public class Nl80211Native {
             if (info.ifIndex == ifIndex) {
                 return info;
             }
-            Log.e(TAG, "Could not find iface for broadcast message with ifIndex " + ifIndex);
         }
+        Log.e(TAG, "Could not find iface for client iface broadcast message with ifIndex "
+                + ifIndex);
+        return null;
+    }
+
+    private ApInterfaceInfo getApInterfaceInfoForBroadcast(GenericNetlinkMsg broadcast) {
+        Integer ifIndex = broadcast.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX);
+        if (ifIndex == null) {
+            Log.e(TAG, "AP broadcast message does not have ifIndex");
+            return null;
+        }
+
+        // Find the interface by ifIndex
+        for (ApInterfaceInfo info : mApInterfaceInfos.values()) {
+            if (info.ifIndex == ifIndex) {
+                return info;
+            }
+        }
+        Log.e(TAG, "Could not find iface for AP broadcast message with ifIndex " + ifIndex);
         return null;
     }
 
@@ -426,33 +603,15 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        int wiphyIndex = mNl80211Utils.getWiphyIndex(ifaceName);
-        if (wiphyIndex == -1) {
-            Log.e(TAG, "Failed to get wiphy index for " + ifaceName);
+        Nl80211Utils.InterfaceInfo ifaceInfo = mNl80211Utils.getInterfaceInfo(ifaceName);
+        if (ifaceInfo == null) {
+            Log.e(TAG, "Failed to get interface info for " + ifaceName);
             return false;
         }
 
-        List<Nl80211Utils.InterfaceInfo> interfaces = mNl80211Utils.getInterfaces(wiphyIndex);
-        if (interfaces == null) {
-            Log.e(TAG, "Failed to get interfaces for wiphy " + wiphyIndex);
-            return false;
-        }
-
-        Nl80211Utils.InterfaceInfo foundInterface = null;
-        for (Nl80211Utils.InterfaceInfo info : interfaces) {
-            if (ifaceName.equals(info.name)) {
-                foundInterface = info;
-                break;
-            }
-        }
-        if (foundInterface == null) {
-            Log.e(TAG, "Interface " + ifaceName + " not found for wiphy " + wiphyIndex);
-            return false;
-        }
-
-        Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(wiphyIndex);
-        if (wiphyInfo == null) {
-            Log.e(TAG, "Failed to get wiphy info for " + ifaceName);
+        Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(ifaceInfo.wiphyIndex);
+        if (ifaceInfo == null) {
+            Log.e(TAG, "Failed to get wiphy info for " + ifaceInfo.wiphyIndex);
             return false;
         }
 
@@ -460,12 +619,12 @@ public class Nl80211Native {
             registerCallbacksForClientIface();
         }
         mClientInterfaceInfos.put(ifaceName,
-                new ClientInterfaceInfo(ifaceName, foundInterface.ifIndex, wiphyInfo, executor,
+                new ClientInterfaceInfo(ifaceName, ifaceInfo.ifIndex, wiphyInfo, executor,
                         scanCallback, pnoScanCallback));
 
         if (!mActiveIfaceToWiphyIndex.containsKey(ifaceName)) {
-            updateBandToWiphyIndexMapping(wiphyIndex, wiphyInfo);
-            mActiveIfaceToWiphyIndex.put(ifaceName, wiphyIndex);
+            updateBandToWiphyIndexMapping(ifaceInfo.wiphyIndex, wiphyInfo);
+            mActiveIfaceToWiphyIndex.put(ifaceName, ifaceInfo.wiphyIndex);
         }
 
         mNetdWrapper.setInterfaceUp(ifaceName);
@@ -550,8 +709,48 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        Nl80211Utils.InterfaceInfo ifaceInfo = mNl80211Utils.getInterfaceInfo(ifaceName);
+        if (ifaceInfo == null) {
+            Log.e(TAG, "Failed to get interface info for " + ifaceName);
+            return false;
+        }
+
+        Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(ifaceInfo.wiphyIndex);
+        if (ifaceInfo == null) {
+            Log.e(TAG, "Failed to get wiphy info for " + ifaceInfo.wiphyIndex);
+            return false;
+        }
+
+        if (mApInterfaceInfos.isEmpty()) {
+            registerCallbacksForApIface();
+        }
+        mApInterfaceInfos.put(ifaceName,
+                new ApInterfaceInfo(ifaceName, ifaceInfo.ifIndex));
+
+        if (!mActiveIfaceToWiphyIndex.containsKey(ifaceName)) {
+            updateBandToWiphyIndexMapping(ifaceInfo.wiphyIndex, wiphyInfo);
+            mActiveIfaceToWiphyIndex.put(ifaceName, ifaceInfo.wiphyIndex);
+        }
+
+        return true;
+    }
+
+    private void registerCallbacksForApIface() {
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_NEW_STATION,
+                mStationAddedCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_DEL_STATION,
+                mStationRemovedCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_CH_SWITCH_NOTIFY,
+                mChannelSwitchCallback);
+    }
+
+    private void unregisterCallbacksForApIface() {
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_NEW_STATION,
+                mStationAddedCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_DEL_STATION,
+                mStationRemovedCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_CH_SWITCH_NOTIFY,
+                mChannelSwitchCallback);
     }
 
     /**
@@ -573,8 +772,14 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        mNetdWrapper.setInterfaceDown(ifaceName);
+        mApInterfaceInfos.remove(ifaceName);
+        if (mApInterfaceInfos.isEmpty()) {
+            unregisterCallbacksForApIface();
+        }
+
+        handleIfaceTeardown(ifaceName);
+        return true;
     }
 
     /**
@@ -830,8 +1035,143 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        ClientInterfaceInfo ifaceInfo = mClientInterfaceInfos.get(ifaceName);
+        if (ifaceInfo == null) {
+            Log.e(TAG, "No active interface found for " + ifaceName);
+            return false;
+        }
+
+        if (ifaceInfo.pnoScanStarted) {
+            Log.w(TAG, "Pno scan already started");
+        }
+
+        List<byte[]> scanSsids = new ArrayList<>();
+        List<byte[]> matchSsids = new ArrayList<>();
+        Set<Integer> uniqueFreqs = new ArraySet<>();
+        int networksWithoutFreqs = 0;
+
+        Set<Integer> allSupportedFreqs = new ArraySet<>();
+        allSupportedFreqs.addAll(ifaceInfo.wiphyInfo.bandInfo.band2g);
+        allSupportedFreqs.addAll(ifaceInfo.wiphyInfo.bandInfo.band5g);
+        allSupportedFreqs.addAll(ifaceInfo.wiphyInfo.bandInfo.bandDfs);
+        allSupportedFreqs.addAll(ifaceInfo.wiphyInfo.bandInfo.band6g);
+        allSupportedFreqs.addAll(ifaceInfo.wiphyInfo.bandInfo.band60g);
+
+        // Extract scan parameters from PnoSettings
+        List<PnoNetwork> pnoNetworks = pnoSettings.getPnoNetworks();
+        for (PnoNetwork network : pnoNetworks) {
+            // Hidden SSIDs
+            if (network.isHidden()) {
+                if (scanSsids.size() < ifaceInfo.wiphyInfo.scanCapabilities.maxNumSchedScanSsids) {
+                    scanSsids.add(network.getSsid());
+                } else {
+                    Log.w(TAG, "Max scheduled scan SSIDs exceeded, skipping: "
+                            + WifiSsid.fromBytes(network.getSsid()));
+                }
+            }
+
+            // Match SSIDs
+            if (matchSsids.size() < ifaceInfo.wiphyInfo.scanCapabilities.maxMatchSets) {
+                matchSsids.add(network.getSsid());
+            } else {
+                Log.w(TAG, "Max PNO match SSIDs exceeded, skipping: "
+                        + WifiSsid.fromBytes(network.getSsid()));
+            }
+
+            // Filter unsupported frequencies
+            int[] freqs = network.getFrequenciesMhz();
+            if (freqs.length == 0) {
+                networksWithoutFreqs++;
+                continue;
+            }
+            for (int freq : freqs) {
+                if (!allSupportedFreqs.contains(freq)) continue;
+                uniqueFreqs.add(freq);
+            }
+        }
+
+        // Scan the default frequencies if we have too many networks without frequency data.
+        if (!pnoNetworks.isEmpty()
+                && (networksWithoutFreqs * 100
+                > pnoNetworks.size() * PERCENT_NETWORKS_WITH_FREQ_FOR_PNO_SCAN)) {
+            for (int freq : PNO_SCAN_DEFAULT_FREQS_2G) {
+                if (allSupportedFreqs.contains(freq)) uniqueFreqs.add(freq);
+            }
+            // Note: PNO_SCAN_DEFAULT_FREQS_5G doesn't contain DFS frequencies.
+            for (int freq : PNO_SCAN_DEFAULT_FREQS_5G) {
+                if (allSupportedFreqs.contains(freq)) uniqueFreqs.add(freq);
+            }
+        }
+
+        Nl80211Utils.WiphyFeatures wiphyFeatures = ifaceInfo.wiphyInfo.wiphyFeatures;
+        boolean requestRandomMac = wiphyFeatures.supportsRandomMacSchedScan
+                && !ifaceInfo.associated;
+        boolean requestLowPower = wiphyFeatures.supportsLowPowerOneShotScan;
+        boolean requestSchedScanRelativeRssi = wiphyFeatures.supportsExtSchedScanRelativeRssi;
+
+        List<Nl80211Utils.PnoScanPlan> scanPlans =
+                generatePnoScanPlans(pnoSettings, ifaceInfo.wiphyInfo.scanCapabilities);
+
+        int result = mNl80211Utils.startPnoScan(
+                ifaceInfo.ifIndex,
+                scanPlans,
+                pnoSettings.getIntervalMillis(),
+                pnoSettings.getMin2gRssiDbm(),
+                pnoSettings.getMin5gRssiDbm(),
+                requestRandomMac,
+                requestLowPower,
+                requestSchedScanRelativeRssi,
+                scanSsids,
+                matchSsids,
+                new ArrayList<>(uniqueFreqs));
+
+        if (result != WifiScanner.REASON_SUCCEEDED) {
+            if (result == WifiScanner.REASON_NO_DEVICE) {
+                ifaceInfo.enodevCounter++;
+                Log.e(TAG, "Pno scan failed with error ENODEV. Counter: "
+                        + ifaceInfo.enodevCounter);
+                if (ifaceInfo.enodevCounter > ENODEV_RESTART_THRESHOLD) {
+                    Log.e(TAG, "ENODEV threshold reached, restarting subsystem");
+                    mWifiInjector.getSelfRecovery().trigger(SelfRecovery.REASON_SUBSYSTEM_RESTART);
+                }
+            } else {
+                ifaceInfo.enodevCounter = 0;
+            }
+
+            Log.e(TAG, "PNO scan failed with reason: " + result);
+            executor.execute(callback::onPnoRequestFailed);
+            return false;
+        }
+
+        Log.e(TAG, "PNO scan started successfully for frequencies: " + uniqueFreqs);
+        executor.execute(callback::onPnoRequestSucceeded);
+        ifaceInfo.enodevCounter = 0;
+        ifaceInfo.pnoScanStarted = true;
+        return true;
+    }
+
+    /**
+     * Generates list of PNO scan plans for the given PnoSettings and scan capabilities.
+     * If the given settings are not supported, returns an empty list.
+     */
+    private List<Nl80211Utils.PnoScanPlan> generatePnoScanPlans(
+            @NonNull PnoSettings pnoSettings,
+            @NonNull Nl80211Utils.ScanCapabilities scanCapabilities) {
+        int maxRequestedScanIntervalSeconds = (int) ((pnoSettings.getIntervalMillis()
+                * pnoSettings.getScanIntervalMultiplier()) / 1000);
+        int numRequestedScanPlans = 2;
+
+        if (numRequestedScanPlans > scanCapabilities.maxNumScanPlans
+                || maxRequestedScanIntervalSeconds > scanCapabilities.maxScanPlanIntervalSeconds
+                || pnoSettings.getScanIterations() > scanCapabilities.maxScanPlanIterations) {
+            return new ArrayList<>();
+        }
+
+        List<Nl80211Utils.PnoScanPlan> plans = new ArrayList<>();
+        plans.add(new Nl80211Utils.PnoScanPlan(
+                (int) pnoSettings.getIntervalMillis(), pnoSettings.getScanIterations()));
+        plans.add(new Nl80211Utils.PnoScanPlan(maxRequestedScanIntervalSeconds, 0 /* ignored */));
+        return plans;
     }
 
     /**
@@ -857,8 +1197,18 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        ClientInterfaceInfo ifaceInfo = mClientInterfaceInfos.get(ifaceName);
+        if (ifaceInfo == null) {
+            Log.e(TAG, "No active interface found for " + ifaceName);
+            return false;
+        }
+
+        if (!ifaceInfo.pnoScanStarted) {
+            Log.w(TAG, "No pno scan started");
+        }
+        ifaceInfo.pnoScanStarted = false;
+
+        return mNl80211Utils.stopPnoScan(ifaceInfo.ifIndex);
     }
 
     /**
@@ -1225,7 +1575,7 @@ public class Nl80211Native {
      * {@code android.hardware.wifi.hostapd.V1_3.IHostapdCallback}.
      */
     @Deprecated
-    public boolean registerWificondApCallback(
+    public boolean registerApCallback(
             @NonNull String ifaceName,
             @NonNull Executor executor,
             @NonNull WifiNl80211Manager.SoftApCallback callback) {
@@ -1233,9 +1583,28 @@ public class Nl80211Native {
             return mWificondManager.registerApCallback(ifaceName, executor, callback);
         }
 
-        Log.wtf(TAG, "registerApCallback should not be called when Nl80211Proxy implementation is"
-                + "used. Please use android.hardware.wifi.hostapd.V1_3.IHostapdCallback instead.");
-        throw new UnsupportedOperationException();
+        if (ifaceName == null) {
+            Log.e(TAG, "ifaceName cannot be null");
+            return false;
+        }
+        if (executor == null) {
+            Log.e(TAG, "executor cannot be null");
+            return false;
+        }
+        if (callback == null) {
+            Log.e(TAG, "callback cannot be null");
+            return false;
+        }
+
+        ApInterfaceInfo ifaceInfo = mApInterfaceInfos.get(ifaceName);
+        if (ifaceInfo == null) {
+            Log.e(TAG, "No active interface found for " + ifaceName);
+            return false;
+        }
+
+        ifaceInfo.callback = callback;
+        ifaceInfo.executor = executor;
+        return true;
     }
 
     /**
@@ -1290,5 +1659,13 @@ public class Nl80211Native {
     @VisibleForTesting
     public Map<String, ClientInterfaceInfo> getClientInterfaceInfos() {
         return mClientInterfaceInfos;
+    }
+
+    /**
+     * Returns client interfaces set up by {@link #setupInterfaceForSoftApMode(String)}.
+     */
+    @VisibleForTesting
+    public Map<String, ApInterfaceInfo> getApInterfaceInfos() {
+        return mApInterfaceInfos;
     }
 }

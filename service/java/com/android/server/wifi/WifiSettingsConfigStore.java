@@ -244,6 +244,8 @@ public class WifiSettingsConfigStore {
     private final FeatureFlags mFeatureFlags;
     private final FrameworkFacade mFrameworkFacade;
     private final UserManager mUserManager;
+    private int mCurrentUserId = UserHandle.SYSTEM.getIdentifier();
+    private boolean mVerboseLoggingEnabled = false;
 
     private final Object mLock = new Object();
     @GuardedBy("mLock")
@@ -595,6 +597,69 @@ public class WifiSettingsConfigStore {
     }
 
     /**
+     * Resets user-session related data, typically invoked on user stop or switch (through
+     * {@link UserStoreData#resetData}).
+     */
+    private void resetUserSessionData() {
+        synchronized (mLock) {
+            // It is worth noting that removing keys won't update the setting values in their
+            // corresponding controllers. Explicitly put a new value and invoke the listener are
+            // required, which are conducted in UserStoreData#deserializeData or
+            // migrateFromSharedToPrivateIfNeeded.
+            for (Key key : mUserPrivateKeys) {
+                mSettings.remove(key.key);
+            }
+            mHasNewUserStoreDataToSerialize = false;
+        }
+    }
+
+    /**
+     * Handles the switch to a different foreground user:
+     * - Currently, only updates {@link #mCurrentUserId} to be used by other handlers. The I/O of
+     *   all per-user settings data is maintained by {@link WifiConfigManager#handleUserSwitch} and
+     *   data reset is called by {@link UserStoreData#resetData} when data for new user is loaded.
+     *
+     * Need to be called when {@link com.android.server.SystemService#onUserSwitching} is invoked.
+     *
+     * @param userId The identifier of the new foreground user, after the switch.
+     */
+    public void handleUserSwitch(int userId) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "Handling user switch for " + userId);
+        }
+        if (userId == mCurrentUserId) {
+            Log.w(TAG, "User already in foreground " + userId);
+            return;
+        }
+        mCurrentUserId = userId;
+    }
+
+    /**
+     * Handles the stop of foreground user. This is needed to clear any user data. Note that we must
+     * call this method after user data is saved by {@link WifiConfigManager#handleUserStop}, which
+     * handles the serialization of all StoreData including {@link UserStoreData}.
+     *
+     * Need to be called when {@link com.android.server.SystemService#onUserStopping} is invoked.
+     *
+     * @param userId The identifier of the user that stopped.
+     */
+    public void handleUserStop(int userId) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "Handling user stop for " + userId);
+        }
+        if (userId == mCurrentUserId) {
+            resetUserSessionData();
+        }
+    }
+
+    /**
+     * Enable/disable verbose logging.
+     */
+    public void enableVerboseLogging(boolean enabled) {
+        mVerboseLoggingEnabled = enabled;
+    }
+
+    /**
      * Dump output for debugging.
      */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
@@ -820,16 +885,7 @@ public class WifiSettingsConfigStore {
 
         @Override
         public void resetData() {
-            synchronized (mLock) {
-                // It is worth noting that removing keys won't update the setting values in their
-                // corresponding controllers. Explicitly put a new value and invoke the listener are
-                // required, which are conducted in UserStoreData#deserializeData or
-                // migrateFromSharedToPrivateIfNeeded.
-                for (Key key : mUserPrivateKeys) {
-                    mSettings.remove(key.key);
-                }
-                mHasNewUserStoreDataToSerialize = false;
-            }
+            resetUserSessionData();
         }
 
         @Override

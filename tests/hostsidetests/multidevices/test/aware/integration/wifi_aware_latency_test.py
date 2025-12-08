@@ -88,7 +88,7 @@ _SUBSCRIBE_TYPE_ACTIVE = 1
 _REQUEST_NETWORK_TIMEOUT_MS = 15 * 1000
 
 
-class WifiAwarelatencytest(base_test.BaseTestClass):
+class WifiAwareLatencyTest(base_test.BaseTestClass):
     """Set of tests for Wi-Fi Aware Latency."""
 
     # message ID counter to make sure all uses are unique

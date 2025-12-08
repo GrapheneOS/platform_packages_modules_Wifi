@@ -1047,6 +1047,35 @@ public class WifiConfigurationTest {
         assertEquals(mSsid + KeyMgmt.strings[KeyMgmt.NONE] , config.getProfileKey());
     }
 
+    /**
+     * Verify that {@link WifiConfiguration#getProfileKey} returns profile key strings with correct
+     * userId included for private networks.
+     */
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
+    public void testGetProfileKeyForPrivateNetworks() {
+        WifiConfiguration config = new WifiConfiguration();
+        final String mSsid = "\"TestAp\"";
+        config.SSID = mSsid;
+        config.carrierId = TEST_CARRIER_ID;
+        config.subscriptionId = TEST_SUB_ID;
+        config.creatorName = TEST_PACKAGE_NAME;
+        config.allowedKeyManagement.set(KeyMgmt.NONE);
+        config.fromWifiNetworkSuggestion = false;
+        config.shared = false;
+
+        final int testUserId = 10;
+        config.setCreatorUserId(testUserId);
+        when(mMockUserHandle.getIdentifier()).thenReturn(UserHandle.SYSTEM.getIdentifier());
+        assertEquals(createProfileKey(mSsid, KeyMgmt.strings[KeyMgmt.NONE], TEST_PACKAGE_NAME,
+                TEST_CARRIER_ID, TEST_SUB_ID, false) + "-10", config.getProfileKey());
+
+        final int testUserIdFromUid = 20;
+        when(mMockUserHandle.getIdentifier()).thenReturn(testUserIdFromUid);
+        assertEquals(createProfileKey(mSsid, KeyMgmt.strings[KeyMgmt.NONE], TEST_PACKAGE_NAME,
+                TEST_CARRIER_ID, TEST_SUB_ID, false) + "-20", config.getProfileKey());
+    }
+
     private String createProfileKey(String ssid, String keyMgmt, String providerName,
             int carrierId, int subId, boolean isFromSuggestion) {
         StringBuilder sb = new StringBuilder();

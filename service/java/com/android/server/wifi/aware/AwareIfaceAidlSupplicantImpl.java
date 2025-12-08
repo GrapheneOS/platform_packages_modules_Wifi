@@ -198,6 +198,26 @@ public class AwareIfaceAidlSupplicantImpl {
     }
 
     /**
+     * Disable Aware interface
+     *
+     * @see ISupplicantNanIface#disableRequest(char)
+     * @return True if the request was successful, false otherwise.
+     */
+    public boolean disableRequest(short transactionId) {
+        final String methodStr = "disableRequest";
+        try {
+            if (!checkIfaceAndLogFailure(methodStr)) return false;
+            mWifiNanIface.disableRequest((char) transactionId);
+            return true;
+        } catch (RemoteException e) {
+            handleRemoteException(e, methodStr);
+        } catch (ServiceSpecificException e) {
+            handleServiceSpecificException(e, methodStr);
+        }
+        return false;
+    }
+
+    /**
      * Create an Aware network interface.
      *
      * @see ISupplicantNanIface#createDataInterfaceRequest(char, String)

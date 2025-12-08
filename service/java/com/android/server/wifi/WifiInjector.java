@@ -288,6 +288,7 @@ public class WifiInjector {
     private WifiUsabilityClassifierFactory mWifiUsabilityClassifierFactory;
     @Nullable private final WepNetworkUsageController mWepNetworkUsageController;
     private final PairingConfigManager mPairingConfigManager;
+    private final MainlineSupplicantAidlManager mMainlineSupplicant;
 
     public WifiInjector(WifiContext context) {
         if (context == null) {
@@ -360,6 +361,7 @@ public class WifiInjector {
                         mFrameworkFacade, mContext);
         // Modules interacting with Native.
         mHalDeviceManager = new HalDeviceManager(mContext, mClock, this, mWifiHandler);
+        mMainlineSupplicant = new MainlineSupplicantAidlManager(this);
         mInterfaceConflictManager = new InterfaceConflictManager(this, mContext, mFrameworkFacade,
                 mHalDeviceManager, mWifiThreadRunner, mWifiDialogManager, new LocalLog(
                 mContext.getSystemService(ActivityManager.class).isLowRamDevice() ? 128 : 256));
@@ -574,7 +576,7 @@ public class WifiInjector {
                 mDeviceConfigFacade, mActiveModeWarden, mFrameworkFacade, mWifiGlobals,
                 mExternalPnoScanRequestManager, mSsidTranslator, mWifiPermissionsUtil,
                 mWifiCarrierInfoManager, mCountryCode, mWifiDialogManager,
-                mWifiDeviceStateChangeManager);
+                mWifiDeviceStateChangeManager, mWifiNative);
         mConnectedScorerHelper = new ConnectedScorerHelper(mScoringParams, mWifiGlobals,
             mWifiConnectivityManager);
         mMboOceController = new MboOceController(makeTelephonyManager(), mActiveModeWarden,
@@ -741,6 +743,7 @@ public class WifiInjector {
         mWifiRoamingModeManager.enableVerboseLogging(verboseEnabled);
         mWifiHandler.enableVerboseLogging(verboseEnabled);
         mWifiApConfigStore.enableVerboseLogging(verboseEnabled);
+        mSettingsConfigStore.enableVerboseLogging(verboseEnabled);
     }
 
     public UserManager getUserManager() {
@@ -1401,5 +1404,10 @@ public class WifiInjector {
     @NonNull
     public PairingConfigManager getPairingConfigManager() {
         return mPairingConfigManager;
+    }
+
+    @NonNull
+    public MainlineSupplicantAidlManager getMainlineSupplicantAidlManager() {
+        return mMainlineSupplicant;
     }
 }

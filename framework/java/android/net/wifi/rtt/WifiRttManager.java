@@ -36,6 +36,7 @@ import android.annotation.Size;
 import android.annotation.StringDef;
 import android.annotation.SystemApi;
 import android.annotation.SystemService;
+import android.content.AttributionSource;
 import android.content.Context;
 import android.net.MacAddress;
 import android.net.wifi.ScanResult;
@@ -259,7 +260,7 @@ public class WifiRttManager {
             Bundle extras = new Bundle();
             if (SdkLevel.isAtLeastS()) {
                 extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
-                        mContext.getAttributionSource());
+                        getAttributionSourceInternal());
             }
             mService.startRanging(binder, mContext.getOpPackageName(),
                     mContext.getAttributionTag(), workSource, request, new IRttCallback.Stub() {
@@ -279,6 +280,13 @@ public class WifiRttManager {
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+    private AttributionSource getAttributionSourceInternal() {
+        return SdkLevel.isAtLeastU()
+                ? mContext.createDeviceContext(Context.DEVICE_ID_DEFAULT).getAttributionSource()
+                : mContext.getAttributionSource();
     }
 
     /**
@@ -456,7 +464,7 @@ public class WifiRttManager {
         }
         Bundle extras = new Bundle();
         extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
-                mContext.getAttributionSource());
+                getAttributionSourceInternal());
         try {
             return mService.getProximityDetectionRandomizedMacAddress(mContext.getAttributionTag(),
                     mContext.getOpPackageName(), extras);
@@ -512,7 +520,7 @@ public class WifiRttManager {
         Objects.requireNonNull(executor, "Executor cannot be null");
         Bundle extras = new Bundle();
         extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
-                mContext.getAttributionSource());
+                getAttributionSourceInternal());
         if (VDBG) {
             Log.v(TAG, "registerProximityDetectionMacAddressCallback: executor=" + executor
                     + ", callback=" + callback);
@@ -575,7 +583,7 @@ public class WifiRttManager {
         Objects.requireNonNull(callback, "Callback cannot be null");
         Bundle extras = new Bundle();
         extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
-                mContext.getAttributionSource());
+                getAttributionSourceInternal());
         if (VDBG) {
             Log.v(TAG, "unregisterProximityDetectionMacAddressCallback: callback="
                     + callback);
@@ -647,7 +655,7 @@ public class WifiRttManager {
         try {
             Bundle extras = new Bundle();
             extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
-                    mContext.getAttributionSource());
+                    getAttributionSourceInternal());
             mService.startContinuousRanging(binder, mContext.getOpPackageName(),
                     mContext.getAttributionTag(), workSource, request,
                     new IContinuousRangingResultCallback.Stub() {

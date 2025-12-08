@@ -1115,6 +1115,17 @@ public class WifiConfigManager {
     }
 
     /**
+     * Check if the provided network exists in our database.
+     *
+     * @param wifiConfiguration The {@link WifiConfiguration} to be checked with.
+     * @return true if the provided {@link WifiConfiguration} exists, otherwise false.
+     */
+    public boolean isNetworkConfigured(@NonNull WifiConfiguration wifiConfiguration) {
+        wifiConfiguration.convertLegacyFieldsToSecurityParamsIfNeeded();
+        return getInternalConfiguredNetwork(wifiConfiguration) != null;
+    }
+
+    /**
      * Method to send out the configured networks change broadcast when network configurations
      * changed.
      *
@@ -4879,5 +4890,33 @@ public class WifiConfigManager {
         config.randomizedMacExpirationTimeMs = 0;
         config.randomizedMacLastModifiedTimeMs = 0;
         config.persistentMacRandomizationSeed++;
+    }
+
+    /**
+     * Returns the ID of the current foreground user.
+     *
+     * @return The ID of the current user.
+     */
+    public int getCurrentUserId() {
+        return mCurrentUserId;
+    }
+
+    /**
+     * Updates the uid and userId of a network if needed (when the creatorUid is default). Uid will
+     * be configured as the provided uid and the userId will be configured as the current userId.
+     * These user-related fields are necessary for private network comparison (e.g. existence check)
+     * and in some flows need to be populated in advance (e.g. network restore).
+     *
+     * @param wifiConfiguration The network to update.
+     * @param uid The uid to be configured provided by the caller.
+     */
+    public void updateNetworkWithUidAndCurrentUserIdIfNeeded(
+            @NonNull WifiConfiguration wifiConfiguration, int uid) {
+        // Only updates when the creatorUid hasn't been assigned.
+        if (wifiConfiguration.creatorUid != -1) {
+            return;
+        }
+        wifiConfiguration.creatorUid = wifiConfiguration.lastUpdateUid = uid;
+        wifiConfiguration.setCreatorUserId(mCurrentUserId);
     }
 }

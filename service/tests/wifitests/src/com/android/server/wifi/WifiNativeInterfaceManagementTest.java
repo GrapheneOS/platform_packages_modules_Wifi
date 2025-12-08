@@ -200,7 +200,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         when(mNl80211Native.tearDownClientInterface(any())).thenReturn(true);
         when(mNl80211Native.tearDownSoftApInterface(any())).thenReturn(true);
         when(mNl80211Native.tearDownInterfaces()).thenReturn(true);
-        when(mNl80211Native.registerWificondApCallback(any(), any(), any())).thenReturn(true);
+        when(mNl80211Native.registerApCallback(any(), any(), any())).thenReturn(true);
 
         when(mSupplicantStaIfaceHal.registerDeathHandler(mSupplicantDeathHandlerCaptor.capture()))
             .thenReturn(true);
@@ -1011,7 +1011,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
 
         verify(mStatusListener).onStatusChanged(false);
         verify(mStatusListener).onStatusChanged(true);
-        verify(mNl80211Native, never()).registerWificondApCallback(any(), any(), any());
+        verify(mNl80211Native, never()).registerApCallback(any(), any(), any());
     }
 
     /**
@@ -1029,7 +1029,7 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
                         true, mock(WifiNative.SoftApHalCallback.class), false));
 
         mInOrder.verify(mHostapdHal).isApInfoCallbackSupported();
-        mInOrder.verify(mNl80211Native).registerWificondApCallback(any(), any(), any());
+        mInOrder.verify(mNl80211Native).registerApCallback(any(), any(), any());
         verify(mHostapdHal, never()).registerApCallback(any(), any());
         mInOrder.verify(mWifiVendorHal).isVendorHalSupported();
         mInOrder.verify(mWifiVendorHal).getBridgedApInstances(IFACE_NAME_0);
@@ -1586,11 +1586,11 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
         doAnswer(new MockAnswerUtil.AnswerWithArguments() {
             public WifiNanIface answer(
                     HalDeviceManager.InterfaceDestroyedListener interfaceDestroyedListener,
-                    Handler handler, WorkSource requestorWs) {
+                    Handler handler, WorkSource requestorWs, boolean updateIfaceOnly) {
                 mIfaceDestroyedListenerCaptor0.getValue().onDestroyed(IFACE_NAME_0);
                 return mActiveWifiNanIface;
             }
-        }).when(mHalDeviceManager).createNanIface(any(), any(), any());
+        }).when(mHalDeviceManager).createNanIface(any(), any(), any(), anyBoolean());
         executeAndValidateCreateNanInterface(true, false, false, false, false);
         // Creation of Nan interface should trigger the STA interface destroy
         verify(mWifiVendorHal, atLeastOnce()).isVendorHalSupported();
@@ -1602,10 +1602,10 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
 
     @Test
     public void testCreateNanIfaceFailureWhenFailToCreateNan() throws Exception {
-        when(mHalDeviceManager.createNanIface(any(), any(), any()))
+        when(mHalDeviceManager.createNanIface(any(), any(), any(), anyBoolean()))
                 .thenReturn(null);
         mActiveNanIface = mWifiNative.createNanIface(mTestInterfaceDestroyedListener,
-                    mCreateIfaceEventHandler, TEST_WORKSOURCE);
+                    mCreateIfaceEventHandler, TEST_WORKSOURCE, false);
         validateStartHal(false, true);
         assertNull(mActiveNanIface);
         validateOnDestroyedNanInterface(false, false, false, false);
@@ -1613,12 +1613,12 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
 
     @Test
     public void testCreateNanIfaceFailureWhenFailToGetNanIfaceName() throws Exception {
-        when(mHalDeviceManager.createNanIface(any(), any(), any()))
+        when(mHalDeviceManager.createNanIface(any(), any(), any(), anyBoolean()))
                 .thenReturn(mActiveWifiNanIface);
         // The empty aware iface will cause failure
         when(mActiveWifiNanIface.getName()).thenReturn(null);
         mActiveNanIface = mWifiNative.createNanIface(mTestInterfaceDestroyedListener,
-                    mCreateIfaceEventHandler, TEST_WORKSOURCE);
+                    mCreateIfaceEventHandler, TEST_WORKSOURCE, false);
         validateStartHal(false, true);
         assertNull(mActiveNanIface);
         validateOnDestroyedNanInterface(false, false, false, false);
@@ -2289,11 +2289,11 @@ public class WifiNativeInterfaceManagementTest extends WifiBaseTest {
             boolean hasStaIface, boolean hasApIface, boolean hasP2pIface, boolean hasNanIface,
             boolean isNeedToMockCreateNan) throws Exception {
         if (isNeedToMockCreateNan) {
-            when(mHalDeviceManager.createNanIface(any(), any(), any()))
+            when(mHalDeviceManager.createNanIface(any(), any(), any(), anyBoolean()))
                     .thenReturn(mActiveWifiNanIface);
         }
         mActiveNanIface = mWifiNative.createNanIface(mTestInterfaceDestroyedListener,
-                    mCreateIfaceEventHandler, TEST_WORKSOURCE);
+                    mCreateIfaceEventHandler, TEST_WORKSOURCE, false);
         validateStartHal(hasStaIface || hasApIface || hasP2pIface || hasNanIface, true);
         assertNotNull(mActiveNanIface);
         assertEquals(mActiveNanIface.iface, mActiveWifiNanIface);

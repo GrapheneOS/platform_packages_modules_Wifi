@@ -85,6 +85,8 @@ import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.nl80211.NativeScanResult;
 import com.android.server.wifi.nl80211.Nl80211Native;
 import com.android.server.wifi.nl80211.Nl80211Utils;
+import com.android.server.wifi.nl80211.PnoNetwork;
+import com.android.server.wifi.nl80211.PnoSettings;
 
 import org.junit.After;
 import org.junit.Before;
@@ -1745,5 +1747,105 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new String[]{"stop-nl80211-scan", ifaceName}));
 
         verify(mNl80211Native).abortScan(ifaceName);
+    }
+
+    @Test
+    public void testStartNl80211PnoScan() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final String ifaceName = "wlan0";
+        final String interval = "10000";
+        final String iterations = "5";
+        final String multiplier = "2";
+        final String min2gRssi = "-70";
+        final String min5gRssi = "-80";
+        final String ssid1 = "hidden1";
+        final String freq1 = "2412";
+        final String freq2 = "2417";
+        final String ssid2 = "public2";
+        final String freq3 = "5180";
+
+        ArgumentCaptor<String> ifaceNameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<PnoSettings> pnoSettingsCaptor = ArgumentCaptor.forClass(PnoSettings.class);
+        ArgumentCaptor<Nl80211Native.PnoScanRequestCallback> callbackCaptor =
+                ArgumentCaptor.forClass(Nl80211Native.PnoScanRequestCallback.class);
+
+        when(mNl80211Native.startPnoScan(ifaceNameCaptor.capture(), pnoSettingsCaptor.capture(),
+                any(), callbackCaptor.capture()))
+                .thenReturn(true);
+
+        assertEquals(0, mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"start-nl80211-pno-scan",
+                        "-i", ifaceName,
+                        "-v", interval,
+                        "-k", iterations,
+                        "-m", multiplier,
+                        "-2", min2gRssi,
+                        "-5", min5gRssi,
+                        "-n",
+                        "-p", ssid1, "hidden", freq1, freq2,
+                        "-p", ssid2, freq3
+                }));
+
+        assertEquals(ifaceName, ifaceNameCaptor.getValue());
+        PnoSettings pnoSettings = pnoSettingsCaptor.getValue();
+        assertEquals(Integer.parseInt(interval), pnoSettings.getIntervalMillis());
+        assertEquals(Integer.parseInt(iterations), pnoSettings.getScanIterations());
+        assertEquals(Integer.parseInt(multiplier), pnoSettings.getScanIntervalMultiplier());
+        assertEquals(Integer.parseInt(min2gRssi), pnoSettings.getMin2gRssiDbm());
+        assertEquals(Integer.parseInt(min5gRssi), pnoSettings.getMin5gRssiDbm());
+
+        List<PnoNetwork> pnoNetworks = pnoSettings.getPnoNetworks();
+        assertEquals(2, pnoNetworks.size());
+        // First network
+        assertEquals(ssid1, new String(pnoNetworks.get(0).getSsid()));
+        assertTrue(pnoNetworks.get(0).isHidden());
+        int[] ssid1Freqs = pnoNetworks.get(0).getFrequenciesMhz();
+        assertEquals(2, ssid1Freqs.length);
+        assertEquals(Integer.parseInt(freq1), ssid1Freqs[0]);
+        assertEquals(Integer.parseInt(freq2), ssid1Freqs[1]);
+        // Second network
+        assertEquals(ssid2, new String(pnoNetworks.get(1).getSsid()));
+        assertFalse(pnoNetworks.get(1).isHidden());
+        int[] ssid2Freqs = pnoNetworks.get(1).getFrequenciesMhz();
+        assertEquals(1, ssid2Freqs.length);
+        assertEquals(Integer.parseInt(freq3), ssid2Freqs[0]);
+    }
+
+    @Test
+    public void testStopNl80211PnoScan() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final String ifaceName = "wlan0";
+
+        assertEquals(0, mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"stop-nl80211-pno-scan", ifaceName}));
+
+        verify(mNl80211Native).stopPnoScan(ifaceName);
+    }
+
+    @Test
+    public void testRegisterNl80211ApCallback() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        final String ifaceName = "wlan0";
+        when(mNl80211Native.setupInterfaceForSoftApMode(eq(ifaceName))).thenReturn(true);
+
+        // Since there isn't a good way to interrupt the latch from unit testing, forcefully exit
+        // the try-catch block with an uncaught exception.
+        RuntimeException blockingException = new RuntimeException(
+                "Test Exception: Simulating interrupt/failure");
+        when(mNl80211Native.registerApCallback(eq(ifaceName), any(), any()))
+                .thenThrow(blockingException);
+
+        mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"register-nl80211-ap-callback", ifaceName, "-n"});
+
+        verify(mNl80211Native).setUseNl80211Override(true);
+        verify(mNl80211Native).setupInterfaceForSoftApMode(ifaceName);
+        verify(mNl80211Native).registerApCallback(eq(ifaceName), any(), any());
+
+        verify(mNl80211Native).tearDownSoftApInterface(ifaceName);
+        verify(mNl80211Native).setUseNl80211Override(false);
     }
 }

@@ -16,15 +16,12 @@
 
 package com.android.server.wifi.p2p;
 
-import android.annotation.NonNull;
-import android.net.wifi.p2p.WifiP2pManager;
 import android.os.IBinder;
 import android.os.IBinder.DeathRecipient;
 import android.os.RemoteException;
 import android.util.Log;
 
 import com.android.server.wifi.WifiInjector;
-import com.android.server.wifi.WifiNative;
 
 /**
  * Implementation of Supplicant P2P Iface HAL using the vendor AIDL service.
@@ -43,7 +40,7 @@ public class SupplicantP2pIfaceHalAidlVendorImpl extends SupplicantP2pIfaceHalAi
             };
 
     public SupplicantP2pIfaceHalAidlVendorImpl(WifiP2pMonitor monitor, WifiInjector wifiInjector) {
-        super(monitor, wifiInjector);
+        super(monitor, wifiInjector, false);
     }
 
     /**

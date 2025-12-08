@@ -47,7 +47,7 @@ python_defaults {
 python_test_host {
     name: "CtsWifiAwareTests",
     main: "aware/cts_wifi_aware_test_suite.py",
-    test_config: "aware/AndroidTestNew.xml",
+    test_config: "aware/AndroidTest.xml",
     srcs: [
         "aware/cts_wifi_aware_test_suite.py",
         "aware/wifi_aware_network_test.py",

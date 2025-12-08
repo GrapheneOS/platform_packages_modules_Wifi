@@ -496,15 +496,24 @@ public class WifiEnterpriseConfig implements Parcelable {
      *             to this value.
      */
     private void copyFrom(WifiEnterpriseConfig source, boolean ignoreMaskedPassword, String mask) {
-        for (String key : source.mFields.keySet()) {
-            String value = source.mFields.get(key);
-            if (ignoreMaskedPassword && key.equals(PASSWORD_KEY)
-                    && TextUtils.equals(value, mask)) {
-                continue;
+        if (source == null) {
+            Log.e(TAG, "unexpected null source WifiEnterpriseConfig object.");
+            return;
+        }
+        if (source.mFields != null) { // null check to protect against corrupted source
+            for (String key : source.mFields.keySet()) {
+                String value = source.mFields.get(key);
+                if (ignoreMaskedPassword && key.equals(PASSWORD_KEY)
+                        && TextUtils.equals(value, mask)) {
+                    continue;
+                }
+                if (isFieldValid(key, value)) {
+                    mFields.put(key, source.mFields.get(key));
+                }
             }
-            if (isFieldValid(key, value)) {
-                mFields.put(key, source.mFields.get(key));
-            }
+        } else {
+            Log.e(TAG, "null mConfig in source WifiEnterpriseConfig object. "
+                    + "Corrupted config?");
         }
         if (source.mCaCerts != null) {
             mCaCerts = Arrays.copyOf(source.mCaCerts, source.mCaCerts.length);

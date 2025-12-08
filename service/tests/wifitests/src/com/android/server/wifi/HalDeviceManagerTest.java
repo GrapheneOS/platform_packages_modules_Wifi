@@ -397,7 +397,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
 
         // Now try to request another NAN.
         WifiNanIface nanIface2 =
-                mDut.createNanIface(nanDestroyedListener, mHandler, TEST_WORKSOURCE_0);
+                mDut.createNanIface(nanDestroyedListener, mHandler, TEST_WORKSOURCE_0, false);
         collector.checkThat("NAN can't be created", nanIface2, IsNull.nullValue());
         mTestLooper.dispatchAll();
 
@@ -434,7 +434,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
 
         // Now try to request a NAN.
         WifiNanIface nanIface =
-                mDut.createNanIface(nanDestroyedListener, mHandler, TEST_WORKSOURCE_0);
+                mDut.createNanIface(nanDestroyedListener, mHandler, TEST_WORKSOURCE_0, false);
         collector.checkThat("NAN can't be created", nanIface, IsNull.nullValue());
         mTestLooper.dispatchAll();
 
@@ -743,7 +743,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         assertNull("Should not create this NAN", nanDetails);
         nanDetails = mDut.reportImpactToCreateIface(HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_1);
         assertNull("Should not create this NAN", nanDetails);
-        WifiNanIface nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_1);
+        WifiNanIface nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_1, false);
         collector.checkThat("not allocated interface", nanIface, IsNull.nullValue());
 
         // Now replace the requestorWs (fg app now) for the P2P iface.
@@ -809,7 +809,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         List<Pair<Integer, WorkSource>> nanDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_1);
         assertNull("Should not create this NAN", nanDetails);
-        WifiInterface nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_1);
+        WifiInterface nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_1, false);
         collector.checkThat("NAN was created", nanIface, IsNull.nullValue());
 
         // Can now delete P2P with user approval
@@ -992,7 +992,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         List<Pair<Integer, WorkSource>> nanDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_2);
         assertNull("Should not create this NAN", nanDetails);
-        WifiInterface nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_2);
+        WifiInterface nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_2, false);
         collector.checkThat("NAN was created", nanIface, IsNull.nullValue());
 
         // Timeout the P2P but also connect it. Foreground NAN still can't be created since P2P is
@@ -1009,7 +1009,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         nanDetails = mDut.reportImpactToCreateIface(
                 HDM_CREATE_IFACE_NAN, true, TEST_WORKSOURCE_2);
         assertNull("Should not create this NAN", nanDetails);
-        nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_2);
+        nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_2, false);
         collector.checkThat("NAN was created", nanIface, IsNull.nullValue());
 
         // Simulate P2P disconnection. Foreground NAN can be created now.
@@ -1506,7 +1506,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         doAnswer(new GetNameAnswer("wlan0")).when(nanIface).getName();
         doAnswer(new CreateNanIfaceAnswer(chipMock, true, nanIface))
                 .when(chipMock.chip).createNanIface();
-        assertNull(mDut.createNanIface(idl, null, TEST_WORKSOURCE_0));
+        assertNull(mDut.createNanIface(idl, null, TEST_WORKSOURCE_0, false));
 
         // Create P2P Iface will be failure because null handler.
         WifiP2pIface p2pIface = mock(WifiP2pIface.class);
@@ -3176,7 +3176,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         // Expect a WifiNanIface wrapper object this time, since we are calling
         // createNanIface instead of createIface.
         WifiNanIface nanIface2 =
-                mDut.createNanIface(null, null, TEST_WORKSOURCE_0);
+                mDut.createNanIface(null, null, TEST_WORKSOURCE_0, false);
         collector.checkThat("NAN should not be created", nanIface2, IsNull.nullValue());
 
         // tear down AP
@@ -4432,6 +4432,24 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         collector.checkThat("interface was null", apIface, IsNull.notNullValue());
     }
 
+    /**
+     * Validate create and remove NAN interface when update conbo only.
+     */
+    @Test
+    public void testCreateRemoveNanInterfaceWhenUpdateConboOnly() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        // initialize a test chip & create a STA (which will configure the chip).
+        ChipMockBase chipMock = new TestChipV1();
+        chipMock.initialize();
+        mInOrder = inOrder(mWifiMock, chipMock.chip, mManagerStatusListenerMock);
+        executeAndValidateStartupSequence();
+        WifiNanIface nanIface = mDut.createNanIface(null, null, TEST_WORKSOURCE_1, true);
+        verify(chipMock.chip, never()).createNanIface();
+        assertTrue(nanIface.isSupplicantManaged());
+        assertTrue(mDut.removeIface(nanIface));
+        verify(chipMock.chip, never()).removeNanIface(anyString());
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////
     // utilities
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -4673,7 +4691,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                 doAnswer(new GetNameAnswer(ifaceName)).when(iface).getName();
                 doAnswer(new CreateNanIfaceAnswer(chipMock, true, iface))
                         .when(chipMock.chip).createNanIface();
-                mDut.createNanIface(destroyedListener, mHandler, requestorWs);
+                mDut.createNanIface(destroyedListener, mHandler, requestorWs, false);
                 break;
         }
 

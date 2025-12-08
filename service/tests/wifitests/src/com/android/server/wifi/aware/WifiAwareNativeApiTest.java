@@ -30,10 +30,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import androidx.test.filters.SmallTest;
-
+import android.net.MacAddress;
 import android.net.wifi.WifiContext;
+import android.net.wifi.aware.ConfigRequest;
+import android.net.wifi.aware.PublishConfig;
+import android.net.wifi.aware.SubscribeConfig;
 import android.net.wifi.util.WifiResourceCache;
+
+import androidx.test.filters.SmallTest;
 
 import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
@@ -59,6 +63,7 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
     @Mock WifiAwareNativeManager mWifiAwareNativeManagerMock;
     @Mock WifiNanIface mWifiNanIfaceMock;
     @Mock WifiContext mWifiContextMock;
+    @Mock AwareIfaceAidlSupplicantImpl mAwareIfaceAidlSupplicantImplMock;
 
     @Rule public ErrorCollector collector = new ErrorCollector();
     private final MockResources mMockResources = new MockResources();
@@ -73,6 +78,8 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
     public void setup() throws Exception {
         MockitoAnnotations.initMocks(this);
         when(mWifiAwareNativeManagerMock.getWifiNanIface()).thenReturn(mWifiNanIfaceMock);
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface())
+                .thenReturn(mAwareIfaceAidlSupplicantImplMock);
         when(mWifiContextMock.getResources()).thenReturn(mMockResources);
         mWifiResourceCache = new WifiResourceCache(mWifiContextMock);
         when(mWifiContextMock.getResourceCache()).thenReturn(mWifiResourceCache);
@@ -112,9 +119,17 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
      */
     @Test
     public void testDisableConfigRequest() throws Exception {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
         when(mWifiNanIfaceMock.disable(anyShort())).thenReturn(true);
         assertTrue(mDut.disable((short) 10));
         verify(mWifiNanIfaceMock).disable((short) 10);
+    }
+
+    @Test
+    public void testDisableConfigRequestWithSupplicant() throws Exception {
+        when(mAwareIfaceAidlSupplicantImplMock.disableRequest(anyShort())).thenReturn(true);
+        assertTrue(mDut.disable((short) 10));
+        verify(mAwareIfaceAidlSupplicantImplMock).disableRequest((short) 10);
     }
 
     /**
@@ -123,6 +138,7 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
      */
     @Test
     public void testConversionToPowerParams() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
         ArgumentCaptor<WifiNanIface.PowerParameters> powerParamsCaptor = ArgumentCaptor.forClass(
                 WifiNanIface.PowerParameters.class);
         when(mWifiNanIfaceMock.enableAndConfigure(anyShort(), any(), anyBoolean(),
@@ -200,6 +216,7 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
 
     @Test
     public void testPublish() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
         mMockResources.setBoolean(R.bool.config_wifiAwareSdeaHeaderFromFramework, true);
         mDut.publish((short) 1, (byte) 0x01, null, null);
         verify(mWifiNanIfaceMock).publish(eq((short) 1), eq((byte) 0x01), eq(null), eq(null),
@@ -208,6 +225,7 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
 
     @Test
     public void testSubscribe() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
         mMockResources.setBoolean(R.bool.config_wifiAwareSdeaHeaderFromFramework, true);
         mDut.subscribe((short) 1, (byte) 0x01, null, null);
         verify(mWifiNanIfaceMock).subscribe(eq((short) 1), eq((byte) 0x01), eq(null), eq(null),
@@ -216,6 +234,7 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
 
     @Test
     public void testBootstrappingRequest() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
         mMockResources.setBoolean(R.bool.config_wifiAwareSdeaHeaderFromFramework, true);
         mDut.initiateBootstrapping((short) 1, 1, new byte[6], 1, new byte[16], (byte) 1, false,
                 new byte[16]);
@@ -225,11 +244,120 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
 
     @Test
     public void testMessageSend() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
         mMockResources.setBoolean(R.bool.config_wifiAwareSdeaHeaderFromFramework, true);
         mDut.sendMessage((short) 1, (byte) 1, 1, new byte[6], new byte[16], 1);
         verify(mWifiNanIfaceMock).sendMessage(eq((short) 1), eq((byte) 1), eq(1), any(), any(),
                 eq(WifiAwareNativeApi.SDEA_HEADER));
     }
 
+    @Test
+    public void testGetCapabilities() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        mDut.getCapabilities((short) 1);
+        verify(mWifiNanIfaceMock).getCapabilities(eq((short) 1));
+    }
+
+    @Test
+    public void testGetCapabilitiesWithSupplicant() {
+        mDut.getCapabilities((short) 1);
+        verify(mAwareIfaceAidlSupplicantImplMock).getCapabilities(eq((short) 1));
+    }
+
+    @Test
+    public void testEnableAndConfigureWithSupplicant() {
+        ArgumentCaptor<WifiNanIface.PowerParameters> powerParamsCaptor = ArgumentCaptor.forClass(
+                WifiNanIface.PowerParameters.class);
+        ConfigRequest configRequest = new ConfigRequest.Builder().build();
+        mDut.enableAndConfigure((short) 1, configRequest, true, true, false, true, true, true, 1,
+                -1);
+        verify(mAwareIfaceAidlSupplicantImplMock).enableAndConfigure(eq((short) 1),
+                eq(configRequest), eq(true), eq(true), powerParamsCaptor.capture());
+    }
+
+    @Test
+    public void testPublishWithSupplicant() {
+        PublishConfig publishConfig = new PublishConfig.Builder().build();
+        byte[] nik = new byte[]{1, 2, 3};
+        mDut.publish((short) 1, (byte) 2, publishConfig, nik);
+        verify(mAwareIfaceAidlSupplicantImplMock).publish(eq((short) 1), eq((byte) 2),
+                eq(publishConfig), eq(nik));
+    }
+
+    @Test
+    public void testSubscribeWithSupplicant() {
+        SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().build();
+        byte[] nik = new byte[]{1, 2, 3};
+        mDut.subscribe((short) 1, (byte) 2, subscribeConfig, nik);
+        verify(mAwareIfaceAidlSupplicantImplMock).subscribe(eq((short) 1), eq((byte) 2),
+                eq(subscribeConfig), eq(nik));
+    }
+
+    @Test
+    public void testSendMessageWithSupplicant() {
+        byte[] dest = new byte[]{1, 2, 3, 4, 5, 6};
+        byte[] message = new byte[]{10, 11, 12};
+        mDut.sendMessage((short) 1, (byte) 2, 3, dest, message, 4);
+        verify(mAwareIfaceAidlSupplicantImplMock).sendMessage(eq((short) 1), eq((byte) 2), eq(3),
+                eq(MacAddress.fromBytes(dest)), eq(message));
+    }
+
+    @Test
+    public void testStopPublish() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        mDut.stopPublish((short) 1, (byte) 2);
+        verify(mWifiNanIfaceMock).stopPublish(eq((short) 1), eq((byte) 2));
+    }
+
+    @Test
+    public void testStopPublishWithSupplicant() {
+        mDut.stopPublish((short) 1, (byte) 2);
+        verify(mAwareIfaceAidlSupplicantImplMock).stopPublish(eq((short) 1), eq((byte) 2));
+    }
+
+    @Test
+    public void testStopSubscribe() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        mDut.stopSubscribe((short) 1, (byte) 2);
+        verify(mWifiNanIfaceMock).stopSubscribe(eq((short) 1), eq((byte) 2));
+    }
+
+    @Test
+    public void testStopSubscribeWithSupplicant() {
+        mDut.stopSubscribe((short) 1, (byte) 2);
+        verify(mAwareIfaceAidlSupplicantImplMock).stopSubscribe(eq((short) 1), eq((byte) 2));
+    }
+
+    @Test
+    public void testCreateAwareNetworkInterface() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        String interfaceName = "aware0";
+        mDut.createAwareNetworkInterface((short) 1, interfaceName);
+        verify(mWifiNanIfaceMock).createAwareNetworkInterface(eq((short) 1), eq(interfaceName));
+    }
+
+    @Test
+    public void testCreateAwareNetworkInterfaceWithSupplicant() {
+        String interfaceName = "aware0";
+        mDut.createAwareNetworkInterface((short) 1, interfaceName);
+        verify(mAwareIfaceAidlSupplicantImplMock).createAwareNetworkInterface(eq((short) 1),
+                eq(interfaceName));
+    }
+
+    @Test
+    public void testDeleteAwareNetworkInterface() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        String interfaceName = "aware0";
+        mDut.deleteAwareNetworkInterface((short) 1, interfaceName);
+        verify(mWifiNanIfaceMock).deleteAwareNetworkInterface(eq((short) 1), eq(interfaceName));
+    }
+
+    @Test
+    public void testDeleteAwareNetworkInterfaceWithSupplicant() {
+        String interfaceName = "aware0";
+        mDut.deleteAwareNetworkInterface((short) 1, interfaceName);
+        verify(mAwareIfaceAidlSupplicantImplMock).deleteAwareNetworkInterface(eq((short) 1),
+                eq(interfaceName));
+    }
 }
 

@@ -9867,4 +9867,47 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
                 "password", WifiP2pManager.EXTERNAL_APPROVER_PIN_OR_PASSWORD_GENERATED,
                 WifiP2pManager.CREDENTIAL_TYPE_PIN);
     }
+
+    /**
+     * Verify that D2DAllowWhenInfraStaDisabledValueListener's onSettingsChanged
+     * will invoke checkAndSendP2pStateChangedBroadcast, and disable P2P if needed.
+     */
+    @Test
+    public void testD2DAllowWhenInfraStaDisabledValueListenerDisablesP2p() throws Exception {
+        // Mock P2P available when wifi is disabled.
+        when(mWifiSettingsConfigStore.get(eq(D2D_ALLOWED_WHEN_INFRA_STA_DISABLED)))
+                .thenReturn(true);
+        when(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled()).thenReturn(true);
+        simulateWifiStateChange(false); // wifi is off
+        // Trigger the listener to simulate the settings change.
+        mD2DAllowedSettingsCallbackCaptor.getValue().onSettingsChanged(
+                D2D_ALLOWED_WHEN_INFRA_STA_DISABLED, true);
+        checkIsP2pInitWhenClientConnected(true, mClient1,
+                new WorkSource(mClient1.getCallingUid(), TEST_PACKAGE_NAME));
+
+        mLooper.dispatchAll();
+        verify(mContext).sendStickyBroadcastAsUser(argThat(
+                new WifiP2pServiceImplTest.P2pStateChangedIntentMatcher(
+                        WifiP2pManager.WIFI_P2P_STATE_ENABLED)), any());
+        // At this point, p2p is available, and a broadcast for ENABLED has been sent.
+        reset(mContext);
+
+        // Now, change the setting to false, which makes P2P unavailable.
+        when(mWifiSettingsConfigStore.get(eq(D2D_ALLOWED_WHEN_INFRA_STA_DISABLED)))
+                .thenReturn(false);
+
+        // Trigger the listener to simulate the settings change.
+        mD2DAllowedSettingsCallbackCaptor.getValue().onSettingsChanged(
+                D2D_ALLOWED_WHEN_INFRA_STA_DISABLED, false);
+        mLooper.dispatchAll();
+
+        // This verifies that checkAndSendP2pStateChangedBroadcast is called and sends a broadcast
+        // because the P2P availability state has changed.
+        verify(mContext).sendStickyBroadcastAsUser(argThat(
+                new WifiP2pServiceImplTest.P2pStateChangedIntentMatcher(
+                        WifiP2pManager.WIFI_P2P_STATE_DISABLED)), any());
+
+        // This verifies that sendMessage(DISABLE_P2P) is called.
+        verify(mWifiNative).teardownInterface();
+    }
 }

@@ -27,6 +27,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.net.MacAddress;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
@@ -55,6 +56,7 @@ import android.util.Log;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.compatibility.common.util.PollingCheck;
@@ -1437,5 +1439,47 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
             networks.add(mJsonSerializer.toJson(config));
         }
         return networks;
+    }
+
+    /**
+     * Get the factory MAC addresses.
+     *
+     * @return an array of factory MAC addresses, or an empty array if not available.
+     */
+    @Rpc(description = "Get the factory MAC addresses.")
+    public String[] wifiGetFactoryMacAddresses() {
+        String[] addresses =
+                executeWithShellPermission(() -> mWifiManager.getFactoryMacAddresses());
+        if (addresses == null) {
+            return new String[0];
+        }
+        return addresses;
+    }
+
+        /**
+     * Gets the randomized MAC address for a given network.
+     * @param jsonConfig A JSONObject containing the SSID of the network.
+     * @return A {@link MacAddress} object, or null if not found.
+     * @throws JSONException if the config JSONObject is malformed.
+     */
+    @Rpc(description = "Gets the randomized MAC address for a given configured network.")
+    public @Nullable MacAddress wifiGetRandomizedMacAddress(JSONObject jsonConfig)
+            throws JSONException {
+        List<WifiConfiguration> configuredNetworks =
+                executeWithShellPermission(() -> mWifiManager.getConfiguredNetworks());
+        if (configuredNetworks == null) {
+            return null;
+        }
+        String targetSsid = jsonConfig.getString("SSID").replace("\"", "");
+        for (WifiConfiguration wifiNetwork : configuredNetworks) {
+            if (wifiNetwork.SSID != null) {
+                String ssid = wifiNetwork.SSID.replace("\"", "");
+                if (ssid.equals(targetSsid)) {
+                    return wifiNetwork.getRandomizedMacAddress();
+                }
+            }
+        }
+        Log.d(TAG, "No matching network found for SSID: " + targetSsid);
+        return null;
     }
 }

@@ -43,10 +43,21 @@ import java.util.function.Supplier;
 public class WifiNanIface implements WifiHal.WifiInterface {
     private static final String TAG = "WifiNanIface";
     private IWifiNanIface mWifiNanIface;
+    private String mName;
+    private boolean mIsSupplicantManaged;
 
     @VisibleForTesting
     static final String SERVICE_NAME_FOR_OOB_DATA_PATH = "Wi-Fi Aware Data Path";
 
+    public WifiNanIface(@NonNull String name) {
+        mName = name;
+        mIsSupplicantManaged = true;
+    }
+
+    @Override
+    public boolean isSupplicantManaged() {
+        return mIsSupplicantManaged;
+    }
     /**
      * Event types for a cluster event indication.
      */
@@ -352,6 +363,7 @@ public class WifiNanIface implements WifiHal.WifiInterface {
     @Override
     @Nullable
     public String getName() {
+        if (mName != null) return mName;
         return validateAndCall("getName", null,
                 () -> mWifiNanIface.getName());
     }

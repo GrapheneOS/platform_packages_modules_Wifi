@@ -52,7 +52,7 @@ public final class OuiKeyedData implements Parcelable {
     /**
      * Get the OUI for this object.
      *
-     * <p>See {@link Builder#Builder(int, PersistableBundle)}}
+     * <p>See {@link Builder#Builder(int, PersistableBundle)}
      */
     @FlaggedApi(Flags.FLAG_ANDROID_V_WIFI_API)
     public int getOui() {
@@ -62,7 +62,7 @@ public final class OuiKeyedData implements Parcelable {
     /**
      * Get the data for this object.
      *
-     * <p>See {@link Builder#Builder(int, PersistableBundle)}}
+     * <p>See {@link Builder#Builder(int, PersistableBundle)}
      */
     @FlaggedApi(Flags.FLAG_ANDROID_V_WIFI_API)
     public @NonNull PersistableBundle getData() {
