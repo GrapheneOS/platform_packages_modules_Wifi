@@ -72,6 +72,8 @@ public class UsdManager {
             new SparseArray<>();
     private static final SparseArray<IBooleanListener> sSubscriberAvailabilityListenerMap =
             new SparseArray<>();
+    private static final boolean IS_PROXIMITY_RANGING_IMPL =
+            com.android.wifi.flags.Flags.proximityRangingImpl();
 
     /** @hide */
     public UsdManager(@NonNull Context context, @NonNull IUsdManager service) {
@@ -169,16 +171,22 @@ public class UsdManager {
         }
 
         @Override
-        public void onPublishReplied(int peerId, byte[] ssi, int protoType, boolean isFsdEnabled)
-                throws RemoteException {
+        public void onPublishReplied(int peerId, byte[] ssi, int protoType, boolean isFsdEnabled,
+                ProximityRangingInfo prInfo, byte[] devIk) throws RemoteException {
             Log.d(TAG, "onPublishReplied ( peerId = " + peerId + ", protoType = " + protoType
-                    + ", isFsdEnabled = " + isFsdEnabled + " )");
+                    + ", isFsdEnabled = " + isFsdEnabled + ", prInfo = " + prInfo + " )");
             Binder.clearCallingIdentity();
-            DiscoveryResult discoveryResult = new DiscoveryResult.Builder(peerId)
-                    .setServiceSpecificInfo(ssi)
-                    .setServiceProtoType(protoType)
-                    .setFsdEnabled(isFsdEnabled)
-                    .build();
+            DiscoveryResult.Builder discoveryResulutBuilder = new DiscoveryResult.Builder(peerId)
+                .setServiceSpecificInfo(ssi)
+                .setServiceProtoType(protoType)
+                .setFsdEnabled(isFsdEnabled);
+
+            if (mUsdManager.IS_PROXIMITY_RANGING_IMPL && Environment.isSdkNewerThanB()) {
+                discoveryResulutBuilder
+                    .setProximityRangingInfo(prInfo)
+                    .setDeviceIdentityKey(devIk);
+            }
+            DiscoveryResult discoveryResult = discoveryResulutBuilder.build();
             mExecutor.execute(() -> mPublishSessionCallback.onPublishReplied(discoveryResult));
         }
 
@@ -261,16 +269,21 @@ public class UsdManager {
 
         @Override
         public void onSubscribeDiscovered(int peerId, byte[] ssi, int protoType,
-                boolean isFsdEnabled)
+                boolean isFsdEnabled, ProximityRangingInfo prInfo, byte[] devIk)
                 throws RemoteException {
             Log.d(TAG, "onSubscribeDiscovered ( peerId = " + peerId + ", protoType = " + protoType
-                    + ", isFsdEnabled = " + isFsdEnabled + " )");
+                    + ", isFsdEnabled = " + isFsdEnabled + ", prInfo = " + prInfo + " )");
             Binder.clearCallingIdentity();
-            DiscoveryResult discoveryResult = new DiscoveryResult.Builder(peerId)
-                    .setServiceSpecificInfo(ssi)
-                    .setServiceProtoType(protoType)
-                    .setFsdEnabled(isFsdEnabled)
-                    .build();
+            DiscoveryResult.Builder discoveryResulutBuilder = new DiscoveryResult.Builder(peerId)
+                .setServiceSpecificInfo(ssi)
+                .setServiceProtoType(protoType)
+                .setFsdEnabled(isFsdEnabled);
+
+            if (mUsdManager.IS_PROXIMITY_RANGING_IMPL && Environment.isSdkNewerThanB()) {
+                discoveryResulutBuilder.setProximityRangingInfo(prInfo);
+                discoveryResulutBuilder.setDeviceIdentityKey(devIk);
+            }
+            DiscoveryResult discoveryResult = discoveryResulutBuilder.build();
             mExecutor.execute(() -> mSubscribeSessionCallback.onServiceDiscovered(discoveryResult));
         }
 

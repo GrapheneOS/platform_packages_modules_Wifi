@@ -16,6 +16,8 @@
 
 package android.net.wifi.usd;
 
+import android.net.wifi.usd.ProximityRangingInfo;
+
 /**
  * Interface for USD publish session callback.
  *
@@ -24,7 +26,7 @@ package android.net.wifi.usd;
 oneway interface IPublishSessionCallback {
     void onPublishFailed(int reasonCode);
     void onPublishStarted(int sessionId);
-    void onPublishReplied(int peerId, in byte[] ssi, int protoType, boolean isFsdEnabled);
+    void onPublishReplied(int peerId, in byte[] ssi, int protoType, boolean isFsdEnabled, in ProximityRangingInfo prInfo, in byte[] devIk);
     void onPublishSessionTerminated(int reasonCode);
     void onMessageReceived(int peerId, in byte[] message);
 }
