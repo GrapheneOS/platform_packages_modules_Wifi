@@ -123,8 +123,10 @@ public class SupplicantP2pIfaceHalAidlMainlineImplTest extends WifiBaseTest {
      * Helper function to execute and validate the initialization sequence.
      */
     private void executeAndValidateInitializationSequence() throws Exception {
+        assertFalse(mDut.isInitializationStarted());
         assertTrue(mDut.initialize());
         assertTrue(mDut.isInitializationComplete());
+        assertTrue(mDut.isInitializationStarted());
 
         InOrder inOrder = inOrder(mIMainlineSupplicantMock, mServiceBinderMock);
         inOrder.verify(mIMainlineSupplicantMock).getVendorSupplicant();
@@ -152,7 +154,10 @@ public class SupplicantP2pIfaceHalAidlMainlineImplTest extends WifiBaseTest {
             }
         };
 
+        assertFalse(mDut.isInitializationStarted());
         assertFalse(mDut.initialize());
+        assertFalse("isInitializationStarted should be false on early exit",
+                mDut.isInitializationStarted());
         assertFalse(mDut.isInitializationComplete());
         verify(mIMainlineSupplicantMock, never()).getVendorSupplicant();
     }
@@ -170,7 +175,10 @@ public class SupplicantP2pIfaceHalAidlMainlineImplTest extends WifiBaseTest {
             }
         };
 
+        assertFalse(mDut.isInitializationStarted());
         assertFalse(mDut.initialize());
+        assertTrue("isInitializationStarted should be true even if initialize() fails",
+                mDut.isInitializationStarted());
         assertFalse(mDut.isInitializationComplete());
         verify(mIMainlineSupplicantMock, never()).getVendorSupplicant();
     }
@@ -181,9 +189,12 @@ public class SupplicantP2pIfaceHalAidlMainlineImplTest extends WifiBaseTest {
      */
     @Test
     public void testInitialize_vendorSupplicantNotAvailableFailure() throws Exception {
+        assertFalse(mDut.isInitializationStarted());
         when(mIMainlineSupplicantMock.getVendorSupplicant()).thenReturn(null);
 
         assertFalse(mDut.initialize());
+        assertTrue("isInitializationStarted should be true even if initialize() fails",
+                mDut.isInitializationStarted());
         assertFalse(mDut.isInitializationComplete());
         verify(mIMainlineSupplicantMock).getVendorSupplicant();
     }
