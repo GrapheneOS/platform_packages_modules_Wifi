@@ -220,7 +220,12 @@
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"ସ୍ୱିଚ କରନ୍ତୁ ନାହିଁ"</string>
     <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"<xliff:g id="APP_NAME">%1$s</xliff:g>କୁ ଡିସକନେକ୍ଟ କରିବେ?"</string>
     <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"ୱାଇ-ଫାଇ ଡିସକନେକ୍ଟ କରିବା ଫଳରେ <xliff:g id="APP_NAME">%1$s</xliff:g> ଡିସକନେକ୍ଟ ହୋଇଯିବ। ଜାରି ରଖିବେ?"</string>
-    <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"ଅନ୍ୟ ଏକ ୱାଇ-ଫାଇ ନେଟୱାର୍କ ସହ କନେକ୍ଟ କରିବା ଫଳରେ <xliff:g id="APP_NAME">%1$s</xliff:g> ଡିସକନେକ୍ଟ ହୋଇଯିବ। ଜାରି ରଖିବେ?"</string>
     <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"ଜାରି ରଖନ୍ତୁ"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"ବାତିଲ କରନ୍ତୁ"</string>
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (624715160252254674) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (534271497503164022) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_positive_button (4891994857934666730) -->
+    <skip />
 </resources>

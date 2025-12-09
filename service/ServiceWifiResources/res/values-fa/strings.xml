@@ -22,7 +22,7 @@
     <string name="wifi_available_title_connected" msgid="6329493859989844201">"‏به شبکه Wi‑Fi متصل شد"</string>
     <string name="wifi_available_title_failed_to_connect" msgid="4840833680513368639">"‏به شبکه Wi-Fi متصل نشد"</string>
     <string name="wifi_available_content_failed_to_connect" msgid="4330035988269701861">"برای دیدن همه شبکه‌ها تک‌ضرب بزنید"</string>
-    <string name="wifi_available_action_connect" msgid="5636634933476946222">"اتصال"</string>
+    <string name="wifi_available_action_connect" msgid="5636634933476946222">"متصل کردن"</string>
     <string name="wifi_available_action_all_networks" msgid="8491109932336522211">"همه شبکه‌ها"</string>
     <string name="notification_channel_network_status" msgid="1631786866932924838">"وضعیت شبکه"</string>
     <string name="notification_channel_network_alerts" msgid="1391603215241200880">"هشدارهای شبکه"</string>
@@ -34,11 +34,11 @@
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"نه متشکرم"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"‏به Wi-Fi <xliff:g id="CARRIERNAME">%s</xliff:g> متصل می‌شوید؟"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"این شبکه‌ها شناسه سیم‌کارتی دریافت می‌کنند که می‌توان از آن برای ردیابی مکان دستگاه استفاده کرد"</string>
-    <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"اتصال"</string>
+    <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"متصل کردن"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"متصل نشود"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_title" msgid="4407415300707014525">"اتصال را تأیید می‌کنید؟"</string>
     <string name="wifi_suggestion_imsi_privacy_exemption_confirmation_content" msgid="9211241189147807136">"‏اگر متصل شوید، شبکه‌های Wi‑Fi <xliff:g id="CARRIERNAME">%s</xliff:g> می‌توانند به شناسه یکتای مربوط به سیم‌کارتتان دسترسی پیدا کنند و از آن به‌صورت مشترک استفاده کنند. این کار ممکن است ردیابی مکان دستگاه را مجاز کند."</string>
-    <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"اتصال"</string>
+    <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_confirmation" msgid="2168947026413431603">"متصل کردن"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_confirmation" msgid="5156881939985876066">"متصل نشود"</string>
     <string name="wifi_wakeup_onboarding_title" msgid="3868826648004934540">"‏Wi‑Fi به‌طور خودکار روشن خواهد شد"</string>
     <string name="wifi_wakeup_onboarding_subtext" msgid="5705886295837387430">"وقتی نزدیک شبکه ذخیره‌شده با کیفیت بالا هستید"</string>
@@ -82,7 +82,7 @@
     <string name="wifi_p2p_dialog2_received_message_enter_password_countdown" msgid="776303595290437815">"{countdown,plural, =1{برای متصل شدن، گذرواژه نمایش‌داده‌شده در {device} را تا {countdown} ثانیه دیگر وارد کنید.}one{برای متصل شدن، گذرواژه نمایش‌داده‌شده در {device} را تا {countdown} ثانیه دیگر وارد کنید.}other{برای متصل شدن، گذرواژه نمایش‌داده‌شده در {device} را تا {countdown} ثانیه دیگر وارد کنید.}}"</string>
     <string name="wifi_p2p_dialog2_received_message_display_pin_countdown" msgid="1248395771858360837">"{countdown,plural, =1{‫{device} می‌خواهد با پین زیر به دستگاهتان متصل شود. تا {countdown} ثانیه دیگر برای پذیرفتن فرصت دارید.}one{‫{device} می‌خواهد با پین زیر به دستگاهتان متصل شود. تا {countdown} ثانیه دیگر برای پذیرفتن فرصت دارید.}other{‫{device} می‌خواهد با پین زیر به دستگاهتان متصل شود. تا {countdown} ثانیه دیگر برای پذیرفتن فرصت دارید.}}"</string>
     <string name="wifi_p2p_dialog2_received_message_display_password_countdown" msgid="3823408588191020986">"{countdown,plural, =1{‫{device} می‌خواهد با گذرواژه زیر به دستگاهتان متصل شود. تا {countdown} ثانیه دیگر برای پذیرفتن فرصت دارید.}one{‫{device} می‌خواهد با گذرواژه زیر به دستگاهتان متصل شود. تا {countdown} ثانیه دیگر برای پذیرفتن فرصت دارید.}other{‫{device} می‌خواهد با گذرواژه زیر به دستگاهتان متصل شود. تا {countdown} ثانیه دیگر برای پذیرفتن فرصت دارید.}}"</string>
-    <string name="wifi_p2p_dialog2_received_positive_button" msgid="6358592617824573781">"متصل شدن"</string>
+    <string name="wifi_p2p_dialog2_received_positive_button" msgid="6358592617824573781">"متصل کردن"</string>
     <string name="wifi_p2p_dialog2_received_negative_button" msgid="4762549789911681138">"لغو کردن"</string>
     <string name="wifi_p2p_dialog2_enter_pin_label" msgid="7410100924400114335">"پین"</string>
     <string name="wifi_p2p_dialog2_enter_password_label" msgid="7858587460348537230">"گذرواژه"</string>
@@ -220,7 +220,12 @@
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"جابه‌جا نشود"</string>
     <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"اتصال «<xliff:g id="APP_NAME">%1$s</xliff:g>» قطع شود؟"</string>
     <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"‏قطع کردن اتصال Wi-Fi باعث قطع شدن اتصال «<xliff:g id="APP_NAME">%1$s</xliff:g>» خواهد شد. ادامه می‌دهید؟"</string>
-    <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"‏اتصال به شبکه Wi‑Fi دیگر، باعث قطع اتصال «<xliff:g id="APP_NAME">%1$s</xliff:g>» خواهد شد. ادامه می‌دهید؟"</string>
     <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"ادامه"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"لغو"</string>
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (624715160252254674) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (534271497503164022) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_positive_button (4891994857934666730) -->
+    <skip />
 </resources>
