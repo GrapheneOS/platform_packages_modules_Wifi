@@ -8934,4 +8934,36 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         assertEquals(TEST_OTHER_USER_UID, config.lastUpdateUid);
         assertEquals(otherUser, config.getStoredCreatorUserId());
     }
+
+    @Test
+    public void testUpdateNetworkAutoJoinInAdvancedProtectionModeEnabled() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
+
+        // 1. Add a network with auto-join enabled.
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork();
+        config.setAutoJoinInAdvancedProtectionModeEnabled(true);
+        NetworkUpdateResult result = verifyAddNetworkToWifiConfigManager(config);
+        assertTrue(result.isSuccess());
+
+        WifiConfiguration retrievedConfig =
+                mWifiConfigManager.getConfiguredNetwork(result.getNetworkId());
+        assertTrue(retrievedConfig.isAutoJoinInAdvancedProtectionModeEnabled());
+
+        // 2. Update the network to disable auto-join.
+        config.setAutoJoinInAdvancedProtectionModeEnabled(false);
+        result = mWifiConfigManager.addOrUpdateNetwork(config, TEST_CREATOR_UID);
+        assertTrue(result.isSuccess());
+
+        retrievedConfig = mWifiConfigManager.getConfiguredNetwork(result.getNetworkId());
+        assertFalse(retrievedConfig.isAutoJoinInAdvancedProtectionModeEnabled());
+
+        // 3. Update the network to enable auto-join again.
+        config.setAutoJoinInAdvancedProtectionModeEnabled(true);
+        result = mWifiConfigManager.addOrUpdateNetwork(config, TEST_CREATOR_UID);
+        assertTrue(result.isSuccess());
+
+        retrievedConfig = mWifiConfigManager.getConfiguredNetwork(result.getNetworkId());
+        assertTrue(retrievedConfig.isAutoJoinInAdvancedProtectionModeEnabled());
+    }
 }
