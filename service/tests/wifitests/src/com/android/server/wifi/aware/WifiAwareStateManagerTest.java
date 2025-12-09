@@ -122,6 +122,7 @@ import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.MockResources;
 import com.android.server.wifi.WifiBaseTest;
+import com.android.server.wifi.WifiDiagnostics;
 import com.android.server.wifi.WifiGlobals;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiLockManager;
@@ -197,6 +198,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     @Mock private FeatureFlags mFeatureFlags;
     @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
     @Mock private WifiGlobals mWifiGlobals;
+    @Mock private WifiDiagnostics mMockWifiDiagnostics;
     final ArgumentCaptor<WifiSettingsConfigStore.OnSettingsChangedListener>
             mD2dAllowedSettingChangedListenerCaptor =
             ArgumentCaptor.forClass(WifiSettingsConfigStore.OnSettingsChangedListener.class);
@@ -282,6 +284,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
+        when(mWifiInjector.getWifiDiagnostics()).thenReturn(mMockWifiDiagnostics);
         when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         mDut = new WifiAwareStateManager(mWifiInjector, mPairingConfigManager);
