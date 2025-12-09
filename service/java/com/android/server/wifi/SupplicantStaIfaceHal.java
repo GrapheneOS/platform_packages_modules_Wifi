@@ -2459,12 +2459,15 @@ public class SupplicantStaIfaceHal {
         public final int maxNumPublishSessions;
         /** Maximum number of allowed subscribe sessions. */
         public final int maxNumSubscribeSessions;
+        /** Whether proximity ranging is enabled on this device. */
+        public final boolean isProximityRangingSupported;
 
         public UsdCapabilitiesInternal(boolean isUsdPublisherSupported,
                 boolean isUsdSubscriberSupported,
                 int maxLocalSsiLengthBytes, int maxServiceNameLengthBytes,
                 int maxMatchFilterLengthBytes,
-                int maxNumPublishSessions, int maxNumSubscribeSessions) {
+                int maxNumPublishSessions, int maxNumSubscribeSessions,
+                boolean isProximityRangingSupported) {
             this.isUsdPublisherSupported = isUsdPublisherSupported;
             this.isUsdSubscriberSupported = isUsdSubscriberSupported;
             this.maxLocalSsiLengthBytes = maxLocalSsiLengthBytes;
@@ -2472,6 +2475,7 @@ public class SupplicantStaIfaceHal {
             this.maxMatchFilterLengthBytes = maxMatchFilterLengthBytes;
             this.maxNumPublishSessions = maxNumPublishSessions;
             this.maxNumSubscribeSessions = maxNumSubscribeSessions;
+            this.isProximityRangingSupported = isProximityRangingSupported;
         }
 
         public UsdCapabilitiesInternal() {
@@ -2482,6 +2486,7 @@ public class SupplicantStaIfaceHal {
             this.maxMatchFilterLengthBytes = 0;
             this.maxNumPublishSessions = 0;
             this.maxNumSubscribeSessions = 0;
+            this.isProximityRangingSupported = false;
         }
     }
 

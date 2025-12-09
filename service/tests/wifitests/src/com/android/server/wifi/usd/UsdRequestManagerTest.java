@@ -130,7 +130,7 @@ public class UsdRequestManagerTest extends WifiBaseTest {
 
     private UsdCapabilitiesInternal getMockUsdCapabilities() {
         return new UsdCapabilitiesInternal(true, true, 1024, 255,
-                255, 1, 1);
+                255, 1, 1, false);
     }
 
     /**
@@ -277,7 +277,7 @@ public class UsdRequestManagerTest extends WifiBaseTest {
     @Test
     public void testUsdSubscribeFailureWhenUnsupported() throws RemoteException {
         when(mWifiNative.getUsdCapabilities()).thenReturn(new UsdCapabilitiesInternal(false,
-                true, 1024, 255, 255, 1, 1));
+                true, 1024, 255, 255, 1, 1, false));
         mUsdRequestManager.getCharacteristics();
         SubscribeConfig subscribeConfig = new SubscribeConfig.Builder(USD_TEST_SERVICE_NAME)
                 .setQueryPeriodMillis(USD_TEST_PERIOD_MILLIS)
@@ -299,7 +299,7 @@ public class UsdRequestManagerTest extends WifiBaseTest {
     @Test
     public void testUsdPublishFailureWhenUnsupported() throws RemoteException {
         when(mWifiNative.getUsdCapabilities()).thenReturn(new UsdCapabilitiesInternal(true,
-                false, 1024, 255, 255, 1, 1));
+                false, 1024, 255, 255, 1, 1, false));
         mUsdRequestManager.getCharacteristics();
         PublishConfig publishConfig = new PublishConfig.Builder(USD_TEST_SERVICE_NAME)
                 .setAnnouncementPeriodMillis(USD_TEST_PERIOD_MILLIS)

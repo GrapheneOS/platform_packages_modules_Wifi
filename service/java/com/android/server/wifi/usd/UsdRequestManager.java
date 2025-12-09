@@ -405,6 +405,9 @@ public class UsdRequestManager {
                     mUsdCapabilities.maxMatchFilterLengthBytes);
             bundle.putInt(Characteristics.KEY_MAX_SERVICE_NAME_LENGTH,
                     mUsdCapabilities.maxServiceNameLengthBytes);
+            bundle.putBoolean(
+                    Characteristics.KEY_BOOLEAN_FINDING_PROXIMITY_DETECTION_DEVICES_SUPPORTED,
+                    mUsdCapabilities.isProximityRangingSupported);
         }
         return new Characteristics(bundle);
     }

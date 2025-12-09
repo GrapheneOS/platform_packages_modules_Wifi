@@ -272,6 +272,7 @@ public class WifiNativeTest extends WifiBaseTest {
     private static final int USD_MAX_MATCH_FILTER_LEN = 255;
     private static final int USD_MAX_NUM_PUBLISH_SESSIONS = 10;
     private static final int USD_MAX_NUM_SUBSCRIBE_SESSIONS = 10;
+    private static final boolean USD_RANGING_SUPPORTED = false;
 
     MockResources mResources;
 
@@ -2072,7 +2073,8 @@ public class WifiNativeTest extends WifiBaseTest {
         SupplicantStaIfaceHal.UsdCapabilitiesInternal usdCapabilities =
                 new SupplicantStaIfaceHal.UsdCapabilitiesInternal(true, true, USD_MAX_SSI_LEN,
                         USD_MAX_SERVICE_NAME_LEN, USD_MAX_MATCH_FILTER_LEN,
-                        USD_MAX_NUM_PUBLISH_SESSIONS, USD_MAX_NUM_SUBSCRIBE_SESSIONS);
+                        USD_MAX_NUM_PUBLISH_SESSIONS, USD_MAX_NUM_SUBSCRIBE_SESSIONS,
+                        USD_RANGING_SUPPORTED);
 
         when(mStaIfaceHal.getUsdCapabilities(WIFI_IFACE_NAME)).thenReturn(usdCapabilities);
         mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,
@@ -2092,7 +2094,8 @@ public class WifiNativeTest extends WifiBaseTest {
         SupplicantStaIfaceHal.UsdCapabilitiesInternal usdCapabilities =
                 new SupplicantStaIfaceHal.UsdCapabilitiesInternal(true, true, USD_MAX_SSI_LEN,
                         USD_MAX_SERVICE_NAME_LEN, USD_MAX_MATCH_FILTER_LEN,
-                        USD_MAX_NUM_PUBLISH_SESSIONS, USD_MAX_NUM_SUBSCRIBE_SESSIONS);
+                        USD_MAX_NUM_PUBLISH_SESSIONS, USD_MAX_NUM_SUBSCRIBE_SESSIONS,
+                        USD_RANGING_SUPPORTED);
 
         when(mStaIfaceHal.getUsdCapabilities(WIFI_IFACE_NAME)).thenReturn(usdCapabilities);
         mWifiNative.setupInterfaceForClientInScanMode(null, TEST_WORKSOURCE,

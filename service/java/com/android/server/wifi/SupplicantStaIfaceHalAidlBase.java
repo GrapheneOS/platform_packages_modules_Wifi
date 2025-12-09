@@ -83,6 +83,7 @@ import android.hardware.wifi.supplicant.UsdPublishConfig;
 import android.hardware.wifi.supplicant.UsdPublishTransmissionType;
 import android.hardware.wifi.supplicant.UsdServiceProtoType;
 import android.hardware.wifi.supplicant.UsdSubscribeConfig;
+import android.hardware.wifi.supplicant.DeviceIdentityKey;
 import android.hardware.wifi.supplicant.WifiChannelWidthInMhz;
 import android.hardware.wifi.supplicant.WifiTechnology;
 import android.hardware.wifi.supplicant.WpaDriverCapabilitiesMask;
@@ -99,7 +100,6 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiKeystore;
 import android.net.wifi.WifiMigration;
 import android.net.wifi.WifiSsid;
-import android.net.wifi.flags.Flags;
 import android.net.wifi.usd.Config;
 import android.net.wifi.usd.PublishConfig;
 import android.net.wifi.usd.SubscribeConfig;
@@ -158,6 +158,10 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
      */
     private static final Pattern WPS_DEVICE_TYPE_PATTERN =
             Pattern.compile("^(\\d{1,2})-([0-9a-fA-F]{8})-(\\d{1,2})$");
+    private static final boolean IS_PROXIMITY_RANGING_IMPL =
+            com.android.wifi.flags.Flags.proximityRangingImpl();
+    private static final boolean IS_LEGACY_KEYSTORE_MIGRATION_READ_ONLY =
+            android.net.wifi.flags.Flags.legacyKeystoreToWifiBlobstoreMigrationReadOnly();
 
     protected final Object mLock = new Object();
     protected boolean mVerboseLoggingEnabled = false;
@@ -4038,7 +4042,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
             }
 
             if (!mHasMigratedLegacyKeystoreAliases && Environment.isSdkAtLeastB()
-                    && Flags.legacyKeystoreToWifiBlobstoreMigrationReadOnly()) {
+                && IS_LEGACY_KEYSTORE_MIGRATION_READ_ONLY) {
                 if (mKeystoreMigrationStatusConsumer == null) {
                     // Create global callback temporarily for access in the unit tests
                     mKeystoreMigrationStatusConsumer = new KeystoreMigrationStatusConsumer();
@@ -4110,7 +4114,8 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
                         usdCapabilities.maxServiceNameLengthBytes,
                         usdCapabilities.maxMatchFilterLengthBytes,
                         usdCapabilities.maxNumPublishSessions,
-                        usdCapabilities.maxNumSubscribeSessions);
+                        usdCapabilities.maxNumSubscribeSessions,
+                        usdCapabilities.isProximityRangingSupported);
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
             } catch (ServiceSpecificException e) {
@@ -4143,16 +4148,31 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
         }
     }
 
+    @SuppressLint("NewApi")
     private UsdPublishConfig frameworkToHalPublishConfig(PublishConfig frameworkConfig) {
         UsdPublishConfig aidlConfig = new UsdPublishConfig();
-        // USD publisher is always solicited and unsolicited.
-        aidlConfig.publishType = UsdPublishConfig.PublishType.SOLICITED_AND_UNSOLICITED;
         // USD has FSD enabled always.
         aidlConfig.isFsd = true;
         aidlConfig.transmissionType = frameworkToHalTransmissionType(
                 frameworkConfig.getSolicitedTransmissionType());
         aidlConfig.announcementPeriodMillis = frameworkConfig.getAnnouncementPeriodMillis();
+        aidlConfig.publishType =
+                    UsdPublishConfig.PublishType.SOLICITED_AND_UNSOLICITED;
         aidlConfig.usdBaseConfig = new UsdBaseConfig();
+        if (IS_PROXIMITY_RANGING_IMPL && Environment.isSdkNewerThanB()) {
+            aidlConfig.publishType =
+                    frameworkToHalPublishType(frameworkConfig.getPublishType());
+            if (mIsUsingMainlineSupplicant || isServiceVersionAtLeast(5)) {
+                aidlConfig.usdBaseConfig.isRangingEnabled =
+                    frameworkConfig.isProximityRangingEnabled();
+                aidlConfig.usdBaseConfig.selfDevIk = new DeviceIdentityKey();
+                aidlConfig.usdBaseConfig.selfDevIk.data =
+                    frameworkConfig.getSelfDeviceIdentityKey() != null
+                    ? frameworkConfig.getSelfDeviceIdentityKey() : new byte[0];
+                aidlConfig.usdBaseConfig.peerDevIks = frameworkToHalDeviceIdentityKeyArray(
+                        frameworkConfig.getPeerDeviceIdentityKeys());
+            }
+        }
         aidlConfig.usdBaseConfig.ttlSec = frameworkConfig.getTtlSeconds();
         int[] freqs = frameworkConfig.getOperatingFrequenciesMhz();
         aidlConfig.usdBaseConfig.defaultFreqMhz = (freqs == null) ? 2437 : freqs[0];
@@ -4170,6 +4190,30 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
         aidlConfig.usdBaseConfig.serviceProtoType = frameworkToHalProtoType(
                 frameworkConfig.getServiceProtoType());
         return aidlConfig;
+    }
+
+    private static DeviceIdentityKey[] frameworkToHalDeviceIdentityKeyArray(
+            List<byte[]> frameworkDevIkList) {
+        if (frameworkDevIkList == null || frameworkDevIkList.isEmpty()) {
+            return new DeviceIdentityKey[0];
+        }
+        DeviceIdentityKey[] halDevIkArray = new DeviceIdentityKey[frameworkDevIkList.size()];
+        for (int i = 0; i < frameworkDevIkList.size(); i++) {
+            DeviceIdentityKey halDevIk = new DeviceIdentityKey();
+            halDevIk.data = frameworkDevIkList.get(i);
+            halDevIkArray[i] = halDevIk;
+        }
+        return halDevIkArray;
+    }
+
+    private static byte frameworkToHalPublishType(@Config.PublishType int publishType) {
+        if (publishType == Config.PUBLISH_TYPE_SOLICITED) {
+            return UsdPublishConfig.PublishType.SOLICITED_ONLY;
+        } else if (publishType == Config.PUBLISH_TYPE_UNSOLICITED) {
+            return UsdPublishConfig.PublishType.UNSOLICITED_ONLY;
+        } else {
+            return UsdPublishConfig.PublishType.SOLICITED_AND_UNSOLICITED;
+        }
     }
 
     private static int frameworkToHalTransmissionType(
@@ -4211,28 +4255,47 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
         return false;
     }
 
+    @SuppressLint("NewApi")
     private UsdSubscribeConfig frameworkToHalSubscribeConfig(SubscribeConfig frameworkConfig) {
-        UsdSubscribeConfig aidlconfig = new UsdSubscribeConfig();
-        aidlconfig.subscribeType = frameworkToHalSubscriberType(frameworkConfig.getSubscribeType());
-        aidlconfig.queryPeriodMillis = frameworkConfig.getQueryPeriodMillis();
-        aidlconfig.usdBaseConfig = new UsdBaseConfig();
-        aidlconfig.usdBaseConfig.ttlSec = frameworkConfig.getTtlSeconds();
+        UsdSubscribeConfig aidlConfig = new UsdSubscribeConfig();
+        aidlConfig.subscribeType = frameworkToHalSubscriberType(frameworkConfig.getSubscribeType());
+        aidlConfig.queryPeriodMillis = frameworkConfig.getQueryPeriodMillis();
+        aidlConfig.usdBaseConfig = new UsdBaseConfig();
+        aidlConfig.usdBaseConfig.serviceName = Arrays.toString(frameworkConfig.getServiceName());
+        if (IS_PROXIMITY_RANGING_IMPL) {
+            if (Environment.isSdkNewerThanB() &&
+                (mIsUsingMainlineSupplicant || isServiceVersionAtLeast(5))) {
+                aidlConfig.usdBaseConfig.isRangingEnabled =
+                    frameworkConfig.isProximityRangingEnabled();
+                aidlConfig.usdBaseConfig.selfDevIk = new DeviceIdentityKey();
+                aidlConfig.usdBaseConfig.selfDevIk.data =
+                    frameworkConfig.getSelfDeviceIdentityKey() != null
+                    ? frameworkConfig.getSelfDeviceIdentityKey() : new byte[0];
+                aidlConfig.usdBaseConfig.peerDevIks = frameworkToHalDeviceIdentityKeyArray(
+                    frameworkConfig.getPeerDeviceIdentityKeys());
+            }
+            // Handle SERVICE_NAME_ANY special case
+            if (Config.SERVICE_NAME_ANY.equals(
+                    Arrays.toString(frameworkConfig.getServiceName()))) {
+                aidlConfig.usdBaseConfig.serviceName = "";
+            }
+        }
+        aidlConfig.usdBaseConfig.ttlSec = frameworkConfig.getTtlSeconds();
         int[] freqs = frameworkConfig.getOperatingFrequenciesMhz();
-        aidlconfig.usdBaseConfig.defaultFreqMhz = (freqs == null) ? 2437 : freqs[0];
-        aidlconfig.usdBaseConfig.freqsMhz =
+        aidlConfig.usdBaseConfig.defaultFreqMhz = (freqs == null) ? 2437 : freqs[0];
+        aidlConfig.usdBaseConfig.freqsMhz =
                 (freqs == null || freqs.length <= 1) ? new int[0] : Arrays.copyOfRange(freqs, 1,
                         freqs.length);
-        aidlconfig.usdBaseConfig.serviceName = Arrays.toString(frameworkConfig.getServiceName());
-        aidlconfig.usdBaseConfig.serviceSpecificInfo =
+        aidlConfig.usdBaseConfig.serviceSpecificInfo =
                 frameworkConfig.getServiceSpecificInfo() != null
                         ? frameworkConfig.getServiceSpecificInfo() : new byte[0];
-        aidlconfig.usdBaseConfig.rxMatchFilter = frameworkConfig.getRxMatchFilterTlv() != null
+        aidlConfig.usdBaseConfig.rxMatchFilter = frameworkConfig.getRxMatchFilterTlv() != null
                 ? frameworkConfig.getRxMatchFilterTlv() : new byte[0];
-        aidlconfig.usdBaseConfig.txMatchFilter = frameworkConfig.getTxMatchFilterTlv() != null
+        aidlConfig.usdBaseConfig.txMatchFilter = frameworkConfig.getTxMatchFilterTlv() != null
                 ? frameworkConfig.getTxMatchFilterTlv() : new byte[0];
-        aidlconfig.usdBaseConfig.serviceProtoType = frameworkToHalProtoType(
+        aidlConfig.usdBaseConfig.serviceProtoType = frameworkToHalProtoType(
                 frameworkConfig.getServiceProtoType());
-        return aidlconfig;
+        return aidlConfig;
     }
 
     private byte frameworkToHalSubscriberType(int subscribeType) {
