@@ -5189,6 +5189,35 @@ public class WifiConfigManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Verifies that the method resetSimNetworks removes passpoint networks.
+     */
+    @Test
+    public void testResetSimNetworksRemovesPasspoint() throws Exception {
+        when(mDataTelephonyManager.getSubscriberId()).thenReturn("3214561234567890");
+        when(mDataTelephonyManager.getSimApplicationState())
+                .thenReturn(TelephonyManager.SIM_STATE_LOADED);
+        when(mDataTelephonyManager.getSimOperator()).thenReturn("321456");
+        when(mDataTelephonyManager.getCarrierInfoForImsiEncryption(anyInt())).thenReturn(null);
+        List<SubscriptionInfo> subList = List.of(mock(SubscriptionInfo.class));
+        when(mSubscriptionManager.getCompleteActiveSubscriptionInfoList()).thenReturn(subList);
+        when(mSubscriptionManager.getActiveSubscriptionIdList())
+                .thenReturn(new int[]{DATA_SUBID});
+
+        WifiConfiguration passpointNetwork = WifiConfigurationTestUtil.createPasspointNetwork();
+        // Make it SIM based
+        passpointNetwork.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.SIM);
+        passpointNetwork.enterpriseConfig.setPhase2Method(WifiEnterpriseConfig.Phase2.NONE);
+
+        verifyAddPasspointNetworkToWifiConfigManager(passpointNetwork);
+
+        // SIM was removed, resetting SIM Networks
+        mWifiConfigManager.resetSimNetworks();
+
+        // Verify passpoint network is removed
+        assertNull(mWifiConfigManager.getConfiguredNetwork(passpointNetwork.networkId));
+    }
+
+    /**
      * {@link WifiConfigManager#resetSimNetworks()} should reset all non-PEAP SIM networks, no
      * matter if {@link WifiCarrierInfoManager#getSimIdentity()} returns null or not.
      */
