@@ -3572,7 +3572,7 @@ public class WifiConfigManager {
                     || !config.enterpriseConfig.isAuthenticationSimBased()) {
                 continue;
             }
-            if (config.ephemeral) {
+            if (config.ephemeral || config.isPasspoint()) {
                 removeNetwork(config.networkId, config.creatorUid, config.creatorName);
                 continue;
             }
