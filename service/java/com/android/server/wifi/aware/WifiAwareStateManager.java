@@ -4106,6 +4106,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusCode.INTERNAL_FAILURE,
                     true, client.mCallerType, client.mCallingFeatureId);
+            mWifiInjector.getWifiDiagnostics().takeBugReport("WifiAware BugReport:",
+                    "Aware publish failed");
         }
 
         return success;
@@ -4180,6 +4182,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             mAwareMetrics.recordDiscoveryStatus(client.getUid(), NanStatusCode.INTERNAL_FAILURE,
                     false, client.mCallerType, client.mCallingFeatureId);
+            mWifiInjector.getWifiDiagnostics().takeBugReport("WifiAware BugReport:",
+                    "Aware subscribe failed");
         }
 
         return success;
