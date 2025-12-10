@@ -45,6 +45,7 @@ import java.io.OutputStream;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -696,7 +697,8 @@ public class ConnectivityManagerSnippet implements Snippet {
         NetworkCallback callback = mNetworkCallBacks.get(sessionId);
         if (callback == null) {
             throw new ConnectivityManagerSnippetException("Network callback is not created.Please "
-                + "call connectivityRequestNetwork() first.");
+                + "call connectivityRequestNetwork()/connectivityRegisterNetworkCallback() to get "
+                + "the network callback first.");
         }
         return callback;
     }
@@ -822,5 +824,39 @@ public class ConnectivityManagerSnippet implements Snippet {
     @Rpc(description = "Check if tethering supported or not.True if tethering is supported.")
     public boolean connectivityIsTetheringSupported() {
         return mConnectivityManager.isTetheringSupported();
+    }
+
+   /**
+    * Check if the given network has Internet access.
+    *
+    * @param sessionId A unique ID corresponding to a registered NetworkCallback session, used to
+    *     retrieve the bound Network object.
+    * @param host The target host, which accepts IP address or a domain name.
+    * @param port The port number on the host to connect to.
+    * @param timeoutMs The maximum time in milliseconds to wait for the connection to succeed.
+    * @return {@code true} if a connection is successfully established.
+    * @throws ConnectivityManagerSnippetException if the NetworkCallback is not found.
+    */
+    @Rpc(description = "Check if the given network has Internet access.")
+    public boolean checkInternetAccess(String sessionId, String host, int port, int timeoutMs)
+            throws ConnectivityManagerSnippetException {
+
+        Network network = getNetWorkCallbackBySessionId(sessionId).mNetWork;
+
+        if (network == null) {
+            Log.e("Network object is null for session: " + sessionId);
+            return false;
+        }
+
+        try (Socket socket = network.getSocketFactory().createSocket()) {
+            if (socket == null) {
+                return false;
+            }
+            socket.connect(new InetSocketAddress(host, port), timeoutMs);
+            return true;
+        } catch (Exception e) {
+            Log.e("CheckInternetAccess: Hit an error during network check", e);
+            return false;
+        }
     }
 }
