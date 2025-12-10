@@ -21,7 +21,6 @@ python_test_host {
     name: "WifiIntegrationMobilityTest",
     main: "wifi_mobility_test.py",
     srcs: ["wifi_mobility_test.py"],
-    test_config: "AndroidTest.xml",
     libs: [
         "mobly",
         "wifi_test_utils",
