@@ -777,7 +777,7 @@ public class WifiAwareDataPathStateManager {
         int index = networkInterface == null ? 0 : networkInterface.getIndex();
         byte[] msg = createAddNeighborRtNetlinkNeighborMessage(index, ndpInfo.peerIpv6, mac);
         try {
-            NetlinkUtils.sendOneShotKernelMessage(NETLINK_ROUTE, msg);
+            NetlinkUtils.sendOneShotKernelMessage(NETLINK_ROUTE, msg, NetlinkUtils.IO_TIMEOUT_MS);
         } catch (ErrnoException e) {
             Log.e(TAG, "Add IPv6 neighbor failed: " + e);
         }
