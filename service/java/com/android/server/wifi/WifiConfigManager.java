@@ -1401,6 +1401,11 @@ public class WifiConfigManager {
         }
 
         internalConfig.allowAutojoin = externalConfig.allowAutojoin;
+        if (Environment.isSdkNewerThanB()
+                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+            internalConfig.setAutoJoinInAdvancedProtectionModeEnabled(
+                    externalConfig.isAutoJoinInAdvancedProtectionModeEnabled());
+        }
         // Copy over the |WifiEnterpriseConfig| parameters if set. For fields which should
         // only be set by the framework, cache the internal config's value and restore.
         if (externalConfig.enterpriseConfig != null) {
@@ -3567,7 +3572,7 @@ public class WifiConfigManager {
                     || !config.enterpriseConfig.isAuthenticationSimBased()) {
                 continue;
             }
-            if (config.ephemeral) {
+            if (config.ephemeral || config.isPasspoint()) {
                 removeNetwork(config.networkId, config.creatorUid, config.creatorName);
                 continue;
             }

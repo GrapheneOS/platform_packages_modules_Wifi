@@ -3263,6 +3263,9 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
      */
     @Test
     public void testGetConnectionMloLinksInfo() throws Exception {
+        // Mock the service version to be at least 5.
+        when(mISupplicantMock.getInterfaceVersion()).thenReturn(5);
+        assertTrue(mDut.startDaemon()); // retrieves and caches the interface version
         final int mDownlinkTid = 3;
         final int mUplinkTid = 6;
         // initialize MLO Links

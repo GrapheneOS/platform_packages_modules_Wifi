@@ -220,7 +220,12 @@
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"ຢ່າສະຫຼັບ"</string>
     <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"ຕັດການເຊື່ອມຕໍ່ <xliff:g id="APP_NAME">%1$s</xliff:g> ບໍ?"</string>
     <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"ການຕັດການເຊື່ອມຕໍ່ Wi‑Fi ຈະເຮັດໃຫ້ <xliff:g id="APP_NAME">%1$s</xliff:g> ຕັດການເຊື່ອມຕໍ່. ສືບຕໍ່ບໍ?"</string>
-    <string name="wifi_disconnect_dialog_new_connection_message" msgid="8091261552122047303">"ການເຊື່ອມຕໍ່ກັບເຄືອຂ່າຍ Wi‑Fi ອື່ນຈະເຮັດໃຫ້ <xliff:g id="APP_NAME">%1$s</xliff:g> ຍົກເລີກການເຊື່ອມຕໍ່. ດຳເນີນການຕໍ່ບໍ?"</string>
     <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"ສືບຕໍ່"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"ຍົກເລີກ"</string>
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (624715160252254674) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (534271497503164022) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_positive_button (4891994857934666730) -->
+    <skip />
 </resources>

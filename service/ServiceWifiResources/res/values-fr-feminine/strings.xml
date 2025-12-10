@@ -19,4 +19,5 @@
   <string-array name="wifi_eap_error_message_code_32763_carrier_overrides">
     <item msgid="591026649262091217">"<xliff:g id="CARRIER_ID_PREFIX">:::1839:::</xliff:g> <xliff:g id="SSID">%1$s</xliff:g> : vous êtes déjà connectée à Verizon Wi-Fi Access. (Erreur 32763)"</item>
   </string-array>
+    <string name="wifi_ca_cert_dialog_preT_continue_text" msgid="9118713368838029797">"Rester connectée"</string>
 </resources>
