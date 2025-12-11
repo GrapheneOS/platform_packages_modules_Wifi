@@ -40,49 +40,74 @@ public final class AwarePairingConfig implements Parcelable {
 
     /**
      * Aware Pairing bootstrapping method opportunistic
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
      */
     public static final int PAIRING_BOOTSTRAPPING_OPPORTUNISTIC = 1 << 0;
 
     /**
      * Aware Pairing bootstrapping method pin-code display
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
      */
     public static final int PAIRING_BOOTSTRAPPING_PIN_CODE_DISPLAY = 1 << 1;
 
     /**
      * Aware Pairing bootstrapping method passphrase display
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
      */
     public static final int PAIRING_BOOTSTRAPPING_PASSPHRASE_DISPLAY = 1 << 2;
 
     /**
      * Aware Pairing bootstrapping method QR-code display
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
      */
     public static final int PAIRING_BOOTSTRAPPING_QR_DISPLAY = 1 << 3;
 
     /**
      * Aware Pairing bootstrapping method NFC tag
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
      */
     public static final int PAIRING_BOOTSTRAPPING_NFC_TAG = 1 << 4;
     /**
      * Aware Pairing bootstrapping method pin-code keypad
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
      */
     public static final int PAIRING_BOOTSTRAPPING_PIN_CODE_KEYPAD = 1 << 5;
     /**
      * Aware Pairing bootstrapping method passphrase keypad
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
      */
     public static final int PAIRING_BOOTSTRAPPING_PASSPHRASE_KEYPAD = 1 << 6;
     /**
      * Aware Pairing bootstrapping method QR-code scan
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
      */
     public static final int PAIRING_BOOTSTRAPPING_QR_SCAN = 1 << 7;
     /**
      * Aware Pairing bootstrapping method NFC reader
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
      */
     public static final int PAIRING_BOOTSTRAPPING_NFC_READER = 1 << 8;
+    /**
+     * Aware Pairing bootstrapping method service managed.
+     * The bootstrapping is entirely managed and executed by the application and is transparent to
+     * the framework.
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
+     */
+    @FlaggedApi(Flags.FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
+    public static final int PAIRING_BOOTSTRAPPING_SERVICE_MANAGED = 1 << 14;
+    /**
+     * Aware Pairing bootstrapping method skipped.
+     * Device acquires the pairing credential by means out of scope of the Aware specification and
+     * does not need the pairing bootstrapping handshakes.
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 9.5.21.7
+     */
+    @FlaggedApi(Flags.FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
+    public static final int PAIRING_BOOTSTRAPPING_SKIPPED = 1 << 15;
     /**
      * This is used for the boundary check and should be the max value of the bitmap + 1.
      * @hide
      */
-    public static final int PAIRING_BOOTSTRAPPING_MAX = 1 << 9;
+    public static final int PAIRING_BOOTSTRAPPING_MAX = 1 << 16;
 
 
     /** @hide */
@@ -95,7 +120,9 @@ public final class AwarePairingConfig implements Parcelable {
             PAIRING_BOOTSTRAPPING_PIN_CODE_KEYPAD,
             PAIRING_BOOTSTRAPPING_PASSPHRASE_KEYPAD,
             PAIRING_BOOTSTRAPPING_QR_SCAN,
-            PAIRING_BOOTSTRAPPING_NFC_READER
+            PAIRING_BOOTSTRAPPING_NFC_READER,
+            PAIRING_BOOTSTRAPPING_SERVICE_MANAGED,
+            PAIRING_BOOTSTRAPPING_SKIPPED
 
     })
     @Retention(RetentionPolicy.SOURCE)
