@@ -213,9 +213,11 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                 mStateBeforeDisconnect = newState;
             }
 
-            if (newState == StaIfaceCallbackState.ASSOCIATING
+            if (newState == StaIfaceCallbackState.AUTHENTICATING
+                    || newState == StaIfaceCallbackState.ASSOCIATING
                     || newState == StaIfaceCallbackState.ASSOCIATED
                     || newState == StaIfaceCallbackState.COMPLETED) {
+                mCurrentSsid = wifiSsid.toString();
                 mStaIfaceHal.updateOnLinkedNetworkRoaming(mIfaceName, id, false);
             }
 
@@ -223,9 +225,6 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
                 mWifiMonitor.broadcastNetworkConnectionEvent(
                         mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), filsHlpSent,
                         wifiSsid, bssidStr, keyMgmtMask);
-            } else if (newState == StaIfaceCallbackState.AUTHENTICATING
-                    || newState == StaIfaceCallbackState.ASSOCIATING) {
-                mCurrentSsid = wifiSsid.toString();
             }
             mWifiMonitor.broadcastSupplicantStateChangeEvent(
                     mIfaceName, mStaIfaceHal.getCurrentNetworkId(mIfaceName), wifiSsid,
