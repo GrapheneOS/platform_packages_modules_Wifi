@@ -1401,8 +1401,7 @@ public class WifiConfigManager {
         }
 
         internalConfig.allowAutojoin = externalConfig.allowAutojoin;
-        if (Environment.isSdkNewerThanB()
-                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+        if (android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
             internalConfig.setAutoJoinInAdvancedProtectionModeEnabled(
                     externalConfig.isAutoJoinInAdvancedProtectionModeEnabled());
         }
