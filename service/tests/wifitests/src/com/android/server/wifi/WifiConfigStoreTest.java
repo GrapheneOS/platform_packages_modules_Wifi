@@ -29,7 +29,6 @@ import android.content.pm.PackageManager;
 import android.net.MacAddress;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiMigration;
-import android.net.wifi.util.Environment;
 import android.net.wifi.util.HexEncoding;
 import android.os.UserHandle;
 import android.os.test.TestLooper;
@@ -495,8 +494,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
         if (Flags.multiUserWifiEnhancement()) {
             sbuf.append("<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"false\" />\n");
         }
-        if (Environment.isSdkNewerThanB()
-                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+        if (android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
             sbuf.append(
                     "<boolean name=\"AllowedAutoJoinInAdvancedProtection\" value=\"false\" />\n");
         }
@@ -547,8 +545,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                 openNetwork.setCreatorUserId(10);
                 openNetwork.setAllowedToUpdateByOtherUsers(false);
             }
-            if (Environment.isSdkNewerThanB()
-                    && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+            if (android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
                 openNetwork.setAutoJoinInAdvancedProtectionModeEnabled(false);
             }
             userConfigs.clear();
