@@ -3379,6 +3379,40 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     return 0;
                 }
+                case "register-nl80211-cc-listener": {
+                    boolean useNl80211Override = false;
+                    String option = getNextOption();
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+
+                    Nl80211Native.CountryCodeChangedListener listener =
+                            countryCode -> {
+                                pw.println("Country code changed to " + countryCode);
+                                pw.flush();
+                            };
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        if (!mNl80211Native.registerCountryCodeChangedListener(
+                                Runnable::run, listener)) {
+                            pw.println("Failed to register country code listener");
+                            return -1;
+                        }
+                        CountDownLatch latch = new CountDownLatch(1);
+                        pw.println("Country code listener registered. Press Ctrl-C to exit.");
+                        pw.flush();
+                        // Wait indefinitely until the user cancels.
+                        latch.await();
+                    } finally {
+                        mNl80211Native.unregisterCountryCodeChangedListener(listener);
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -4642,6 +4676,10 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("    -n Use direct nl80211 implementation instead of wificond.");
         pw.println("  register-nl80211-ap-callback <iface> [-n]");
         pw.println("    Sets up an AP interface and registers a callback to listen for AP events.");
+        pw.println("    -n Use direct nl80211 implementation instead of wificond.");
+        pw.println("  register-nl80211-cc-listener [-n]");
+        pw.println("    Registers an Nl80211Native country code changed listener and continuously"
+                + " outputs listener events.");
         pw.println("    -n Use direct nl80211 implementation instead of wificond.");
     }
 

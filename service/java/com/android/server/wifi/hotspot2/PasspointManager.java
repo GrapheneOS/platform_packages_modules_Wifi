@@ -1348,6 +1348,8 @@ public class PasspointManager {
                 pw.println("ProviderId:" + passpointProvider.getProviderId());
                 pw.println("PackageName:" + passpointProvider.getPackageName());
                 PasspointConfiguration passpointConfiguration = passpointProvider.getConfig();
+                pw.println("CarrierId:" + passpointConfiguration.getCarrierId());
+                pw.println("SubscriptionId:" + passpointConfiguration.getSubscriptionId());
                 pw.println("FQDN:" + passpointConfiguration.getHomeSp().getFqdn());
                 pw.println("Realm:" + passpointConfiguration.getCredential().getRealm());
                 SimCredential simCredential =

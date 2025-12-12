@@ -19,6 +19,8 @@ package com.android.server.wifi.nl80211;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_CHANNEL_WIDTH;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_ALPHA2;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_TYPE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_FREQ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_160;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_20;
@@ -33,9 +35,15 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DEL_S
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DISASSOCIATE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_STATION;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_REG_CHANGE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCAN_ABORTED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_STOPPED;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_WIPHY_REG_CHANGE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_COUNTRY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_CUSTOM_WORLD;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_INTERSECTION;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_WORLD;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -60,6 +68,7 @@ import com.android.server.wifi.util.NetdWrapper;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -92,7 +101,7 @@ public class Nl80211Native {
         public boolean scanning;
         public boolean pnoScanStarted;
         public int enodevCounter;
-        public final Nl80211Utils.WiphyInfo wiphyInfo;
+        public Nl80211Utils.WiphyInfo wiphyInfo;
         public final @NonNull Executor scanCallbackExecutor;
         public final @NonNull ScanEventCallback scanEventCallback;
         public final @NonNull ScanEventCallback pnoScanEventCallback;
@@ -135,10 +144,14 @@ public class Nl80211Native {
     private final boolean mUseWificond;
     private boolean mUseNl80211Override;
     private boolean mIsInitialized;
-    private final Map<String, Integer> mActiveIfaceToWiphyIndex = new ArrayMap<>();
-    private final SparseIntArray mBandToWiphyIndex = new SparseIntArray();
-    private final Map<String, ClientInterfaceInfo> mClientInterfaceInfos = new ArrayMap<>();
-    private final Map<String, ApInterfaceInfo> mApInterfaceInfos = new ArrayMap<>();
+    private final @NonNull  Map<String, Integer> mActiveIfaceToWiphyIndex = new ArrayMap<>();
+    private final @NonNull SparseIntArray mBandToWiphyIndex = new SparseIntArray();
+    private final @NonNull Map<String, ClientInterfaceInfo> mClientInterfaceInfos =
+            new ArrayMap<>();
+    private final @NonNull Map<String, ApInterfaceInfo> mApInterfaceInfos = new ArrayMap<>();
+    private @NonNull String mCountryCode = "";
+    private final @NonNull Map<CountryCodeChangedListener, Executor> mCountryCodeChangedListeners =
+            new ArrayMap<>();
 
     private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mNewScanResultsCallback =
             (command, message) -> {
@@ -333,6 +346,8 @@ public class Nl80211Native {
                                 convertNl80211ChannelWidthToSoftApInfoChannelWidth(channelWidth)));
             };
 
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mRegChangedCallback;
+
     private int convertNl80211ChannelWidthToSoftApInfoChannelWidth(int nl80211ChannelWidth) {
         // Convert enum nl80211_chan_width to enum ChannelBandwidth
         switch (nl80211ChannelWidth) {
@@ -455,6 +470,66 @@ public class Nl80211Native {
         mWifiInjector = wifiInjector;
         mUseWificond = useWificond;
         Log.i(TAG, "useWificond: " + useWificond);
+
+        // Initialize mRegChangedCallback here so we can safely use mNl80211Utils.
+        mRegChangedCallback =
+                (command, message) -> {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "Received NL80211 broadcast: " + message);
+                    }
+
+                    Byte regType = message.getAttributeValueAsByte(NL80211_ATTR_REG_TYPE);
+                    if (regType == null) {
+                        Log.e(TAG, "Failed to get NL80211_ATTR_REG_TYPE");
+                        return;
+                    }
+
+                    String countryCode;
+                    switch (regType) {
+                        case NL80211_REGDOM_TYPE_COUNTRY -> {
+                            countryCode =
+                                    message.getAttributeValueAsString(NL80211_ATTR_REG_ALPHA2);
+                            if (countryCode == null) {
+                                Log.e(TAG, "Failed to get NL80211_ATTR_REG_ALPHA2");
+                                return;
+                            }
+
+                            if (!countryCode.equals(mCountryCode)) {
+                                mCountryCode = countryCode;
+                                notifyCountryCodeChangedListeners(countryCode);
+                            }
+                            updateIfaceInfoAfterRegChanged();
+                        }
+                        case NL80211_REGDOM_TYPE_WORLD,
+                             NL80211_REGDOM_TYPE_CUSTOM_WORLD,
+                             NL80211_REGDOM_TYPE_INTERSECTION -> {
+                            if (mActiveIfaceToWiphyIndex.isEmpty()) {
+                                Log.e(TAG, "Received REG changed callback even though no ifaces are"
+                                        + " created!");
+                                return;
+                            }
+
+                            // TODO: Different wiphys may return different country codes depending
+                            // on regulatory hints. For now, we will simply replicate the wificond
+                            // logic of iterating through each individual wiphy's CC and comparing
+                            // it to our singular mCountryCode.
+                            List<Integer> wiphyIndexes =
+                                    new ArrayList<>(mActiveIfaceToWiphyIndex.values());
+                            Collections.sort(wiphyIndexes);
+                            for (int wiphyIndex : wiphyIndexes) {
+                                countryCode = mNl80211Utils.getCountryCode(wiphyIndex);
+                                if (countryCode != null && !countryCode.equals(mCountryCode)) {
+                                    mCountryCode = countryCode;
+                                    notifyCountryCodeChangedListeners(countryCode);
+                                }
+                                updateIfaceInfoAfterRegChanged();
+                            }
+                        }
+                        default -> {
+                            Log.e(TAG, "Unknown type of regulatory domain change: " + regType);
+                        }
+                    }
+                };
     }
 
     /**
@@ -552,14 +627,18 @@ public class Nl80211Native {
     }
 
     private void handleIfaceTeardown(@NonNull String ifaceName) {
-        if (mActiveIfaceToWiphyIndex.containsKey(ifaceName)) {
-            int wiphyIndex = mActiveIfaceToWiphyIndex.get(ifaceName);
-            mActiveIfaceToWiphyIndex.remove(ifaceName);
+        if (!mActiveIfaceToWiphyIndex.containsKey(ifaceName)) return;
 
-            // Erase the band to wiphy mapping if there are no more interfaces set up on the wiphy.
-            if (!mActiveIfaceToWiphyIndex.values().contains(wiphyIndex)) {
-                eraseBandToWiphyIndexMapping(wiphyIndex);
-            }
+        int wiphyIndex = mActiveIfaceToWiphyIndex.get(ifaceName);
+        mActiveIfaceToWiphyIndex.remove(ifaceName);
+
+        // Erase the band to wiphy mapping if there are no more interfaces set up on the wiphy.
+        if (!mActiveIfaceToWiphyIndex.values().contains(wiphyIndex)) {
+            eraseBandToWiphyIndexMapping(wiphyIndex);
+        }
+
+        if (mActiveIfaceToWiphyIndex.isEmpty()) {
+            unregisterCountryCodeCallbacks();
         }
     }
 
@@ -609,6 +688,12 @@ public class Nl80211Native {
             return false;
         }
 
+        String countryCode = mNl80211Utils.getCountryCode(ifaceInfo.wiphyIndex);
+        if (countryCode != null && !countryCode.equals(mCountryCode)) {
+            mCountryCode = countryCode;
+            notifyCountryCodeChangedListeners(countryCode);
+        }
+
         Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(ifaceInfo.wiphyIndex);
         if (ifaceInfo == null) {
             Log.e(TAG, "Failed to get wiphy info for " + ifaceInfo.wiphyIndex);
@@ -622,6 +707,9 @@ public class Nl80211Native {
                 new ClientInterfaceInfo(ifaceName, ifaceInfo.ifIndex, wiphyInfo, executor,
                         scanCallback, pnoScanCallback));
 
+        if (mActiveIfaceToWiphyIndex.isEmpty()) {
+            registerCountryCodeCallbacks();
+        }
         if (!mActiveIfaceToWiphyIndex.containsKey(ifaceName)) {
             updateBandToWiphyIndexMapping(ifaceInfo.wiphyIndex, wiphyInfo);
             mActiveIfaceToWiphyIndex.put(ifaceName, ifaceInfo.wiphyIndex);
@@ -692,6 +780,18 @@ public class Nl80211Native {
                 mDisassociateCallback);
     }
 
+    private void registerCountryCodeCallbacks() {
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_REG_CHANGE, mRegChangedCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_WIPHY_REG_CHANGE,
+                mRegChangedCallback);
+    }
+
+    private void unregisterCountryCodeCallbacks() {
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_REG_CHANGE, mRegChangedCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_WIPHY_REG_CHANGE,
+                mRegChangedCallback);
+    }
+
     /**
      * Set up interface as a Soft AP.
      *
@@ -715,6 +815,12 @@ public class Nl80211Native {
             return false;
         }
 
+        String countryCode = mNl80211Utils.getCountryCode(ifaceInfo.wiphyIndex);
+        if (countryCode != null && !countryCode.equals(mCountryCode)) {
+            mCountryCode = countryCode;
+            notifyCountryCodeChangedListeners(countryCode);
+        }
+
         Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(ifaceInfo.wiphyIndex);
         if (ifaceInfo == null) {
             Log.e(TAG, "Failed to get wiphy info for " + ifaceInfo.wiphyIndex);
@@ -727,6 +833,9 @@ public class Nl80211Native {
         mApInterfaceInfos.put(ifaceName,
                 new ApInterfaceInfo(ifaceName, ifaceInfo.ifIndex));
 
+        if (mActiveIfaceToWiphyIndex.isEmpty()) {
+            registerCountryCodeCallbacks();
+        }
         if (!mActiveIfaceToWiphyIndex.containsKey(ifaceName)) {
             updateBandToWiphyIndexMapping(ifaceInfo.wiphyIndex, wiphyInfo);
             mActiveIfaceToWiphyIndex.put(ifaceName, ifaceInfo.wiphyIndex);
@@ -794,8 +903,13 @@ public class Nl80211Native {
 
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        for (String clientIface : new ArrayList<>(mClientInterfaceInfos.keySet())) {
+            tearDownClientInterface(clientIface);
+        }
+        for (String apIface : new ArrayList<>(mApInterfaceInfos.keySet())) {
+            tearDownSoftApInterface(apIface);
+        }
+        return true;
     }
 
     /**
@@ -1509,8 +1623,17 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        mCountryCodeChangedListeners.put(listener, executor);
+        return true;
+    }
+
+    private void notifyCountryCodeChangedListeners(String countryCode) {
+        for (Map.Entry<CountryCodeChangedListener, Executor> listenerEntry
+                : mCountryCodeChangedListeners.entrySet()) {
+            CountryCodeChangedListener listener = listenerEntry.getKey();
+            Executor executor = listenerEntry.getValue();
+            executor.execute(() -> listener.onCountryCodeChanged(countryCode));
+        }
     }
 
     /**
@@ -1531,8 +1654,7 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        mCountryCodeChangedListeners.remove(listener);
     }
 
     /**
@@ -1552,8 +1674,41 @@ public class Nl80211Native {
 
         if (!mIsInitialized) return;
 
-        // TODO (b/394409845): Implement the Nl80211Proxy path
-        throw new UnsupportedOperationException();
+        Log.i(TAG, "notifyCountryCodeChanged called with " + newCountryCode);
+        updateIfaceInfoAfterRegChanged();
+    }
+
+    /**
+     * Updates all of the cached info that depends on the current country code, namely the supported
+     * bands and the band to wiphy index mapping.
+     */
+    private void updateIfaceInfoAfterRegChanged() {
+        mNl80211Utils.clearWiphyInfoCaches();
+
+        // Gather all of the update WiphyInfo for the active wiphys.
+        Map<Integer, Nl80211Utils.WiphyInfo> updatedWiphyInfos = new ArrayMap<>();
+        for (Integer wiphyIndex : new ArraySet<>(mActiveIfaceToWiphyIndex.values())) {
+            Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(wiphyIndex);
+            if (wiphyInfo == null) {
+                Log.e(TAG, "Could not get WiphyInfo for index " + wiphyIndex);
+                continue;
+            }
+
+            updatedWiphyInfos.put(wiphyIndex, wiphyInfo);
+            updateBandToWiphyIndexMapping(wiphyIndex, wiphyInfo);
+        }
+
+        // Update the ClientInterfaceInfo's cached WiphyInfo
+        for (ClientInterfaceInfo clientIfaceInfo : mClientInterfaceInfos.values()) {
+            Integer wiphyIndex = mActiveIfaceToWiphyIndex.get(clientIfaceInfo.ifName);
+            if (wiphyIndex == null) {
+                Log.wtf(TAG, "Iface " + clientIfaceInfo.ifName + " in mClientInterfaceInfos is not"
+                        + " in mActiveIfaceToWiphyIndex!");
+                continue;
+            }
+
+            clientIfaceInfo.wiphyInfo = updatedWiphyInfos.get(wiphyIndex);
+        }
     }
 
     /**
