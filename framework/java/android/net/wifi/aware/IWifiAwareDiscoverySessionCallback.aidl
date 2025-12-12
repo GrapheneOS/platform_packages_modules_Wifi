@@ -18,6 +18,7 @@ package android.net.wifi.aware;
 
 import android.net.wifi.OuiKeyedData;
 import android.net.wifi.aware.AwarePairingConfig;
+import android.net.wifi.aware.WifiAwareNetworkInfo;
 import android.net.wifi.rtt.RangingResult;
 
 /**
@@ -49,6 +50,11 @@ oneway interface IWifiAwareDiscoverySessionCallback {
     void onPairingSetupRequestReceived(int peerId, int requestId);
     void onPairingSetupConfirmed(int peerId, boolean accept, String alias);
     void onPairingVerificationConfirmed(int peerId, boolean accept, String alias);
-    void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method, in byte[] serviceSpecificInfo);
+    void onBootstrappingVerificationConfirmed(
+            int peerId, boolean accept, int method, in byte[] serviceSpecificInfo);
     void onRangingResultsReceived(in List<RangingResult> rangingResults);
+    void onDatapathConnected(int peerId, in WifiAwareNetworkInfo info);
+    void onDatapathRequestFailure(int peerId);
+    void onDataPathDisconnected(int peerId);
+    void onDataPathRequestReceived(int peerId);
 }

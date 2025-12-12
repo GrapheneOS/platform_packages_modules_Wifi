@@ -1250,6 +1250,29 @@ public class WifiAwareManager {
             mHandler.post(() -> mOriginalCallback.onRangingResultsReceived(rangingResults));
         }
 
+        @Override
+        public void onDatapathConnected(int peerId, WifiAwareNetworkInfo info)
+                throws RemoteException {
+            mHandler.post(
+                    () -> mOriginalCallback.onDataPathConnected(new PeerHandle(peerId), info));
+        }
+
+        @Override
+        public void onDatapathRequestFailure(int peerId) throws RemoteException {
+            mHandler.post(() -> mOriginalCallback.onDataPathRequestFailed(new PeerHandle(peerId)));
+        }
+
+        @Override
+        public void onDataPathDisconnected(int peerId) throws RemoteException {
+            mHandler.post(() -> mOriginalCallback.onDataPathDisconnected(new PeerHandle(peerId)));
+        }
+
+        @Override
+        public void onDataPathRequestReceived(int peerId) {
+            mHandler.post(() -> mOriginalCallback
+                    .onDataPathRequestReceived(new PeerHandle(peerId)));
+        }
+
         /*
          * Proxies methods
          */
@@ -1431,6 +1454,30 @@ public class WifiAwareManager {
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
+    }
+
+    /**
+     * @hide
+     */
+    public void requestDataPath(int clientId, int sessionId, PeerHandle peerHandle,
+            AwareDataPathRequest request, boolean isPublish) {
+        try {
+            mService.requestDatapath(clientId, sessionId, peerHandle.peerId, request, isPublish);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * @hide
+     */
+    public void releaseDatapath(int clientId, int sessionId, PeerHandle peerHandle) {
+        try {
+            mService.releaseDatapath(clientId, sessionId, peerHandle.peerId);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+
     }
     /**
      * Attach to the Wi-Fi Aware service as an offload session. All discovery sessions and
