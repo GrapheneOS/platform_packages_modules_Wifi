@@ -142,6 +142,7 @@ public class HalDeviceManagerTest extends WifiBaseTest {
     @Mock private WorkSourceHelper mWorkSourceHelper2;
     @Mock private DeviceConfigFacade mDeviceConfigFacade;
     @Mock private FeatureFlags mFeatureFlags;
+    @Mock private WifiGlobals mWifiGlobals;
     private TestLooper mTestLooper;
     private Handler mHandler;
     private ArgumentCaptor<WifiHal.Callback> mWifiEventCallbackCaptor = ArgumentCaptor.forClass(
@@ -195,8 +196,12 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
         when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
+        when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(mConcreteClientModeManager.getRole()).thenReturn(
                 ClientModeManager.ROLE_CLIENT_PRIMARY);
+        when(mWifiSettingsConfigStore.get(
+                eq(WifiSettingsConfigStore.D2D_ALLOWED_WHEN_INFRA_STA_DISABLED)))
+                .thenReturn(false);
 
         when(mWifiMock.registerEventCallback(any(WifiHal.Callback.class))).thenReturn(true);
         when(mWifiMock.start()).thenReturn(WifiHal.WIFI_STATUS_SUCCESS);
@@ -4450,6 +4455,118 @@ public class HalDeviceManagerTest extends WifiBaseTest {
         verify(chipMock.chip, never()).removeNanIface(anyString());
     }
 
+    /**
+     * Verifies that P2P interface creation fails if an AP interface is active and
+     * |config_wifiD2dAllowedWhenInfraStaDisabled| is false.
+     */
+    @Test
+    public void testCreateP2pIfaceWhenApActiveAndD2dNotAllowed() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        TestChipV3 chipMock = new TestChipV3();
+        chipMock.initialize();
+        mInOrder = inOrder(mWifiMock, chipMock.chip, mManagerStatusListenerMock);
+        executeAndValidateStartupSequence();
+
+        // Create AP interface from a privileged app.
+        WifiInterface apIface = validateInterfaceSequence(chipMock,
+                false, // chipModeValid
+                -1000, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_AP, // ifaceTypeToCreate
+                "wlan0", // ifaceName
+                TestChipV3.CHIP_MODE_ID, // finalChipMode
+                null, // tearDownList
+                mock(InterfaceDestroyedListener.class), // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("AP created", apIface, IsNull.notNullValue());
+
+        // P2P interface creation from a privileged app should fail.
+        assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_P2P, TEST_WORKSOURCE_1));
+    }
+
+    /**
+     * Verifies that P2P interface creation fails if an AP interface is active and
+     * |config_wifiD2dAllowedWhenInfraStaDisabled| is true.
+     */
+    @Test
+    public void testCreateP2pIfaceWhenApActiveAndD2dAllowed() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        // Setup mocks for D2D allowed.
+        when(mWifiSettingsConfigStore.get(
+                eq(WifiSettingsConfigStore.D2D_ALLOWED_WHEN_INFRA_STA_DISABLED)))
+                .thenReturn(true);
+        when(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled()).thenReturn(true);
+        TestChipV3 chipMock = new TestChipV3();
+        chipMock.initialize();
+        mInOrder = inOrder(mWifiMock, chipMock.chip, mManagerStatusListenerMock);
+        executeAndValidateStartupSequence();
+
+        // Create AP interface from a privileged app.
+        WifiInterface apIface = validateInterfaceSequence(chipMock,
+                false, // chipModeValid
+                -1000, // chipModeId (only used if chipModeValid is true)
+                HDM_CREATE_IFACE_AP, // ifaceTypeToCreate
+                "wlan0", // ifaceName
+                TestChipV3.CHIP_MODE_ID, // finalChipMode
+                null, // tearDownList
+                mock(InterfaceDestroyedListener.class), // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("AP created", apIface, IsNull.notNullValue());
+
+        // P2P interface creation from a privileged app should fail.
+        assertFalse(mDut.isItPossibleToCreateIface(HDM_CREATE_IFACE_P2P, TEST_WORKSOURCE_1));
+    }
+
+    /**
+     * Verifies that P2P interface creation succeeds if a STA interface is active and
+     * |config_wifiD2dAllowedWhenInfraStaDisabled| is true.
+     */
+    @Test
+    public void testCreateP2pIfaceWhenStaActiveAndD2dAllowed() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        // Setup mocks for D2D allowed.
+        when(mWifiSettingsConfigStore.get(
+                eq(WifiSettingsConfigStore.D2D_ALLOWED_WHEN_INFRA_STA_DISABLED)))
+                .thenReturn(true);
+        when(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled()).thenReturn(true);
+
+        TestChipForP2pStaExclusivity chipMock = new TestChipForP2pStaExclusivity();
+        chipMock.initialize();
+        mInOrder = inOrder(mWifiMock, chipMock.chip, mManagerStatusListenerMock);
+        executeAndValidateStartupSequence();
+
+        InterfaceDestroyedListener staDestroyedListener = mock(InterfaceDestroyedListener.class);
+
+        // Create STA interface from a privileged app.
+        WifiInterface staIface = validateInterfaceSequence(chipMock,
+                false, // chipModeValid
+                -1000, // chipModeId
+                HDM_CREATE_IFACE_STA, // ifaceTypeToCreate
+                "wlan0", // ifaceName
+                TestChipForP2pStaExclusivity.CHIP_MODE_ID, // finalChipMode
+                null, // tearDownList
+                staDestroyedListener, // destroyedListener
+                TEST_WORKSOURCE_0 // requestorWs
+        );
+        collector.checkThat("STA not created", staIface, IsNull.notNullValue());
+        clearInvocations(chipMock.chip);
+
+        // P2P interface creation from a privileged app should succeed, and tear down STA.
+        WifiInterface p2pIface = validateInterfaceSequence(chipMock,
+                true, // chipModeValid
+                TestChipForP2pStaExclusivity.CHIP_MODE_ID, // chipModeId
+                HDM_CREATE_IFACE_P2P, // ifaceTypeToCreate
+                "p2p0", // ifaceName
+                TestChipForP2pStaExclusivity.CHIP_MODE_ID, // finalChipMode
+                new WifiInterface[]{staIface}, // tearDownList
+                mock(InterfaceDestroyedListener.class), // destroyedListener
+                TEST_WORKSOURCE_1, // requestorWs
+                new InterfaceDestroyedListenerWithIfaceName(getName(staIface), staDestroyedListener)
+        );
+        collector.checkThat("P2P not created", p2pIface, IsNull.notNullValue());
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////
     // utilities
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -5787,6 +5904,33 @@ public class HalDeviceManagerTest extends WifiBaseTest {
                     createConcurrencyComboLimit(1, WifiChip.IFACE_CONCURRENCY_TYPE_P2P),
                     createConcurrencyComboLimit(1, WifiChip.IFACE_CONCURRENCY_TYPE_NAN));
             availableModes.add(createChipMode(CHIP_MODE_ID, combo1));
+
+            chipModeIdValidForRtt = CHIP_MODE_ID;
+            doAnswer(new GetAvailableModesAnswer(this)).when(chip).getAvailableModes();
+        }
+    }
+
+    // test chip configuration for P2P/STA exclusivity
+    // mode:
+    //    (STA || P2P)
+    private class TestChipForP2pStaExclusivity extends ChipMockBase {
+        static final int CHIP_MODE_ID = 12;
+
+        void initialize() throws Exception {
+            super.initialize();
+            // chip Id configuration
+            chipId = 13;
+            ArrayList<Integer> chipIds = new ArrayList<>();
+            chipIds.add(chipId);
+            doAnswer(new GetChipIdsAnswer(true, chipIds)).when(mWifiMock).getChipIds();
+            doAnswer(new GetChipAnswer(true, chip)).when(mWifiMock).getChip(anyInt());
+
+            // Initialize availableModes
+            availableModes = new ArrayList<>();
+            WifiChip.ChipConcurrencyCombination combo = createConcurrencyCombo(
+                    createConcurrencyComboLimit(1, WifiChip.IFACE_CONCURRENCY_TYPE_STA,
+                            WifiChip.IFACE_CONCURRENCY_TYPE_P2P));
+            availableModes.add(createChipMode(CHIP_MODE_ID, combo));
 
             chipModeIdValidForRtt = CHIP_MODE_ID;
             doAnswer(new GetAvailableModesAnswer(this)).when(chip).getAvailableModes();

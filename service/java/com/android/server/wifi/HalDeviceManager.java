@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import static com.android.server.wifi.HalDeviceManagerUtil.jsonToStaticChipInfo;
 import static com.android.server.wifi.HalDeviceManagerUtil.staticChipInfoToJson;
+import static com.android.server.wifi.WifiSettingsConfigStore.D2D_ALLOWED_WHEN_INFRA_STA_DISABLED;
 import static com.android.server.wifi.WifiSettingsConfigStore.WIFI_STATIC_CHIP_INFO;
 import static com.android.server.wifi.util.GeneralUtil.longToBitset;
 
@@ -2176,6 +2177,11 @@ public class HalDeviceManager {
         return false;
     }
 
+    private boolean isD2dAllowedWhenInfraStaDisabled() {
+        return mWifiInjector.getSettingsConfigStore().get(D2D_ALLOWED_WHEN_INFRA_STA_DISABLED)
+                && mWifiInjector.getWifiGlobals().isD2dSupportedWhenInfraStaDisabled();
+    }
+
     /**
      * Returns whether interface request from |newRequestorWsPriority| is allowed to delete an
      * interface request from |existingRequestorWsPriority|.
@@ -2240,15 +2246,17 @@ public class HalDeviceManager {
                 return false;
             }
             // If both the requests are privileged, the new requestor wins unless it's P2P against
-            // AP (for when the user enables SoftAP with P2P Settings open) or primary STA
-            // (since P2P isn't supported without STA).
+            // AP or primary STA.
             if (newRequestorWsPriority == WorkSourceHelper.PRIORITY_PRIVILEGED) {
                 if (requestedCreateType == HDM_CREATE_IFACE_P2P) {
+                    // Don't allow P2P to override AP. See b/211950307 for details.
                     if (existingCreateType == HDM_CREATE_IFACE_AP
                             || existingCreateType == HDM_CREATE_IFACE_AP_BRIDGE) {
                         return false;
                     }
-                    if (existingCreateType == HDM_CREATE_IFACE_STA) {
+                    // If P2P requires STA, don't allow it to override the primary STA.
+                    if (existingCreateType == HDM_CREATE_IFACE_STA
+                            && !isD2dAllowedWhenInfraStaDisabled()) {
                         ConcreteClientModeManager cmm = mClientModeManagers.get(
                                 existingIfaceInfo.name);
                         if (cmm != null && (cmm.getRole()
