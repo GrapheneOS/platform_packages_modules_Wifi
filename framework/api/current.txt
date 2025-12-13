@@ -906,6 +906,8 @@ package android.net.wifi.aware {
     field public static final int PAIRING_BOOTSTRAPPING_PIN_CODE_KEYPAD = 32; // 0x20
     field public static final int PAIRING_BOOTSTRAPPING_QR_DISPLAY = 8; // 0x8
     field public static final int PAIRING_BOOTSTRAPPING_QR_SCAN = 128; // 0x80
+    field @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") public static final int PAIRING_BOOTSTRAPPING_SERVICE_MANAGED = 16384; // 0x4000
+    field @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") public static final int PAIRING_BOOTSTRAPPING_SKIPPED = 32768; // 0x8000
   }
 
   public static final class AwarePairingConfig.Builder {

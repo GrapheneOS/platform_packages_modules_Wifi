@@ -518,6 +518,12 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
         if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_NFC_READER_MASK) != 0) {
             publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_NFC_READER;
         }
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_SERVICE_MANAGED_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_SERVICE_MANAGED;
+        }
+        if ((nativeMethods & NanBootstrappingMethod.BOOTSTRAPPING_HANDSHAKE_SHIP_MASK) != 0) {
+            publicMethods |= AwarePairingConfig.PAIRING_BOOTSTRAPPING_SKIPPED;
+        }
 
         return publicMethods;
     }

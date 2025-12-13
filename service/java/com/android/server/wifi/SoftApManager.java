@@ -541,7 +541,6 @@ public class SoftApManager implements ActiveModeManager {
         mMaximumNumberOfMLDSupported = ApConfigUtil.getMaximumSupportedMLD(
                 mContext, mWifiNative.isMultipleMLDSupportedOnSap());
         mCurrentExistingMLD = mActiveModeWarden.getCurrentMLDAp();
-        mIsUsingMlo = useMultilinkMloSoftAp();
         enableVerboseLogging(verboseLoggingEnabled);
         mStateMachine.sendMessage(SoftApStateMachine.CMD_START, requestorWs);
     }
@@ -1337,6 +1336,7 @@ public class SoftApManager implements ActiveModeManager {
                                 == InterfaceConflictManager.ICM_SKIP_COMMAND_WAIT_FOR_USER) {
                             break;
                         }
+                        mIsUsingMlo = useMultilinkMloSoftAp();
                         mApInterfaceName = mWifiNative.setupInterfaceForSoftApMode(
                                 mWifiNativeInterfaceCallback, mRequestorWs,
                                 mCurrentSoftApConfiguration.getBand(), isBridgeRequired(),
