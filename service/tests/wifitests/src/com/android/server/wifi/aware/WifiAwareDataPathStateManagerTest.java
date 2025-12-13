@@ -1875,7 +1875,7 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
                 mDut.onEndDataPathResponse(transactionId.getValue(), true, 0);
             } else {
                 inOrderStatic.verify(() -> NetlinkUtils.sendOneShotKernelMessage(eq(NETLINK_ROUTE),
-                        isNotNull()));
+                        isNotNull(), eq(NetlinkUtils.IO_TIMEOUT_MS)));
                 inOrder.verify(mMockNetworkInterface).setConnected(agentCaptor.capture());
                 networkAgent = agentCaptor.getValue();
                 inOrderM.verify(mAwareMetricsMock).recordNdpStatus(eq(NanStatusCode.SUCCESS),

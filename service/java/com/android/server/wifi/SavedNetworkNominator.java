@@ -20,7 +20,6 @@ import android.annotation.NonNull;
 import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
-import android.net.wifi.util.Environment;
 import android.telephony.TelephonyManager;
 import android.util.LocalLog;
 import android.util.Pair;
@@ -147,8 +146,7 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
                     continue;
                 }
 
-                if (Environment.isSdkNewerThanB()
-                        && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()
+                if (android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()
                         && isAapmEnabled
                         && !network.isAutoJoinInAdvancedProtectionModeEnabled()) {
                     localLog("Ignoring auto join disabled on AAP SSID: " + network.SSID);
