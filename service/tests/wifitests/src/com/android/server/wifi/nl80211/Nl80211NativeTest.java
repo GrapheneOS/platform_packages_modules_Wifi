@@ -33,6 +33,9 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_STOPPED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_COUNTRY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_WORLD;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_HIGH_ACCURACY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_POWER;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_SPAN;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -55,10 +58,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApInfo;
+import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.NativeWifiClient;
 import android.net.wifi.nl80211.WifiNl80211Manager;
@@ -644,16 +649,28 @@ public class Nl80211NativeTest {
                 new byte[]{0x01, 0x02});
 
         when(mNl80211Utils.triggerScan(
-                eq(CLIENT_IFACE_INDEX), eq(WifiScanner.SCAN_TYPE_HIGH_ACCURACY),
-                eq(freqs), eq(hiddenSsids), eq(false), eq(true), eq(new byte[]{0x01, 0x02})))
+                eq(CLIENT_IFACE_INDEX), anyInt(),
+                eq(freqs), eq(hiddenSsids), eq(new byte[]{0x01, 0x02})))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
                 freqs, hiddenSsids, extraParams);
         assertEquals(WifiScanner.REASON_SUCCEEDED, result);
         verify(mNl80211Utils).triggerScan(
-                eq(CLIENT_IFACE_INDEX), eq(WifiScanner.SCAN_TYPE_HIGH_ACCURACY),
-                eq(freqs), eq(hiddenSsids), eq(false), eq(true), eq(new byte[]{0x01, 0x02}));
+                eq(CLIENT_IFACE_INDEX), anyInt(), eq(freqs), eq(hiddenSsids),
+                eq(new byte[]{0x01, 0x02}));
+    }
+
+    @Test
+    public void testStartScan_invalidScanType() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+
+        int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_MAX + 1,
+                null, Collections.emptyList(), null);
+
+        assertEquals(WifiScanner.REASON_INVALID_ARGS, result);
+        verify(mNl80211Utils, never()).triggerScan(anyInt(), anyInt(), any(), any(), any());
     }
 
     /** Test that startScan returns UNSPECIFIED if no client interface info is found. */
@@ -664,8 +681,7 @@ public class Nl80211NativeTest {
         int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
                 null, null, null);
         assertEquals(WifiScanner.REASON_UNSPECIFIED, result);
-        verify(mNl80211Utils, never()).triggerScan(
-                anyInt(), anyInt(), any(), any(), anyBoolean(), anyBoolean(), any());
+        verify(mNl80211Utils, never()).triggerScan(anyInt(), anyInt(), any(), any(), any());
     }
 
     /** Test that startScan correctly trims and passes hidden SSIDs. */
@@ -682,16 +698,15 @@ public class Nl80211NativeTest {
         List<byte[]> expectedTrimmedSsids = List.of(ssid1); // Only first one should be taken
 
         when(mNl80211Utils.triggerScan(
-                eq(CLIENT_IFACE_INDEX), eq(WifiScanner.SCAN_TYPE_HIGH_ACCURACY),
-                eq(null), eq(expectedTrimmedSsids), eq(false), eq(false), eq(null)))
+                eq(CLIENT_IFACE_INDEX), anyInt(), eq(null), eq(expectedTrimmedSsids), eq(null)))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
                 null, hiddenSsids, null);
         assertEquals(WifiScanner.REASON_SUCCEEDED, result);
         verify(mNl80211Utils).triggerScan(
-                eq(CLIENT_IFACE_INDEX), eq(WifiScanner.SCAN_TYPE_HIGH_ACCURACY),
-                eq(null), eq(expectedTrimmedSsids), eq(false), eq(false), eq(null));
+                eq(CLIENT_IFACE_INDEX), anyInt(),
+                eq(null), eq(expectedTrimmedSsids), eq(null));
     }
 
     /** Test that startScan correctly handles extra scanning parameters. */
@@ -705,16 +720,15 @@ public class Nl80211NativeTest {
         extraParams.putByteArray(Nl80211Native.EXTRA_SCANNING_PARAM_VENDOR_IES, vendorIes);
 
         when(mNl80211Utils.triggerScan(
-                eq(CLIENT_IFACE_INDEX), eq(WifiScanner.SCAN_TYPE_HIGH_ACCURACY),
-                eq(null), eq(null), eq(false), eq(true), eq(vendorIes)))
+                eq(CLIENT_IFACE_INDEX), anyInt(),
+                eq(null), eq(null), eq(vendorIes)))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
                 null, null, extraParams);
         assertEquals(WifiScanner.REASON_SUCCEEDED, result);
         verify(mNl80211Utils).triggerScan(
-                eq(CLIENT_IFACE_INDEX), eq(WifiScanner.SCAN_TYPE_HIGH_ACCURACY),
-                eq(null), eq(null), eq(false), eq(true), eq(vendorIes));
+                eq(CLIENT_IFACE_INDEX), anyInt(), eq(null), eq(null), eq(vendorIes));
     }
 
     @Test
@@ -723,7 +737,7 @@ public class Nl80211NativeTest {
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
 
         when(mNl80211Utils.triggerScan(
-                anyInt(), anyInt(), any(), any(), anyBoolean(), anyBoolean(), any()))
+                anyInt(), anyInt(), any(), any(), any()))
                 .thenReturn(WifiScanner.REASON_NO_DEVICE);
 
         // Call startScan ENODEV_RESTART_THRESHOLD times. It should not trigger SelfRecovery yet.
@@ -747,8 +761,8 @@ public class Nl80211NativeTest {
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
 
         // Fail a few times, but not enough to trigger recovery
-        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), anyBoolean(),
-                anyBoolean(), any())).thenReturn(WifiScanner.REASON_NO_DEVICE);
+        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), any()))
+                .thenReturn(WifiScanner.REASON_NO_DEVICE);
         for (int i = 0; i < Nl80211Native.ENODEV_RESTART_THRESHOLD - 1; i++) {
             mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null,
                     null);
@@ -756,14 +770,14 @@ public class Nl80211NativeTest {
         }
 
         // One successful scan should reset the counter
-        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), anyBoolean(),
-                anyBoolean(), any())).thenReturn(WifiScanner.REASON_SUCCEEDED);
+        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), any()))
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
         mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null, null);
         verify(mSelfRecovery, never()).trigger(anyInt());
 
         // Now, trigger failures again, and verify recovery is only triggered after the threshold
-        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), anyBoolean(),
-                anyBoolean(), any())).thenReturn(WifiScanner.REASON_NO_DEVICE);
+        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), any()))
+                .thenReturn(WifiScanner.REASON_NO_DEVICE);
         for (int i = 0; i < Nl80211Native.ENODEV_RESTART_THRESHOLD; i++) {
             mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null,
                     null);
@@ -773,6 +787,208 @@ public class Nl80211NativeTest {
         verify(mSelfRecovery).trigger(SelfRecovery.REASON_SUBSYSTEM_RESTART);
     }
 
+    private void testStartScanWithScanFlags(@WifiAnnotations.ScanType int scanType,
+            @NonNull Nl80211Utils.WiphyFeatures features,
+            int expectedScanFlags) {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, features);
+        when(mNl80211Utils.triggerScan(anyInt(), eq(expectedScanFlags), any(), any(), any()))
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
+
+        int result = mDut.startScan(CLIENT_IFACE_NAME, scanType, null, null, null);
+
+        assertEquals(result, WifiScanner.REASON_SUCCEEDED);
+        verify(mNl80211Utils).triggerScan(
+                anyInt(), eq(expectedScanFlags), any(), any(), any());
+    }
+
+    @Test
+    public void testStartScan_supportedScanTypeLowLatency_setsScanFlag() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsLowSpanOneShotScan(true)
+                .build();
+        testStartScanWithScanFlags(WifiScanner.SCAN_TYPE_LOW_LATENCY, features,
+                NL80211_SCAN_FLAG_LOW_SPAN);
+    }
+
+    @Test
+        public void testStartScan_supportedScanTypeLowPower_setsScanFlag() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsLowPowerOneShotScan(true)
+                .build();
+        testStartScanWithScanFlags(WifiScanner.SCAN_TYPE_LOW_POWER, features,
+                NL80211_SCAN_FLAG_LOW_POWER);
+    }
+
+    @Test
+    public void testStartScan_supportedScanTypeHighAccuracy_setsScanFlag() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsHighAccuracyOneShotScan(true)
+                .build();
+        testStartScanWithScanFlags(WifiScanner.SCAN_TYPE_HIGH_ACCURACY, features,
+                NL80211_SCAN_FLAG_HIGH_ACCURACY);
+    }
+
+    @Test
+    public void testStartScan_unsupportedScanTypeLowLatency_doesNotSetScanFlag() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsLowSpanOneShotScan(false)
+                .build();
+        testStartScanWithScanFlags(WifiScanner.SCAN_TYPE_LOW_LATENCY, features, 0);
+    }
+
+    @Test
+    public void testStartScan_unsupportedScanTypeLowPower_doesNotSetScanFlag() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsLowPowerOneShotScan(false)
+                .build();
+        testStartScanWithScanFlags(WifiScanner.SCAN_TYPE_LOW_POWER, features, 0);
+    }
+
+    @Test
+    public void testStartScan_unsupportedScanTypeHighAccuracy_doesNotSetScanFlag() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsHighAccuracyOneShotScan(false)
+                .build();
+        testStartScanWithScanFlags(WifiScanner.SCAN_TYPE_HIGH_ACCURACY, features, 0);
+    }
+
+    @Test
+    public void testGetScanFlag_lowLatencySupported() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsLowSpanOneShotScan(true)
+                .build();
+
+        int flags = Nl80211Native.getScanFlagForScanType(
+                WifiScanner.SCAN_TYPE_LOW_LATENCY, features);
+
+        assertEquals(NL80211_SCAN_FLAG_LOW_SPAN, flags);
+    }
+
+    @Test
+    public void testGetScanFlag_lowLatencyUnsupported_returnsZero() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsLowSpanOneShotScan(false)
+                .build();
+
+        int flags = mDut.getScanFlagForScanType(
+                WifiScanner.SCAN_TYPE_LOW_LATENCY, features);
+
+        assertEquals(0, flags);
+    }
+
+    @Test
+    public void testGetScanFlag_lowPowerSupported() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsLowPowerOneShotScan(true)
+                .build();
+
+        int flags = Nl80211Native.getScanFlagForScanType(
+                WifiScanner.SCAN_TYPE_LOW_POWER, features);
+
+        assertEquals(NL80211_SCAN_FLAG_LOW_POWER, flags);
+    }
+
+    @Test
+    public void testGetScanFlag_lowPowerUnsupported_returnsZero() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsLowPowerOneShotScan(false)
+                .build();
+
+        int flags = mDut.getScanFlagForScanType(
+                WifiScanner.SCAN_TYPE_LOW_POWER, features);
+
+        assertEquals(0, flags);
+    }
+
+    @Test
+    public void testGetScanFlag_highAccuracySupported() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsHighAccuracyOneShotScan(true)
+                .build();
+
+        int flags = Nl80211Native.getScanFlagForScanType(
+                WifiScanner.SCAN_TYPE_HIGH_ACCURACY, features);
+
+        assertEquals(NL80211_SCAN_FLAG_HIGH_ACCURACY, flags);
+    }
+
+    @Test
+    public void testGetScanFlag_highAccuracyNotSupported_returnsZero() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsHighAccuracyOneShotScan(false)
+                .build();
+
+        int flags = Nl80211Native.getScanFlagForScanType(
+                WifiScanner.SCAN_TYPE_HIGH_ACCURACY, features);
+
+        assertEquals(0, flags);
+    }
+
+    @Test
+    public void testGetScanFlag_invalidTypeReturnsZero() {
+        Nl80211Utils.WiphyFeatures allFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsLowPowerOneShotScan(true)
+                .setSupportsLowSpanOneShotScan(true)
+                .setSupportsHighAccuracyOneShotScan(true)
+                .build();
+
+        // Pass a scan type larger than the max defined
+        int flags = Nl80211Native.getScanFlagForScanType(WifiScanner.SCAN_TYPE_MAX + 1,
+                allFeatures);
+
+        assertEquals(0, flags);
+    }
+
+    @Test
+    public void testStartScan_withRandomMac_setsRandomMacFlag() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsRandomMacOneShotScan(true)
+                .build();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, wiphyFeatures);
+        // Ensure the interface is not associated, so that random MAC is requested
+        mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME).associated = false;
+
+        when(mNl80211Utils.triggerScan(
+                eq(CLIENT_IFACE_INDEX),
+                eq(NetlinkConstants.NL80211_SCAN_FLAG_RANDOM_ADDR),
+                any(), any(), any()))
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
+
+        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_LOW_LATENCY, null, null, null);
+
+        verify(mNl80211Utils).triggerScan(
+                eq(CLIENT_IFACE_INDEX),
+                eq(NetlinkConstants.NL80211_SCAN_FLAG_RANDOM_ADDR),
+                any(), any(), any());
+    }
+
+    @Test
+    public void testStartScan_with6GhzRnr_sets6GhzRnrFlag() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyFeatures wiphyFeatures = mock(Nl80211Utils.WiphyFeatures.class);
+        // We don't need any specific scan type support for this test.
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, wiphyFeatures);
+
+        Bundle extraParams = new Bundle();
+        extraParams.putBoolean(Nl80211Native.SCANNING_PARAM_ENABLE_6GHZ_RNR, true);
+
+        when(mNl80211Utils.triggerScan(
+                eq(CLIENT_IFACE_INDEX),
+                eq(NetlinkConstants.NL80211_SCAN_FLAG_COLOCATED_6GHZ),
+                any(), any(), any()))
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
+
+        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_LOW_LATENCY, null, null,
+                extraParams);
+
+        verify(mNl80211Utils).triggerScan(
+                eq(CLIENT_IFACE_INDEX),
+                eq(NetlinkConstants.NL80211_SCAN_FLAG_COLOCATED_6GHZ),
+                any(), any(), any());
+    }
+
     /** Test that a successful abortScan results in the expected call to Nl80211Utils. */
     @Test
     public void testAbortScan_success() {
@@ -780,8 +996,8 @@ public class Nl80211NativeTest {
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
 
         // Start a scan first to set the 'scanning' flag to true
-        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), anyBoolean(),
-                anyBoolean(), any())).thenReturn(WifiScanner.REASON_SUCCEEDED);
+        when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), any()))
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
         mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null, null);
         assertTrue(mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME).scanning);
 
@@ -962,8 +1178,11 @@ public class Nl80211NativeTest {
         mDut = initNl80211Native(false);
         Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities(
                 0, 1 /* maxNumSchedScanSsids */, 1 /* maxMatchSets */, 2, 10, 3);
-        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures(
-                false, true, false, true, false, false, true);
+        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsRandomMacSchedScan(true)
+                .setSupportsLowPowerOneShotScan(true)
+                .setSupportsExtSchedScanRelativeRssi(true)
+                .build();
         Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
                 new Nl80211Utils.BandInfo(), scanCapabilities, wiphyFeatures,
                 mock(Nl80211Utils.DriverCapabilities.class));
@@ -1499,7 +1718,7 @@ public class Nl80211NativeTest {
         Nl80211Utils.ScanCapabilities scanCapabilities =
                 new Nl80211Utils.ScanCapabilities(0, 0, 0, 0, 0, 0);
         Nl80211Utils.WiphyFeatures wiphyFeatures =
-                new Nl80211Utils.WiphyFeatures(false, false, false, false, false, false, false);
+                new Nl80211Utils.WiphyFeatures.Builder().build();
         Nl80211Utils.DriverCapabilities driverCapabilities =
                 new Nl80211Utils.DriverCapabilities(5);
         Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(

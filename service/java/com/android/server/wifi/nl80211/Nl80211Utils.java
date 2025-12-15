@@ -91,10 +91,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_FREQ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_NO_IR;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_COLOCATED_6GHZ;
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_HIGH_ACCURACY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_POWER;
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_SPAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_RANDOM_ADDR;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCAN_MATCH_ATTR_SSID;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCAN_PLAN_INTERVAL;
@@ -103,7 +100,6 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCA
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.net.wifi.ScanResult;
-import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiScanner;
 import android.util.ArrayMap;
 import android.util.Log;
@@ -159,17 +155,87 @@ public class Nl80211Utils {
         public final boolean supportsTxMgmtFrameMcs;
         public final boolean supportsExtSchedScanRelativeRssi;
 
-        public WiphyFeatures(boolean supportsRandomMacOneShotScan,
-                boolean supportsRandomMacSchedScan, boolean supportsLowSpanOneShotScan,
-                boolean supportsLowPowerOneShotScan, boolean supportsHighAccuracyOneShotScan,
-                boolean supportsTxMgmtFrameMcs, boolean supportsExtSchedScanRelativeRssi) {
-            this.supportsRandomMacOneShotScan = supportsRandomMacOneShotScan;
-            this.supportsRandomMacSchedScan = supportsRandomMacSchedScan;
-            this.supportsLowSpanOneShotScan = supportsLowSpanOneShotScan;
-            this.supportsLowPowerOneShotScan = supportsLowPowerOneShotScan;
-            this.supportsHighAccuracyOneShotScan = supportsHighAccuracyOneShotScan;
-            this.supportsTxMgmtFrameMcs = supportsTxMgmtFrameMcs;
-            this.supportsExtSchedScanRelativeRssi = supportsExtSchedScanRelativeRssi;
+        private WiphyFeatures(Builder builder) {
+            this.supportsRandomMacOneShotScan = builder.mSupportsRandomMacOneShotScan;
+            this.supportsRandomMacSchedScan = builder.mSupportsRandomMacSchedScan;
+            this.supportsLowSpanOneShotScan = builder.mSupportsLowSpanOneShotScan;
+            this.supportsLowPowerOneShotScan = builder.mSupportsLowPowerOneShotScan;
+            this.supportsHighAccuracyOneShotScan = builder.mSupportsHighAccuracyOneShotScan;
+            this.supportsTxMgmtFrameMcs = builder.mSupportsTxMgmtFrameMcs;
+            this.supportsExtSchedScanRelativeRssi = builder.mSupportsExtSchedScanRelativeRssi;
+        }
+
+        public static class Builder {
+            private boolean mSupportsRandomMacOneShotScan = false;
+            private boolean mSupportsRandomMacSchedScan = false;
+            private boolean mSupportsLowSpanOneShotScan = false;
+            private boolean mSupportsLowPowerOneShotScan = false;
+            private boolean mSupportsHighAccuracyOneShotScan = false;
+            private boolean mSupportsTxMgmtFrameMcs = false;
+            private boolean mSupportsExtSchedScanRelativeRssi = false;
+
+            /**
+             * Sets whether the wiphy supports MAC randomization for one-shot scans.
+             */
+            public Builder setSupportsRandomMacOneShotScan(boolean val) {
+                mSupportsRandomMacOneShotScan = val;
+                return this;
+            }
+
+            /**
+             * Sets whether the wiphy supports MAC randomization for scheduled scans.
+             */
+            public Builder setSupportsRandomMacSchedScan(boolean val) {
+                mSupportsRandomMacSchedScan = val;
+                return this;
+            }
+
+            /**
+             * Sets whether the wiphy supports low span one-shot scans.
+             */
+            public Builder setSupportsLowSpanOneShotScan(boolean val) {
+                mSupportsLowSpanOneShotScan = val;
+                return this;
+            }
+
+            /**
+             * Sets whether the wiphy supports low power one-shot scans.
+             */
+            public Builder setSupportsLowPowerOneShotScan(boolean val) {
+                mSupportsLowPowerOneShotScan = val;
+                return this;
+            }
+
+            /**
+             * Sets whether the wiphy supports high accuracy one-shot scans.
+             */
+            public Builder setSupportsHighAccuracyOneShotScan(boolean val) {
+                mSupportsHighAccuracyOneShotScan = val;
+                return this;
+            }
+
+            /**
+             * Sets whether the wiphy supports TX management frame MCS.
+             */
+            public Builder setSupportsTxMgmtFrameMcs(boolean val) {
+                mSupportsTxMgmtFrameMcs = val;
+                return this;
+            }
+
+            /**
+             * Sets whether the wiphy supports extended scheduled scan relative RSSI.
+             */
+            public Builder setSupportsExtSchedScanRelativeRssi(boolean val) {
+                mSupportsExtSchedScanRelativeRssi = val;
+                return this;
+            }
+
+            /**
+             * Builds a new WiphyFeatures object.
+             */
+            public WiphyFeatures build() {
+                return new WiphyFeatures(this);
+            }
         }
     }
 
@@ -859,10 +925,15 @@ public class Nl80211Utils {
                 NL80211_EXT_FEATURE_SCHED_SCAN_RELATIVE_RSSI);
         boolean supportsTxMgmtFrameMcs = false;
 
-        return new WiphyFeatures(supportsRandomMacOneShotScan, supportsRandomMacSchedScan,
-                supportsLowSpanOneShotScan, supportsLowPowerOneShotScan,
-                supportsHighAccuracyOneShotScan, supportsTxMgmtFrameMcs,
-                supportsExtSchedScanRelativeRssi);
+        return new WiphyFeatures.Builder()
+                .setSupportsRandomMacOneShotScan(supportsRandomMacOneShotScan)
+                .setSupportsRandomMacSchedScan(supportsRandomMacSchedScan)
+                .setSupportsLowSpanOneShotScan(supportsLowSpanOneShotScan)
+                .setSupportsLowPowerOneShotScan(supportsLowPowerOneShotScan)
+                .setSupportsHighAccuracyOneShotScan(supportsHighAccuracyOneShotScan)
+                .setSupportsExtSchedScanRelativeRssi(supportsExtSchedScanRelativeRssi)
+                .setSupportsTxMgmtFrameMcs(supportsTxMgmtFrameMcs)
+                .build();
     }
 
     private boolean isExtFeatureFlagSet(
@@ -1201,11 +1272,9 @@ public class Nl80211Utils {
      * @return a WifiScanner.REASON_ code indicating the success status of the request.
      */
     public int triggerScan(int ifIndex,
-            @WifiAnnotations.ScanType int scanType,
+            int scanFlags,
             @Nullable Set<Integer> freqs,
             @Nullable List<byte[]> hiddenNetworkSSIDs,
-            boolean requestRandomMac,
-            boolean enable6GhzRnr,
             @Nullable byte[] vendorIes) {
         GenericNetlinkMsg request =
                 mNl80211Proxy.createNl80211Request(NL80211_CMD_TRIGGER_SCAN, NLM_F_ACK);
@@ -1227,28 +1296,6 @@ public class Nl80211Utils {
             request.addAttribute(freqsAttr);
         }
 
-        int scanFlags = 0;
-        if (requestRandomMac) {
-            scanFlags |= NL80211_SCAN_FLAG_RANDOM_ADDR;
-        }
-        switch (scanType) {
-            case WifiScanner.SCAN_TYPE_LOW_LATENCY -> {
-                scanFlags |= NL80211_SCAN_FLAG_LOW_SPAN;
-            }
-            case WifiScanner.SCAN_TYPE_LOW_POWER -> {
-                scanFlags |= NL80211_SCAN_FLAG_LOW_POWER;
-            }
-            case WifiScanner.SCAN_TYPE_HIGH_ACCURACY -> {
-                scanFlags |= NL80211_SCAN_FLAG_HIGH_ACCURACY;
-            }
-            default -> {
-                Log.e(TAG, "Unsupported scan type: " + scanType);
-                return WifiScanner.REASON_INVALID_ARGS;
-            }
-        }
-        if (enable6GhzRnr) {
-            scanFlags |= NL80211_SCAN_FLAG_COLOCATED_6GHZ;
-        }
         request.addAttribute(new StructNlAttr(NL80211_ATTR_SCAN_FLAGS, scanFlags));
 
         Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);

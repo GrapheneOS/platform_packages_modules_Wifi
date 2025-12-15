@@ -73,6 +73,8 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_TRIGG
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_FREQ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_COUNTRY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_COLOCATED_6GHZ;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_HIGH_ACCURACY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_POWER;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_RANDOM_ADDR;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCAN_MATCH_ATTR_RSSI;
@@ -501,6 +503,66 @@ public class Nl80211UtilsTest {
     }
 
     @Test
+    public void testWiphyFeaturesBuilder_allFalse() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsRandomMacOneShotScan(false)
+                .setSupportsRandomMacSchedScan(false)
+                .setSupportsLowSpanOneShotScan(false)
+                .setSupportsLowPowerOneShotScan(false)
+                .setSupportsHighAccuracyOneShotScan(false)
+                .setSupportsTxMgmtFrameMcs(false)
+                .setSupportsExtSchedScanRelativeRssi(false)
+                .build();
+        assertFalse(features.supportsRandomMacOneShotScan);
+        assertFalse(features.supportsRandomMacSchedScan);
+        assertFalse(features.supportsLowSpanOneShotScan);
+        assertFalse(features.supportsLowPowerOneShotScan);
+        assertFalse(features.supportsHighAccuracyOneShotScan);
+        assertFalse(features.supportsTxMgmtFrameMcs);
+        assertFalse(features.supportsExtSchedScanRelativeRssi);
+    }
+
+    @Test
+    public void testWiphyFeaturesBuilder_allTrue() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsRandomMacOneShotScan(true)
+                .setSupportsRandomMacSchedScan(true)
+                .setSupportsLowSpanOneShotScan(true)
+                .setSupportsLowPowerOneShotScan(true)
+                .setSupportsHighAccuracyOneShotScan(true)
+                .setSupportsTxMgmtFrameMcs(true)
+                .setSupportsExtSchedScanRelativeRssi(true)
+                .build();
+        assertTrue(features.supportsRandomMacOneShotScan);
+        assertTrue(features.supportsRandomMacSchedScan);
+        assertTrue(features.supportsLowSpanOneShotScan);
+        assertTrue(features.supportsLowPowerOneShotScan);
+        assertTrue(features.supportsHighAccuracyOneShotScan);
+        assertTrue(features.supportsTxMgmtFrameMcs);
+        assertTrue(features.supportsExtSchedScanRelativeRssi);
+    }
+
+    @Test
+    public void testWiphyFeaturesBuilder_mixedValues() {
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsRandomMacOneShotScan(true)
+                .setSupportsRandomMacSchedScan(false)
+                .setSupportsLowSpanOneShotScan(true)
+                .setSupportsLowPowerOneShotScan(false)
+                .setSupportsHighAccuracyOneShotScan(true)
+                .setSupportsTxMgmtFrameMcs(false)
+                .setSupportsExtSchedScanRelativeRssi(true)
+                .build();
+        assertTrue(features.supportsRandomMacOneShotScan);
+        assertFalse(features.supportsRandomMacSchedScan);
+        assertTrue(features.supportsLowSpanOneShotScan);
+        assertFalse(features.supportsLowPowerOneShotScan);
+        assertTrue(features.supportsHighAccuracyOneShotScan);
+        assertFalse(features.supportsTxMgmtFrameMcs);
+        assertTrue(features.supportsExtSchedScanRelativeRssi);
+    }
+
+    @Test
     public void testParseWiphyInfo_success() {
         GenericNetlinkMsg msg = createBasicWiphyInfoMsg();
         msg.addAttribute(createWiphyBandsAttribute());
@@ -869,7 +931,7 @@ public class Nl80211UtilsTest {
                         NL80211_CMD_TRIGGER_SCAN, (short) 0, (short) 0, 0));
 
         int result = mNl80211Utils.triggerScan(TEST_IF_INDEX, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, null, false, false, null);
+                null, null, null);
 
         assertEquals(WifiScanner.REASON_SUCCEEDED, result);
         GenericNetlinkMsg msg = msgCaptor.getValue();
@@ -891,7 +953,7 @@ public class Nl80211UtilsTest {
         Set<Integer> freqs = Set.of(2412, 5180);
 
         mNl80211Utils.triggerScan(TEST_IF_INDEX, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                freqs, null, false, false, null);
+                freqs, null, null);
 
         GenericNetlinkMsg msg = msgCaptor.getValue();
         assertNotNull(msg);
@@ -912,7 +974,7 @@ public class Nl80211UtilsTest {
         List<byte[]> ssids = List.of("ssid".getBytes());
 
         mNl80211Utils.triggerScan(TEST_IF_INDEX, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, ssids, false, false, null);
+                null, ssids, null);
 
         GenericNetlinkMsg msg = msgCaptor.getValue();
         assertNotNull(msg);
@@ -933,7 +995,7 @@ public class Nl80211UtilsTest {
         byte[] vendorIes = new byte[]{4, 5, 6};
 
         mNl80211Utils.triggerScan(TEST_IF_INDEX, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, null, false, false, vendorIes);
+                null, null, vendorIes);
 
         GenericNetlinkMsg msg = msgCaptor.getValue();
         assertNotNull(msg);
@@ -941,7 +1003,7 @@ public class Nl80211UtilsTest {
     }
 
     @Test
-    public void testTriggerScan_withRandomMac() {
+    public void testTriggerScan_withScanFlags() {
         ArgumentCaptor<GenericNetlinkMsg> msgCaptor =
                 ArgumentCaptor.forClass(GenericNetlinkMsg.class);
         when(mNl80211Proxy.sendMessageAndReceiveResponse(msgCaptor.capture()))
@@ -950,34 +1012,15 @@ public class Nl80211UtilsTest {
                 .thenAnswer(i -> new GenericNetlinkMsg(
                         NL80211_CMD_TRIGGER_SCAN, (short) 0, (short) 0, 0));
 
-        mNl80211Utils.triggerScan(TEST_IF_INDEX, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, null, true, false, null);
+        int scanFlags = NL80211_SCAN_FLAG_HIGH_ACCURACY | NL80211_SCAN_FLAG_RANDOM_ADDR
+                | NL80211_SCAN_FLAG_COLOCATED_6GHZ;
+        mNl80211Utils.triggerScan(TEST_IF_INDEX,
+                scanFlags,
+                null, null, null);
 
         GenericNetlinkMsg msg = msgCaptor.getValue();
         assertNotNull(msg);
-        Integer scanFlags = msg.getAttributeValueAsInteger(NL80211_ATTR_SCAN_FLAGS);
-        assertNotNull(scanFlags);
-        assertTrue((scanFlags & NetlinkConstants.NL80211_SCAN_FLAG_RANDOM_ADDR) != 0);
-    }
-
-    @Test
-    public void testTriggerScan_with6GhzRnr() {
-        ArgumentCaptor<GenericNetlinkMsg> msgCaptor =
-                ArgumentCaptor.forClass(GenericNetlinkMsg.class);
-        when(mNl80211Proxy.sendMessageAndReceiveResponse(msgCaptor.capture()))
-                .thenReturn(new Nl80211Response(0));
-        when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_TRIGGER_SCAN), anyShort()))
-                .thenAnswer(i -> new GenericNetlinkMsg(
-                        NL80211_CMD_TRIGGER_SCAN, (short) 0, (short) 0, 0));
-
-        mNl80211Utils.triggerScan(TEST_IF_INDEX, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, null, false, true, null);
-
-        GenericNetlinkMsg msg = msgCaptor.getValue();
-        assertNotNull(msg);
-        Integer scanFlags = msg.getAttributeValueAsInteger(NL80211_ATTR_SCAN_FLAGS);
-        assertNotNull(scanFlags);
-        assertTrue((scanFlags & NetlinkConstants.NL80211_SCAN_FLAG_COLOCATED_6GHZ) != 0);
+        assertEquals(scanFlags, (int) msg.getAttributeValueAsInteger(NL80211_ATTR_SCAN_FLAGS));
     }
 
     @Test
@@ -988,8 +1031,7 @@ public class Nl80211UtilsTest {
                 .thenAnswer(i -> new GenericNetlinkMsg(
                         NL80211_CMD_TRIGGER_SCAN, (short) 0, (short) 0, 0));
 
-        int result = mNl80211Utils.triggerScan(TEST_IF_INDEX, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, null, false, false, null);
+        int result = mNl80211Utils.triggerScan(TEST_IF_INDEX, 0, null, null, null);
 
         assertEquals(WifiScanner.REASON_BUSY, result);
     }
@@ -1002,8 +1044,7 @@ public class Nl80211UtilsTest {
                 .thenAnswer(i -> new GenericNetlinkMsg(
                         NL80211_CMD_TRIGGER_SCAN, (short) 0, (short) 0, 0));
 
-        int result = mNl80211Utils.triggerScan(TEST_IF_INDEX, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, null, false, false, null);
+        int result = mNl80211Utils.triggerScan(TEST_IF_INDEX, 0, null, null, null);
 
         assertEquals(WifiScanner.REASON_NO_DEVICE, result);
     }
@@ -1016,8 +1057,7 @@ public class Nl80211UtilsTest {
                 .thenAnswer(i -> new GenericNetlinkMsg(
                         NL80211_CMD_TRIGGER_SCAN, (short) 0, (short) 0, 0));
 
-        int result = mNl80211Utils.triggerScan(TEST_IF_INDEX, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, null, false, false, null);
+        int result = mNl80211Utils.triggerScan(TEST_IF_INDEX, 0, null, null, null);
 
         assertEquals(WifiScanner.REASON_UNSPECIFIED, result);
     }

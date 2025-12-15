@@ -44,6 +44,11 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TY
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_CUSTOM_WORLD;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_INTERSECTION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_REGDOM_TYPE_WORLD;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_COLOCATED_6GHZ;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_HIGH_ACCURACY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_POWER;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_SPAN;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_RANDOM_ADDR;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -961,12 +966,6 @@ public class Nl80211Native {
             Log.w(TAG, "startScan: scan already in progress for " + ifaceName);
         }
 
-        List<byte[]> trimmedHiddenSsids = null;
-        if (hiddenNetworkSSIDs != null) {
-            trimmedHiddenSsids =
-                    trimScanSsids(ifaceInfo.wiphyInfo.scanCapabilities, hiddenNetworkSSIDs);
-        }
-
         boolean requestRandomMac = ifaceInfo.wiphyInfo.wiphyFeatures.supportsRandomMacOneShotScan
                 && !ifaceInfo.associated;
 
@@ -977,8 +976,22 @@ public class Nl80211Native {
             vendorIes = extraScanningParams.getByteArray(EXTRA_SCANNING_PARAM_VENDOR_IES);
         }
 
-        int result = mNl80211Utils.triggerScan(ifaceInfo.ifIndex, scanType, freqs,
-                trimmedHiddenSsids, requestRandomMac, enable6GhzRnr, vendorIes);
+        // Prepare scan flags
+        if (scanType < 0 || scanType > WifiScanner.SCAN_TYPE_MAX) {
+            return WifiScanner.REASON_INVALID_ARGS;
+        }
+        int scanFlags = getScanFlagForScanType(scanType, ifaceInfo.wiphyInfo.wiphyFeatures);
+        if (requestRandomMac) scanFlags |= NL80211_SCAN_FLAG_RANDOM_ADDR;
+        if (enable6GhzRnr) scanFlags |= NL80211_SCAN_FLAG_COLOCATED_6GHZ;
+
+        List<byte[]> trimmedHiddenSsids = null;
+        if (hiddenNetworkSSIDs != null) {
+            trimmedHiddenSsids =
+                    trimScanSsids(ifaceInfo.wiphyInfo.scanCapabilities, hiddenNetworkSSIDs);
+        }
+
+        int result = mNl80211Utils.triggerScan(ifaceInfo.ifIndex, scanFlags, freqs,
+                trimmedHiddenSsids, vendorIes);
 
         if (result == WifiScanner.REASON_NO_DEVICE) {
             ifaceInfo.enodevCounter++;
@@ -993,6 +1006,33 @@ public class Nl80211Native {
         ifaceInfo.scanning = (result == WifiScanner.REASON_SUCCEEDED);
         ifaceInfo.enodevCounter = 0;
         return result;
+    }
+
+    @VisibleForTesting
+    protected static int getScanFlagForScanType(
+            @WifiAnnotations.ScanType int scanType,
+            @NonNull Nl80211Utils.WiphyFeatures features) {
+        switch (scanType) {
+            case WifiScanner.SCAN_TYPE_LOW_LATENCY -> {
+                if (features.supportsLowSpanOneShotScan) {
+                    return NL80211_SCAN_FLAG_LOW_SPAN;
+                }
+            }
+            case WifiScanner.SCAN_TYPE_LOW_POWER -> {
+                if (features.supportsLowPowerOneShotScan) {
+                    return NL80211_SCAN_FLAG_LOW_POWER;
+                }
+            }
+            case WifiScanner.SCAN_TYPE_HIGH_ACCURACY -> {
+                if (features.supportsHighAccuracyOneShotScan) {
+                    return NL80211_SCAN_FLAG_HIGH_ACCURACY;
+                }
+            }
+            default -> Log.wtf(TAG, "Received invalid scan type " + scanType);
+        }
+
+        Log.d(TAG, "Ignoring unsupported scan type " + scanType);
+        return 0;
     }
 
     private List<byte[]> trimScanSsids(
