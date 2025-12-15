@@ -35,6 +35,7 @@ import android.net.wifi.WifiContext;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiTwtSession;
 import android.net.wifi.nl80211.WifiNl80211Manager;
+import android.net.wifi.util.Environment;
 import android.os.BatteryManager;
 import android.os.BatteryStatsManager;
 import android.os.Handler;
@@ -372,13 +373,15 @@ public class WifiInjector {
                 mWifiGlobals, mSsidTranslator, this);
         mHostapdHal = new HostapdHal(mContext, mWifiHandler);
         Nl80211Proxy nl80211Proxy = new Nl80211Proxy(mWifiHandler, mWifiMetrics);
+        boolean isWificondMigrationEnabled =
+                Environment.isSdkAtLeastB() && mFeatureFlags.wificondToNl80211Migration();
         mNl80211Native = new Nl80211Native(
                 nl80211Proxy,
                 new Nl80211Utils(nl80211Proxy),
                 makeNetdWrapper(),
                 (WifiNl80211Manager) mContext.getSystemService(Context.WIFI_NL80211_SERVICE),
                 this,
-                /* useWificond */ !mFeatureFlags.wificondToNl80211Migration());
+                /* useWificond */ !isWificondMigrationEnabled);
         mWifiNative = new WifiNative(
                 mWifiVendorHal, mSupplicantStaIfaceHal, mHostapdHal, mNl80211Native,
                 mWifiMonitor, mPropertyService, mWifiMetrics,
