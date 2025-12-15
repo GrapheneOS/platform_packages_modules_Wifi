@@ -239,7 +239,8 @@ public class WifiNetworkSelector {
      */
     public boolean hasSufficientLinkQuality(WifiInfo wifiInfo) {
         int currentRssi = wifiInfo.getRssi();
-        return currentRssi >= mScoringParams.getSufficientRssi(wifiInfo.getFrequency());
+        return currentRssi != WifiInfo.INVALID_RSSI
+                && currentRssi >= mScoringParams.getSufficientRssi(wifiInfo.getFrequency());
     }
 
     /**
