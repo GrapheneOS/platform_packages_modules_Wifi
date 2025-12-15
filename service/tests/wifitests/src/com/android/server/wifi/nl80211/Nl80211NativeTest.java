@@ -679,9 +679,35 @@ public class Nl80211NativeTest {
         mDut = initNl80211Native(false);
         // Do not call setupClientModeInterfaceForTest, so mClientInterfaceInfos is empty
         int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, null, null);
+                null, Collections.emptyList(), null);
         assertEquals(WifiScanner.REASON_UNSPECIFIED, result);
         verify(mNl80211Utils, never()).triggerScan(anyInt(), anyInt(), any(), any(), any());
+    }
+
+    /** Test that an empty hidden network SSIDs arg will trigger a wildcard scan. */
+    @Test
+    public void testStartScan_emptyHiddenSsids_triggersWildcardScan() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+
+        List<byte[]> emptySsids = new ArrayList<>();
+        List<byte[]> expectedSsids = List.of(new byte[0]);
+
+        when(mNl80211Utils.triggerScan(
+                eq(CLIENT_IFACE_INDEX), anyInt(),
+                eq(null), eq(expectedSsids), eq(null)))
+                .thenReturn(WifiScanner.REASON_SUCCEEDED);
+
+        int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_LOW_LATENCY,
+                null, emptySsids, null);
+        assertEquals(WifiScanner.REASON_SUCCEEDED, result);
+        ArgumentCaptor<List<byte[]>> ssidsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(mNl80211Utils).triggerScan(
+                eq(CLIENT_IFACE_INDEX), anyInt(),
+                eq(null), ssidsCaptor.capture(), eq(null));
+        List<byte[]> ssids = ssidsCaptor.getValue();
+        assertEquals(1, ssids.size());
+        assertEquals(0, ssids.get(0).length);
     }
 
     /** Test that startScan correctly trims and passes hidden SSIDs. */
@@ -725,10 +751,10 @@ public class Nl80211NativeTest {
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, null, extraParams);
+                null, Collections.emptyList(), extraParams);
         assertEquals(WifiScanner.REASON_SUCCEEDED, result);
         verify(mNl80211Utils).triggerScan(
-                eq(CLIENT_IFACE_INDEX), anyInt(), eq(null), eq(null), eq(vendorIes));
+                eq(CLIENT_IFACE_INDEX), anyInt(), eq(null), any(), eq(vendorIes));
     }
 
     @Test
@@ -743,14 +769,14 @@ public class Nl80211NativeTest {
         // Call startScan ENODEV_RESTART_THRESHOLD times. It should not trigger SelfRecovery yet.
         for (int i = 0; i < Nl80211Native.ENODEV_RESTART_THRESHOLD; i++) {
             int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                    null, null, null);
+                    null, Collections.emptyList(), null);
             assertEquals(WifiScanner.REASON_NO_DEVICE, result);
             verify(mSelfRecovery, never()).trigger(anyInt());
         }
 
         // Call startScan one more time, which should trigger SelfRecovery.
         int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
-                null, null, null);
+                null, Collections.emptyList(), null);
         assertEquals(WifiScanner.REASON_NO_DEVICE, result);
         verify(mSelfRecovery).trigger(SelfRecovery.REASON_SUBSYSTEM_RESTART);
     }
@@ -764,26 +790,28 @@ public class Nl80211NativeTest {
         when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), any()))
                 .thenReturn(WifiScanner.REASON_NO_DEVICE);
         for (int i = 0; i < Nl80211Native.ENODEV_RESTART_THRESHOLD - 1; i++) {
-            mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null,
-                    null);
+            mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null,
+                    Collections.emptyList(), null);
             verify(mSelfRecovery, never()).trigger(anyInt());
         }
 
         // One successful scan should reset the counter
         when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), any()))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
-        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null, null);
+        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null,
+                Collections.emptyList(), null);
         verify(mSelfRecovery, never()).trigger(anyInt());
 
         // Now, trigger failures again, and verify recovery is only triggered after the threshold
         when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), any()))
                 .thenReturn(WifiScanner.REASON_NO_DEVICE);
         for (int i = 0; i < Nl80211Native.ENODEV_RESTART_THRESHOLD; i++) {
-            mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null,
-                    null);
+            mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null,
+                    Collections.emptyList(), null);
             verify(mSelfRecovery, never()).trigger(anyInt());
         }
-        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null, null);
+        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null,
+                Collections.emptyList(), null);
         verify(mSelfRecovery).trigger(SelfRecovery.REASON_SUBSYSTEM_RESTART);
     }
 
@@ -795,7 +823,8 @@ public class Nl80211NativeTest {
         when(mNl80211Utils.triggerScan(anyInt(), eq(expectedScanFlags), any(), any(), any()))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
-        int result = mDut.startScan(CLIENT_IFACE_NAME, scanType, null, null, null);
+        int result = mDut.startScan(CLIENT_IFACE_NAME, scanType, null, Collections.emptyList(),
+                null);
 
         assertEquals(result, WifiScanner.REASON_SUCCEEDED);
         verify(mNl80211Utils).triggerScan(
@@ -956,7 +985,8 @@ public class Nl80211NativeTest {
                 any(), any(), any()))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
-        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_LOW_LATENCY, null, null, null);
+        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_LOW_LATENCY, null,
+                Collections.emptyList(), null);
 
         verify(mNl80211Utils).triggerScan(
                 eq(CLIENT_IFACE_INDEX),
@@ -980,8 +1010,8 @@ public class Nl80211NativeTest {
                 any(), any(), any()))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
-        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_LOW_LATENCY, null, null,
-                extraParams);
+        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_LOW_LATENCY, null,
+                Collections.emptyList(), extraParams);
 
         verify(mNl80211Utils).triggerScan(
                 eq(CLIENT_IFACE_INDEX),
@@ -998,7 +1028,8 @@ public class Nl80211NativeTest {
         // Start a scan first to set the 'scanning' flag to true
         when(mNl80211Utils.triggerScan(anyInt(), anyInt(), any(), any(), any()))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
-        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null, null, null);
+        mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY, null,
+                Collections.emptyList(), null);
         assertTrue(mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME).scanning);
 
         mDut.abortScan(CLIENT_IFACE_NAME);

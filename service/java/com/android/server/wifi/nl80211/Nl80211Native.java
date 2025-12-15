@@ -934,8 +934,8 @@ public class Nl80211Native {
      * {@link WifiScanner#SCAN_TYPE_HIGH_ACCURACY}, {@link WifiScanner#SCAN_TYPE_LOW_POWER}, or
      * {@link WifiScanner#SCAN_TYPE_LOW_LATENCY}.
      * @param freqs list of frequencies to scan for, if null scan all supported channels.
-     * @param hiddenNetworkSSIDs List of hidden networks to be scanned for, a null indicates that
-     *                           no hidden frequencies will be scanned for.
+     * @param hiddenNetworkSSIDs List of hidden networks to be scanned for. An empty list indicates
+     *                           to scan using the wildcard SSID.
      * @param extraScanningParams bundle of extra scanning parameters.
      * @return Returns one of the scan status codes defined in {@code WifiScanner#REASON_*}
      */
@@ -943,7 +943,7 @@ public class Nl80211Native {
             @NonNull String ifaceName,
             @WifiAnnotations.ScanType int scanType,
             @Nullable Set<Integer> freqs,
-            @Nullable List<byte[]> hiddenNetworkSSIDs,
+            @NonNull List<byte[]> hiddenNetworkSSIDs,
             @Nullable Bundle extraScanningParams) {
         if (useWificond()) {
             return mWificondManager.startScan2(
@@ -984,8 +984,11 @@ public class Nl80211Native {
         if (requestRandomMac) scanFlags |= NL80211_SCAN_FLAG_RANDOM_ADDR;
         if (enable6GhzRnr) scanFlags |= NL80211_SCAN_FLAG_COLOCATED_6GHZ;
 
-        List<byte[]> trimmedHiddenSsids = null;
-        if (hiddenNetworkSSIDs != null) {
+        List<byte[]> trimmedHiddenSsids;
+        if (hiddenNetworkSSIDs.isEmpty()) {
+            // If no hidden SSIDs are supplied, set an empty SSID to indicate a wildcard scan.
+            trimmedHiddenSsids = List.of(new byte[0]);
+        } else {
             trimmedHiddenSsids =
                     trimScanSsids(ifaceInfo.wiphyInfo.scanCapabilities, hiddenNetworkSSIDs);
         }
@@ -1036,7 +1039,8 @@ public class Nl80211Native {
     }
 
     private List<byte[]> trimScanSsids(
-            Nl80211Utils.ScanCapabilities scanCapabilities, List<byte[]> scanSsids) {
+            @NonNull Nl80211Utils.ScanCapabilities scanCapabilities,
+            @NonNull List<byte[]> scanSsids) {
         List<byte[]> trimmedSsids = new ArrayList<>();
         List<byte[]> tooLongSsids = new ArrayList<>();
         List<byte[]> surplusSsids = new ArrayList<>();

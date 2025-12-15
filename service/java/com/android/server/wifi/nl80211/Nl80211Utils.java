@@ -1284,7 +1284,7 @@ public class Nl80211Utils {
         request.addAttribute(ifIndexAttr);
 
         // SSIDs
-        if (hiddenNetworkSSIDs != null && !hiddenNetworkSSIDs.isEmpty()) {
+        if (hiddenNetworkSSIDs != null) {
             StructNlAttr ssidsAttr = createNestedSsidsAttribute(hiddenNetworkSSIDs);
             request.addAttribute(ssidsAttr);
         }
