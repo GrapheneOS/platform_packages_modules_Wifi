@@ -29,6 +29,7 @@ import android.net.wifi.IBooleanListener;
 import android.net.wifi.IIntegerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.WifiManager;
+import android.net.wifi.aware.AwareDataPathRequest;
 import android.net.wifi.aware.AwareParams;
 import android.net.wifi.aware.AwareResources;
 import android.net.wifi.aware.Characteristics;
@@ -662,6 +663,31 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
         enforceNetworkStackPermission();
 
         mStateManager.requestMacAddresses(uid, peerIds, callback);
+    }
+
+    @Override
+    public void requestDatapath(int clientId, int sessionId, int peerId,
+            AwareDataPathRequest request, boolean isPublish) throws RemoteException {
+        enforceAccessPermission();
+        enforceChangePermission();
+        int uid = getMockableCallingUid();
+        enforceClientValidity(uid, clientId);
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "requestDatapath: clientId=" + clientId + ", sessionId=" + sessionId
+                    + ", peerId=" + peerId + ", request=" + request + ", isPublish=" + isPublish);
+        }
+    }
+
+    @Override
+    public void releaseDatapath(int clientId, int sessionId, int peerId) throws RemoteException {
+        enforceAccessPermission();
+        enforceChangePermission();
+        int uid = getMockableCallingUid();
+        enforceClientValidity(uid, clientId);
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "releaseDatapath: clientId=" + clientId + ", sessionId=" + sessionId
+                    + ", peerId=" + peerId);
+        }
     }
 
     @Override

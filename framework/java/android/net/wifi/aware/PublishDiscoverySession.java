@@ -16,6 +16,9 @@
 
 package android.net.wifi.aware;
 
+import static com.android.wifi.flags.Flags.FLAG_MULTI_PEER_AWARE_DATAPATH;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.util.Log;
 
@@ -65,4 +68,45 @@ public class PublishDiscoverySession extends DiscoverySession {
             mgr.updatePublish(mClientId, mSessionId, publishConfig);
         }
     }
+
+    /**
+     * Accept a Wi-Fi Aware data path request to create a connection with the target peer.
+     * The Aware data path request should be done in the context of a discovery session -
+     * after a {@link DiscoverySessionCallback#onDataPathRequestReceived(PeerHandle)} event
+     * is received.
+     * When the Aware data path setup finished, both side will receive
+     * {@link DiscoverySessionCallback#onDataPathConnected(PeerHandle, WifiAwareNetworkInfo)}
+     * @param peerHandle The peer's handle for the data path request.
+     * @param request The data path request.
+     */
+    @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
+    public void acceptDataPathRequest(@NonNull PeerHandle peerHandle,
+            @NonNull AwareDataPathRequest request) {
+        if (mTerminated) {
+            throw new IllegalStateException("acceptDatapathRequest called on"
+                    + " a terminated session.");
+        }
+
+        WifiAwareManager mgr = mMgr.get();
+        if (mgr == null) {
+            throw new IllegalStateException("Failed to get WifiAwareManager.");
+        }
+        mgr.requestDataPath(mClientId, mSessionId, peerHandle, request, true);
+    }
+
+    /**
+     * Reject a Wi-Fi Aware data path request received from peer. This is the
+     * response to the
+     * {@link DiscoverySessionCallback#onDataPathRequestReceived(PeerHandle)}
+     *
+     * @param peerHandle The peer's handle for the data path request.
+     */
+    @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
+    public void rejectDataPathRequest(@NonNull PeerHandle peerHandle) {
+        if (mTerminated) {
+            throw new IllegalStateException("rejectDatapathRequest called on "
+                    + "a terminated session.");
+        }
+    }
+
 }
