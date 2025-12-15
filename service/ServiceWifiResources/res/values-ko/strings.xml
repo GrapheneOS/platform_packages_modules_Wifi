@@ -222,10 +222,7 @@
     <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"Wi‑Fi 연결을 해제하면 <xliff:g id="APP_NAME">%1$s</xliff:g> 기기의 연결이 해제됩니다. 계속하시겠습니까?"</string>
     <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"계속"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"취소"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (624715160252254674) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (534271497503164022) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_positive_button (4891994857934666730) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="624715160252254674">"새 Wi-Fi 네트워크에 연결하시겠습니까?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="534271497503164022">"<xliff:g id="SSID">%2$s</xliff:g> 네트워크에 연결하면 <xliff:g id="APP_NAME">%1$s</xliff:g> 앱이 연결 해제됩니다."</string>
+    <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"연결"</string>
 </resources>

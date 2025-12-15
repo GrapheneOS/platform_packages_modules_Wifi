@@ -222,10 +222,7 @@
     <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"‏‫Wi‑Fi کو غیر منسلک کرنے سے <xliff:g id="APP_NAME">%1$s</xliff:g> غیر منسلک ہو جائے گا۔ جاری رکھیں؟"</string>
     <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"جاری رکھیں"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"منسوخ کریں"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (624715160252254674) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (534271497503164022) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_positive_button (4891994857934666730) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="624715160252254674">"‏نئے Wi‑Fi نیٹ ورک سے منسلک کریں؟"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="534271497503164022">"آپ کے <xliff:g id="SSID">%2$s</xliff:g> نیٹ ورک سے منسلک ہونے پر <xliff:g id="APP_NAME">%1$s</xliff:g> ایپ غیر منسلک ہو جائے گی۔"</string>
+    <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"منسلک کریں"</string>
 </resources>
