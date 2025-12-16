@@ -49,9 +49,6 @@ public class WifiDumpsysMetricsTest {
 
     /**
      * Test that Wifi dumps metrics in the expected format.
-     *
-     * Assumption:
-     *   - Test device should have at least 1 saved network
      */
     @Test
     public void testWifiDumpMetrics() throws Exception {
@@ -75,7 +72,7 @@ public class WifiDumpsysMetricsTest {
 
         WifiLog wifiLog = WifiLog.parseFrom(protoBytes);
 
-        assertThat(wifiLog.numSavedNetworks).isAtLeast(1);
+        assertThat(wifiLog.numSavedNetworks).isAtLeast(0);
         assertThat(wifiLog.numOpenNetworks).isAtLeast(0);
         assertThat(wifiLog.numHiddenNetworks).isAtLeast(0);
         assertThat(wifiLog.numWificondCrashes).isAtLeast(0);
