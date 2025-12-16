@@ -222,10 +222,7 @@
     <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"Wi‑Fi ажыратылса, <xliff:g id="APP_NAME">%1$s</xliff:g> ажыратылады. Жалғастыру керек пе?"</string>
     <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"Жалғастыру"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Бас тарту"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (624715160252254674) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (534271497503164022) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_positive_button (4891994857934666730) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="624715160252254674">"Жаңа Wi‑Fi желісіне қосылу қажет пе?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="534271497503164022">"<xliff:g id="SSID">%2$s</xliff:g> желісіне қосылған кезде, <xliff:g id="APP_NAME">%1$s</xliff:g> ажыратылады."</string>
+    <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"Қосылу"</string>
 </resources>

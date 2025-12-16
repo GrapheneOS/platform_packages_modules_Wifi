@@ -21,7 +21,6 @@ import static com.android.server.wifi.InsecureEapNetworkHandler.createTofuDialog
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
@@ -56,8 +55,6 @@ import androidx.test.filters.SmallTest;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
-import com.android.server.wifi.util.CertificateSubjectInfo;
-import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.resources.R;
 
 import org.junit.After;
@@ -326,7 +323,6 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
     @Mock WifiNotificationManager mWifiNotificationManager;
     @Mock WifiDialogManager mWifiDialogManager;
     @Mock WifiDialogManager.SimpleDialogBuilder mDialogBuilder;
-    @Mock FeatureFlags mFeatureFlags;
     @Mock InsecureEapNetworkHandler.InsecureEapNetworkHandlerCallbacks mCallbacks;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) private Notification.Builder mNotificationBuilder;
     @Mock private WifiDialogManager.DialogHandle mTofuAlertDialog;
@@ -697,7 +693,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockServerCert);
         verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, true,
                 true, false, null, mockServerCert.getCert(),
-                null, false);
+                null);
     }
 
     /**
@@ -731,7 +727,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 .thenReturn(getCertificate(TEST_GEN_CA2_CERT));
         verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, true,
                 true, false, mockCaCert.getCert(), mockServerCert.getCert(),
-                WifiConfigurationUtil.getSystemTrustStorePath(), false);
+                WifiConfigurationUtil.getSystemTrustStorePath());
     }
 
     private CertificateEventInfo generateMockCertEventInfo(int type) throws Exception {
@@ -797,7 +793,6 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mFrameworkFacade,
                 mWifiNotificationManager,
                 mWifiDialogManager,
-                mFeatureFlags,
                 isTrustOnFirstUseSupported,
                 isInsecureEnterpriseConfigurationAllowed,
                 mCallbacks,
@@ -868,33 +863,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, mockCaCert.getCert(), mockServerCert.getCert(),
-                null, false);
-    }
-
-    /**
-     * Verify Trust On First Use flow with a minimal cert chain using the updated TOFU dialog.
-     * - This network is selected by a user.
-     * - Accept the connection.
-     */
-    @Test
-    public void verifyTrustOnFirstUseAcceptWhenConnectByUserWithMinimalChainUpdatedDialog()
-            throws Exception {
-        assumeTrue(SdkLevel.isAtLeastT());
-        when(mFeatureFlags.updatedTofuDialog()).thenReturn(true);
-        boolean isAtLeastT = true, isTrustOnFirstUseSupported = true, isUserSelected = true;
-        boolean needUserApproval = true;
-
-        WifiConfiguration config = prepareWifiConfiguration(isAtLeastT);
-        setupTest(config, isAtLeastT, isTrustOnFirstUseSupported);
-
-        CertificateEventInfo mockCaCert = generateMockCertEventInfo(TEST_GEN_CA_CERT);
-        CertificateEventInfo mockServerCert = generateMockCertEventInfo(TEST_GEN_SERVER_CERT);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 1, mockCaCert);
-        mInsecureEapNetworkHandler.addPendingCertificate(config.networkId, 0, mockServerCert);
-
-        verifyTrustOnFirstUseFlow(config, ACTION_ACCEPT, isTrustOnFirstUseSupported,
-                isUserSelected, needUserApproval, mockCaCert.getCert(), mockServerCert.getCert(),
-                null, true);
+                null);
     }
 
     /**
@@ -918,7 +887,7 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
 
         verifyTrustOnFirstUseFlow(config, ACTION_FORGET, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, mockSelfSignedCert.getCert(),
-                mockSelfSignedCert.getCert(), null, false);
+                mockSelfSignedCert.getCert(), null);
     }
 
     /**
@@ -1084,7 +1053,6 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mFrameworkFacade,
                 mWifiNotificationManager,
                 mWifiDialogManager,
-                mFeatureFlags,
                 true /* isTrustOnFirstUseSupported */,
                 false /* isInsecureEnterpriseConfigurationAllowed */,
                 mCallbacks,
@@ -1161,41 +1129,34 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
         }
         verifyTrustOnFirstUseFlow(config, action, isTrustOnFirstUseSupported,
                 isUserSelected, needUserApproval, mockCaCert.getCert(), mockServerCert.getCert(),
-                null, false);
+                null);
     }
 
     private void verifyTrustOnFirstUseFlow(WifiConfiguration config,
             int action, boolean isTrustOnFirstUseSupported, boolean isUserSelected,
             boolean needUserApproval, X509Certificate expectedCaCert,
-            X509Certificate expectedServerCert, String expectedCaPath,
-            boolean useUpdatedTofuDialog) throws Exception {
+            X509Certificate expectedServerCert, String expectedCaPath) throws Exception {
         mInsecureEapNetworkHandler.startUserApprovalIfNecessary(isUserSelected);
 
         ArgumentCaptor<String> dialogMessageCaptor = ArgumentCaptor.forClass(String.class);
         if (isUserSelected) {
             ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
                     ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-            ArgumentCaptor<List<Pair<String, String>>> dialogListCaptor =
-                    ArgumentCaptor.forClass(List.class);
-
-            if (useUpdatedTofuDialog) {
+            if (isTrustOnFirstUseSupported) {
+                ArgumentCaptor<List<Pair<String, String>>> dialogListCaptor =
+                        ArgumentCaptor.forClass(List.class);
                 verify(mWifiDialogManager).createSimpleDialogBuilder();
                 verify(mDialogBuilder).setListItems(dialogListCaptor.capture());
                 verify(mDialogBuilder).setCallback(dialogCallbackCaptor.capture(), any());
+
+                assertEquals(createTofuDialogCertInfoList(mContext, expectedServerCert),
+                        dialogListCaptor.getValue());
             } else {
                 verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
-                        any(), dialogMessageCaptor.capture(), any(), anyInt(), anyInt(), any(),
-                        any(), any(), dialogCallbackCaptor.capture(), any());
+                        any(), any(), any(), anyInt(), anyInt(), any(), any(), any(),
+                        dialogCallbackCaptor.capture(), any());
             }
-            if (isTrustOnFirstUseSupported) {
-                if (useUpdatedTofuDialog) {
-                    assertEquals(createTofuDialogCertInfoList(mContext, expectedServerCert),
-                            dialogListCaptor.getValue());
-                } else {
-                    assertTofuDialogMessage(expectedServerCert,
-                            dialogMessageCaptor.getValue());
-                }
-            }
+
             if (action == ACTION_ACCEPT) {
                 dialogCallbackCaptor.getValue().onPositiveButtonClicked();
             } else if (action == ACTION_REJECT) {
@@ -1215,13 +1176,18 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 intent.putExtra(InsecureEapNetworkHandler.EXTRA_PENDING_CERT_SSID, TEST_SSID);
                 BroadcastReceiver br = mBroadcastReceiverCaptor.getValue();
                 br.onReceive(mContext, intent);
+
+                // After tapping the notification, the updated dialog should appear
                 ArgumentCaptor<WifiDialogManager.SimpleDialogCallback> dialogCallbackCaptor =
                         ArgumentCaptor.forClass(WifiDialogManager.SimpleDialogCallback.class);
-                verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
-                        any(), dialogMessageCaptor.capture(), any(), anyInt(), anyInt(), any(),
-                        any(), any(), dialogCallbackCaptor.capture(), any());
-                assertTofuDialogMessage(expectedServerCert,
-                        dialogMessageCaptor.getValue());
+                ArgumentCaptor<List<Pair<String, String>>> dialogListCaptor =
+                        ArgumentCaptor.forClass(List.class);
+                verify(mWifiDialogManager).createSimpleDialogBuilder();
+                verify(mDialogBuilder).setListItems(dialogListCaptor.capture());
+                verify(mDialogBuilder).setCallback(dialogCallbackCaptor.capture(), any());
+                assertEquals(createTofuDialogCertInfoList(mContext, expectedServerCert),
+                        dialogListCaptor.getValue());
+
                 if (action == ACTION_ACCEPT) {
                     dialogCallbackCaptor.getValue().onPositiveButtonClicked();
                 } else if (action == ACTION_REJECT) {
@@ -1282,33 +1248,15 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                             .DISABLED_BY_WIFI_MANAGER));
             verify(mCallbacks).onReject(eq(config.SSID), eq(!isTrustOnFirstUseSupported));
         } else if (action == ACTION_TAP) {
-            verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
-                    any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any(), any());
-            verify(mTofuAlertDialog).launchDialog();
+            if (!isTrustOnFirstUseSupported) {
+                verify(mWifiDialogManager).createLegacySimpleDialogWithUrl(
+                        any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any(), any());
+                verify(mTofuAlertDialog).launchDialog();
+            }
         } else if (action == ACTION_FORGET) {
             verify(mTofuAlertDialog).dismissDialog();
         }
         verify(mCallbacks, never()).onError(any());
-    }
-
-    private void assertTofuDialogMessage(
-            X509Certificate serverCert,
-            String message) {
-        CertificateSubjectInfo serverCertSubjectInfo =
-                CertificateSubjectInfo.parse(serverCert.getSubjectX500Principal().getName());
-        CertificateSubjectInfo serverCertIssuerInfo =
-                CertificateSubjectInfo.parse(serverCert.getIssuerX500Principal().getName());
-        assertNotNull("Server cert subject info is null", serverCertSubjectInfo);
-        assertNotNull("Server cert issuer info is null", serverCertIssuerInfo);
-
-        assertTrue("TOFU dialog message does not contain server cert subject name ",
-                message.contains(serverCertSubjectInfo.commonName));
-        assertTrue("TOFU dialog message does not contain server cert issuer name",
-                message.contains(serverCertIssuerInfo.commonName));
-        if (!TextUtils.isEmpty(serverCertSubjectInfo.organization)) {
-            assertTrue("TOFU dialog message does not contain server cert organization",
-                    message.contains(serverCertSubjectInfo.organization));
-        }
     }
 
     @Test
@@ -1357,7 +1305,6 @@ public class InsecureEapNetworkHandlerTest extends WifiBaseTest {
                 mFrameworkFacade,
                 mWifiNotificationManager,
                 mWifiDialogManager,
-                mFeatureFlags,
                 true,
                 false,
                 mCallbacks,

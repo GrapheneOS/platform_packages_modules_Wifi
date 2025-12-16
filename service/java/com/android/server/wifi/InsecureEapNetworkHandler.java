@@ -40,7 +40,6 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
 import com.android.internal.util.HexDump;
 import com.android.server.wifi.util.CertificateSubjectInfo;
-import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.resources.R;
 
 import java.security.InvalidAlgorithmParameterException;
@@ -90,7 +89,6 @@ public class InsecureEapNetworkHandler {
     private final FrameworkFacade mFacade;
     private final WifiNotificationManager mNotificationManager;
     private final WifiDialogManager mWifiDialogManager;
-    private final FeatureFlags mFeatureFlags;
     private final boolean mIsTrustOnFirstUseSupported;
     private final boolean mIsInsecureEnterpriseConfigurationAllowed;
     private final InsecureEapNetworkHandlerCallbacks mCallbacks;
@@ -154,7 +152,6 @@ public class InsecureEapNetworkHandler {
             @NonNull FrameworkFacade facade,
             @NonNull WifiNotificationManager notificationManager,
             @NonNull WifiDialogManager wifiDialogManager,
-            @NonNull FeatureFlags featureFlags,
             boolean isTrustOnFirstUseSupported,
             boolean isInsecureEnterpriseConfigurationAllowed,
             @NonNull InsecureEapNetworkHandlerCallbacks callbacks,
@@ -166,7 +163,6 @@ public class InsecureEapNetworkHandler {
         mFacade = facade;
         mNotificationManager = notificationManager;
         mWifiDialogManager = wifiDialogManager;
-        mFeatureFlags = featureFlags;
         mIsTrustOnFirstUseSupported = isTrustOnFirstUseSupported;
         mIsInsecureEnterpriseConfigurationAllowed = isInsecureEnterpriseConfigurationAllowed;
         mCallbacks = callbacks;
@@ -732,6 +728,11 @@ public class InsecureEapNetworkHandler {
         }
         dismissDialogAndNotification();
 
+        if (useTrustOnFirstUse()) {
+            showUpdatedTofuDialog();
+            return;
+        }
+
         String title = useTrustOnFirstUse()
                 ? mContext.getString(R.string.wifi_ca_cert_dialog_title)
                 : mContext.getString(R.string.wifi_ca_cert_dialog_preT_title);
@@ -741,51 +742,14 @@ public class InsecureEapNetworkHandler {
         String negativeButtonText = useTrustOnFirstUse()
                 ? mContext.getString(R.string.wifi_ca_cert_dialog_abort_text)
                 : mContext.getString(R.string.wifi_ca_cert_dialog_preT_abort_text);
-
-        String message;
-        String messageUrl = null;
-        int messageUrlStart = 0;
-        int messageUrlEnd = 0;
-        if (useTrustOnFirstUse()) {
-            if (mFeatureFlags.updatedTofuDialog()) {
-                showUpdatedTofuDialog();
-                return;
-            }
-            StringBuilder contentBuilder = new StringBuilder()
-                    .append(mContext.getString(R.string.wifi_ca_cert_dialog_message_hint))
-                    .append(mContext.getString(
-                            R.string.wifi_ca_cert_dialog_message_server_name_text,
-                            mPendingServerCertSubjectInfo.commonName))
-                    .append(mContext.getString(
-                            R.string.wifi_ca_cert_dialog_message_issuer_name_text,
-                            mPendingServerCertIssuerInfo.commonName));
-            if (!TextUtils.isEmpty(mPendingServerCertSubjectInfo.organization)) {
-                contentBuilder.append(mContext.getString(
-                        R.string.wifi_ca_cert_dialog_message_organization_text,
-                        mPendingServerCertSubjectInfo.organization));
-            }
-            final Date expiration = mPendingServerCert.getNotAfter();
-            if (expiration != null) {
-                contentBuilder.append(mContext.getString(
-                        R.string.wifi_ca_cert_dialog_message_expiration_text,
-                        DateFormat.getMediumDateFormat(mContext).format(expiration)));
-            }
-            final String fingerprint = getDigest(mPendingServerCert, "SHA256");
-            if (!TextUtils.isEmpty(fingerprint)) {
-                contentBuilder.append(mContext.getString(
-                        R.string.wifi_ca_cert_dialog_message_signature_name_text, fingerprint));
-            }
-            message = contentBuilder.toString();
-        } else {
-            String hint = mContext.getString(
-                    R.string.wifi_ca_cert_dialog_preT_message_hint, mCurrentTofuConfig.SSID);
-            String linkText = mContext.getString(
-                    R.string.wifi_ca_cert_dialog_preT_message_link);
-            message = hint + " " + linkText;
-            messageUrl = mCaCertHelpLink;
-            messageUrlStart = hint.length() + 1;
-            messageUrlEnd = message.length();
-        }
+        String hint = mContext.getString(
+                R.string.wifi_ca_cert_dialog_preT_message_hint, mCurrentTofuConfig.SSID);
+        String linkText = mContext.getString(
+                R.string.wifi_ca_cert_dialog_preT_message_link);
+        String message = hint + " " + linkText;
+        String messageUrl = mCaCertHelpLink;
+        int messageUrlStart = hint.length() + 1;
+        int messageUrlEnd = message.length();
         mTofuAlertDialog = mWifiDialogManager.createLegacySimpleDialogWithUrl(
                 title,
                 message,
