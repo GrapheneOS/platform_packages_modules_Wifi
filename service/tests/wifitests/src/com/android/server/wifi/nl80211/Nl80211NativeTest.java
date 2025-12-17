@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.nl80211;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doThrow;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_CHANNEL_WIDTH;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
@@ -379,6 +380,52 @@ public class Nl80211NativeTest {
                 msg);
 
         assertTrue(mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME).associated);
+    }
+
+    @Test
+    public void testSetupInterfaceForClientMode_netdFailureReturnsTrue() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.InterfaceInfo ifaceInfo = new Nl80211Utils.InterfaceInfo(
+                CLIENT_IFACE_INDEX, WIPHY_INDEX_0, CLIENT_IFACE_NAME, new byte[6]);
+        when(mNl80211Utils.getInterfaceInfo(CLIENT_IFACE_NAME)).thenReturn(ifaceInfo);
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
+                new Nl80211Utils.BandInfo(),
+                mock(Nl80211Utils.ScanCapabilities.class),
+                new Nl80211Utils.WiphyFeatures.Builder().build(),
+                mock(Nl80211Utils.DriverCapabilities.class));
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfo);
+        // Simulate a failure from NetdWrapper.
+        doThrow(new IllegalStateException("netd has died"))
+                .when(mNetdWrapper).setInterfaceUp(CLIENT_IFACE_NAME);
+
+        assertTrue(mDut.setupInterfaceForClientMode(
+                CLIENT_IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+    }
+
+    @Test
+    public void testTearDownClientInterface_netdFailureReturnsTrue() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+        // Simulate a failure from NetdWrapper.
+        doThrow(new IllegalStateException("netd has died"))
+                .when(mNetdWrapper).setInterfaceDown(CLIENT_IFACE_NAME);
+
+        assertTrue(mDut.tearDownClientInterface(CLIENT_IFACE_NAME));
+        // The client info should still be removed even if netd fails to bring down the interface.
+        assertFalse(mDut.getClientInterfaceInfos().containsKey(CLIENT_IFACE_NAME));
+    }
+
+    @Test
+    public void testTearDownSoftApInterface_netdFailureReturnsTrue() {
+        mDut = initNl80211Native(false);
+        setupSoftApInterfaceForTest(WIPHY_INDEX_0, null);
+        // Simulate a failure from NetdWrapper.
+        doThrow(new IllegalStateException("netd has died"))
+                .when(mNetdWrapper).setInterfaceDown(AP_IFACE_NAME);
+
+        assertTrue(mDut.tearDownSoftApInterface(AP_IFACE_NAME));
+        // The AP info should still be removed even if netd fails to bring down the interface.
+        assertFalse(mDut.getApInterfaceInfos().containsKey(AP_IFACE_NAME));
     }
 
     /** Test that a disassociate event updates the client interface info. */

@@ -720,7 +720,12 @@ public class Nl80211Native {
             mActiveIfaceToWiphyIndex.put(ifaceName, ifaceInfo.wiphyIndex);
         }
 
-        mNetdWrapper.setInterfaceUp(ifaceName);
+        try {
+            mNetdWrapper.setInterfaceUp(ifaceName);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set interface " + ifaceName + " up", e);
+            // Ignore the failure and continue, which matches the wificond implementation.
+        }
         return true;
     }
 
@@ -743,7 +748,12 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        mNetdWrapper.setInterfaceDown(ifaceName);
+        try {
+            mNetdWrapper.setInterfaceDown(ifaceName);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set interface " + ifaceName + " down", e);
+            // Ignore the failure and continue, which matches the wificond implementation.
+        }
         mClientInterfaceInfos.remove(ifaceName);
         if (mClientInterfaceInfos.isEmpty()) {
             unregisterCallbacksForClientIface();
@@ -886,7 +896,12 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        mNetdWrapper.setInterfaceDown(ifaceName);
+        try {
+            mNetdWrapper.setInterfaceDown(ifaceName);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set interface " + ifaceName + " down", e);
+            // Ignore the failure and continue, which matches the wificond implementation.
+        }
         mApInterfaceInfos.remove(ifaceName);
         if (mApInterfaceInfos.isEmpty()) {
             unregisterCallbacksForApIface();
