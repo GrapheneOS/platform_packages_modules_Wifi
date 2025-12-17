@@ -614,6 +614,29 @@ public class Nl80211NativeTest {
     }
 
     @Test
+    public void testSetupInterfaceForClientMode_getWiphyInfoFails() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.InterfaceInfo ifaceInfo = new Nl80211Utils.InterfaceInfo(
+                CLIENT_IFACE_INDEX, WIPHY_INDEX_0, CLIENT_IFACE_NAME, new byte[6]);
+        when(mNl80211Utils.getInterfaceInfo(CLIENT_IFACE_NAME)).thenReturn(ifaceInfo);
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(null);
+
+        assertFalse(mDut.setupInterfaceForClientMode(
+                CLIENT_IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+    }
+
+    @Test
+    public void testSetupInterfaceForSoftApMode_getWiphyInfoFails() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.InterfaceInfo ifaceInfo = new Nl80211Utils.InterfaceInfo(
+                AP_IFACE_INDEX, WIPHY_INDEX_0, AP_IFACE_NAME, new byte[6]);
+        when(mNl80211Utils.getInterfaceInfo(AP_IFACE_NAME)).thenReturn(ifaceInfo);
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(null);
+
+        assertFalse(mDut.setupInterfaceForSoftApMode(AP_IFACE_NAME));
+    }
+
+    @Test
     public void testTearDownInterfaces_useWificondEnabled_callsWificond() {
         mDut = initNl80211Native(true);
         when(mWificondManager.tearDownInterfaces()).thenReturn(true);
@@ -2162,6 +2185,35 @@ public class Nl80211NativeTest {
         assertEquals("JP", countryCodeCaptor.getAllValues().get(0));
         assertEquals("US", countryCodeCaptor.getAllValues().get(1));
         verify(mNl80211Utils, times(2)).clearWiphyInfoCaches();
+    }
+
+    @Test
+    public void testCountryCodeChanged_getWiphyInfoFails_preservesOriginalWiphyInfo() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+        Nl80211Native.ClientInterfaceInfo info =
+                mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME);
+        Nl80211Utils.WiphyInfo originalWiphyInfo = info.wiphyInfo;
+        assertNotNull(originalWiphyInfo);
+
+        ArgumentCaptor<Nl80211BroadcastMonitor.Nl80211BroadcastCallback> callbackCaptor =
+                ArgumentCaptor.forClass(Nl80211BroadcastMonitor.Nl80211BroadcastCallback.class);
+        verify(mNl80211Proxy).registerBroadcastCallback(
+                eq(NL80211_CMD_REG_CHANGE), callbackCaptor.capture());
+
+        // Simulate getWiphyInfo failing
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(null);
+
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsByte(eq(NL80211_ATTR_REG_TYPE)))
+                .thenReturn((byte) NL80211_REGDOM_TYPE_WORLD);
+
+        // Trigger the regulatory change
+        callbackCaptor.getValue().onEvent(NL80211_CMD_REG_CHANGE, msg);
+
+        // Verify that the original wiphyInfo was preserved (not replaced with null)
+        assertNotNull(info.wiphyInfo);
+        assertEquals(originalWiphyInfo, info.wiphyInfo);
     }
 
     @Test

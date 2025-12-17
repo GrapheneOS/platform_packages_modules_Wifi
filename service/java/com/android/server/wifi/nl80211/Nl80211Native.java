@@ -700,7 +700,7 @@ public class Nl80211Native {
         }
 
         Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(ifaceInfo.wiphyIndex);
-        if (ifaceInfo == null) {
+        if (wiphyInfo == null) {
             Log.e(TAG, "Failed to get wiphy info for " + ifaceInfo.wiphyIndex);
             return false;
         }
@@ -844,7 +844,7 @@ public class Nl80211Native {
         }
 
         Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Utils.getWiphyInfo(ifaceInfo.wiphyIndex);
-        if (ifaceInfo == null) {
+        if (wiphyInfo == null) {
             Log.e(TAG, "Failed to get wiphy info for " + ifaceInfo.wiphyIndex);
             return false;
         }
@@ -1780,7 +1780,12 @@ public class Nl80211Native {
                 continue;
             }
 
-            clientIfaceInfo.wiphyInfo = updatedWiphyInfos.get(wiphyIndex);
+            Nl80211Utils.WiphyInfo newWiphyInfo = updatedWiphyInfos.get(wiphyIndex);
+            if (newWiphyInfo == null) {
+                Log.e(TAG, "Did not get new wiphy info for iface " + clientIfaceInfo.ifName);
+                continue;
+            }
+            clientIfaceInfo.wiphyInfo = newWiphyInfo;
         }
     }
 
