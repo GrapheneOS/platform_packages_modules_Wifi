@@ -16,6 +16,11 @@
 
 package com.android.server.wifi.nl80211;
 
+import static android.system.OsConstants.AF_NETLINK;
+import static android.system.OsConstants.SOCK_CLOEXEC;
+import static android.system.OsConstants.SOCK_DGRAM;
+import static android.system.OsConstants.SOCK_NONBLOCK;
+
 import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_ACK;
 import static com.android.server.wifi.nl80211.NetlinkConstants.CTRL_ATTR_FAMILY_ID;
 import static com.android.server.wifi.nl80211.NetlinkConstants.CTRL_ATTR_FAMILY_NAME;
@@ -37,6 +42,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.os.Handler;
 import android.system.ErrnoException;
+import android.system.Os;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -101,9 +107,14 @@ public class Nl80211Proxy {
         return mSequenceNumber++;
     }
 
-    protected static FileDescriptor createNetlinkFileDescriptor() {
+    protected static FileDescriptor createNetlinkFileDescriptor(boolean nonBlocking) {
         try {
-            FileDescriptor fd = NetlinkUtils.netlinkSocketForProto(NETLINK_GENERIC);
+            int flags = SOCK_DGRAM | SOCK_CLOEXEC;
+            if (nonBlocking) {
+                flags |= SOCK_NONBLOCK;
+            }
+
+            FileDescriptor fd = Os.socket(AF_NETLINK, flags, NETLINK_GENERIC);
             NetlinkUtils.connectToKernel(fd);
             return fd;
         } catch (ErrnoException | SocketException e) {
@@ -230,7 +241,7 @@ public class Nl80211Proxy {
             Log.i(TAG, "Instance is already initialized");
             return true;
         }
-        mNetlinkFd = createNetlinkFileDescriptor();
+        mNetlinkFd = createNetlinkFileDescriptor(/* nonBlocking */ false);
         if (mNetlinkFd == null) return false;
         if (!retrieveNl80211FamilyInfo()) return false;
 
