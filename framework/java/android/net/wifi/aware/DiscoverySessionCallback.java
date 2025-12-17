@@ -17,6 +17,7 @@
 package android.net.wifi.aware;
 
 import static com.android.ranging.flags.Flags.FLAG_RANGING_RTT_ENABLED;
+import static com.android.wifi.flags.Flags.FLAG_MULTI_PEER_AWARE_DATAPATH;
 import static com.android.wifi.flags.Flags.FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST;
 
 import android.annotation.FlaggedApi;
@@ -375,7 +376,7 @@ public class DiscoverySessionCallback {
      * @param peerHandle The bootstrapping peer handle
      * @param method     The bootstrapping method accepted by the peer
      *
-     * @deprecated Use {@link #onBootstrappingSucceeded(PeerHandle, int, byte[])} instead. 
+     * @deprecated Use {@link #onBootstrappingSucceeded(PeerHandle, int, byte[])} instead.
      *             Once the new callback is overrided, this callback will not be triggered.
      */
     @Deprecated
@@ -421,6 +422,54 @@ public class DiscoverySessionCallback {
     @FlaggedApi(FLAG_RANGING_RTT_ENABLED)
     @SystemApi
     public void onRangingResultsReceived(@NonNull List<RangingResult> rangingResults) {
+
+    }
+
+    /**
+     * Callback indicating that a data path has been connected.
+     *
+     * @param peerHandle The peer's handle for the data path request.
+     * @param info The network information of the connected data path.
+     */
+    @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
+    public void onDataPathConnected(@NonNull PeerHandle peerHandle,
+            @NonNull WifiAwareNetworkInfo info) {
+
+    }
+
+    /**
+     * Callback indicating that a data path request has failed.
+     *
+     * @param peerHandle The peer's handle for the data path request.
+     */
+    @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
+    public void onDataPathRequestFailed(@NonNull PeerHandle peerHandle) {
+
+    }
+
+    /**
+     * Callback indicating that a data path has been disconnected. Could be triggered by either side
+     * calling {@link DiscoverySession#releaseDataPath(PeerHandle)}.
+     *
+     * @param peerHandle The peer's handle for the data path request.
+     */
+    @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
+    public void onDataPathDisconnected(@NonNull PeerHandle peerHandle) {
+
+    }
+
+    /**
+     * Callback indicating that a data path request has been received.
+     * Caller should call {@link PublishDiscoverySession#acceptDataPathRequest(PeerHandle,
+     * AwareDataPathRequest)} to set up the data path.
+     * Or call {@link PublishDiscoverySession#rejectDataPathRequest(PeerHandle)} to reject the
+     * request.
+     *
+     * @param peerHandle The peer's handle for the data path request.
+     */
+
+    @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
+    public void onDataPathRequestReceived(@NonNull PeerHandle peerHandle) {
 
     }
 }

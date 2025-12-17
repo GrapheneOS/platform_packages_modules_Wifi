@@ -20,6 +20,7 @@ import android.app.PendingIntent;
 import android.net.wifi.IBooleanListener;
 import android.net.wifi.IIntegerListener;
 import android.net.wifi.IListListener;
+import android.net.wifi.aware.AwareDataPathRequest;
 import android.net.wifi.aware.AwareParams;
 import android.net.wifi.aware.AwareResources;
 import android.net.wifi.aware.Characteristics;
@@ -84,4 +85,8 @@ interface IWifiAwareManager {
 
     // internal APIs: intended to be used between System Services (restricted permissions)
     void requestMacAddresses(int uid, in int[] peerIds, in IWifiAwareMacAddressProvider callback);
+
+    void requestDatapath(int clientId, int sessionId, int peerId, in AwareDataPathRequest request,
+            boolean isPublish);
+    void releaseDatapath(int clientId, int sessionId, int peerId);
 }
