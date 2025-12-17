@@ -748,11 +748,11 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        try {
-            mNetdWrapper.setInterfaceDown(ifaceName);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to set interface " + ifaceName + " down", e);
-            // Ignore the failure and continue, which matches the wificond implementation.
+        if (!mClientInterfaceInfos.containsKey(ifaceName)) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "tearDownClientInterface called for untracked iface " + ifaceName);
+            }
+            return false;
         }
         mClientInterfaceInfos.remove(ifaceName);
         if (mClientInterfaceInfos.isEmpty()) {
@@ -760,6 +760,13 @@ public class Nl80211Native {
         }
 
         handleIfaceTeardown(ifaceName);
+
+        try {
+            mNetdWrapper.setInterfaceDown(ifaceName);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set interface " + ifaceName + " down", e);
+            // Ignore the failure and continue, which matches the wificond implementation.
+        }
         return true;
     }
 
@@ -896,11 +903,11 @@ public class Nl80211Native {
         }
         if (!mIsInitialized) return false;
 
-        try {
-            mNetdWrapper.setInterfaceDown(ifaceName);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to set interface " + ifaceName + " down", e);
-            // Ignore the failure and continue, which matches the wificond implementation.
+        if (!mApInterfaceInfos.containsKey(ifaceName)) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "tearDownSoftApInterface called for untracked iface " + ifaceName);
+            }
+            return false;
         }
         mApInterfaceInfos.remove(ifaceName);
         if (mApInterfaceInfos.isEmpty()) {
@@ -908,6 +915,13 @@ public class Nl80211Native {
         }
 
         handleIfaceTeardown(ifaceName);
+
+        try {
+            mNetdWrapper.setInterfaceDown(ifaceName);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set interface " + ifaceName + " down", e);
+            // Ignore the failure and continue, which matches the wificond implementation.
+        }
         return true;
     }
 

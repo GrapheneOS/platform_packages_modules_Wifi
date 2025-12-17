@@ -496,19 +496,6 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testTearDownClientInterface() {
-        mDut = initNl80211Native(false);
-        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
-
-        assertTrue(mDut.getClientInterfaceInfos().containsKey(CLIENT_IFACE_NAME));
-        assertEquals(1, mDut.getClientInterfaceInfos().size());
-
-        assertTrue(mDut.tearDownClientInterface(CLIENT_IFACE_NAME));
-        assertEquals(0, mDut.getClientInterfaceInfos().size());
-        assertNull(mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME));
-    }
-
-    @Test
     public void testSetupInterfaceForClientMode_getWiphyIndexFails() {
         mDut = initNl80211Native(false);
         when(mNl80211Utils.getWiphyIndex(CLIENT_IFACE_NAME)).thenReturn(-1);
@@ -548,6 +535,25 @@ public class Nl80211NativeTest {
     }
 
     @Test
+    public void testTearDownClientInterface_noIfaceFoundReturnsFalse() {
+        mDut = initNl80211Native(false);
+        assertFalse(mDut.tearDownSoftApInterface(AP_IFACE_NAME));
+    }
+
+    @Test
+    public void testTearDownClientInterface_success() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+
+        assertTrue(mDut.getClientInterfaceInfos().containsKey(CLIENT_IFACE_NAME));
+        assertEquals(1, mDut.getClientInterfaceInfos().size());
+
+        assertTrue(mDut.tearDownClientInterface(CLIENT_IFACE_NAME));
+        assertEquals(0, mDut.getClientInterfaceInfos().size());
+        assertNull(mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME));
+    }
+
+    @Test
     public void testSetupInterfaceForSoftApMode_useWificondEnabled_callsWificond() {
         mDut = initNl80211Native(true);
         when(mWificondManager.setupInterfaceForSoftApMode(AP_IFACE_NAME)).thenReturn(true);
@@ -581,6 +587,12 @@ public class Nl80211NativeTest {
         when(mWificondManager.tearDownSoftApInterface(AP_IFACE_NAME)).thenReturn(true);
         assertTrue(mDut.tearDownSoftApInterface(AP_IFACE_NAME));
         verify(mWificondManager).tearDownSoftApInterface(AP_IFACE_NAME);
+    }
+
+    @Test
+    public void testTearDownSoftApInterface_noIfaceFoundReturnsFalse() {
+        mDut = initNl80211Native(false);
+        assertFalse(mDut.tearDownSoftApInterface(AP_IFACE_NAME));
     }
 
     @Test
