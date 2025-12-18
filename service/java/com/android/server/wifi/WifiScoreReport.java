@@ -179,7 +179,7 @@ public class WifiScoreReport {
             if (SdkLevel.isAtLeastS()) {
                 mLegacyIntScore = score;
                 // Only primary network can have external scorer.
-                updateWifiMetrics(millis, SCORER_TYPE_INVALID, -1, -1, score);
+                updateWifiMetrics(millis, SCORER_TYPE_INVALID, -1, -1, "NA", score);
                 return;
             }
         }
@@ -266,6 +266,10 @@ public class WifiScoreReport {
             }
             mExternalScorerPredictionStatusForEvaluation =
                     convertToPredictionStatusForEvaluation(isUsable);
+            if (mIsUsable != isUsable) {
+                Log.i(TAG, "notifyStatusUpdate: isUsable changed from " + mIsUsable + " to "
+                        + isUsable);
+            }
             if (mIsExternalScorerDryRun) {
                 return;
             }
@@ -295,8 +299,8 @@ public class WifiScoreReport {
             // whether the current network is usable.
             if (SdkLevel.isAtLeastS()) {
                 mNetworkAgent.sendNetworkScore(getNetworkScore(mLegacyIntScore, mIsUsable));
-                if (mVerboseLoggingEnabled && !mIsUsable) {
-                    Log.d(TAG, "Wifi is set to exiting by the external scorer");
+                if (!mIsUsable) {
+                    Log.i(TAG, "Wifi is set to exiting by the external scorer");
                 }
             }
             mWifiInfo.setUsable(mIsUsable);
@@ -743,7 +747,8 @@ public class WifiScoreReport {
             mIsUsable = true;
         }
 
-        updateWifiMetrics(millis, internalScorerType, scoreResult.score(), adjustedScore, -1);
+        updateWifiMetrics(millis, internalScorerType, scoreResult.score(), adjustedScore,
+                String.valueOf(mIsUsable), -1);
     }
 
     private boolean enoughTimePassedSinceLastLowConnectedScoreScan() {
@@ -786,11 +791,11 @@ public class WifiScoreReport {
     }
 
     private void updateWifiMetrics(long now, int internalScorerType, int internalScore,
-             int internalAdjustedScore, int externalScore) {
+             int internalAdjustedScore, String internalIsUsable, int externalScore) {
         int netId = getCurrentNetId();
 
         logLinkMetrics(now, netId, internalScorerType, internalScore, internalAdjustedScore,
-                externalScore);
+                internalIsUsable, externalScore);
         mWifiMetrics.incrementWifiScoreCount(mInterfaceName,
                 internalScorerType == SCORER_TYPE_INVALID ? externalScore : internalAdjustedScore);
     }
@@ -822,7 +827,7 @@ public class WifiScoreReport {
      * Data logging for dumpsys
      */
     private void logLinkMetrics(long now, int netId, int internalScorerType, int internalScore,
-            int internalAdjustedScore, int externalScore) {
+            int internalAdjustedScore, String internalIsUsable, int externalScore) {
         if (now < FIRST_REASONABLE_WALL_CLOCK) return;
         double filteredRssi = -1;
         double rssiThreshold = -1;
@@ -862,6 +867,7 @@ public class WifiScoreReport {
         stats.add(internalScorerName);
         stats.add(Integer.toString(internalScore));
         stats.add(Integer.toString(internalAdjustedScore));
+        stats.add(internalIsUsable);
         stats.add(Integer.toString(externalScore));
         // MLO stats
         for (MloLink link : mWifiInfo.getAffiliatedMloLinks()) {
@@ -934,7 +940,8 @@ public class WifiScoreReport {
         pw.println(
                 "time,session,netid,rssi,filtered_rssi,rssi_threshold,freq,txLinkSpeed,"
                     + "rxLinkSpeed,txTput,rxTput,bcnCnt,tx_good,tx_retry,tx_bad,rx_pps,nudrq,nuds,"
-                    + "internalScorerType, internalScore, internalAdjustedScore, externalScore,"
+                    + "internalScorerType, internalScore, internalAdjustedScore, internalIsUsable,"
+                    + " externalScore,"
                     + "{linkId,linkRssi,linkFreq,txLinkSpeed,rxLinkSpeed,linkBcnCnt,"
                     + "linkTxGood,linkTxRetry,linkTxBad,linkRxGood,linkMloState,linkUsageState}");
         for (String line : history) {
