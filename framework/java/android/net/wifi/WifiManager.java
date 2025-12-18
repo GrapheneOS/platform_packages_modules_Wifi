@@ -232,7 +232,7 @@ public class WifiManager {
 
     /**
      * Reason code if the user has disallowed "android:change_wifi_state" app-ops from the app.
-     * @see android.app.AppOpsManager#unsafeCheckOp(String, int, String).
+     * @see android.app.AppOpsManager#unsafeCheckOp(String, int, String)
      */
     public static final int STATUS_NETWORK_SUGGESTIONS_ERROR_APP_DISALLOWED = 2;
 
@@ -5388,7 +5388,7 @@ public class WifiManager {
      * Set the override country code - may be used for testing. See the country code resolution
      * order and format in {@link #getCountryCode()}.
      * @param country A 2-Character alphanumeric country code.
-     * @see #getCountryCode().
+     * @see #getCountryCode()
      *
      * @hide
      */
@@ -5406,7 +5406,7 @@ public class WifiManager {
     /**
      * This clears the override country code which was previously set by
      * {@link WifiManager#setOverrideCountryCode(String)} method.
-     * @see #getCountryCode().
+     * @see #getCountryCode()
      *
      * @hide
      */
@@ -5424,7 +5424,7 @@ public class WifiManager {
      * Used to configure the default country code. See {@link #getCountryCode()} for resolution
      * method of the country code.
      * @param country A 2-character alphanumeric country code.
-     * @see #getCountryCode().
+     * @see #getCountryCode()
      *
      * @hide
      */
@@ -10033,7 +10033,7 @@ public class WifiManager {
     /**
      * Maximum allowed length of Device specific information that can be added to the URI of
      * Easy Connect responder device.
-     * @see #startEasyConnectAsEnrolleeResponder(String, int, Executor, EasyConnectStatusCallback)}
+     * @see #startEasyConnectAsEnrolleeResponder(String, int, Executor, EasyConnectStatusCallback)
      *
      * @hide
      */
@@ -11513,7 +11513,8 @@ public class WifiManager {
     /**
      * Wi-Fi Preferred Network Offload (PNO) scanning offloads scanning to the chip to save power
      * when Wi-Fi is disconnected and the screen is off. See
-     * {@link https://source.android.com/docs/core/connect/wifi-scan} for more details.
+     * <a href="https://source.android.com/docs/core/connect/wifi-scan">Wi-Fi preferred network
+     * offload scanning</a> for more details.
      * <p>
      * This API can be used to enable or disable PNO scanning. After boot, PNO scanning is enabled
      * by default. When PNO scanning is disabled, the Wi-Fi framework will not trigger scans at all

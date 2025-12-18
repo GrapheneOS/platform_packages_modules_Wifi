@@ -739,7 +739,7 @@ public class RttManager {
         /**
          * standard deviation observed in distance
          * @deprecated
-         * Use {@link .android.net.wifi.RttManager.RttResult#distanceStandardDeviation} API.
+         * Use {@link android.net.wifi.RttManager.RttResult#distanceStandardDeviation} API.
          */
         @Deprecated
         public int distance_sd_cm;

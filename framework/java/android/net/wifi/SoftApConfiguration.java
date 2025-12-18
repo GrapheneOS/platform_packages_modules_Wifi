@@ -1053,7 +1053,7 @@ public final class SoftApConfiguration implements Parcelable {
     /**
      * Returns whether opportunistic shutdown of an instance in bridged AP is enabled or not.
      *
-     * See also {@link Builder#setBridgedModeOpportunisticShutdownEnabled(boolean}}
+     * See also {@link Builder#setBridgedModeOpportunisticShutdownEnabled(boolean)}
      * @hide
      */
     @RequiresApi(Build.VERSION_CODES.S)
@@ -1085,7 +1085,7 @@ public final class SoftApConfiguration implements Parcelable {
      * Returns whether or not 802.11ax is enabled on the SoftAP.
      * This is an indication that if the device support 802.11ax AP then to enable or disable
      * that feature. If the device does not support 802.11ax AP then this flag is ignored.
-     * See also {@link Builder#setIeee80211axEnabled(boolean}}
+     * See also {@link Builder#setIeee80211axEnabled(boolean)}
      * @hide
      */
     @RequiresApi(Build.VERSION_CODES.S)
@@ -1101,7 +1101,7 @@ public final class SoftApConfiguration implements Parcelable {
      * Returns whether or not the Soft AP is configured to enable 802.11be.
      * This is an indication that if the device support 802.11be AP then to enable or disable
      * that feature. If the device does not support 802.11be AP then this flag is ignored.
-     * See also {@link Builder#setIeee80211beEnabled(boolean}}
+     * See also {@link Builder#setIeee80211beEnabled(boolean)}
      * @hide
      */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
