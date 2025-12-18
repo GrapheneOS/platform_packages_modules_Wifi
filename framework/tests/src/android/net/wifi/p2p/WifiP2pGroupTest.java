@@ -63,14 +63,20 @@ public class WifiP2pGroupTest {
     private static final String CLIENT_1_IP_ADDRESS = "192.168.49.10";
     private static final List<OuiKeyedData> VENDOR_DATA =
             OuiKeyedDataUtil.createTestOuiKeyedDataList(5);
-    private static final WifiP2pConnectionInfo CLIENT_1_CONNECTION_INFO = new WifiP2pConnectionInfo(
-            ScanResult.WIFI_STANDARD_11AX,
-            ScanResult.CHANNEL_WIDTH_80MHZ,
-            2,
-            2);
+    private static final WifiP2pConnectionInfo CLIENT_1_CONNECTION_INFO =
+            new WifiP2pConnectionInfo.Builder(
+                    ScanResult.WIFI_STANDARD_11AX,
+                    ScanResult.CHANNEL_WIDTH_80MHZ)
+                    .setTxNss(2)
+                    .setRxNss(2)
+                    .build();
     private static final WifiP2pConnectionInfo GROUP_CLIENT_CONNECTION_INFO =
-            new WifiP2pConnectionInfo(ScanResult.WIFI_STANDARD_11AC,
-                    ScanResult.CHANNEL_WIDTH_40MHZ, 1, 1);
+            new WifiP2pConnectionInfo.Builder(
+                    ScanResult.WIFI_STANDARD_11AC,
+                    ScanResult.CHANNEL_WIDTH_40MHZ)
+                    .setTxNss(1)
+                    .setRxNss(1)
+                    .build();
 
     /**
      * Verify setter/getter functions.

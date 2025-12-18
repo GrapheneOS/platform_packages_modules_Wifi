@@ -167,11 +167,12 @@ public class WifiP2pDeviceTest {
                     .PAIRING_BOOTSTRAPPING_METHOD_OPPORTUNISTIC);
         }
         if (Environment.isSdkNewerThanB()) {
-            device.setWifiP2pConnectionInfo(new WifiP2pConnectionInfo(
+            device.setWifiP2pConnectionInfo(new WifiP2pConnectionInfo.Builder(
                     ScanResult.WIFI_STANDARD_11AX,
-                    ScanResult.CHANNEL_WIDTH_80MHZ,
-                    2,
-                    2));
+                    ScanResult.CHANNEL_WIDTH_80MHZ)
+                    .setTxNss(2)
+                    .setRxNss(2)
+                    .build());
         }
 
         Parcel parcel = Parcel.obtain();
@@ -255,11 +256,12 @@ public class WifiP2pDeviceTest {
     public void testWifiP2pConnectionInfoSetterGetter() {
         assumeTrue(Environment.isSdkNewerThanB());
         WifiP2pDevice device = new WifiP2pDevice();
-        WifiP2pConnectionInfo connectionInfo = new WifiP2pConnectionInfo(
+        WifiP2pConnectionInfo connectionInfo = new WifiP2pConnectionInfo.Builder(
                 ScanResult.WIFI_STANDARD_11AX,
-                ScanResult.CHANNEL_WIDTH_80MHZ,
-                2,
-                2);
+                ScanResult.CHANNEL_WIDTH_80MHZ)
+                .setTxNss(2)
+                .setRxNss(2)
+                .build();
         device.setWifiP2pConnectionInfo(connectionInfo);
         WifiP2pConnectionInfo retrievedInfo = device.getWifiP2pConnectionInfo();
         assertEquals(ScanResult.WIFI_STANDARD_11AX, retrievedInfo.getWifiStandard());

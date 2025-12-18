@@ -17,6 +17,7 @@
 package android.net.wifi.p2p;
 
 import android.annotation.FlaggedApi;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.net.wifi.WifiAnnotations;
 import android.os.Parcel;
@@ -26,21 +27,34 @@ import androidx.annotation.RequiresApi;
 
 import com.android.wifi.flags.Flags;
 
+/**
+ * A class representing the connection capabilities of a Wi-Fi P2P link.
+ * <p>
+ * This class provides information about the physical layer (PHY) of the connection,
+ * including the Wi-Fi standard in use (e.g. 802.11ax), the channel width, and the
+ * number of transmit and receive spatial streams (NSS). This data can be used to
+ * understand the performance characteristics of the P2P connection.
+ * <p>
+ * An instance of this class can be obtained from {@link WifiP2pGroup} or
+ * {@link WifiP2pDevice}.
+ *
+ * @see WifiP2pGroup#getWifiP2pGroupClientConnectionInfo()
+ * @see WifiP2pDevice#getWifiP2pConnectionInfo()
+ */
 @RequiresApi(37)
 @FlaggedApi(Flags.FLAG_WIFI_P2P_CONNECTION_INFO)
 public final class WifiP2pConnectionInfo implements Parcelable {
-    private int mWifiStandard;
-    private int mChannelWidth;
-    private int mTxNss;
-    private int mRxNss;
-
     /**
-     * @param wifiStandard See {@link ScanResult#WIFI_STANDARD_XXX}
-     * @param channelWidth See {@link ScanResult#CHANNEL_WIDTH_XXX}
-     * @param txNss Maximum number of transmit spatial streams
-     * @param rxNss Maximum number of receive spatial streams
+     * Indicates that the value of a field is not specified.
      */
-    public WifiP2pConnectionInfo(int wifiStandard, int channelWidth, int txNss, int rxNss) {
+    public static final int UNSPECIFIED = 0;
+
+    private final int mWifiStandard;
+    private final int mChannelWidth;
+    private final int mTxNss;
+    private final int mRxNss;
+
+    private WifiP2pConnectionInfo(int wifiStandard, int channelWidth, int txNss, int rxNss) {
         this.mWifiStandard = wifiStandard;
         this.mChannelWidth = channelWidth;
         this.mTxNss = txNss;
@@ -57,7 +71,10 @@ public final class WifiP2pConnectionInfo implements Parcelable {
     }
 
     private WifiP2pConnectionInfo(@NonNull Parcel in) {
-        readFromParcel(in);
+        mWifiStandard = in.readInt();
+        mChannelWidth = in.readInt();
+        mTxNss = in.readInt();
+        mRxNss = in.readInt();
     }
 
     @NonNull
@@ -73,13 +90,6 @@ public final class WifiP2pConnectionInfo implements Parcelable {
                     return new WifiP2pConnectionInfo[size];
                 }
             };
-
-    private void readFromParcel(@NonNull Parcel source) {
-        mWifiStandard = source.readInt();
-        mChannelWidth = source.readInt();
-        mTxNss = source.readInt();
-        mRxNss = source.readInt();
-    }
 
     @Override
     public void writeToParcel(@NonNull Parcel parcel, int flags) {
@@ -117,8 +127,10 @@ public final class WifiP2pConnectionInfo implements Parcelable {
     /**
      * Gets the maximum number of transmit spatial streams (NSS) for the current P2P connection.
      *
-     * @return The maximum number of spatial streams used for transmitting data.
+     * @return The maximum number of spatial streams used for transmitting data, or
+     *         {@link #UNSPECIFIED} if the value is not available.
      */
+    @IntRange(from = 0, to = 4)
     public int getTxNss() {
         return mTxNss;
     }
@@ -126,8 +138,10 @@ public final class WifiP2pConnectionInfo implements Parcelable {
     /**
      * Gets the maximum number of receive spatial streams (NSS) for the current P2P connection.
      *
-     * @return The maximum number of spatial streams used for receiving data.
+     * @return The maximum number of spatial streams used for receiving data, or
+     *         {@link #UNSPECIFIED} if the value is not available.
      */
+    @IntRange(from = 0, to = 4)
     public int getRxNss() {
         return mRxNss;
     }
@@ -156,5 +170,64 @@ public final class WifiP2pConnectionInfo implements Parcelable {
     @Override
     public int hashCode() {
         return java.util.Objects.hash(mWifiStandard, mChannelWidth, mTxNss, mRxNss);
+    }
+
+    /**
+     * Builder for {@link WifiP2pConnectionInfo}.
+     * @hide
+     */
+    public static final class Builder {
+        private final int mWifiStandard;
+        private final int mChannelWidth;
+        private int mTxNss = UNSPECIFIED;
+        private int mRxNss = UNSPECIFIED;
+
+        public Builder(@WifiAnnotations.WifiStandard int wifiStandard,
+                @WifiAnnotations.ChannelWidth int channelWidth) {
+            mWifiStandard = wifiStandard;
+            mChannelWidth = channelWidth;
+        }
+
+        /**
+         * Sets the maximum number of transmit spatial streams.
+         * If not set, the default value is {@link WifiP2pConnectionInfo#UNSPECIFIED}.
+         *
+         * @param txNss The number of transmit spatial streams.
+         * @return This builder.
+         */
+        @NonNull
+        public Builder setTxNss(@IntRange(from = 0, to = 4) int txNss) {
+            if (txNss < 0 || txNss > 4) {
+                throw new IllegalArgumentException("txNss must be between 0 and 4");
+            }
+            mTxNss = txNss;
+            return this;
+        }
+
+        /**
+         * Sets the maximum number of receive spatial streams.
+         * If not set, the default value is {@link WifiP2pConnectionInfo#UNSPECIFIED}.
+         *
+         * @param rxNss The number of receive spatial streams.
+         * @return This builder.
+         */
+        @NonNull
+        public Builder setRxNss(@IntRange(from = 0, to = 4) int rxNss) {
+            if (rxNss < 0  || rxNss > 4) {
+                throw new IllegalArgumentException("rxNss must be between 0 and 4");
+            }
+            mRxNss = rxNss;
+            return this;
+        }
+
+        /**
+         * Builds the {@link WifiP2pConnectionInfo} object.
+         *
+         * @return The built {@link WifiP2pConnectionInfo} object.
+         */
+        @NonNull
+        public WifiP2pConnectionInfo build() {
+            return new WifiP2pConnectionInfo(mWifiStandard, mChannelWidth, mTxNss, mRxNss);
+        }
     }
 }
