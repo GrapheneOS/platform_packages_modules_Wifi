@@ -182,13 +182,13 @@ public class FrameworkFacade {
     }
 
     /**
-     * Helper method for classes to register a ContentObserver
-     * {@see ContentResolver#registerContentObserver(Uri,boolean,ContentObserver)}.
+     * Helper method for classes to register a ContentObserver.
      *
      * @param context
      * @param uri
      * @param notifyForDescendants
      * @param contentObserver
+     * @see ContentResolver#registerContentObserver(Uri,boolean,ContentObserver)
      */
     public void registerContentObserver(Context context, Uri uri,
             boolean notifyForDescendants, ContentObserver contentObserver) {

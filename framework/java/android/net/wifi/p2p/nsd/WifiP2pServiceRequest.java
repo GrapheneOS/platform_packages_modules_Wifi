@@ -43,9 +43,9 @@ import java.util.Objects;
  * <p>For the purpose of creating a UPnP or Bonjour service request, use
  * {@link WifiP2pUpnpServiceRequest} or {@link WifiP2pDnsSdServiceRequest} respectively.
  *
- * {@see WifiP2pManager}
- * {@see WifiP2pUpnpServiceRequest}
- * {@see WifiP2pDnsSdServiceRequest}
+ * @see WifiP2pManager
+ * @see WifiP2pUpnpServiceRequest
+ * @see WifiP2pDnsSdServiceRequest
  */
 public class WifiP2pServiceRequest implements Parcelable {
 
