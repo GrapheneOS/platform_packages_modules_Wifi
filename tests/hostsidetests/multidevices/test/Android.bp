@@ -278,7 +278,7 @@ python_test_host {
 
 // New entry for WifiUsdMoblyTestCases
 python_test_host {
-    name: "WifiUsdTests",
+    name: "CtsWifiUsdTests",
     main: "usd/wifi_usd_test.py",
     srcs: ["usd/wifi_usd_test.py"],
     test_config: "usd/AndroidTest.xml",
@@ -288,8 +288,7 @@ python_test_host {
         "platform-test-py-annotations",
     ],
     device_common_data: [
-        ":wifi_usd_snippet", // Package the custom USD snippet
-        ":mobly-bundled-snippets", // Package the standard Mobly snippet
+        ":wifi_mobly_snippet",
     ],
     test_options: {
         unit_test: false,
@@ -297,5 +296,6 @@ python_test_host {
     },
     test_suites: [
         "general-tests",
+        "cts-v-host",
     ],
 }
