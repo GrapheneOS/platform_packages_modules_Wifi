@@ -17,6 +17,8 @@
 package android.net.wifi.p2p;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
 import android.net.wifi.ScanResult;
@@ -40,8 +42,9 @@ public final class WifiP2pConnectionInfoTest {
         int txNss = 2;
         int rxNss = 2;
 
-        WifiP2pConnectionInfo info = new WifiP2pConnectionInfo(
-                wifiStandard, channelWidth, txNss, rxNss);
+        WifiP2pConnectionInfo info = new WifiP2pConnectionInfo.Builder(wifiStandard, channelWidth)
+                .setTxNss(2)
+                .setRxNss(2).build();
 
         assertEquals(wifiStandard, info.getWifiStandard());
         assertEquals(channelWidth, info.getChannelWidth());
@@ -50,13 +53,105 @@ public final class WifiP2pConnectionInfoTest {
     }
 
     @Test
+    public void testBuilderWithDefaultValues() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        int wifiStandard = ScanResult.WIFI_STANDARD_11AC;
+        int channelWidth = ScanResult.CHANNEL_WIDTH_160MHZ;
+
+        WifiP2pConnectionInfo info = new WifiP2pConnectionInfo.Builder(
+                wifiStandard, channelWidth).build();
+
+        assertEquals(wifiStandard, info.getWifiStandard());
+        assertEquals(channelWidth, info.getChannelWidth());
+        assertEquals(WifiP2pConnectionInfo.UNSPECIFIED, info.getTxNss());
+        assertEquals(WifiP2pConnectionInfo.UNSPECIFIED, info.getRxNss());
+    }
+
+    @Test
+    public void testBuilderSetTxNssThrowsException() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        WifiP2pConnectionInfo.Builder builder = new WifiP2pConnectionInfo.Builder(
+                ScanResult.WIFI_STANDARD_11N, ScanResult.CHANNEL_WIDTH_20MHZ);
+        assertThrows(IllegalArgumentException.class, () -> builder.setTxNss(0));
+        assertThrows(IllegalArgumentException.class, () -> builder.setTxNss(5));
+    }
+
+    @Test
+    public void testBuilderSetRxNssThrowsException() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        WifiP2pConnectionInfo.Builder builder = new WifiP2pConnectionInfo.Builder(
+                ScanResult.WIFI_STANDARD_11N, ScanResult.CHANNEL_WIDTH_20MHZ);
+        assertThrows(IllegalArgumentException.class, () -> builder.setRxNss(0));
+        assertThrows(IllegalArgumentException.class, () -> builder.setRxNss(5));
+    }
+
+    @Test
+    public void testBuilderWithUnspecifiedNss() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        WifiP2pConnectionInfo info = new WifiP2pConnectionInfo.Builder(
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ)
+                .setTxNss(WifiP2pConnectionInfo.UNSPECIFIED)
+                .setRxNss(WifiP2pConnectionInfo.UNSPECIFIED)
+                .build();
+        assertEquals(WifiP2pConnectionInfo.UNSPECIFIED, info.getTxNss());
+        assertEquals(WifiP2pConnectionInfo.UNSPECIFIED, info.getRxNss());
+    }
+
+    @Test
+    public void testEqualsAndHashCode() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        WifiP2pConnectionInfo info1 = new WifiP2pConnectionInfo.Builder(
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ)
+                .setTxNss(2)
+                .setRxNss(2)
+                .build();
+
+        WifiP2pConnectionInfo info2 = new WifiP2pConnectionInfo.Builder(
+                ScanResult.WIFI_STANDARD_11AX, ScanResult.CHANNEL_WIDTH_80MHZ)
+                .setTxNss(2)
+                .setRxNss(2)
+                .build();
+
+        WifiP2pConnectionInfo info3 = new WifiP2pConnectionInfo.Builder(
+                ScanResult.WIFI_STANDARD_11AC, ScanResult.CHANNEL_WIDTH_80MHZ)
+                .setTxNss(2)
+                .setRxNss(2)
+                .build();
+
+        assertEquals(info1, info2);
+        assertEquals(info1.hashCode(), info2.hashCode());
+        assertNotEquals(info1, info3);
+    }
+
+    @Test
+    public void testToString() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        int wifiStandard = ScanResult.WIFI_STANDARD_11AX;
+        int channelWidth = ScanResult.CHANNEL_WIDTH_80MHZ;
+        int txNss = 2;
+        int rxNss = 2;
+
+        WifiP2pConnectionInfo info = new WifiP2pConnectionInfo.Builder(wifiStandard, channelWidth)
+                .setTxNss(txNss)
+                .setRxNss(rxNss)
+                .build();
+
+        String expected = "WifiP2pConnectionInfo:"
+                + "\n wifiStandard: " + wifiStandard
+                + "\n channelWidth: " + channelWidth
+                + "\n txNss: " + txNss
+                + "\n rxNss: " + rxNss;
+        assertEquals(expected, info.toString());
+    }
+
+    @Test
     public void testParcelOperation() {
         assumeTrue(Environment.isSdkNewerThanB());
-        WifiP2pConnectionInfo info = new WifiP2pConnectionInfo(
+        WifiP2pConnectionInfo info = new WifiP2pConnectionInfo.Builder(
                 ScanResult.WIFI_STANDARD_11AX,
-                ScanResult.CHANNEL_WIDTH_80MHZ,
-                2,
-                2);
+                ScanResult.CHANNEL_WIDTH_80MHZ)
+                .setTxNss(2)
+                .setRxNss(2).build();
 
         Parcel parcelW = Parcel.obtain();
         info.writeToParcel(parcelW, 0);
@@ -68,9 +163,6 @@ public final class WifiP2pConnectionInfoTest {
         parcelR.setDataPosition(0);
         WifiP2pConnectionInfo fromParcel = WifiP2pConnectionInfo.CREATOR.createFromParcel(parcelR);
 
-        assertEquals(info.getWifiStandard(), fromParcel.getWifiStandard());
-        assertEquals(info.getChannelWidth(), fromParcel.getChannelWidth());
-        assertEquals(info.getTxNss(), fromParcel.getTxNss());
-        assertEquals(info.getRxNss(), fromParcel.getRxNss());
+        assertEquals(info, fromParcel);
     }
 }

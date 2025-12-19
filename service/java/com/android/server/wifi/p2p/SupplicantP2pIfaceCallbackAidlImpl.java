@@ -394,14 +394,30 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
 
         if (Environment.isSdkNewerThanB() && wifiP2pConnectionInfo()
                 && !isGroupOwner && caps != null) {
-            WifiP2pConnectionInfo info = new WifiP2pConnectionInfo(
-                    HalAidlUtil.getWifiStandardFromHal(caps.technology),
-                    HalAidlUtil.getChannelBandwidthFromHal(caps.channelBandwidth),
-                    caps.maxNumberTxSpatialStreams, caps.maxNumberRxSpatialStreams);
-            group.setWifiP2pGroupClientConnectionInfo(info);
+            group.setWifiP2pGroupClientConnectionInfo(createWifiP2pConnectionInfoFromHal(caps));
         }
 
         mMonitor.broadcastP2pGroupStarted(mInterface, group);
+    }
+
+    @SuppressLint("NewApi")
+    private static WifiP2pConnectionInfo createWifiP2pConnectionInfoFromHal(
+            @NonNull ConnectionCapabilities caps) {
+        try {
+            WifiP2pConnectionInfo.Builder builder = new WifiP2pConnectionInfo.Builder(
+                    HalAidlUtil.getWifiStandardFromHal(caps.technology),
+                    HalAidlUtil.getChannelBandwidthFromHal(caps.channelBandwidth));
+            if (caps.maxNumberTxSpatialStreams > 0) {
+                builder.setTxNss(caps.maxNumberTxSpatialStreams);
+            }
+            if (caps.maxNumberRxSpatialStreams > 0) {
+                builder.setRxNss(caps.maxNumberRxSpatialStreams);
+            }
+            return builder.build();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to create WifiP2pConnectionInfo from HAL", e);
+            return null;
+        }
     }
 
     private @WifiP2pGroup.SecurityType int convertHalKeyMgmtMaskToP2pGroupSecurityType(
@@ -937,11 +953,7 @@ public class SupplicantP2pIfaceCallbackAidlImpl extends ISupplicantP2pIfaceCallb
             device.setVendorData(vendorData);
         }
         if (Environment.isSdkNewerThanB() && wifiP2pConnectionInfo() && caps != null) {
-            WifiP2pConnectionInfo info = new WifiP2pConnectionInfo(
-                    HalAidlUtil.getWifiStandardFromHal(caps.technology),
-                    HalAidlUtil.getChannelBandwidthFromHal(caps.channelBandwidth),
-                    caps.maxNumberTxSpatialStreams, caps.maxNumberRxSpatialStreams);
-            device.setWifiP2pConnectionInfo(info);
+            device.setWifiP2pConnectionInfo(createWifiP2pConnectionInfoFromHal(caps));
         }
         mMonitor.broadcastP2pApStaConnected(mInterface, device);
     }
