@@ -32,7 +32,7 @@ import java.util.HashMap;
  * A class representing a Wi-Fi P2p device list.
  *
  * Note that the operations are not thread safe.
- * {@see WifiP2pManager}
+ * @see WifiP2pManager
  */
 public class WifiP2pDeviceList implements Parcelable {
 

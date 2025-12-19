@@ -50,7 +50,7 @@ import java.util.regex.PatternSyntaxException;
 /**
  * A class representing a Wi-Fi P2p configuration for setting up a connection
  *
- * {@see WifiP2pManager}
+ * @see WifiP2pManager
  */
 public class WifiP2pConfig implements Parcelable {
 

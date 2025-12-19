@@ -37,7 +37,7 @@ import java.util.Objects;
 
 /**
  * A class representing capability of the SoftAp.
- * {@see WifiManager}
+ * @see WifiManager
  *
  * @hide
  */

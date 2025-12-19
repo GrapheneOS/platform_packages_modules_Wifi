@@ -25,7 +25,7 @@ import java.net.UnknownHostException;
 /**
  * A class representing connection information about a Wi-Fi p2p group
  *
- * {@see WifiP2pManager}
+ * @see WifiP2pManager
  */
 public class WifiP2pInfo implements Parcelable {
 
