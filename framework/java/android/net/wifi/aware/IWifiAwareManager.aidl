@@ -86,7 +86,8 @@ interface IWifiAwareManager {
     // internal APIs: intended to be used between System Services (restricted permissions)
     void requestMacAddresses(int uid, in int[] peerIds, in IWifiAwareMacAddressProvider callback);
 
-    void requestDatapath(int clientId, int sessionId, int peerId, in AwareDataPathRequest request,
-            boolean isPublish);
-    void releaseDatapath(int clientId, int sessionId, int peerId);
+    void requestDataPath(int clientId, int sessionId, int peerId, in AwareDataPathRequest request);
+    void respondToDataPath(int clientId, int sessionId, int peerId, in AwareDataPathRequest request,
+            boolean accept);
+    void releaseDataPath(int clientId, int sessionId, int peerId);
 }

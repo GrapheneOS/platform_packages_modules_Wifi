@@ -441,9 +441,11 @@ public class DiscoverySessionCallback {
      * Callback indicating that a data path request has failed.
      *
      * @param peerHandle The peer's handle for the data path request.
+     * @param reason The reason for the data path connection failure.
      */
     @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
-    public void onDataPathRequestFailed(@NonNull PeerHandle peerHandle) {
+    public void onDataPathRequestFailed(@NonNull PeerHandle peerHandle,
+            @AwareDataPathRequest.DataPathConnectionFailureReason int reason) {
 
     }
 

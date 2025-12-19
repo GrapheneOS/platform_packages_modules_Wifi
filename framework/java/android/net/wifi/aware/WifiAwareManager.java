@@ -1258,8 +1258,9 @@ public class WifiAwareManager {
         }
 
         @Override
-        public void onDatapathRequestFailure(int peerId) throws RemoteException {
-            mHandler.post(() -> mOriginalCallback.onDataPathRequestFailed(new PeerHandle(peerId)));
+        public void onDataPathRequestFailure(int peerId, int reason) throws RemoteException {
+            mHandler.post(() ->
+                    mOriginalCallback.onDataPathRequestFailed(new PeerHandle(peerId), reason));
         }
 
         @Override
@@ -1460,9 +1461,9 @@ public class WifiAwareManager {
      * @hide
      */
     public void requestDataPath(int clientId, int sessionId, PeerHandle peerHandle,
-            AwareDataPathRequest request, boolean isPublish) {
+            AwareDataPathRequest request) {
         try {
-            mService.requestDatapath(clientId, sessionId, peerHandle.peerId, request, isPublish);
+            mService.requestDataPath(clientId, sessionId, peerHandle.peerId, request);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -1471,9 +1472,21 @@ public class WifiAwareManager {
     /**
      * @hide
      */
-    public void releaseDatapath(int clientId, int sessionId, PeerHandle peerHandle) {
+    public void respondToDataPath(int clientId, int sessionId, PeerHandle peerHandle,
+            AwareDataPathRequest request, boolean accept) {
         try {
-            mService.releaseDatapath(clientId, sessionId, peerHandle.peerId);
+            mService.respondToDataPath(clientId, sessionId, peerHandle.peerId, request, accept);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * @hide
+     */
+    public void releaseDataPath(int clientId, int sessionId, PeerHandle peerHandle) {
+        try {
+            mService.releaseDataPath(clientId, sessionId, peerHandle.peerId);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }

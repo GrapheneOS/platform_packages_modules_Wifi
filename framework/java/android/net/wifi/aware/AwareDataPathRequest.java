@@ -19,6 +19,7 @@ package android.net.wifi.aware;
 import static com.android.wifi.flags.Flags.FLAG_MULTI_PEER_AWARE_DATAPATH;
 
 import android.annotation.FlaggedApi;
+import android.annotation.IntDef;
 import android.annotation.IntRange;
 import android.annotation.Nullable;
 import android.os.Parcel;
@@ -26,6 +27,8 @@ import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.Objects;
 
 /**
@@ -37,6 +40,43 @@ import java.util.Objects;
  */
 @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
 public final class AwareDataPathRequest implements Parcelable {
+
+    /**
+     * The reason for the data path connection failure, when device doesn't have enough data path
+     * resources or data interfaces.
+     */
+    public static final int DATA_PATH_CONNECTION_FAILURE_REASON_NO_RESOURCE = 1;
+    /**
+     * The reason for the data path connection failure, when the peer is not found.
+     */
+    public static final int DATA_PATH_CONNECTION_FAILURE_REASON_PEER_NOT_FOUND = 2;
+    /**
+     * The reason for the data path connection failure, when the peer rejects the data path
+     * connection request.
+     */
+    public static final int DATA_PATH_CONNECTION_FAILURE_REASON_REJECT_BY_PEER = 3;
+    /**
+     * The reason for the data path connection failure, when the data path connection times out.
+     * Peer doesn't respond to the data path connection request within the timeout period.
+     */
+    public static final int DATA_PATH_CONNECTION_FAILURE_REASON_TIME_OUT = 4;
+    /**
+     * The reason for the data path connection failure, when the data path connection fails due to
+     * internal failure. This can be caused by the framework or the firmware issues.
+     */
+    public static final int DATA_PATH_CONNECTION_FAILURE_REASON_INTERNAL_FAILURE = 5;
+
+    /** @hide */
+    @IntDef({
+            DATA_PATH_CONNECTION_FAILURE_REASON_NO_RESOURCE,
+            DATA_PATH_CONNECTION_FAILURE_REASON_PEER_NOT_FOUND,
+            DATA_PATH_CONNECTION_FAILURE_REASON_REJECT_BY_PEER,
+            DATA_PATH_CONNECTION_FAILURE_REASON_TIME_OUT,
+            DATA_PATH_CONNECTION_FAILURE_REASON_INTERNAL_FAILURE})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface DataPathConnectionFailureReason {
+    }
+
 
     /**
      * The port number which will be used to create a connection over this link. This
@@ -52,37 +92,21 @@ public final class AwareDataPathRequest implements Parcelable {
      */
     private final int mTransportProtocol;
 
-    /**
-     * Channel frequency in MHz for setup data-path on.
-     */
-    private final int mChannelInMhz;
-
-    /**
-     * Force to use the specified channel or not. If true, Channel request is specified and must be
-     * respected. If the firmware cannot honor the request then the data-path request is rejected.
-     * Otherwise, requested channel can be overridden by firmware.
-     */
-    private final boolean mForcedChannel;
-
     private final WifiAwareDataPathSecurityConfig mSecurityConfig;
 
     /**
      * @hide
      */
     public AwareDataPathRequest(int port, int transportProtocol,
-            int channel, boolean forcedChannel, WifiAwareDataPathSecurityConfig securityConfig) {
+            WifiAwareDataPathSecurityConfig securityConfig) {
         mPort = port;
         mTransportProtocol = transportProtocol;
-        mChannelInMhz = channel;
-        mForcedChannel = forcedChannel;
         mSecurityConfig = securityConfig;
     }
 
     private AwareDataPathRequest(Parcel in) {
         mPort = in.readInt();
         mTransportProtocol = in.readInt();
-        mChannelInMhz = in.readInt();
-        mForcedChannel = in.readByte() != 0;
         mSecurityConfig = in.readParcelable(WifiAwareDataPathSecurityConfig.class.getClassLoader());
     }
 
@@ -98,25 +122,6 @@ public final class AwareDataPathRequest implements Parcelable {
                     return new AwareDataPathRequest[size];
                 }
             };
-
-    /**
-     * Get the specified channel in MHZ for this Wi-Fi Aware network specifier.
-     * @see AwareDataPathRequest.Builder#setChannelFrequencyMhz(int, boolean)
-     * @return Channel frequency in Mhz. A value of 0 indicates that no channel was specified.
-     */
-    @IntRange(from = 0)
-    public int getChannelFrequencyMhz() {
-        return mChannelInMhz;
-    }
-
-    /**
-     * Check if the specified channel is required to honor or not.
-     * @see AwareDataPathRequest.Builder#setChannelFrequencyMhz(int, boolean)
-     * @return true if the channel is required to honor, false if it is a recommendation.
-     */
-    public boolean isChannelRequired() {
-        return mForcedChannel;
-    }
 
     /**
      * Get the security config specified in this Network Specifier to encrypt Wi-Fi Aware data-path
@@ -156,8 +161,6 @@ public final class AwareDataPathRequest implements Parcelable {
     public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeInt(mPort);
         dest.writeInt(mTransportProtocol);
-        dest.writeInt(mChannelInMhz);
-        dest.writeByte((byte) (mForcedChannel ? 1 : 0));
         dest.writeParcelable(mSecurityConfig, flags);
     }
 
@@ -166,15 +169,12 @@ public final class AwareDataPathRequest implements Parcelable {
         return "AwareDataPathRequest{"
                 + "mPort=" + mPort
                 + ", mTransportProtocol=" + mTransportProtocol
-                + ", mChannelInMhz=" + mChannelInMhz
-                + ", mForcedChannel=" + mForcedChannel
                 + ", mSecurityConfig=" + mSecurityConfig + "}";
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mPort, mTransportProtocol, mChannelInMhz, mForcedChannel,
-                mSecurityConfig);
+        return Objects.hash(mPort, mTransportProtocol, mSecurityConfig);
     }
 
     @Override
@@ -184,8 +184,7 @@ public final class AwareDataPathRequest implements Parcelable {
         AwareDataPathRequest that = (AwareDataPathRequest) o;
         return mPort == that.mPort
                 && mTransportProtocol == that.mTransportProtocol
-                && mChannelInMhz == that.mChannelInMhz
-                && mForcedChannel == that.mForcedChannel
+
                 && Objects.equals(mSecurityConfig, that.mSecurityConfig);
     }
 
@@ -201,8 +200,6 @@ public final class AwareDataPathRequest implements Parcelable {
 
         private int mPort = INVALID_PORT;
         private int mTransportProtocol = INVALID_TRANSPORT_PROTOCOL;
-        private int mChannel = INVALID_CHANNEL;
-        private boolean mIsRequired = false;
         private WifiAwareDataPathSecurityConfig mSecurityConfig;
 
         /**
@@ -258,25 +255,6 @@ public final class AwareDataPathRequest implements Parcelable {
         }
 
         /**
-         * Configure the Channel frequency for the Wi-Fi Aware connection being requested. This
-         * method is optional - if not called, then channelInMhz to use will be decided by firmware.
-         * Only use this when {@link WifiAwareManager#isSetChannelOnDataPathSupported()} is true,
-         * otherwise the set channelInMhz will be ignored.
-         * @param channelInMhz Channel frequency in Mhz.
-         * @param required If set to true, Channel request is specified and must be respected.
-         *               If the firmware cannot honor the request then the data-path request
-         *               is rejected. Otherwise, requested channelInMhz is a recommendation and
-         *               may be overridden by the firmware.
-         * @return the current {@link Builder} builder, enabling chaining of builder methods.
-         */
-        public @NonNull Builder setChannelFrequencyMhz(@IntRange(from = 0) int channelInMhz,
-                boolean required) {
-            mChannel = channelInMhz;
-            mIsRequired = required;
-            return this;
-        }
-
-        /**
          * Configure security config for the Wi-Fi Aware connection being requested. This method
          * is optional - if not called, then an Open (unencrypted) connection will be created.
          *
@@ -304,8 +282,7 @@ public final class AwareDataPathRequest implements Parcelable {
          * @return the {@link AwareDatapathRequest} object.
          */
         public @android.annotation.NonNull AwareDataPathRequest build() {
-            return new AwareDataPathRequest(mPort, mTransportProtocol, mChannel,
-                    mIsRequired, mSecurityConfig);
+            return new AwareDataPathRequest(mPort, mTransportProtocol, mSecurityConfig);
         }
     }
 }

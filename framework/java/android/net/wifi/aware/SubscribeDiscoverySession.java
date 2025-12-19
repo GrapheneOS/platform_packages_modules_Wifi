@@ -79,23 +79,26 @@ public class SubscribeDiscoverySession extends DiscoverySession {
      * The Aware data path request should be done in the context of a discovery session -
      * after a {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} event is
      * received.
-     * When the Aware data path setup finished, both side will receive
-     * {@link DiscoverySessionCallback#onDataPathConnected(PeerHandle, WifiAwareNetworkInfo)}
+     * When the Aware data path setup succeeds, both side will receive
+     * {@link DiscoverySessionCallback#onDataPathConnected(PeerHandle, WifiAwareNetworkInfo)}.
+     * Otherwise {@link DiscoverySessionCallback#onDataPathRequestFailed(PeerHandle, int)} will be
+     * called.
      * @param peerHandle The peer's handle for the data path request.
      * @param request The data path request.
+     * @return true if framework starts the data path setup successfully, false otherwise.
      */
     @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
-    public void initiateDataPathRequest(@NonNull PeerHandle peerHandle,
+    public boolean initiateDataPathRequest(@NonNull PeerHandle peerHandle,
             @NonNull AwareDataPathRequest request) {
         if (mTerminated) {
-            throw new IllegalStateException("initiateDatapathRequest called"
-                + " on a terminated session.");
+            return false;
         }
 
         WifiAwareManager mgr = mMgr.get();
         if (mgr == null) {
-            throw new IllegalStateException("Failed to get WifiAwareManager.");
+            return false;
         }
-        mgr.requestDataPath(mClientId, mSessionId, peerHandle, request, false);
+        mgr.requestDataPath(mClientId, mSessionId, peerHandle, request);
+        return true;
     }
 }
