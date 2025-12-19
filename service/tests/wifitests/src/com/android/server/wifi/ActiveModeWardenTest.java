@@ -111,6 +111,7 @@ import com.android.server.wifi.ActiveModeManager.ClientConnectivityRole;
 import com.android.server.wifi.ActiveModeManager.Listener;
 import com.android.server.wifi.ActiveModeManager.SoftApRole;
 import com.android.server.wifi.ActiveModeWarden.ExternalClientModeManagerRequestListener;
+import com.android.server.wifi.rtt.RttServiceImpl;
 import com.android.server.wifi.util.GeneralUtil.Mutable;
 import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -533,6 +534,26 @@ public class ActiveModeWardenTest extends WifiBaseTest {
             assertNull(mActiveModeWarden.getTetheredSoftApManager());
         }
         verify(mModeChangeCallback).onActiveModeManagerAdded(mSoftApManager);
+    }
+
+    @Test
+    public void testSetWifiStateNotifiesRttService() {
+        // RTT service is available
+        RttServiceImpl rttService = mock(RttServiceImpl.class);
+        when(mWifiInjector.getRttServiceImpl()).thenReturn(rttService);
+
+        mActiveModeWarden.setWifiStateForApiCalls(WifiManager.WIFI_STATE_DISABLED);
+        mActiveModeWarden.setWifiStateForApiCalls(WifiManager.WIFI_STATE_ENABLED);
+        verify(rttService, times(1)).setWifiState(WifiManager.WIFI_STATE_ENABLED);
+
+        mActiveModeWarden.setWifiStateForApiCalls(WifiManager.WIFI_STATE_DISABLED);
+        verify(rttService, times(2)).setWifiState(WifiManager.WIFI_STATE_DISABLED);
+
+        // RTT service is not available
+        when(mWifiInjector.getRttServiceImpl()).thenReturn(null);
+        mActiveModeWarden.setWifiStateForApiCalls(WifiManager.WIFI_STATE_ENABLING);
+        // No crash should happen, and no more interaction with the old mock
+        verifyNoMoreInteractions(rttService);
     }
 
     private void enterStaDisabledMode(boolean isSoftApModeManagerActive) {

@@ -82,6 +82,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.WakeupMessage;
 import com.android.modules.utils.BasicShellCommandHandler;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.ActiveModeWarden;
 import com.android.server.wifi.BuildProperties;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
@@ -89,6 +90,7 @@ import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.SsidTranslator;
 import com.android.server.wifi.SystemBuildProperties;
 import com.android.server.wifi.WifiConfigManager;
+import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
@@ -137,6 +139,12 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private WifiRttController.Capabilities mCapabilities;
     private RttServiceSynchronized mRttServiceSynchronized;
     private SsidTranslator mWifiSsidTranslator;
+    private WifiNative mWifiNative;
+    private ActiveModeWarden mActiveModeWarden;
+    private String mSupplicantWifiRttControllerInterfaceName = null;
+    @VisibleForTesting
+    SupplicantWifiRttController mSupplicantWifiRttController;
+    private SupplicantWifiRttController.ProximityRangingCapabilities mProximityRangingCapabilities;
 
     /* package */ static final String HAL_RANGING_TIMEOUT_TAG = TAG + " HAL Ranging Timeout";
 
@@ -161,6 +169,38 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     public void setHALProximityRangingSupported(boolean value) {
         mIsHALProximityRangingSupported = value;
     }
+
+    /**
+     * Callback for handling ranging results and status updates from the supplicant HAL.
+     * This object is registered with the {@link SupplicantWifiRttController} to receive
+     * asynchronous events related to ranging operations.
+     */
+    @VisibleForTesting
+    final SupplicantWifiRttController.SupplicantWifiRttControllerEventCallback
+            mSupplicantRttEventCallback =
+            new SupplicantWifiRttController.SupplicantWifiRttControllerEventCallback() {
+                @Override
+                public void onRangingResults(int cmdId, List<RangingResult> rangingResults) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "onRangingResults: cmdId=" + cmdId);
+                    }
+                }
+                @Override
+                public void onContinuousRangingStatusChanged(int cmdId, int code) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "onContinuousRangingStatusChanged: cmdId=" + cmdId
+                                + ", code=" + code);
+                    }
+                }
+                @Override
+                public void onContinuousRangingTerminated(int cmdId,
+                        @ContinuousRangingResultCallback.RangingTerminateReason int reason) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "onContinuousRangingTerminated: cmdId=" + cmdId
+                                + ", reason=" + reason);
+                    }
+                }
+            };
 
     private final WifiRttController.RttControllerRangingResultsCallback mRangingResultsCallback =
             new WifiRttController.RttControllerRangingResultsCallback() {
@@ -357,7 +397,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     public void start(Looper looper, Clock clock, WifiAwareManager awareManager,
             RttMetrics rttMetrics, WifiPermissionsUtil wifiPermissionsUtil,
             WifiSettingsConfigStore settingsConfigStore, HalDeviceManager halDeviceManager,
-            WifiConfigManager wifiConfigManager, SsidTranslator ssidTranslator) {
+            WifiConfigManager wifiConfigManager, SsidTranslator ssidTranslator,
+            WifiNative wifiNative, ActiveModeWarden activeModeWarden) {
         mClock = clock;
         mAwareManager = awareManager;
         mHalDeviceManager = halDeviceManager;
@@ -368,6 +409,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         mPowerManager = mContext.getSystemService(PowerManager.class);
         mWifiConfigManager = wifiConfigManager;
         mWifiSsidTranslator = ssidTranslator;
+        mWifiNative = wifiNative;
+        mActiveModeWarden = activeModeWarden;
         if (Flags.proximityRanging() && Environment.isSdkNewerThanB()) {
             setProximityRangingDeviceName(generateDefaultProximityRangingDeviceName());
             setProximityRangingRandomizedMacAddress(generateProximityRangingRandomizedMacAddress());
@@ -445,11 +488,47 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         }
     }
 
+
+
     /**
      * Handles the transition to boot completed phase
      */
     public void handleBootCompleted() {
         updateVerboseLoggingEnabled();
+    }
+
+    /**
+     * Set the current Wi-Fi state.
+     * @param newState The new Wi-Fi state.
+     */
+    public void setWifiState(int newState) {
+        if (VDBG) {
+            Log.d(TAG, "setWifiState: newState=" + newState);
+        }
+        if (newState == WifiManager.WIFI_STATE_ENABLED) {
+            Log.i(TAG, "Wi-Fi Turned ON - Try to create SupplicantWifiRttController");
+            if (Flags.proximityRangingImpl() && Environment.isSdkNewerThanB()
+                    && mWifiNative.isSupplicantAidlServiceVersionAtLeast(5)) {
+                mSupplicantWifiRttController = mWifiNative
+                        .createSupplicantWifiRttController(
+                                mActiveModeWarden
+                                        .getPrimaryClientModeManager().getInterfaceName());
+                if (mSupplicantWifiRttController != null) {
+                    Log.i(TAG, "Successfully created SupplicantWifiRttController");
+                    mSupplicantWifiRttController.registerRttEventCallback(
+                            mSupplicantRttEventCallback);
+                    if (!initializeSupplicantWifiRttController()) {
+                        Log.i(TAG, "Failed to initialize SupplicantWifiRttController");
+                        mSupplicantWifiRttController = null;
+                    }
+                } else {
+                    Log.i(TAG, "Failed to create SupplicantWifiRttController");
+                }
+            }
+        } else if (newState == WifiManager.WIFI_STATE_DISABLED) {
+            Log.i(TAG, "Wi-Fi Turned OFF - Remove SupplicantWifiRttController");
+            mSupplicantWifiRttController = null;
+        }
     }
 
     /*
@@ -762,6 +841,35 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         mRttServiceSynchronized.mHandler.post(() -> {
             mRttServiceSynchronized.cleanUpClientRequests(0, ws);
         });
+    }
+
+    boolean initializeSupplicantWifiRttController() {
+        if (VDBG) Log.v(TAG, "initializeSupplicantWifiRttController");
+        if (mSupplicantWifiRttController == null) {
+            return false;
+        }
+        mSupplicantWifiRttControllerInterfaceName = mSupplicantWifiRttController.getName();
+        if (mSupplicantWifiRttControllerInterfaceName != null) {
+            Log.d(TAG, "initializeSupplicantWifiRttController on interface: "
+                    + mSupplicantWifiRttControllerInterfaceName);
+        } else {
+            Log.e(TAG, "Failed to get supplicant RTT controller interface name");
+            return false;
+        }
+        // Set the device name
+        mSupplicantWifiRttController.setProximityRangingDeviceName(mProximityRangingDeviceName);
+        // Set the device randomized MAC address
+        mSupplicantWifiRttController.setProximityRangingMacAddress(
+                mProximityRangingRandomizedMacAddress.toByteArray());
+        // Cache the capabilities
+        mProximityRangingCapabilities = mSupplicantWifiRttController
+                .getProximityRangingCapabilities();
+        if (mProximityRangingCapabilities == null) {
+            Log.e(TAG, "Failed to get proximity ranging capabilities");
+            return false;
+        }
+        Log.d(TAG, "initializeSupplicantWifiRttController success");
+        return true;
     }
 
     /**

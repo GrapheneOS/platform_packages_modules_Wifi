@@ -32,17 +32,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
@@ -96,6 +99,8 @@ import androidx.test.filters.SmallTest;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.server.wifi.ActiveModeWarden;
+import com.android.server.wifi.ClientModeManager;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.HalDeviceManager;
@@ -103,6 +108,7 @@ import com.android.server.wifi.MockResources;
 import com.android.server.wifi.SsidTranslator;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiConfigManager;
+import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
@@ -212,6 +218,12 @@ public class RttServiceImplTest extends WifiBaseTest {
     SsidTranslator mSsidTranslator;
     @Mock
     FrameworkFacade mFrameworkFacade;
+    @Mock
+    WifiNative mWifiNative;
+    @Mock
+    ActiveModeWarden mActiveModeWarden;
+    @Mock
+    SupplicantWifiRttController mMockSupplicantRttController;
 
     /**
      * Using instead of spy to avoid native crash failures - possibly due to
@@ -291,7 +303,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         mDut.start(mMockLooper.getLooper(), mockClock, mockAwareManager, mockMetrics,
                 mockPermissionUtil, mWifiSettingsConfigStore, mockHalDeviceManager,
-                mWifiConfigManager, mSsidTranslator);
+                mWifiConfigManager, mSsidTranslator, mWifiNative, mActiveModeWarden);
         mMockLooper.dispatchAll();
         ArgumentCaptor<BroadcastReceiver> bcastRxCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
@@ -341,7 +353,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         when(Flags.monitorIntentForAllUsers()).thenReturn(true);
         mDut.start(mMockLooper.getLooper(), mockClock, mockAwareManager, mockMetrics,
                 mockPermissionUtil, mWifiSettingsConfigStore, mockHalDeviceManager,
-                mWifiConfigManager, mSsidTranslator);
+                mWifiConfigManager, mSsidTranslator, mWifiNative, mActiveModeWarden);
         mMockLooper.dispatchAll();
         verify(mockContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
                 argThat(filter -> filter.hasAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)),
@@ -2179,5 +2191,158 @@ public class RttServiceImplTest extends WifiBaseTest {
         mDut.setHALProximityRangingSupported(true);
         mDut.stopContinuousRanging(null);
         // No exception should be thrown
+    }
+
+    @Test
+    public void testSetWifiState_SdkNotNewerThanB() throws Exception {
+        assumeFalse(Environment.isSdkNewerThanB());
+        ClientModeManager clientModeManager = mock(ClientModeManager.class);
+        when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(clientModeManager);
+        when(clientModeManager.getInterfaceName()).thenReturn("wlan0");
+
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5)).thenReturn(true);
+        when(Flags.proximityRangingImpl()).thenReturn(true);
+
+        mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+
+        assertNull(mDut.mSupplicantWifiRttController);
+        verify(mWifiNative, never()).createSupplicantWifiRttController(anyString());
+    }
+
+    @Test
+    public void testInitializeSupplicantWifiRttController() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        // Test success case
+        when(mMockSupplicantRttController.getName()).thenReturn("wlan0");
+
+        when(mMockSupplicantRttController.getProximityRangingCapabilities()).thenReturn(
+                new SupplicantWifiRttController.ProximityRangingCapabilities());
+        mDut.mSupplicantWifiRttController = mMockSupplicantRttController;
+        assertTrue(mDut.initializeSupplicantWifiRttController());
+        verify(mMockSupplicantRttController).getName();
+        verify(mMockSupplicantRttController).setProximityRangingDeviceName(any());
+        verify(mMockSupplicantRttController).setProximityRangingMacAddress(any());
+        verify(mMockSupplicantRttController).getProximityRangingCapabilities();
+
+        // Test failure cases
+        mDut.mSupplicantWifiRttController = null;
+        assertFalse(mDut.initializeSupplicantWifiRttController());
+
+        when(mMockSupplicantRttController.getName()).thenReturn(null);
+        mDut.mSupplicantWifiRttController = mMockSupplicantRttController;
+        assertFalse(mDut.initializeSupplicantWifiRttController());
+
+        when(mMockSupplicantRttController.getName()).thenReturn("wlan0");
+        when(mMockSupplicantRttController.getProximityRangingCapabilities()).thenReturn(null);
+        mDut.mSupplicantWifiRttController = mMockSupplicantRttController;
+        assertFalse(mDut.initializeSupplicantWifiRttController());
+    }
+
+    @Test
+    public void testWifiStateChanged() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        ClientModeManager clientModeManager = mock(ClientModeManager.class);
+        when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(clientModeManager);
+        when(clientModeManager.getInterfaceName()).thenReturn("wlan0");
+
+        when(Flags.proximityRangingImpl()).thenReturn(true);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
+                .thenReturn(true);
+        when(mWifiNative.createSupplicantWifiRttController("wlan0"))
+                .thenReturn(mMockSupplicantRttController);
+        when(mMockSupplicantRttController.getName()).thenReturn("wlan0");
+        when(mMockSupplicantRttController.getProximityRangingCapabilities()).thenReturn(
+                new SupplicantWifiRttController.ProximityRangingCapabilities());
+
+        mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+
+        assertNotNull(mDut.mSupplicantWifiRttController);
+        verify(mWifiNative).createSupplicantWifiRttController(eq("wlan0"));
+        verify(mMockSupplicantRttController).registerRttEventCallback(
+                mDut.mSupplicantRttEventCallback);
+        // We already have a test for initializeSupplicantWifiRttController, so no explicit verify
+        // call for mDut.initializeSupplicantWifiRttController() here.
+
+        // Reset mocks for next scenario
+        reset(mWifiNative);
+        reset(mMockSupplicantRttController);
+        mDut.mSupplicantWifiRttController = null; // Clear state for the next test case
+
+        // Scenario 2: Wi-Fi ENABLED - Flags.proximityRangingImpl() is false
+        when(Flags.proximityRangingImpl()).thenReturn(false);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
+                .thenReturn(true);
+
+        mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+        assertNull(mDut.mSupplicantWifiRttController);
+        verify(mWifiNative, never()).createSupplicantWifiRttController(anyString());
+
+        // Reset mocks
+        reset(mWifiNative, mMockSupplicantRttController);
+        mDut.mSupplicantWifiRttController = null;
+
+        // Scenario 3: Wi-Fi ENABLED - mWifiNative.isSupplicantAidlServiceVersionAtLeast(5) is
+        // false
+        when(Flags.proximityRangingImpl()).thenReturn(true);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
+                .thenReturn(false);
+
+        mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+        assertNull(mDut.mSupplicantWifiRttController);
+        verify(mWifiNative, never()).createSupplicantWifiRttController(anyString());
+
+        // Reset mocks
+        reset(mWifiNative, mMockSupplicantRttController);
+        mDut.mSupplicantWifiRttController = null;
+
+        // Scenario 4: Wi-Fi ENABLED - createSupplicantWifiRttController returns null
+        when(Flags.proximityRangingImpl()).thenReturn(true);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
+                .thenReturn(true);
+        when(mWifiNative.createSupplicantWifiRttController("wlan0"))
+                .thenReturn(null);
+
+        mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+        assertNull(mDut.mSupplicantWifiRttController);
+        verify(mWifiNative).createSupplicantWifiRttController(eq("wlan0"));
+        verify(mMockSupplicantRttController, never()).registerRttEventCallback(any());
+
+        // Reset mocks
+        reset(mWifiNative, mMockSupplicantRttController);
+        mDut.mSupplicantWifiRttController = null;
+
+        // Scenario 5: Wi-Fi ENABLED - initializeSupplicantWifiRttController returns false
+        when(Flags.proximityRangingImpl()).thenReturn(true);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
+                .thenReturn(true);
+        when(mWifiNative.createSupplicantWifiRttController("wlan0"))
+                .thenReturn(mMockSupplicantRttController);
+        when(mMockSupplicantRttController.getName()).thenReturn("wlan0");
+        when(mMockSupplicantRttController.getProximityRangingCapabilities()).thenReturn(null);
+        // mDut.initializeSupplicantWifiRttController() will return false due to null capabilities
+
+        mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+        assertNull(mDut.mSupplicantWifiRttController);
+        verify(mWifiNative).createSupplicantWifiRttController(eq("wlan0"));
+        verify(mMockSupplicantRttController).registerRttEventCallback(
+                mDut.mSupplicantRttEventCallback);
+        // initializeSupplicantWifiRttController will be called internally by
+        // mWifiStateChangedReceiver
+
+        // Scenario 6: Wi-Fi DISABLED
+        // First, ensure mSupplicantWifiRttController is not null
+        when(Flags.proximityRangingImpl()).thenReturn(true);
+        when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5)).thenReturn(true);
+        when(mWifiNative.createSupplicantWifiRttController("wlan0"))
+                .thenReturn(mMockSupplicantRttController);
+        when(mMockSupplicantRttController.getName()).thenReturn("wlan0");
+        when(mMockSupplicantRttController.getProximityRangingCapabilities()).thenReturn(
+                new SupplicantWifiRttController.ProximityRangingCapabilities());
+
+        mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+        assertNotNull(mDut.mSupplicantWifiRttController);
+
+        mDut.setWifiState(WifiManager.WIFI_STATE_DISABLED);
+        assertNull(mDut.mSupplicantWifiRttController);
     }
 }
