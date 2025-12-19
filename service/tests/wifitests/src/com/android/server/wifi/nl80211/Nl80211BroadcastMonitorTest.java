@@ -101,11 +101,13 @@ public class Nl80211BroadcastMonitorTest {
     @Test
     public void testCreateFd() {
         // Successful case
-        when(Nl80211Proxy.createNetlinkFileDescriptor()).thenReturn(mFileDescriptor);
+        when(Nl80211Proxy.createNetlinkFileDescriptor(/* nonBlocking */ true))
+                .thenReturn(mFileDescriptor);
         assertEquals(mFileDescriptor, mDut.createFd());
 
         // Error while creating the file descriptor
-        when(Nl80211Proxy.createNetlinkFileDescriptor()).thenReturn(null);
+        when(Nl80211Proxy.createNetlinkFileDescriptor(/* nonBlocking */ true))
+                .thenReturn(null);
         assertNull(mDut.createFd());
     }
 

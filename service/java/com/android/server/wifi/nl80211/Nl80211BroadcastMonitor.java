@@ -85,7 +85,7 @@ public class Nl80211BroadcastMonitor extends PacketReader {
      */
     @Override
     protected FileDescriptor createFd() {
-        FileDescriptor fd = Nl80211Proxy.createNetlinkFileDescriptor();
+        FileDescriptor fd = Nl80211Proxy.createNetlinkFileDescriptor(/* nonBlocking */ true);
         if (fd == null) {
             Log.i(TAG, "Unable to create file descriptor");
             return null;
