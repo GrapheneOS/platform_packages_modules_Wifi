@@ -74,24 +74,28 @@ public class PublishDiscoverySession extends DiscoverySession {
      * The Aware data path request should be done in the context of a discovery session -
      * after a {@link DiscoverySessionCallback#onDataPathRequestReceived(PeerHandle)} event
      * is received.
-     * When the Aware data path setup finished, both side will receive
-     * {@link DiscoverySessionCallback#onDataPathConnected(PeerHandle, WifiAwareNetworkInfo)}
+     * When the Aware data path setup succeeds, both side will receive
+     * {@link DiscoverySessionCallback#onDataPathConnected(PeerHandle, WifiAwareNetworkInfo)}.
+     * Otherwise {@link DiscoverySessionCallback#onDataPathRequestFailed(PeerHandle, int)} will be
+     * called.
      * @param peerHandle The peer's handle for the data path request.
      * @param request The data path request.
+     * @return true if framework accept the data path request successfully and start negotiation,
+     *         false otherwise.
      */
     @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
-    public void acceptDataPathRequest(@NonNull PeerHandle peerHandle,
+    public boolean acceptDataPathRequest(@NonNull PeerHandle peerHandle,
             @NonNull AwareDataPathRequest request) {
         if (mTerminated) {
-            throw new IllegalStateException("acceptDatapathRequest called on"
-                    + " a terminated session.");
+            return false;
         }
 
         WifiAwareManager mgr = mMgr.get();
         if (mgr == null) {
-            throw new IllegalStateException("Failed to get WifiAwareManager.");
+            return false;
         }
-        mgr.requestDataPath(mClientId, mSessionId, peerHandle, request, true);
+        mgr.respondToDataPath(mClientId, mSessionId, peerHandle, request, true);
+        return true;
     }
 
     /**
@@ -100,13 +104,19 @@ public class PublishDiscoverySession extends DiscoverySession {
      * {@link DiscoverySessionCallback#onDataPathRequestReceived(PeerHandle)}
      *
      * @param peerHandle The peer's handle for the data path request.
+     * @return true if the data path is rejected successfully, false otherwise.
      */
     @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
-    public void rejectDataPathRequest(@NonNull PeerHandle peerHandle) {
+    public boolean rejectDataPathRequest(@NonNull PeerHandle peerHandle) {
         if (mTerminated) {
-            throw new IllegalStateException("rejectDatapathRequest called on "
-                    + "a terminated session.");
+            return false;
         }
+        WifiAwareManager mgr = mMgr.get();
+        if (mgr == null) {
+            return false;
+        }
+        mgr.respondToDataPath(mClientId, mSessionId, peerHandle, null, false);
+        return true;
     }
 
 }
