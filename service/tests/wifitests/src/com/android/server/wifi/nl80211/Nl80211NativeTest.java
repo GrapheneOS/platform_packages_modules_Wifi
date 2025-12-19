@@ -16,6 +16,7 @@
 
 package com.android.server.wifi.nl80211;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doThrow;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_CHANNEL_WIDTH;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
@@ -381,6 +382,52 @@ public class Nl80211NativeTest {
         assertTrue(mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME).associated);
     }
 
+    @Test
+    public void testSetupInterfaceForClientMode_netdFailureReturnsTrue() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.InterfaceInfo ifaceInfo = new Nl80211Utils.InterfaceInfo(
+                CLIENT_IFACE_INDEX, WIPHY_INDEX_0, CLIENT_IFACE_NAME, new byte[6]);
+        when(mNl80211Utils.getInterfaceInfo(CLIENT_IFACE_NAME)).thenReturn(ifaceInfo);
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
+                new Nl80211Utils.BandInfo(),
+                mock(Nl80211Utils.ScanCapabilities.class),
+                new Nl80211Utils.WiphyFeatures.Builder().build(),
+                mock(Nl80211Utils.DriverCapabilities.class));
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfo);
+        // Simulate a failure from NetdWrapper.
+        doThrow(new IllegalStateException("netd has died"))
+                .when(mNetdWrapper).setInterfaceUp(CLIENT_IFACE_NAME);
+
+        assertTrue(mDut.setupInterfaceForClientMode(
+                CLIENT_IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+    }
+
+    @Test
+    public void testTearDownClientInterface_netdFailureReturnsTrue() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+        // Simulate a failure from NetdWrapper.
+        doThrow(new IllegalStateException("netd has died"))
+                .when(mNetdWrapper).setInterfaceDown(CLIENT_IFACE_NAME);
+
+        assertTrue(mDut.tearDownClientInterface(CLIENT_IFACE_NAME));
+        // The client info should still be removed even if netd fails to bring down the interface.
+        assertFalse(mDut.getClientInterfaceInfos().containsKey(CLIENT_IFACE_NAME));
+    }
+
+    @Test
+    public void testTearDownSoftApInterface_netdFailureReturnsTrue() {
+        mDut = initNl80211Native(false);
+        setupSoftApInterfaceForTest(WIPHY_INDEX_0, null);
+        // Simulate a failure from NetdWrapper.
+        doThrow(new IllegalStateException("netd has died"))
+                .when(mNetdWrapper).setInterfaceDown(AP_IFACE_NAME);
+
+        assertTrue(mDut.tearDownSoftApInterface(AP_IFACE_NAME));
+        // The AP info should still be removed even if netd fails to bring down the interface.
+        assertFalse(mDut.getApInterfaceInfos().containsKey(AP_IFACE_NAME));
+    }
+
     /** Test that a disassociate event updates the client interface info. */
     @Test
     public void testBroadcastEvent_onDisassociate_updatesClientInfo() {
@@ -449,19 +496,6 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testTearDownClientInterface() {
-        mDut = initNl80211Native(false);
-        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
-
-        assertTrue(mDut.getClientInterfaceInfos().containsKey(CLIENT_IFACE_NAME));
-        assertEquals(1, mDut.getClientInterfaceInfos().size());
-
-        assertTrue(mDut.tearDownClientInterface(CLIENT_IFACE_NAME));
-        assertEquals(0, mDut.getClientInterfaceInfos().size());
-        assertNull(mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME));
-    }
-
-    @Test
     public void testSetupInterfaceForClientMode_getWiphyIndexFails() {
         mDut = initNl80211Native(false);
         when(mNl80211Utils.getWiphyIndex(CLIENT_IFACE_NAME)).thenReturn(-1);
@@ -501,6 +535,25 @@ public class Nl80211NativeTest {
     }
 
     @Test
+    public void testTearDownClientInterface_noIfaceFoundReturnsFalse() {
+        mDut = initNl80211Native(false);
+        assertFalse(mDut.tearDownSoftApInterface(AP_IFACE_NAME));
+    }
+
+    @Test
+    public void testTearDownClientInterface_success() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+
+        assertTrue(mDut.getClientInterfaceInfos().containsKey(CLIENT_IFACE_NAME));
+        assertEquals(1, mDut.getClientInterfaceInfos().size());
+
+        assertTrue(mDut.tearDownClientInterface(CLIENT_IFACE_NAME));
+        assertEquals(0, mDut.getClientInterfaceInfos().size());
+        assertNull(mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME));
+    }
+
+    @Test
     public void testSetupInterfaceForSoftApMode_useWificondEnabled_callsWificond() {
         mDut = initNl80211Native(true);
         when(mWificondManager.setupInterfaceForSoftApMode(AP_IFACE_NAME)).thenReturn(true);
@@ -537,6 +590,12 @@ public class Nl80211NativeTest {
     }
 
     @Test
+    public void testTearDownSoftApInterface_noIfaceFoundReturnsFalse() {
+        mDut = initNl80211Native(false);
+        assertFalse(mDut.tearDownSoftApInterface(AP_IFACE_NAME));
+    }
+
+    @Test
     public void testTearDownSoftApInterface_success() {
         mDut = initNl80211Native(false);
         setupSoftApInterfaceForTest(WIPHY_INDEX_0, null);
@@ -552,6 +611,29 @@ public class Nl80211NativeTest {
                 eq(NL80211_CMD_DEL_STATION), any());
         verify(mNl80211Proxy).unregisterBroadcastCallback(
                 eq(NL80211_CMD_CH_SWITCH_NOTIFY), any());
+    }
+
+    @Test
+    public void testSetupInterfaceForClientMode_getWiphyInfoFails() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.InterfaceInfo ifaceInfo = new Nl80211Utils.InterfaceInfo(
+                CLIENT_IFACE_INDEX, WIPHY_INDEX_0, CLIENT_IFACE_NAME, new byte[6]);
+        when(mNl80211Utils.getInterfaceInfo(CLIENT_IFACE_NAME)).thenReturn(ifaceInfo);
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(null);
+
+        assertFalse(mDut.setupInterfaceForClientMode(
+                CLIENT_IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
+    }
+
+    @Test
+    public void testSetupInterfaceForSoftApMode_getWiphyInfoFails() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.InterfaceInfo ifaceInfo = new Nl80211Utils.InterfaceInfo(
+                AP_IFACE_INDEX, WIPHY_INDEX_0, AP_IFACE_NAME, new byte[6]);
+        when(mNl80211Utils.getInterfaceInfo(AP_IFACE_NAME)).thenReturn(ifaceInfo);
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(null);
+
+        assertFalse(mDut.setupInterfaceForSoftApMode(AP_IFACE_NAME));
     }
 
     @Test
@@ -2103,6 +2185,35 @@ public class Nl80211NativeTest {
         assertEquals("JP", countryCodeCaptor.getAllValues().get(0));
         assertEquals("US", countryCodeCaptor.getAllValues().get(1));
         verify(mNl80211Utils, times(2)).clearWiphyInfoCaches();
+    }
+
+    @Test
+    public void testCountryCodeChanged_getWiphyInfoFails_preservesOriginalWiphyInfo() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+        Nl80211Native.ClientInterfaceInfo info =
+                mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME);
+        Nl80211Utils.WiphyInfo originalWiphyInfo = info.wiphyInfo;
+        assertNotNull(originalWiphyInfo);
+
+        ArgumentCaptor<Nl80211BroadcastMonitor.Nl80211BroadcastCallback> callbackCaptor =
+                ArgumentCaptor.forClass(Nl80211BroadcastMonitor.Nl80211BroadcastCallback.class);
+        verify(mNl80211Proxy).registerBroadcastCallback(
+                eq(NL80211_CMD_REG_CHANGE), callbackCaptor.capture());
+
+        // Simulate getWiphyInfo failing
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(null);
+
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsByte(eq(NL80211_ATTR_REG_TYPE)))
+                .thenReturn((byte) NL80211_REGDOM_TYPE_WORLD);
+
+        // Trigger the regulatory change
+        callbackCaptor.getValue().onEvent(NL80211_CMD_REG_CHANGE, msg);
+
+        // Verify that the original wiphyInfo was preserved (not replaced with null)
+        assertNotNull(info.wiphyInfo);
+        assertEquals(originalWiphyInfo, info.wiphyInfo);
     }
 
     @Test
