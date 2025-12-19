@@ -1274,7 +1274,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
 
     /**
      * Returns true if the current Wifi network is a trusted network, false otherwise.
-     * @see WifiNetworkSuggestion.Builder#setUntrusted(boolean).
+     * @see WifiNetworkSuggestion.Builder#setUntrusted(boolean)
      * @hide
      */
     @SystemApi
@@ -1291,7 +1291,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
      * Returns true if the current Wifi network is a restricted network, false otherwise.
      * A restricted network has its {@link NetworkCapabilities#NET_CAPABILITY_NOT_RESTRICTED}
      * capability removed.
-     * @see WifiNetworkSuggestion.Builder#setRestricted(boolean).
+     * @see WifiNetworkSuggestion.Builder#setRestricted(boolean)
      */
     public boolean isRestricted() {
         return mRestricted;
@@ -1304,7 +1304,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
 
     /**
      * Returns true if the current Wifi network is an oem paid network, false otherwise.
-     * @see WifiNetworkSuggestion.Builder#setOemPaid(boolean).
+     * @see WifiNetworkSuggestion.Builder#setOemPaid(boolean)
      * @hide
      */
     @RequiresApi(Build.VERSION_CODES.S)
@@ -1323,7 +1323,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
 
     /**
      * Returns true if the current Wifi network is an oem private network, false otherwise.
-     * @see WifiNetworkSuggestion.Builder#setOemPrivate(boolean).
+     * @see WifiNetworkSuggestion.Builder#setOemPrivate(boolean)
      * @hide
      */
     @RequiresApi(Build.VERSION_CODES.S)
@@ -1344,7 +1344,7 @@ public class WifiInfo implements TransportInfo, Parcelable {
 
     /**
      * Returns true if the current Wifi network is a carrier merged network, false otherwise.
-     * @see WifiNetworkSuggestion.Builder#setCarrierMerged(boolean).
+     * @see WifiNetworkSuggestion.Builder#setCarrierMerged(boolean)
      * @hide
      */
     @SystemApi
