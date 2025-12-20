@@ -17,6 +17,7 @@ import logging
 import sys
 import time
 
+from android.platform.test.annotations import ApiTest
 from mobly import asserts
 from mobly import base_test
 from mobly import test_runner
@@ -24,7 +25,7 @@ from mobly import utils
 from mobly.controllers import android_device
 
 WIFI_USD_SNIPPET_PATH = 'wifi_usd_snippet'
-WIFI_USD_SNIPPET_PACKAGE = 'com.google.snippet.wifi.usd'
+WIFI_SNIPPET_PACKAGE_NAME = 'com.google.snippet.wifi'
 USD_SERVICE_NAME = '_test'
 USD_SSI = "6677"
 TEST_MESSAGE = 'hello from subscriber'
@@ -41,10 +42,10 @@ class WifiUsdTest(base_test.BaseTestClass):
         self.subscriber = self.ads[1]
 
         def setup_device(device):
-            device.load_snippet(WIFI_USD_SNIPPET_PATH, WIFI_USD_SNIPPET_PACKAGE)
-            device.adb.shell(['pm', 'grant', WIFI_USD_SNIPPET_PACKAGE,
+            device.load_snippet(WIFI_USD_SNIPPET_PATH, WIFI_SNIPPET_PACKAGE_NAME)
+            device.adb.shell(['pm', 'grant', WIFI_SNIPPET_PACKAGE_NAME,
                               'android.permission.ACCESS_FINE_LOCATION'])
-            device.adb.shell(['pm', 'grant', WIFI_USD_SNIPPET_PACKAGE,
+            device.adb.shell(['pm', 'grant', WIFI_SNIPPET_PACKAGE_NAME,
                               'android.permission.NEARBY_WIFI_DEVICES'])
 
         utils.concurrent_exec(
@@ -89,6 +90,13 @@ class WifiUsdTest(base_test.BaseTestClass):
         self.publisher.wifi_usd_snippet.stopUsdSessions()
         self.subscriber.wifi_usd_snippet.stopUsdSessions()
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.usd.UsdManager#publish(PublishConfig, java.util.concurrent.Executor, android.net.wifi.usd.PublishSessionCallback)',
+            'android.net.wifi.usd.UsdManager#subscribe(SubscribeConfig, java.util.concurrent.Executor, android.net.wifi.usd.SubscribeSessionCallback)',
+            'android.net.wifi.usd.PublishSession#sendMessage(int, byte[], java.util.concurrent.Executor, java.util.function.Consumer)',
+        ]
+    )
     def test_bidirectional_message_exchange(self):
         """Tests the full subscriber -> publisher -> subscriber message flow."""
         try:
@@ -126,6 +134,14 @@ class WifiUsdTest(base_test.BaseTestClass):
             asserts.fail(f"Test failed with an exception: {e}")
         logging.info("Bidirectional message exchange passed!")
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.usd.UsdManager#publish(PublishConfig, java.util.concurrent.Executor,  android.net.wifi.usd.PublishSessionCallback)',
+            'android.net.wifi.usd.UsdManager#subscribe(SubscribeConfig, java.util.concurrent.Executor, android.net.wifi.usd.SubscribeSessionCallback)',
+            'android.net.wifi.usd.PublishSession#sendMessage(int, byte[], java.util.concurrent.Executor, java.util.function.Consumer)',
+            'android.net.wifi.usd.SubscribeSession#sendMessage(int, byte[], java.util.concurrent.Executor, java.util.function.Consumer)',
+        ]
+    )
     def test_bidirectional_large_message_exchange(self):
         """Verifies a large message can be sent in both directions."""
         logging.info("Testing bidirectional large message exchange...")
@@ -163,6 +179,14 @@ class WifiUsdTest(base_test.BaseTestClass):
             asserts.fail(f"Failed during large message exchange: {e}")
         logging.info("Bidirectional large message exchange passed!")
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.usd.PublishConfig.Builder#Builder(String)',
+            'android.net.wifi.usd.SubscribeConfig.Builder#setSubscribeType(int)',
+            'android.net.wifi.usd.SubscribeSessionCallback#onServiceDiscovered(android.net.wifi.usd.DiscoveryResult)',
+            'android.net.wifi.usd.Config#SUBSCRIBE_TYPE_PASSIVE',
+        ]
+    )
     def test_passive_subscriber_exchange(self):
         """Tests message exchange with a PASSIVE subscriber."""
         logging.info("Testing with a PASSIVE subscriber...")
@@ -197,6 +221,14 @@ class WifiUsdTest(base_test.BaseTestClass):
             asserts.fail(f"Passive subscriber test failed with an exception: {e}")
         logging.info("Passive subscriber bidirectional exchange passed!")
 
+    @ApiTest(
+        apis=[
+            'android.net.wifi.usd.PublishConfig.Builder#Builder(String)',
+            'android.net.wifi.usd.SubscribeConfig.Builder#setSubscribeType(int)',
+            'android.net.wifi.usd.SubscribeSessionCallback#onServiceDiscovered(android.net.wifi.usd.DiscoveryResult)',
+            'android.net.wifi.usd.Config#SUBSCRIBE_TYPE_ACTIVE',
+        ]
+    )
     def test_active_subscriber_exchange(self):
         """Tests message exchange with an ACTIVE subscriber."""
         logging.info("Testing with an ACTIVE subscriber...")

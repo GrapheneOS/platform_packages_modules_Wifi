@@ -49,7 +49,7 @@ import java.util.regex.Pattern;
  * A class representing a Wi-Fi p2p device
  *
  * Note that the operations are not thread safe
- * {@see WifiP2pManager}
+ * @see WifiP2pManager
  */
 public class WifiP2pDevice implements Parcelable {
 

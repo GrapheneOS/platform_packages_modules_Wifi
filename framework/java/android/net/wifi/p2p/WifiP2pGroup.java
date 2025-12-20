@@ -52,7 +52,7 @@ import java.util.regex.Pattern;
  * owner and one or more clients. In the case of a group with only two devices, one
  * will be the group owner and the other will be a group client.
  *
- * {@see WifiP2pManager}
+ * @see WifiP2pManager
  */
 public class WifiP2pGroup implements Parcelable {
 

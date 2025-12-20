@@ -31,7 +31,7 @@ import java.util.Map;
 /**
  * A class representing a Wi-Fi P2p group list
  *
- * {@see WifiP2pManager}
+ * @see WifiP2pManager
  * @hide
  */
 @SystemApi

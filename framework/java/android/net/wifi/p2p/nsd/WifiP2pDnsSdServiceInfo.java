@@ -32,10 +32,10 @@ import java.util.Map;
  * A class for storing Bonjour service information that is advertised
  * over a Wi-Fi peer-to-peer setup.
  *
- * {@see android.net.wifi.p2p.WifiP2pManager#addLocalService}
- * {@see android.net.wifi.p2p.WifiP2pManager#removeLocalService}
- * {@see WifiP2pServiceInfo}
- * {@see WifiP2pUpnpServiceInfo}
+ * @see android.net.wifi.p2p.WifiP2pManager#addLocalService
+ * @see android.net.wifi.p2p.WifiP2pManager#removeLocalService
+ * @see WifiP2pServiceInfo
+ * @see WifiP2pUpnpServiceInfo
  */
 public class WifiP2pDnsSdServiceInfo extends WifiP2pServiceInfo {
 

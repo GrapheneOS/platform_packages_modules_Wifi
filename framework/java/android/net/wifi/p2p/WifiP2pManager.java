@@ -158,12 +158,12 @@ import java.util.function.Consumer;
  * {@link android.Manifest.permission#CHANGE_WIFI_STATE} to perform any further peer-to-peer
  * operations.
  *
- * {@see WifiP2pConfig}
- * {@see WifiP2pInfo}
- * {@see WifiP2pGroup}
- * {@see WifiP2pDevice}
- * {@see WifiP2pDeviceList}
- * {@see android.net.wifi.WpsInfo}
+ * @see WifiP2pConfig
+ * @see WifiP2pInfo
+ * @see WifiP2pGroup
+ * @see WifiP2pDevice
+ * @see WifiP2pDeviceList
+ * @see android.net.wifi.WpsInfo
  */
 @RestrictedForEnvironment(
         environments = ENVIRONMENT_SDK_RUNTIME, from = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
