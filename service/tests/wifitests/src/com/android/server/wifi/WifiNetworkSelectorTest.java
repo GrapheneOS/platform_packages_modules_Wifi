@@ -537,6 +537,49 @@ public class WifiNetworkSelectorTest extends WifiBaseTest {
     }
 
     /**
+     * Verifies the behavior of hasSufficientLinkQuality for different RSSI values.
+     */
+    @Test
+    public void testHasSufficientLinkQuality() {
+        // Scenario 1: Invalid RSSI.
+        // Should return false immediately, regardless of frequency.
+        when(mWifiInfo.getRssi()).thenReturn(WifiInfo.INVALID_RSSI);
+        when(mWifiInfo.getFrequency()).thenReturn(2412); // A valid frequency
+        assertFalse("Should be insufficient for INVALID_RSSI",
+                mWifiNetworkSelector.hasSufficientLinkQuality(mWifiInfo));
+        when(mWifiInfo.getFrequency()).thenReturn(-1); // An invalid frequency
+        assertFalse("Should be insufficient for INVALID_RSSI and invalid frequency",
+                mWifiNetworkSelector.hasSufficientLinkQuality(mWifiInfo));
+
+        // Scenario 2: Sufficient RSSI.
+        // Should return true if RSSI is at or above the threshold for the band.
+        int sufficientRssi2g = mScoringParams.getSufficientRssi(2412);
+        when(mWifiInfo.getFrequency()).thenReturn(2412);
+        when(mWifiInfo.getRssi()).thenReturn(sufficientRssi2g);
+        assertTrue("Should be sufficient at the 2.4GHz threshold",
+                mWifiNetworkSelector.hasSufficientLinkQuality(mWifiInfo));
+        when(mWifiInfo.getRssi()).thenReturn(sufficientRssi2g + 10);
+        assertTrue("Should be sufficient above the 2.4GHz threshold",
+                mWifiNetworkSelector.hasSufficientLinkQuality(mWifiInfo));
+
+        // Scenario 3: Insufficient RSSI.
+        // Should return false if RSSI is below the threshold for the band.
+        when(mWifiInfo.getRssi()).thenReturn(sufficientRssi2g - 1);
+        assertFalse("Should be insufficient below the 2.4GHz threshold",
+                mWifiNetworkSelector.hasSufficientLinkQuality(mWifiInfo));
+
+        // Repeat for 5GHz band
+        int sufficientRssi5g = mScoringParams.getSufficientRssi(5220);
+        when(mWifiInfo.getFrequency()).thenReturn(5220);
+        when(mWifiInfo.getRssi()).thenReturn(sufficientRssi5g);
+        assertTrue("Should be sufficient at the 5GHz threshold",
+                mWifiNetworkSelector.hasSufficientLinkQuality(mWifiInfo));
+        when(mWifiInfo.getRssi()).thenReturn(sufficientRssi5g - 1);
+        assertFalse("Should be insufficient below the 5GHz threshold",
+                mWifiNetworkSelector.hasSufficientLinkQuality(mWifiInfo));
+    }
+
+    /**
      * No network selection if scan result is empty.
      *
      * ClientModeImpl is in disconnected state.
