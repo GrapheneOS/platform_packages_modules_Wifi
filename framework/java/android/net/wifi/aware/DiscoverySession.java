@@ -509,20 +509,26 @@ public class DiscoverySession implements AutoCloseable {
     /**
      * Release the Aware data path to the specified peer. The datapath will be disconnected if no
      * other applications are requesting it.
+     * {@link DiscoverySessionCallback#onDataPathDisconnected(PeerHandle)} will be called when the
+     * datapath is disconnected.
      *
-     * @param peerHandle The peer's handle obtained through
+     * @param peerHandle The peer's handle is used in
+     *                   {@link PublishDiscoverySession#acceptDataPathRequest(PeerHandle, AwareDataPathRequest)}
+     *                   or {@link SubscribeDiscoverySession#initiateDataPathRequest(PeerHandle, AwareDataPathRequest)}
+     * @return true if the data path is released successfully, false otherwise.
      */
     @FlaggedApi(FLAG_MULTI_PEER_AWARE_DATAPATH)
-    public void releaseDataPath(@NonNull PeerHandle peerHandle) {
+    public boolean releaseDataPath(@NonNull PeerHandle peerHandle) {
         if (mTerminated) {
-            throw new IllegalStateException("releaseDatapath called on a terminated session.");
+            return false;
         }
 
         WifiAwareManager mgr = mMgr.get();
         if (mgr == null) {
-            throw new IllegalStateException("Failed to get WifiAwareManager.");
+            return false;
         }
-        mgr.releaseDatapath(mClientId, mSessionId, peerHandle);
+        mgr.releaseDataPath(mClientId, mSessionId, peerHandle);
+        return true;
     }
 
     /**

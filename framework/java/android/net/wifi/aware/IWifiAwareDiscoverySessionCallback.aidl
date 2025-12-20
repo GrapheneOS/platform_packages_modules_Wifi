@@ -54,7 +54,7 @@ oneway interface IWifiAwareDiscoverySessionCallback {
             int peerId, boolean accept, int method, in byte[] serviceSpecificInfo);
     void onRangingResultsReceived(in List<RangingResult> rangingResults);
     void onDatapathConnected(int peerId, in WifiAwareNetworkInfo info);
-    void onDatapathRequestFailure(int peerId);
+    void onDataPathRequestFailure(int peerId, int reason);
     void onDataPathDisconnected(int peerId);
     void onDataPathRequestReceived(int peerId);
 }

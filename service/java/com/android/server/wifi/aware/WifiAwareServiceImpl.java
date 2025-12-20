@@ -666,26 +666,44 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
     }
 
     @Override
-    public void requestDatapath(int clientId, int sessionId, int peerId,
-            AwareDataPathRequest request, boolean isPublish) throws RemoteException {
+    public void requestDataPath(int clientId, int sessionId, int peerId,
+            AwareDataPathRequest request) {
         enforceAccessPermission();
         enforceChangePermission();
         int uid = getMockableCallingUid();
         enforceClientValidity(uid, clientId);
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "requestDatapath: clientId=" + clientId + ", sessionId=" + sessionId
-                    + ", peerId=" + peerId + ", request=" + request + ", isPublish=" + isPublish);
+            Log.v(TAG, "requestDataPath: clientId=" + clientId
+                    + ", sessionId=" + sessionId
+                    + ", peerId=" + peerId
+                    + ", request=" + request);
         }
     }
 
     @Override
-    public void releaseDatapath(int clientId, int sessionId, int peerId) throws RemoteException {
+    public void respondToDataPath(int clientId, int sessionId, int peerId,
+            AwareDataPathRequest request, boolean accept) {
         enforceAccessPermission();
         enforceChangePermission();
         int uid = getMockableCallingUid();
         enforceClientValidity(uid, clientId);
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "releaseDatapath: clientId=" + clientId + ", sessionId=" + sessionId
+            Log.v(TAG, "requestDatapath: clientId=" + clientId
+                    + ", sessionId=" + sessionId
+                    + ", peerId=" + peerId
+                    + ", request=" + request
+                    + ", accept=" + accept);
+        }
+    }
+
+    @Override
+    public void releaseDataPath(int clientId, int sessionId, int peerId) throws RemoteException {
+        enforceAccessPermission();
+        enforceChangePermission();
+        int uid = getMockableCallingUid();
+        enforceClientValidity(uid, clientId);
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "releaseDataPath: clientId=" + clientId + ", sessionId=" + sessionId
                     + ", peerId=" + peerId);
         }
     }

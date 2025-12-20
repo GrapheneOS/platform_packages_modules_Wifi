@@ -19,6 +19,7 @@ package com.android.server.wifi.nl80211;
 import static com.android.server.wifi.nl80211.NetlinkConstants.CTRL_ATTR_FAMILY_ID;
 import static com.android.server.wifi.nl80211.NetlinkConstants.CTRL_CMD_NEWFAMILY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.GENL_ID_CTRL;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NETLINK_GENERIC;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_MULTICAST_GROUP_MLME;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_MULTICAST_GROUP_REG;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_MULTICAST_GROUP_SCAN;
@@ -34,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.validateMockitoUsage;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -47,6 +49,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.MessageQueue;
 import android.os.test.TestLooper;
+import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 
@@ -116,7 +119,7 @@ public class Nl80211ProxyTest {
                 .mockStatic(SocketUtils.class)
                 .mockStatic(WifiStatsLog.class)
                 .startMocking();
-        when(NetlinkUtils.netlinkSocketForProto(anyInt())).thenReturn(mFileDescriptor);
+        when(Os.socket(anyInt(), anyInt(), anyInt())).thenReturn(mFileDescriptor);
         when(Flags.nl80211ProxyEnabled()).thenReturn(true);
 
         // Use a test looper to dispatch events in the tests.
@@ -152,6 +155,41 @@ public class Nl80211ProxyTest {
         if (mSession != null) {
             mSession.finishMocking();
         }
+    }
+
+    @Test
+    public void testCreateNetlinkFileDescriptor_blocking_success() {
+        FileDescriptor fd = Nl80211Proxy.createNetlinkFileDescriptor(false);
+        assertNotNull(fd);
+        // Adjust times() to account for setUp() already creating a blocking FD.
+        ExtendedMockito.verify(() -> Os.socket(
+                OsConstants.AF_NETLINK,
+                OsConstants.SOCK_DGRAM | OsConstants.SOCK_CLOEXEC,
+                NETLINK_GENERIC), times(2));
+        ExtendedMockito.verify(() -> NetlinkUtils.connectToKernel(fd), times(2));
+    }
+
+    @Test
+    public void testCreateNetlinkFileDescriptor_nonBlocking_success() {
+        FileDescriptor fd = Nl80211Proxy.createNetlinkFileDescriptor(true);
+        assertNotNull(fd);
+        ExtendedMockito.verify(() -> Os.socket(
+                OsConstants.AF_NETLINK,
+                OsConstants.SOCK_DGRAM | OsConstants.SOCK_CLOEXEC | OsConstants.SOCK_NONBLOCK,
+                NETLINK_GENERIC));
+        // Adjust times() to account for setUp() already creating a blocking FD.
+        ExtendedMockito.verify(() -> NetlinkUtils.connectToKernel(fd), times(2));
+    }
+
+    @Test
+    public void testCreateNetlinkFileDescriptor_failure() {
+        ExtendedMockito.doThrow(new ErrnoException("Failed to create socket", OsConstants.EACCES))
+                .when(() -> Os.socket(anyInt(), anyInt(), anyInt()));
+
+        FileDescriptor actualFd = Nl80211Proxy.createNetlinkFileDescriptor(false);
+        assertNull(actualFd);
+        // Adjust times() to account for setUp() already creating a blocking FD.
+        ExtendedMockito.verify(() -> NetlinkUtils.connectToKernel(any()), times(1));
     }
 
     private void initializeDut() throws Exception {

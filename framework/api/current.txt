@@ -890,19 +890,21 @@ package android.net.wifi.aware {
 
   @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public final class AwareDataPathRequest implements android.os.Parcelable {
     method public int describeContents();
-    method @IntRange(from=0) public int getChannelFrequencyMhz();
     method @Nullable public android.net.wifi.aware.WifiAwareDataPathSecurityConfig getDataPathSecurityConfig();
     method @IntRange(from=0, to=65535) public int getPort();
     method @IntRange(from=0xffffffff, to=255) public int getTransportProtocol();
-    method public boolean isChannelRequired();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.aware.AwareDataPathRequest> CREATOR;
+    field public static final int DATA_PATH_CONNECTION_FAILURE_REASON_INTERNAL_FAILURE = 5; // 0x5
+    field public static final int DATA_PATH_CONNECTION_FAILURE_REASON_NO_RESOURCE = 1; // 0x1
+    field public static final int DATA_PATH_CONNECTION_FAILURE_REASON_PEER_NOT_FOUND = 2; // 0x2
+    field public static final int DATA_PATH_CONNECTION_FAILURE_REASON_REJECT_BY_PEER = 3; // 0x3
+    field public static final int DATA_PATH_CONNECTION_FAILURE_REASON_TIME_OUT = 4; // 0x4
   }
 
   @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public static final class AwareDataPathRequest.Builder {
     ctor public AwareDataPathRequest.Builder();
     method @NonNull public android.net.wifi.aware.AwareDataPathRequest build();
-    method @NonNull public android.net.wifi.aware.AwareDataPathRequest.Builder setChannelFrequencyMhz(@IntRange(from=0) int, boolean);
     method @NonNull public android.net.wifi.aware.AwareDataPathRequest.Builder setDataPathSecurityConfig(@NonNull android.net.wifi.aware.WifiAwareDataPathSecurityConfig);
     method @NonNull public android.net.wifi.aware.AwareDataPathRequest.Builder setPort(@IntRange(from=1, to=65535) int);
     method @NonNull public android.net.wifi.aware.AwareDataPathRequest.Builder setTransportProtocol(@IntRange(from=0, to=255) int);
@@ -984,7 +986,7 @@ package android.net.wifi.aware {
     method @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") public void initiateBootstrappingRequest(@NonNull android.net.wifi.aware.PeerHandle, int, @NonNull byte[]);
     method public void initiatePairingRequest(@NonNull android.net.wifi.aware.PeerHandle, @NonNull String, int, @Nullable String);
     method public void rejectPairingRequest(int, @NonNull android.net.wifi.aware.PeerHandle);
-    method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public void releaseDataPath(@NonNull android.net.wifi.aware.PeerHandle);
+    method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public boolean releaseDataPath(@NonNull android.net.wifi.aware.PeerHandle);
     method public void sendMessage(@NonNull android.net.wifi.aware.PeerHandle, int, @Nullable byte[]);
   }
 
@@ -995,7 +997,7 @@ package android.net.wifi.aware {
     method @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") public void onBootstrappingSucceeded(@NonNull android.net.wifi.aware.PeerHandle, int, @Nullable byte[]);
     method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public void onDataPathConnected(@NonNull android.net.wifi.aware.PeerHandle, @NonNull android.net.wifi.aware.WifiAwareNetworkInfo);
     method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public void onDataPathDisconnected(@NonNull android.net.wifi.aware.PeerHandle);
-    method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public void onDataPathRequestFailed(@NonNull android.net.wifi.aware.PeerHandle);
+    method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public void onDataPathRequestFailed(@NonNull android.net.wifi.aware.PeerHandle, int);
     method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public void onDataPathRequestReceived(@NonNull android.net.wifi.aware.PeerHandle);
     method public void onMessageReceived(android.net.wifi.aware.PeerHandle, byte[]);
     method public void onMessageSendFailed(int);
@@ -1063,8 +1065,8 @@ package android.net.wifi.aware {
   }
 
   public class PublishDiscoverySession extends android.net.wifi.aware.DiscoverySession {
-    method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public void acceptDataPathRequest(@NonNull android.net.wifi.aware.PeerHandle, @NonNull android.net.wifi.aware.AwareDataPathRequest);
-    method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public void rejectDataPathRequest(@NonNull android.net.wifi.aware.PeerHandle);
+    method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public boolean acceptDataPathRequest(@NonNull android.net.wifi.aware.PeerHandle, @NonNull android.net.wifi.aware.AwareDataPathRequest);
+    method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public boolean rejectDataPathRequest(@NonNull android.net.wifi.aware.PeerHandle);
     method public void updatePublish(@NonNull android.net.wifi.aware.PublishConfig);
   }
 
@@ -1109,7 +1111,7 @@ package android.net.wifi.aware {
   }
 
   public class SubscribeDiscoverySession extends android.net.wifi.aware.DiscoverySession {
-    method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public void initiateDataPathRequest(@NonNull android.net.wifi.aware.PeerHandle, @NonNull android.net.wifi.aware.AwareDataPathRequest);
+    method @FlaggedApi("com.android.wifi.flags.multi_peer_aware_datapath") public boolean initiateDataPathRequest(@NonNull android.net.wifi.aware.PeerHandle, @NonNull android.net.wifi.aware.AwareDataPathRequest);
     method public void updateSubscribe(@NonNull android.net.wifi.aware.SubscribeConfig);
   }
 

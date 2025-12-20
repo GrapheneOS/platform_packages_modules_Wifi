@@ -91,6 +91,7 @@ import com.android.server.wifi.nl80211.NativeScanResult;
 import com.android.server.wifi.nl80211.Nl80211Native;
 import com.android.server.wifi.nl80211.RadioChainInfo;
 import com.android.server.wifi.proto.WifiStatsLog;
+import com.android.server.wifi.rtt.SupplicantWifiRttController;
 import com.android.server.wifi.usd.UsdRequestManager;
 import com.android.server.wifi.util.FrameParser;
 import com.android.server.wifi.util.InformationElementUtil;
@@ -5721,6 +5722,31 @@ public class WifiNative {
      */
     public void disableMscs(String ifaceName) {
         mSupplicantStaIfaceHal.disableMscs(ifaceName);
+    }
+
+    /**
+     * Create a new RTT controller via Supplicant.
+     *
+     * @param ifaceName Name of the interface.
+     * @return a new RTT controller via Supplicant, or null if the creation fails.
+     */
+    @Nullable
+    public SupplicantWifiRttController createSupplicantWifiRttController(
+            @NonNull String ifaceName) {
+        SupplicantWifiRttController rttController = mSupplicantStaIfaceHal
+                .createRttController(ifaceName);
+        if (rttController != null) {
+            Log.d(TAG, "createRttController succeeded on supplicant interface: " + ifaceName);
+            if (!rttController.setup()) {
+                Log.e(TAG, "SupplicantWifiRttController setup failed");
+                return null;
+            }
+            Log.d(TAG, "createRttController setup succeeded on supplicant interface: "
+                    + ifaceName);
+        } else {
+            Log.e(TAG, "Failed to create SupplicantWifiRttController");
+        }
+        return rttController;
     }
 
     /**

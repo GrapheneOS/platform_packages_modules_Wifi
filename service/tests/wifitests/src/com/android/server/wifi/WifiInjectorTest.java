@@ -16,9 +16,14 @@
 
 package com.android.server.wifi;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+
 import android.net.wifi.WifiContext;
 
 import androidx.test.filters.SmallTest;
+
+import com.android.server.wifi.rtt.RttServiceImpl;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -67,5 +72,15 @@ public class WifiInjectorTest extends WifiBaseTest {
     @Test(expected = IllegalStateException.class)
     public void testShouldNotCreateWifiInjectorWithNullContext() {
         new WifiInjector(null);
+    }
+
+    /**
+     * Test that we can set and get the RttServiceImpl
+     */
+    @Test
+    public void testSetAndGetRttServiceImpl() {
+        RttServiceImpl rttService = mock(RttServiceImpl.class);
+        WifiInjector.getInstance().setRttServiceImpl(rttService);
+        assertEquals(rttService, WifiInjector.getInstance().getRttServiceImpl());
     }
 }

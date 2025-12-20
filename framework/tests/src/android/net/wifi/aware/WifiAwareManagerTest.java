@@ -48,6 +48,7 @@ import android.net.wifi.SynchronousExecutor;
 import android.net.wifi.util.Environment;
 import android.net.wifi.util.HexEncoding;
 import android.os.Build;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Parcel;
@@ -2200,4 +2201,79 @@ public class WifiAwareManagerTest {
         WifiAwareManager.getTxtRecordTlvBuffer(txtRecord);
     }
 
+    @Test
+    public void testSetMasterPreference() throws Exception {
+        int clientId = 123;
+        Binder binder = new Binder();
+        int mp = 5;
+        mDut.setMasterPreference(clientId, binder, mp);
+        verify(mockAwareService).setMasterPreference(clientId, binder, mp);
+    }
+
+    @Test
+    public void testSetAwareParams() throws Exception {
+        AwareParams params = new AwareParams();
+        mDut.setAwareParams(params);
+        verify(mockAwareService).setAwareParams(params);
+    }
+
+    @Test
+    public void testSuspend() throws Exception {
+        int clientId = 1;
+        int sessionId = 2;
+        mDut.suspend(clientId, sessionId);
+        verify(mockAwareService).suspend(clientId, sessionId);
+    }
+
+    @Test
+    public void testResume() throws Exception {
+        int clientId = 1;
+        int sessionId = 2;
+        mDut.resume(clientId, sessionId);
+        verify(mockAwareService).resume(clientId, sessionId);
+    }
+
+    @Test
+    public void testRequestDataPath() throws Exception {
+        int clientId = 1;
+        int sessionId = 2;
+        PeerHandle peerHandle = new PeerHandle(3);
+        AwareDataPathRequest request = new AwareDataPathRequest.Builder().build();
+
+        mDut.requestDataPath(clientId, sessionId, peerHandle, request);
+        verify(mockAwareService).requestDataPath(clientId, sessionId, peerHandle.peerId, request);
+    }
+
+    @Test
+    public void testRespondToDataPath() throws Exception {
+        int clientId = 1;
+        int sessionId = 2;
+        PeerHandle peerHandle = new PeerHandle(3);
+        AwareDataPathRequest request = new AwareDataPathRequest.Builder().build();
+        boolean accept = true;
+
+        mDut.respondToDataPath(clientId, sessionId, peerHandle, request, accept);
+        verify(mockAwareService).respondToDataPath(clientId, sessionId, peerHandle.peerId, request,
+                accept);
+    }
+
+    @Test
+    public void testReleaseDataPath() throws Exception {
+        int clientId = 1;
+        int sessionId = 2;
+        PeerHandle peerHandle = new PeerHandle(3);
+
+        mDut.releaseDataPath(clientId, sessionId, peerHandle);
+        verify(mockAwareService).releaseDataPath(clientId, sessionId, peerHandle.peerId);
+    }
+
+    @Test
+    public void testAttachOffload() throws Exception {
+        ArgumentCaptor<IWifiAwareEventCallback> clientProxyCallback = ArgumentCaptor
+                .forClass(IWifiAwareEventCallback.class);
+
+        mDut.attachOffload(new SynchronousExecutor(), mockCallback);
+        verify(mockAwareService).connect(any(), any(), any(), clientProxyCallback.capture(),
+                isNull(), eq(false), any(), eq(true));
+    }
 }

@@ -140,6 +140,7 @@ import com.android.server.wifi.hal.HalTestUtils;
 import com.android.server.wifi.hotspot2.AnqpEvent;
 import com.android.server.wifi.hotspot2.IconEvent;
 import com.android.server.wifi.hotspot2.WnmData;
+import com.android.server.wifi.rtt.SupplicantWifiRttController;
 import com.android.server.wifi.util.NativeUtil;
 
 import org.junit.After;
@@ -1998,6 +1999,32 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
                 .onPmkCacheAdded(anyLong(), any());
         verify(mISupplicantStaIfaceCallback, never())
                 .onPmkSaCacheAdded(any());
+    }
+
+    /**
+     * Test createRttController() function
+     */
+    @Test
+    public void testCreateRttController() throws Exception {
+        executeAndValidateInitializationSequence();
+        android.hardware.wifi.supplicant.ISupplicantWifiRttController rttControllerMock =
+                mock(android.hardware.wifi.supplicant.ISupplicantWifiRttController.class);
+        when(mISupplicantMock.createRttController(anyString())).thenReturn(rttControllerMock);
+
+        // Test successful creation
+        SupplicantWifiRttController controller = mDut.createRttController(WLAN0_IFACE_NAME);
+        assertNotNull(controller);
+        verify(mISupplicantMock).createRttController(eq(WLAN0_IFACE_NAME));
+
+        // Test null return from HAL
+        when(mISupplicantMock.createRttController(anyString())).thenReturn(null);
+        controller = mDut.createRttController(WLAN0_IFACE_NAME);
+        assertNull(controller);
+
+        // Test RemoteException
+        doThrow(new RemoteException()).when(mISupplicantMock).createRttController(anyString());
+        controller = mDut.createRttController(WLAN0_IFACE_NAME);
+        assertNull(controller);
     }
 
     /**

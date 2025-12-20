@@ -50,6 +50,7 @@ import android.hardware.wifi.supplicant.ISupplicant;
 import android.hardware.wifi.supplicant.ISupplicantStaIface;
 import android.hardware.wifi.supplicant.ISupplicantStaIfaceCallback;
 import android.hardware.wifi.supplicant.ISupplicantStaNetwork;
+import android.hardware.wifi.supplicant.ISupplicantWifiRttController;
 import android.hardware.wifi.supplicant.IfaceInfo;
 import android.hardware.wifi.supplicant.IfaceType;
 import android.hardware.wifi.supplicant.IpVersion;
@@ -115,6 +116,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.HandlerExecutor;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.mockwifi.MockWifiServiceUtil;
+import com.android.server.wifi.rtt.SupplicantWifiRttController;
 import com.android.server.wifi.usd.UsdNativeManager;
 import com.android.server.wifi.usd.UsdRequestManager;
 import com.android.server.wifi.util.HalAidlUtil;
@@ -4055,6 +4057,36 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
             } catch (ServiceSpecificException e) {
                 handleServiceSpecificException(e, methodStr);
             }
+        }
+    }
+
+    /**
+     * See comments for {@link ISupplicant#createRttController(String)}
+     */
+    @Override
+    @Nullable
+    public SupplicantWifiRttController createRttController(String ifaceName) {
+        synchronized (mLock) {
+            final String methodStr = "createRttController";
+            if (!checkSupplicantAndLogFailure(methodStr)
+                    || (!mIsUsingMainlineSupplicant && !isServiceVersionAtLeast(5))) {
+                return null;
+            }
+            try {
+                ISupplicantWifiRttController rttController =
+                        mISupplicant.createRttController(ifaceName);
+                if (rttController == null) {
+                    Log.e(TAG, "createRttController failed, got null rttController");
+                    return null;
+                }
+                Log.i(TAG, "Created Supplicant Rtt Controller on interface: " + ifaceName);
+                return new SupplicantWifiRttController(rttController);
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+            }
+            return null;
         }
     }
 
