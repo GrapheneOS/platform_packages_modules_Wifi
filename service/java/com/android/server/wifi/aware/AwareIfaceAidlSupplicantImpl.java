@@ -68,6 +68,12 @@ import com.android.server.wifi.util.HalAidlUtil;
  */
 public class AwareIfaceAidlSupplicantImpl {
     private static final String TAG = "AwareSupplicant";
+    private static final byte DEFAULT_RSSI_CLOSE = 50;
+    private static final byte DEFAULT_RSSI_MIDDLE = 65;
+    private static final byte DEFAULT_RSSI_CLOSE_PROXIMITY = 50;
+    private static final int DEFAULT_DWELL_TIME_MS = 150;
+    private static final int DEFAULT_SCAN_PERIOD_SEC = 20;
+
     private ISupplicantNanIface mWifiNanIface;
     private String mIfaceName;
     private AwareIfaceCallbackSupplicantImpl mHalCallback;
@@ -405,11 +411,11 @@ public class AwareIfaceAidlSupplicantImpl {
     private static NanBandSpecificConfig[] createNanBandSpecificConfigs(
             ConfigRequest configRequest) {
         NanBandSpecificConfig config24 = new NanBandSpecificConfig();
-        config24.rssiClose = 60;
-        config24.rssiMiddle = 70;
-        config24.rssiCloseProximity = 60;
-        config24.dwellTimeMs = 200;
-        config24.scanPeriodSec = 20;
+        config24.rssiClose = DEFAULT_RSSI_CLOSE;
+        config24.rssiMiddle = DEFAULT_RSSI_MIDDLE;
+        config24.rssiCloseProximity = DEFAULT_RSSI_CLOSE_PROXIMITY;
+        config24.dwellTimeMs = DEFAULT_DWELL_TIME_MS;
+        config24.scanPeriodSec = DEFAULT_SCAN_PERIOD_SEC;
         if (configRequest.mDiscoveryWindowInterval[ConfigRequest.NAN_BAND_24GHZ]
                 == ConfigRequest.DW_INTERVAL_NOT_INIT) {
             config24.validDiscoveryWindowIntervalVal = false;
@@ -420,11 +426,11 @@ public class AwareIfaceAidlSupplicantImpl {
         }
 
         NanBandSpecificConfig config5 = new NanBandSpecificConfig();
-        config5.rssiClose = 60;
-        config5.rssiMiddle = 75;
-        config5.rssiCloseProximity = 60;
-        config5.dwellTimeMs = 200;
-        config5.scanPeriodSec = 20;
+        config5.rssiClose = DEFAULT_RSSI_CLOSE;
+        config5.rssiMiddle = DEFAULT_RSSI_MIDDLE;
+        config5.rssiCloseProximity = DEFAULT_RSSI_CLOSE_PROXIMITY;
+        config5.dwellTimeMs = DEFAULT_DWELL_TIME_MS;
+        config5.scanPeriodSec = DEFAULT_SCAN_PERIOD_SEC;
         if (configRequest.mDiscoveryWindowInterval[ConfigRequest.NAN_BAND_5GHZ]
                 == ConfigRequest.DW_INTERVAL_NOT_INIT) {
             config5.validDiscoveryWindowIntervalVal = false;
@@ -435,11 +441,11 @@ public class AwareIfaceAidlSupplicantImpl {
         }
 
         NanBandSpecificConfig config6 = new NanBandSpecificConfig();
-        config6.rssiClose = 60;
-        config6.rssiMiddle = 75;
-        config6.rssiCloseProximity = 60;
-        config6.dwellTimeMs = 200;
-        config6.scanPeriodSec = 20;
+        config6.rssiClose = DEFAULT_RSSI_CLOSE;
+        config6.rssiMiddle = DEFAULT_RSSI_MIDDLE;
+        config6.rssiCloseProximity = DEFAULT_RSSI_CLOSE_PROXIMITY;
+        config6.dwellTimeMs = DEFAULT_DWELL_TIME_MS;
+        config6.scanPeriodSec = DEFAULT_SCAN_PERIOD_SEC;
         if (configRequest.mDiscoveryWindowInterval[ConfigRequest.NAN_BAND_6GHZ]
                 == ConfigRequest.DW_INTERVAL_NOT_INIT) {
             config6.validDiscoveryWindowIntervalVal = false;
