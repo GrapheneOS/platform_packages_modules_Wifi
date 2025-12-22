@@ -1257,6 +1257,8 @@ public class InformationElementUtil {
         public static final int TYPE_BASIC = 0;
         public static final int LINK_ID_PRESENT_OFFSET = 0;
         public static final int LINK_ID_PRESENT_MASK = 0x10;
+        public static final int AP_MLD_ID_PRESENT_OFFSET = 1;
+        public static final int AP_MLD_ID_PRESENT_MASK = 0x02;
 
 
         // Common info field constants
@@ -1310,6 +1312,9 @@ public class InformationElementUtil {
          *        | Len | MLD Address | Link Id | BSS Change count | MedSync | EML Cap | MLD Cap |
          * Octets:   1        6          0 or 1        0 or 1         0 or 2    0 or 2    0 or 2
          *
+         * Note: AP MLD ID field is not parsed. When AP MLD ID Info Present bit is set,
+         * it indicates a nontransmitted BSSID element, which is skipped.
+         *
          */
         private int parseCommonInfoField(InformationElement ie) {
             int commonInfoLength = ie.bytes[COMMON_FIELD_START_INDEX
@@ -1317,6 +1322,22 @@ public class InformationElementUtil {
             if (commonInfoLength < BASIC_COMMON_INFO_FIELD_MIN_LEN) {
                 if (DBG) {
                     Log.w(TAG, "Invalid Common Info field length: " + commonInfoLength);
+                }
+                // Skipping parsing of the IE
+                return 0;
+            }
+
+            // Check if AP MLD ID Info is present in the Presence Bitmap.
+            // According to 802.11be spec, AP MLD ID is present in multi-link probe responses
+            // when responding on behalf of a nontransmitted BSSID affiliated with an AP MLD.
+            // We only want to parse Multi-Link elements from the transmitted AP itself,
+            // so skip parsing when AP MLD ID is present.
+            boolean isApMldIdInfoPresent = (ie.bytes[AP_MLD_ID_PRESENT_OFFSET]
+                    & AP_MLD_ID_PRESENT_MASK) != 0;
+            if (isApMldIdInfoPresent) {
+                if (DBG) {
+                    Log.w(TAG, "AP MLD ID present (nontransmitted BSSID), skipping Multi-Link IE "
+                            + "parsing");
                 }
                 // Skipping parsing of the IE
                 return 0;
@@ -1466,8 +1487,8 @@ public class InformationElementUtil {
          *
          * Where the Presence Bitmap subfield is described as,
          *
-         *        | LinkId | BSS change count | MedSync | EML cap | MLD cap | Reserved |
-         * Bits:      1            1               1         1         1         7
+         *        | LinkId | BSS change count | MedSync | EML cap | MLD cap | AP MLD ID | Reserved |
+         * Bits:      1            1               1         1         1          1           6
          *
          *
          *
