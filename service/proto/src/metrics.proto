@@ -1416,6 +1416,9 @@ message StaEvent {
 
     // Link probe was performed
     TYPE_LINK_PROBE = 21;
+
+    // Pre-evaluation failed for this network.
+    TYPE_DISCONNECT_PRE_EVALUATION_FAIL = 22;
   }
 
   enum FrameworkDisconnectReason {

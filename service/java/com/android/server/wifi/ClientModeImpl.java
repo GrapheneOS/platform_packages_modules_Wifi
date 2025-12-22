@@ -46,6 +46,7 @@ import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONNECTION_RESULT_
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_SECONDARY_INTERNET;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_SECONDARY_LONG_LIVED;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_CONNECTION_RESULT_REPORTED__ROLE__ROLE_CLIENT_SECONDARY_TRANSIENT;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__DISCONNECT_PRE_EVALUATION_FAIL;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__SUPPLICANT_DISCONNECTED;
 
 import android.annotation.IntDef;
@@ -7990,6 +7991,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 case CMD_PRE_EVALUATION_FAILED:
                     mPreEvaluationActive = false;
                     updateCapabilities();
+                    mFrameworkDisconnectReasonOverride =
+                            WIFI_DISCONNECT_REPORTED__FAILURE_CODE__DISCONNECT_PRE_EVALUATION_FAIL;
+                    sendMessage(CMD_DISCONNECT, StaEvent.TYPE_DISCONNECT_PRE_EVALUATION_FAIL);
+                    break;
                 case WifiMonitor.NETWORK_DISCONNECTION_EVENT: {
                     DisconnectEventInfo eventInfo = (DisconnectEventInfo) message.obj;
                     if (unexpectedDisconnectedReason(eventInfo.reasonCode)) {
