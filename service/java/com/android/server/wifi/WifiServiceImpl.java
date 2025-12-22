@@ -6805,13 +6805,12 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                     .isChangeEnabled(NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE, callingUid);
             int networkId;
             boolean sharedDevice = false;
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB()
-            if (mFeatureFlags.multiUserWifiEnhancement()) {
+            if (mFeatureFlags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()) {
                 sharedDevice = mUserManager.getUserCount() > 1;
             }
             for (WifiConfiguration configuration : configurations) {
-                // TODO: b/449013275 Add Environment.isSdkNewerThanB()
-                if (mFeatureFlags.multiUserWifiEnhancement() && sharedDevice) {
+                if (mFeatureFlags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()
+                        && sharedDevice) {
                     if (configuration == null) {
                         continue;
                     }
