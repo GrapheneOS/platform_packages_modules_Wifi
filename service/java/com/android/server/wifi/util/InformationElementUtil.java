@@ -1269,6 +1269,7 @@ public class InformationElementUtil {
         // Per-STA sub-element constants
         private static final int PER_STA_SUB_ELEMENT_ID = 0;
         private static final int PER_STA_SUB_ELEMENT_MIN_LEN = 5;
+        private static final int SUB_ELEMENT_HEADER_LENGTH = 2;
         private static final int PER_STA_SUB_ELEMENT_LINK_ID_OFFSET = 2;
         private static final int PER_STA_SUB_ELEMENT_LINK_ID_MASK = 0x0F;
         private static final int PER_STA_SUB_ELEMENT_STA_INFO_OFFSET = 4;
@@ -1405,7 +1406,8 @@ public class InformationElementUtil {
                 int subElementLen = ie.bytes[startOffset + 1] & Constants.BYTE_MASK;
                 // Expectation here is IE has enough length to parse and non-zero sub-element
                 // length.
-                if (ie.bytes.length < startOffset + subElementLen || subElementLen == 0) {
+                if (ie.bytes.length < startOffset + SUB_ELEMENT_HEADER_LENGTH + subElementLen
+                        || subElementLen == 0) {
                     if (DBG) {
                         Log.w(TAG, "Invalid sub-element length: " + subElementLen);
                     }
@@ -1414,7 +1416,8 @@ public class InformationElementUtil {
                 }
                 if (subElementId != PER_STA_SUB_ELEMENT_ID) {
                     // Skip this subelement, could be an unsupported one
-                    startOffset += subElementLen;
+                    startOffset += SUB_ELEMENT_HEADER_LENGTH + subElementLen; // Skip ID + Length
+                                                                              // + Data
                     continue;
                 }
 
@@ -1435,7 +1438,7 @@ public class InformationElementUtil {
                         return false;
                     }
                 } else {
-                    bytesRead = subElementLen;
+                    bytesRead = SUB_ELEMENT_HEADER_LENGTH + subElementLen; // ID + Length + Data
                     if (!parsePerStaSubElement(ie.bytes, startOffset, subElementLen)) {
                         return false;
                     }
