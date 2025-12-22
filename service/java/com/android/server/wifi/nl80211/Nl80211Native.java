@@ -1529,7 +1529,7 @@ public class Nl80211Native {
         Log.wtf(TAG, "signalPoll should not be called when using the Nl80211Proxy"
                 + " implementation. This should be handled by"
                 + " com.android.server.wifi.SupplicantStaIfaceHal#getSignalPollResults");
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     /**
