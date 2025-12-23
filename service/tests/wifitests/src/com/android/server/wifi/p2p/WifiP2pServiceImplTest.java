@@ -1021,14 +1021,79 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     @Test
-    public void testUserSwitching() throws Exception {
+    public void testUserSwitchingDisablesP2p_whenFlagEnabled() throws Exception {
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         final int userId = 10;
-        mWifiP2pServiceImpl.onUserSwitching(userId);
         // Entering P2pEnabledState will populate the device address to the mThisDevice.
         forceP2pEnabled(mClient1);
         sendP2pStateMachineMessage(WifiP2pServiceImpl.ENABLE_P2P);
         mLooper.dispatchAll();
-        verify(mWifiNative).setupInterface(any(), any(), any(), eq(userId));
+
+        mWifiP2pServiceImpl.onUserSwitching(userId);
+        mLooper.dispatchAll();
+        // This verifies that sendMessage(DISABLE_P2P) is called.
+        verify(mWifiNative).teardownInterface();
+    }
+
+    @Test
+    public void testUserSwitchingDoesNothing_whenFlagDisabled() throws Exception {
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(false);
+        final int userId = 10;
+        // Entering P2pEnabledState will populate the device address to the mThisDevice.
+        forceP2pEnabled(mClient1);
+        sendP2pStateMachineMessage(WifiP2pServiceImpl.ENABLE_P2P);
+        mLooper.dispatchAll();
+
+        mWifiP2pServiceImpl.onUserSwitching(userId);
+        mLooper.dispatchAll();
+        // This verifies that sendMessage(DISABLE_P2P) isn't called.
+        verify(mWifiNative, never()).teardownInterface();
+    }
+
+    @Test
+    public void testUserStopDisablesP2p_forCurrentUser_whenFlagEnabled() throws Exception {
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        final int userId = 10;
+        forceP2pEnabled(mClient1);
+        mWifiP2pServiceImpl.onUserSwitching(userId);
+        sendP2pStateMachineMessage(WifiP2pServiceImpl.ENABLE_P2P);
+        mLooper.dispatchAll();
+
+        mWifiP2pServiceImpl.onUserStop(userId);
+        mLooper.dispatchAll();
+        // This verifies that sendMessage(DISABLE_P2P) is called.
+        verify(mWifiNative).teardownInterface();
+    }
+
+    @Test
+    public void testUserStopDoesNothing_forCurrentUser_whenFlagDisabled() throws Exception {
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(false);
+        final int userId = 10;
+        forceP2pEnabled(mClient1);
+        mWifiP2pServiceImpl.onUserSwitching(userId);
+        sendP2pStateMachineMessage(WifiP2pServiceImpl.ENABLE_P2P);
+        mLooper.dispatchAll();
+
+        mWifiP2pServiceImpl.onUserStop(userId);
+        mLooper.dispatchAll();
+        // This verifies that sendMessage(DISABLE_P2P) isn't called.
+        verify(mWifiNative, never()).teardownInterface();
+    }
+
+    @Test
+    public void testUserStopDoesNothing_forOtherUser() throws Exception {
+        final int currentUserId = 10;
+        final int otherUserId = 11;
+        forceP2pEnabled(mClient1);
+        mWifiP2pServiceImpl.onUserSwitching(currentUserId);
+        sendP2pStateMachineMessage(WifiP2pServiceImpl.ENABLE_P2P);
+        mLooper.dispatchAll();
+
+        mWifiP2pServiceImpl.onUserStop(otherUserId);
+        mLooper.dispatchAll();
+        mLooper.dispatchAll();
+        // This verifies that sendMessage(DISABLE_P2P) isn't called.
+        verify(mWifiNative, never()).teardownInterface();
     }
 
     /**

@@ -790,8 +790,30 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
      */
     public void onUserSwitching(int userId) {
         mP2pStateMachine.getHandler().post(() -> {
+            if (mCurrentUserId == userId) {
+                return;
+            }
             Log.i(TAG, "User switching to " + userId);
             mCurrentUserId = userId;
+            if (mFeatureFlags.multiUserWifiEnhancement()) {
+                mP2pStateMachine.sendMessage(DISABLE_P2P);
+            }
+        });
+    }
+
+    /**
+     * Handles user stopping.
+     * @param userId the user id
+     */
+    public void onUserStop(int userId) {
+        mP2pStateMachine.getHandler().post(() -> {
+            if (userId != mCurrentUserId) {
+                return;
+            }
+            Log.i(TAG, "User " + userId + " stopping");
+            if (mFeatureFlags.multiUserWifiEnhancement()) {
+                mP2pStateMachine.sendMessage(DISABLE_P2P);
+            }
         });
     }
 
