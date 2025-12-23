@@ -375,8 +375,9 @@ public class WifiInjector {
                 mWifiGlobals, mSsidTranslator, this);
         mHostapdHal = new HostapdHal(mContext, mWifiHandler);
         Nl80211Proxy nl80211Proxy = new Nl80211Proxy(mWifiHandler, mWifiMetrics);
-        boolean isWificondMigrationEnabled =
-                Environment.isSdkAtLeastB() && mFeatureFlags.wificondToNl80211Migration();
+        boolean isWificondMigrationEnabled = Environment.isSdkAtLeastB()
+                && mFeatureFlags.wificondToNl80211Migration()
+                && mSupplicantStaIfaceHal.isAidlServiceVersionAtLeast(2);
         mNl80211Native = new Nl80211Native(
                 nl80211Proxy,
                 new Nl80211Utils(nl80211Proxy),
