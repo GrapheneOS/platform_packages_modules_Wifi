@@ -611,6 +611,71 @@ public class Nl80211Native {
         // Inherit from WifiNl80211Manager.PnoScanRequestCallback
     }
 
+    /**
+     * Result of a signal poll.
+     */
+    public static class SignalPollResult {
+        public final int currentRssiDbm;
+        public final int txBitrateMbps;
+        public final int rxBitrateMbps;
+        public final int associationFrequencyMHz;
+
+        private SignalPollResult(int currentRssiDbm, int txBitrateMbps, int rxBitrateMbps,
+                int associationFrequencyMHz) {
+            this.currentRssiDbm = currentRssiDbm;
+            this.txBitrateMbps = txBitrateMbps;
+            this.rxBitrateMbps = rxBitrateMbps;
+            this.associationFrequencyMHz = associationFrequencyMHz;
+        }
+
+        public static class Builder {
+            private int mCurrentRssiDbm;
+            private int mTxBitrateMbps;
+            private int mRxBitrateMbps;
+            private int mAssociationFrequencyMHz;
+
+            /**
+             * Sets the current RSSI value in dBm.
+             */
+            public Builder setCurrentRssiDbm(int currentRssiDbm) {
+                mCurrentRssiDbm = currentRssiDbm;
+                return this;
+            }
+
+            /**
+             * Sets the transmission bit rate in Mbps.
+             */
+            public Builder setTxBitrateMbps(int txBitrateMbps) {
+                mTxBitrateMbps = txBitrateMbps;
+                return this;
+            }
+
+            /**
+             * Sets the last received packet bit rate in Mbps.
+             */
+            public Builder setRxBitrateMbps(int rxBitrateMbps) {
+                mRxBitrateMbps = rxBitrateMbps;
+                return this;
+            }
+
+            /**
+             * Sets the association frequency in MHz.
+             */
+            public Builder setAssociationFrequencyMHz(int associationFrequencyMHz) {
+                mAssociationFrequencyMHz = associationFrequencyMHz;
+                return this;
+            }
+
+            /**
+             * Builds a new {@link SignalPollResult} object.
+             */
+            public SignalPollResult build() {
+                return new SignalPollResult(mCurrentRssiDbm, mTxBitrateMbps, mRxBitrateMbps,
+                        mAssociationFrequencyMHz);
+            }
+        }
+    }
+
     public Nl80211Native(
             @NonNull Nl80211Proxy nl80211Proxy,
             @NonNull Nl80211Utils nl80211Utils,
@@ -1634,24 +1699,61 @@ public class Nl80211Native {
      *{@link #setupInterfaceForClientMode(String, Executor, ScanEventCallback, ScanEventCallback)}
      *                  or {@link #setupInterfaceForSoftApMode(String)}.
      *
-     * @return A {@link android.net.wifi.nl80211.WifiNl80211Manager.SignalPollResult} object
-     * containing interface statistics, or a null on error (e.g. the interface hasn't been set up
-     * yet).
+     * @return A {@link SignalPollResult} object containing interface statistics, or a null on error
+     * (e.g. the interface hasn't been set up or is not associated yet).
      *
      * @deprecated replaced by
      * {@link com.android.server.wifi.SupplicantStaIfaceHal#getSignalPollResults}
      */
     @Deprecated
-    public @Nullable WifiNl80211Manager.SignalPollResult wificondSignalPoll(
-            @NonNull String ifaceName) {
+    public @Nullable SignalPollResult signalPoll(@NonNull String ifaceName) {
         if (useWificond()) {
-            return mWificondManager.signalPoll(ifaceName);
+            WifiNl80211Manager.SignalPollResult wificondPollResult =
+                    mWificondManager.signalPoll(ifaceName);
+            if (wificondPollResult == null) {
+                return null;
+            }
+            return new SignalPollResult.Builder()
+                    .setCurrentRssiDbm(wificondPollResult.currentRssiDbm)
+                    .setTxBitrateMbps(wificondPollResult.txBitrateMbps)
+                    .setRxBitrateMbps(wificondPollResult.rxBitrateMbps)
+                    .setAssociationFrequencyMHz(wificondPollResult.associationFrequencyMHz)
+                    .build();
         }
 
-        Log.wtf(TAG, "signalPoll should not be called when using the Nl80211Proxy"
-                + " implementation. This should be handled by"
-                + " com.android.server.wifi.SupplicantStaIfaceHal#getSignalPollResults");
-        return null;
+        synchronized (this) {
+            if (ifaceName == null) {
+                Log.e(TAG, "signalPoll: ifaceName cannot be null");
+                return null;
+            }
+            if (!mIsInitialized) return null;
+
+            ClientInterfaceInfo clientIfaceInfo = mClientInterfaceInfos.get(ifaceName);
+            if (clientIfaceInfo == null) {
+                Log.e(TAG, "signalPoll: no active interface found for " + ifaceName);
+                return null;
+            }
+
+            if (!clientIfaceInfo.associated || clientIfaceInfo.associatedBssid == null
+                    || clientIfaceInfo.associatedFreqMhz == 0) {
+                Log.e(TAG, "signalPoll: " + ifaceName + " is not associated");
+                return null;
+            }
+
+            Nl80211Utils.StationInfo stationInfo = mNl80211Utils.getStationInfo(
+                    clientIfaceInfo.ifIndex, clientIfaceInfo.associatedBssid);
+            if (stationInfo == null) {
+                Log.e(TAG, "signalPoll: Failed to get station info for " + ifaceName);
+                return null;
+            }
+
+            return new SignalPollResult.Builder()
+                    .setCurrentRssiDbm(stationInfo.signalDbm)
+                    .setTxBitrateMbps(stationInfo.txBitrate100Kbps / 10)
+                    .setRxBitrateMbps(stationInfo.rxBitrate100Kbps / 10)
+                    .setAssociationFrequencyMHz(clientIfaceInfo.associatedFreqMhz)
+                    .build();
+        }
     }
 
     /**

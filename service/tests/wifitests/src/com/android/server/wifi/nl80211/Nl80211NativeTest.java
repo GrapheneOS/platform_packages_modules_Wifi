@@ -1973,19 +1973,102 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testWificondSignalPoll_useWificondEnabled_callsWificond() {
+    public void testSignalPoll_useWificondEnabled_callsWificond() {
         mDut = initNl80211Native(true);
-        WifiNl80211Manager.SignalPollResult expectedResult =
-                mock(WifiNl80211Manager.SignalPollResult.class);
-        when(mWificondManager.signalPoll(CLIENT_IFACE_NAME)).thenReturn(expectedResult);
-        assertEquals(expectedResult, mDut.wificondSignalPoll(CLIENT_IFACE_NAME));
+        int expectedCurrentRssiDbm = -50;
+        int expectedTxBitrateMbps = 1000;
+        int expectedRxBitrateMbps = 2000;
+        int expectedAssociationFrequencyMhz = 5180;
+        WifiNl80211Manager.SignalPollResult wificondPollResult =
+                new WifiNl80211Manager.SignalPollResult(
+                        expectedCurrentRssiDbm,
+                        expectedTxBitrateMbps,
+                        expectedRxBitrateMbps,
+                        expectedAssociationFrequencyMhz);
+        when(mWificondManager.signalPoll(CLIENT_IFACE_NAME)).thenReturn(wificondPollResult);
+
+        Nl80211Native.SignalPollResult result = mDut.signalPoll(CLIENT_IFACE_NAME);
+
+        assertNotNull(result);
         verify(mWificondManager).signalPoll(CLIENT_IFACE_NAME);
+        assertEquals(expectedCurrentRssiDbm, result.currentRssiDbm);
+        assertEquals(expectedTxBitrateMbps, result.txBitrateMbps);
+        assertEquals(expectedRxBitrateMbps, result.rxBitrateMbps);
+        assertEquals(expectedAssociationFrequencyMhz, result.associationFrequencyMHz);
     }
 
+    /** Test that a successful signal poll returns the expected result. */
     @Test
-    public void testWificondSignalPoll_returnsNull() {
+    public void testSignalPoll_success() {
         mDut = initNl80211Native(false);
-        assertNull(mDut.wificondSignalPoll(CLIENT_IFACE_NAME));
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+        Nl80211Native.ClientInterfaceInfo clientIfaceInfo =
+                mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME);
+        clientIfaceInfo.associated = true;
+        clientIfaceInfo.associatedBssid = TEST_BSSID;
+        clientIfaceInfo.associatedFreqMhz = TEST_FREQ;
+        Nl80211Utils.StationInfo stationInfo = new Nl80211Utils.StationInfo.Builder()
+                .setSignalDbm(-50)
+                .setTxBitrate100Kbps(1000) // 100Mbps
+                .setRxBitrate100Kbps(2000) // 200Mbps
+                .build();
+        when(mNl80211Utils.getStationInfo(eq(CLIENT_IFACE_INDEX), any()))
+                .thenReturn(stationInfo);
+
+        Nl80211Native.SignalPollResult result = mDut.signalPoll(CLIENT_IFACE_NAME);
+
+        assertNotNull(result);
+        assertEquals(stationInfo.signalDbm, result.currentRssiDbm);
+        assertEquals(stationInfo.txBitrate100Kbps / 10, result.txBitrateMbps);
+        assertEquals(stationInfo.rxBitrate100Kbps / 10, result.rxBitrateMbps);
+        assertEquals(clientIfaceInfo.associatedFreqMhz, result.associationFrequencyMHz);
+        verify(mNl80211Utils).getStationInfo(eq(CLIENT_IFACE_INDEX),
+                eq(clientIfaceInfo.associatedBssid));
+    }
+
+    /** Test that signalPoll returns null when Nl80211Utils.getStationInfo returns null. */
+    @Test
+    public void testSignalPoll_getStationInfoReturnsNull() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+        Nl80211Native.ClientInterfaceInfo clientIfaceInfo =
+                mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME);
+        clientIfaceInfo.associated = true;
+        clientIfaceInfo.associatedBssid = TEST_BSSID;
+        clientIfaceInfo.associatedFreqMhz = TEST_FREQ;
+        when(mNl80211Utils.getStationInfo(eq(CLIENT_IFACE_INDEX), any())).thenReturn(null);
+
+        Nl80211Native.SignalPollResult result = mDut.signalPoll(CLIENT_IFACE_NAME);
+
+        assertNull(result);
+        verify(mNl80211Utils).getStationInfo(eq(CLIENT_IFACE_INDEX),
+                eq(clientIfaceInfo.associatedBssid));
+    }
+
+    /** Test that signalPoll returns null if no client interface info is found. */
+    @Test
+    public void testSignalPoll_noInterfaceInfo() {
+        mDut = initNl80211Native(false);
+
+        Nl80211Native.SignalPollResult result = mDut.signalPoll(CLIENT_IFACE_NAME);
+
+        assertNull(result);
+        verify(mNl80211Utils, never()).getStationInfo(anyInt(), any());
+    }
+
+    /** Test that signalPoll returns null if the interface is not associated */
+    @Test
+    public void testSignalPoll_notAssociatedOrInvalidAssociation() {
+        mDut = initNl80211Native(false);
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+        Nl80211Native.ClientInterfaceInfo clientIfaceInfo =
+                mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME);
+        clientIfaceInfo.associated = false;
+
+        Nl80211Native.SignalPollResult result = mDut.signalPoll(CLIENT_IFACE_NAME);
+
+        assertNull(result);
+        verify(mNl80211Utils, never()).getStationInfo(anyInt(), any());
     }
 
     @Test
@@ -2623,5 +2706,25 @@ public class Nl80211NativeTest {
                 genericNetlinkMessage);
 
         assertFalse(mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME).scanning);
+    }
+
+    @Test
+    public void testSignalPollResultBuilder() {
+        int rssi = -65;
+        int txBitrate = 24;
+        int rxBitrate = 48;
+        int frequency = 5220;
+
+        Nl80211Native.SignalPollResult result = new Nl80211Native.SignalPollResult.Builder()
+                .setCurrentRssiDbm(rssi)
+                .setTxBitrateMbps(txBitrate)
+                .setRxBitrateMbps(rxBitrate)
+                .setAssociationFrequencyMHz(frequency)
+                .build();
+
+        assertEquals(rssi, result.currentRssiDbm);
+        assertEquals(txBitrate, result.txBitrateMbps);
+        assertEquals(rxBitrate, result.rxBitrateMbps);
+        assertEquals(frequency, result.associationFrequencyMHz);
     }
 }

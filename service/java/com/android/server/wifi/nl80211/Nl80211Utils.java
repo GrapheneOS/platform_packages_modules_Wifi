@@ -44,6 +44,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCHE
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCHED_SCAN_MATCH;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SCHED_SCAN_PLANS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SPLIT_WIPHY_DUMP;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_STA_INFO;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_BANDS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_FREQS;
@@ -72,8 +73,10 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_I
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_PROTOCOL_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_REG;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_SCAN;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_START_SCHED_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_STOP_SCHED_SCAN;
@@ -91,11 +94,17 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_FREQ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_FREQUENCY_ATTR_NO_IR;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_PROTOCOL_FEATURE_SPLIT_WIPHY_DUMP;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_RATE_INFO_BITRATE32;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_LOW_POWER;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCAN_FLAG_RANDOM_ADDR;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCAN_MATCH_ATTR_SSID;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCAN_PLAN_INTERVAL;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCAN_PLAN_ITERATIONS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_STA_INFO_RX_BITRATE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_STA_INFO_SIGNAL;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_STA_INFO_TX_BITRATE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_STA_INFO_TX_FAILED;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_STA_INFO_TX_PACKETS;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -328,6 +337,109 @@ public class Nl80211Utils {
             this.wiphyIndex = wiphyIndex;
             this.name = name;
             this.macAddress = macAddress;
+        }
+    }
+
+    /**
+     * A class to hold station information retrieved from nl80211.
+     * Use the {@link Builder} to create instances.
+     */
+    public static class StationInfo {
+        /** Number of successfully transmitted packets. */
+        public final int txPackets;
+        /** Number of failed packet transmissions. */
+        public final int txFailed;
+        /** Current signal strength in dBm. */
+        public final int signalDbm;
+        /** Current transmit bitrate in 100 Kbps. */
+        public final int txBitrate100Kbps;
+        /** Current receive bitrate in 100 Kbps. */
+        public final int rxBitrate100Kbps;
+
+        private StationInfo(int txPackets, int txFailed, int signalDbm, int txBitrate100Kbps,
+                int rxBitrate100Kbps) {
+            this.txPackets = txPackets;
+            this.txFailed = txFailed;
+            this.signalDbm = signalDbm;
+            this.txBitrate100Kbps = txBitrate100Kbps;
+            this.rxBitrate100Kbps = rxBitrate100Kbps;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            StationInfo that = (StationInfo) o;
+            return txPackets == that.txPackets
+                    && txFailed == that.txFailed
+                    && signalDbm == that.signalDbm
+                    && txBitrate100Kbps == that.txBitrate100Kbps
+                    && rxBitrate100Kbps == that.rxBitrate100Kbps;
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(txPackets, txFailed, signalDbm, txBitrate100Kbps,
+                    rxBitrate100Kbps);
+        }
+
+        /**
+         * Builder for {@link StationInfo}.
+         */
+        public static class Builder {
+            private int mTxPackets;
+            private int mTxFailed;
+            private int mSignalDbm;
+            private int mTxBitrate100Kbps;
+            private int mRxBitrate100Kbps;
+
+            /**
+             * Sets the number of successfully transmitted packets.
+             */
+            public Builder setTxPackets(int txPackets) {
+                mTxPackets = txPackets;
+                return this;
+            }
+
+            /**
+             * Sets the number of failed packet transmissions.
+             */
+            public Builder setTxFailed(int txFailed) {
+                mTxFailed = txFailed;
+                return this;
+            }
+
+            /**
+             * Sets the current signal strength in dBm.
+             */
+            public Builder setSignalDbm(int signalDbm) {
+                mSignalDbm = signalDbm;
+                return this;
+            }
+
+            /**
+             * Sets the current transmit bitrate in 100 Kbps.
+             */
+            public Builder setTxBitrate100Kbps(int txBitrate100Kbps) {
+                mTxBitrate100Kbps = txBitrate100Kbps;
+                return this;
+            }
+
+            /**
+             * Sets the current receive bitrate in 100 Kbps.
+             */
+            public Builder setRxBitrate100Kbps(int rxBitrate100Kbps) {
+                mRxBitrate100Kbps = rxBitrate100Kbps;
+                return this;
+            }
+
+            /**
+             * Build the StationInfo object.
+             */
+            public StationInfo build() {
+                return new StationInfo(mTxPackets, mTxFailed, mSignalDbm, mTxBitrate100Kbps,
+                        mRxBitrate100Kbps);
+            }
         }
     }
 
@@ -1344,6 +1456,96 @@ public class Nl80211Utils {
         if (response.isError()) {
             Log.e(TAG, "ABORT_SCAN failed with error: " + response.getErrorCode());
         }
+    }
+
+    /**
+     * Retrieves station information for a given interface index and MAC address.
+     * @param ifIndex The index of the network interface.
+     * @param macAddress The MAC address of the station.
+     * @return A {@link StationInfo} object if successful, or null on failure.
+     */
+    public StationInfo getStationInfo(int ifIndex, @NonNull byte[] macAddress) {
+        Objects.requireNonNull(macAddress);
+
+        GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_STATION);
+
+        if (request == null) {
+            Log.e(TAG, "Failed to create GET_STATION request");
+            return null;
+        }
+
+        // Add interface index and MAC address
+        request.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, ifIndex));
+        request.addAttribute(new StructNlAttr(NL80211_ATTR_MAC, macAddress));
+
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError() || response.getMessage() == null) {
+            Log.e(TAG, "Failed to send NL80211_CMD_GET_STATION or received error response");
+            return null;
+        }
+
+        GenericNetlinkMsg msg = response.getMessage();
+        if (msg.getCommand() != NL80211_CMD_NEW_STATION) {
+            Log.e(TAG, "Wrong command in response to a get station request: " + msg.getCommand());
+            return null;
+        }
+
+        StructNlAttr staInfoAttr = msg.getAttribute(NL80211_ATTR_STA_INFO);
+        if (staInfoAttr == null) {
+            Log.e(TAG, "Failed to get NL80211_ATTR_STA_INFO");
+            return null;
+        }
+        Map<Short, StructNlAttr> staInfoNestedAttrs =
+                GenericNetlinkMsg.getInnerNestedAttributes(staInfoAttr);
+        if (staInfoNestedAttrs == null) {
+            Log.e(TAG, "Empty STA_INFO attribute");
+            return null;
+        }
+
+        StructNlAttr txPacketsAttr = staInfoNestedAttrs.get(NL80211_STA_INFO_TX_PACKETS);
+        StructNlAttr txFailedAttr = staInfoNestedAttrs.get(NL80211_STA_INFO_TX_FAILED);
+        StructNlAttr currentRssiAttr = staInfoNestedAttrs.get(NL80211_STA_INFO_SIGNAL);
+
+        Integer txPackets = txPacketsAttr != null ? txPacketsAttr.getValueAsInteger() : null;
+        Integer txFailed = txFailedAttr != null ? txFailedAttr.getValueAsInteger() : null;
+        Byte currentRssi = currentRssiAttr != null
+                ? getByteBufferAsByte(currentRssiAttr.getValueAsByteBuffer()) : null;
+
+        if (txPackets == null || txFailed == null || currentRssi == null) {
+            Log.e(TAG, "Failed to get mandatory station info attributes from " + msg);
+            return null;
+        }
+
+        StationInfo.Builder staInfoBuilder = new StationInfo.Builder()
+                .setTxPackets(txPackets)
+                .setTxFailed(txFailed)
+                .setSignalDbm(currentRssi);
+
+        Integer txBitrate = getBitrateFromStaAttr(staInfoNestedAttrs, NL80211_STA_INFO_TX_BITRATE);
+        if (txBitrate != null) {
+            staInfoBuilder.setTxBitrate100Kbps(txBitrate);
+        }
+
+        Integer rxBitrate = getBitrateFromStaAttr(staInfoNestedAttrs, NL80211_STA_INFO_RX_BITRATE);
+        if (rxBitrate != null) {
+            staInfoBuilder.setRxBitrate100Kbps(rxBitrate);
+        }
+
+        return staInfoBuilder.build();
+    }
+
+    private Integer getBitrateFromStaAttr(Map<Short, StructNlAttr> staInfo, short attrId) {
+        StructNlAttr bitrateAttr = staInfo.get(attrId);
+        if (bitrateAttr == null) return null;
+
+        Map<Short, StructNlAttr> nestedAttrs =
+                GenericNetlinkMsg.getInnerNestedAttributes(bitrateAttr);
+        if (nestedAttrs == null) return null;
+
+        StructNlAttr bitrate32Attr = nestedAttrs.get(NL80211_RATE_INFO_BITRATE32);
+        if (bitrate32Attr == null) return null;
+
+        return bitrate32Attr.getValueAsInteger();
     }
 
     /**

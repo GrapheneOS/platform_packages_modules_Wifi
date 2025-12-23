@@ -3413,6 +3413,37 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     }
                     return 0;
                 }
+                case "nl80211-signal-poll": {
+                    String ifaceName = getNextArgRequired();
+                    boolean useNl80211Override = false;
+                    String option = getNextOption();
+                    while (option != null) {
+                        if (option.equals("-n")) {
+                            useNl80211Override = true;
+                            break;
+                        }
+                        option = getNextOption();
+                    }
+
+                    try {
+                        mNl80211Native.setUseNl80211Override(useNl80211Override);
+                        Nl80211Native.SignalPollResult pollResult =
+                                mNl80211Native.signalPoll(ifaceName);
+                        if (pollResult == null) {
+                            pw.println("Failed to get signal poll result");
+                            return -1;
+                        }
+
+                        pw.println("associationFrequencyMHz: "
+                                + pollResult.associationFrequencyMHz);
+                        pw.println("currentRssiDbm: " + pollResult.currentRssiDbm);
+                        pw.println("rxBitrateMbps: " + pollResult.rxBitrateMbps);
+                        pw.println("txBitrateMbps: " + pollResult.txBitrateMbps);
+                    } finally {
+                        mNl80211Native.setUseNl80211Override(false);
+                    }
+                    return 0;
+                }
                 default:
                     return handleDefaultCommands(cmd);
             }
@@ -4680,6 +4711,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  register-nl80211-cc-listener [-n]");
         pw.println("    Registers an Nl80211Native country code changed listener and continuously"
                 + " outputs listener events.");
+        pw.println("    -n Use direct nl80211 implementation instead of wificond.");
+        pw.println("  nl80211-signal-poll <iface> [-n]");
+        pw.println("    Prints out the result of Nl80211Native.signalPoll on the given interface.");
         pw.println("    -n Use direct nl80211 implementation instead of wificond.");
     }
 
