@@ -74,7 +74,6 @@ import android.net.wifi.IIntegerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.OuiKeyedData;
 import android.net.wifi.WifiAvailableChannel;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.aware.AwareDataPathRequest;
@@ -1383,7 +1382,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.arg2 = clientId;
         msg.obj = callback;
         msg.getData().putParcelable(MESSAGE_BUNDLE_KEY_CONFIG, subscribeConfig);
-        mAwareMetrics.recordPeerFoundStart(clientId, false);
         mSm.sendMessage(msg);
     }
 
@@ -4845,7 +4843,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             WifiAwareDiscoverySessionState session = new WifiAwareDiscoverySessionState(
                     mWifiAwareNativeApi, sessionId, pubSubId, callback, isPublish, isRangingEnabled,
                     SystemClock.elapsedRealtime(), enableInstantMode, instantModeBand,
-                    isSuspendable, pairingConfig);
+                    isSuspendable, pairingConfig, mAwareMetrics, clientId);
             session.enableVerboseLogging(mVerboseLoggingEnabled);
             client.addSession(session);
 
@@ -4860,6 +4858,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     completedCommand.arg1 == COMMAND_TYPE_PUBLISH, sessionId,
                     client.mCallerType, client.mCallingFeatureId);
             sendAwareResourcesChangedBroadcast();
+            // Initial peer found info for publish / subscribe
+            mAwareMetrics.recordPeerFoundStart(completedCommand.arg2, isPublish);
         } else if (completedCommand.arg1 == COMMAND_TYPE_UPDATE_PUBLISH
                 || completedCommand.arg1 == COMMAND_TYPE_UPDATE_SUBSCRIBE) {
             int clientId = completedCommand.arg2;
@@ -5592,11 +5592,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 data.first.getCallingPackage(), nonce, tag, peerMac);
         int peerId = data.second.onMatch(requestorinstanceid, peerMac, serviceSpecificInfo,
                 matchFilter, rangingIndication, rangeMm, cipherSuite, scid, pairingAlias,
-                pairingConfig, vendorData);
-        // Update subscribe result
-        mAwareMetrics.updatePeerFoundResult(data.first.getClientId(), data.second.getSessionId(),
-                WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND, rangingIndication,
-                mWifiManager.getConnectionInfo());
+                pairingConfig, vendorData, mWifiManager.getConnectionInfo());
 
         if (TextUtils.isEmpty(pairingAlias)) {
             return;
@@ -5679,7 +5675,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return;
         }
 
-        data.second.onMessageReceived(requestorInstanceId, peerMac, message);
+        data.second.onMessageReceived(requestorInstanceId, peerMac, message,
+                mWifiManager.getConnectionInfo());
     }
 
     private void onAwareDownLocal() {
@@ -5734,7 +5731,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         PeerHandle peerHandle = data.second.getPeerHandleFromPeerMac(peerDiscMacAddr);
         int peerId = 0;
         if (peerHandle == null) {
-            peerId = data.second.getPeerIdOrAddIfNew(requestorInstanceId, peerDiscMacAddr);
+            peerId = data.second.getPeerIdOrAddIfNew(requestorInstanceId, peerDiscMacAddr, 0,
+                    mWifiManager.getConnectionInfo());
         } else {
             peerId = peerHandle.peerId;
         }
@@ -5799,8 +5797,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
         int responseMethod = data.second.getMatchedBootstrappingMethod(method);
         respondToBootstrappingRequest(data.first.getClientId(), data.second.getSessionId(),
-                data.second.getPeerIdOrAddIfNew(peerId, peerDiscMacAddr), bootstrappingId,
-                responseMethod != 0, responseMethod, serviceSpecificInfo);
+                data.second.getPeerIdOrAddIfNew(peerId, peerDiscMacAddr, 0,
+                    mWifiManager.getConnectionInfo()),
+                bootstrappingId, responseMethod != 0, responseMethod, serviceSpecificInfo);
     }
 
     private boolean onBootStrappingConfirmReceivedLocal(int id, int reason, int responseCode,
@@ -5853,17 +5852,18 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private void onDataPathRequestLocal(int pubSubId, byte[] mac, int ndpId, byte[] message) {
         boolean found = mDataPathMgr.onDataPathRequest(pubSubId, mac, ndpId, message);
-        if (found) {
-            return;
-        }
         Pair<WifiAwareClientState, WifiAwareDiscoverySessionState> data =
                 getClientSessionForPubSubId(pubSubId);
         if (data == null) {
             Log.e(TAG, "onDatePathRequestLocal: no session found for pubSubId=" + pubSubId);
             return;
         }
-        int peerId = data.second.onDataPathRequestReceived(mac, ndpId, message);
-        mPendingRequest.append(peerId, ndpId);
+        int peerId = data.second.onDataPathRequestReceived(mac, ndpId, message,
+                data.first.getClientId(), data.second.getSessionId(),
+                mWifiManager.getConnectionInfo(), found);
+        if (!found) {
+            mPendingRequest.append(peerId, ndpId);
+        }
     }
 
     private boolean onDataPathConfirmLocal(int ndpId, byte[] mac, boolean accept,

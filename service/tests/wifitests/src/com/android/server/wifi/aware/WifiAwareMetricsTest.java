@@ -412,7 +412,9 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         /* instantModeEnabled= */ false,
                         /* instantModeBand= */ 0,
                         /* isSuspendable= */ false,
-                        /* pairingConfig= */ null));
+                        /* pairingConfig= */ null,
+                        /* wifiAwareMetrics= */ mDut,
+                        /* clientId= */ 10));
         mDut.recordDiscoverySession(uid1, clients);
         mDut.recordDiscoveryStatus(uid1, NanStatusCode.SUCCESS, true, 100, 6, tag1);
 
@@ -429,7 +431,9 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         /* instantModeEnabled= */ false,
                         /* instantModeBand= */ 0,
                         /* isSuspendable= */ false,
-                        /* pairingConfig= */ null));
+                        /* pairingConfig= */ null,
+                        /* wifiAwareMetrics= */ mDut,
+                        /* clientId= */ 10));
         mDut.recordDiscoverySession(uid1, clients);
         mDut.recordDiscoveryStatus(uid1, NanStatusCode.SUCCESS, true, 101, 6, tag1);
 
@@ -446,7 +450,9 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         /* instantModeEnabled= */ false,
                         /* instantModeBand= */ 0,
                         /* isSuspendable= */ false,
-                        /* pairingConfig= */ null));
+                        /* pairingConfig= */ null,
+                        /* wifiAwareMetrics= */ mDut,
+                        /* clientId= */ 12));
         mDut.recordDiscoverySessionWithRanging(uid3, false, -1, -1, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, true, 111, 6, tag3);
 
@@ -463,7 +469,9 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         /* instantModeEnabled= */ false,
                         /* instantModeBand= */ 0,
                         /* isSuspendable= */ false,
-                        /* pairingConfig= */ null));
+                        /* pairingConfig= */ null,
+                        /* wifiAwareMetrics= */ mDut,
+                        /* clientId= */ 11));
         mDut.recordDiscoverySession(uid2, clients);
         mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, false, 102, 6, tag2);
 
@@ -480,7 +488,9 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         /* instantModeEnabled= */ false,
                         /* instantModeBand= */ 0,
                         /* isSuspendable= */ false,
-                        /* pairingConfig= */ null));
+                        /* pairingConfig= */ null,
+                        /* wifiAwareMetrics= */ mDut,
+                        /* clientId= */ 11));
         mDut.recordDiscoverySession(uid2, clients);
         mDut.recordDiscoveryStatus(uid2, NanStatusCode.SUCCESS, false, 103, 6, tag2);
 
@@ -497,7 +507,9 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         /* instantModeEnabled= */ false,
                         /* instantModeBand= */ 0,
                         /* isSuspendable= */ false,
-                        /* pairingConfig= */ null));
+                        /* pairingConfig= */ null,
+                        /* wifiAwareMetrics= */ mDut,
+                        /* clientId= */ 12));
         mDut.recordDiscoverySessionWithRanging(uid3, true, 10, -1, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false, 112, 6, tag3);
 
@@ -514,7 +526,9 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         /* instantModeEnabled= */ false,
                         /* instantModeBand= */ 0,
                         /* isSuspendable= */ false,
-                        /* pairingConfig= */ null));
+                        /* pairingConfig= */ null,
+                        /* wifiAwareMetrics= */ mDut,
+                        /* clientId= */ 12));
         mDut.recordDiscoverySessionWithRanging(uid3, true, -1, 50, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false, 113, 6, tag3);
 
@@ -531,7 +545,9 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         /* instantModeEnabled= */ false,
                         /* instantModeBand= */ 0,
                         /* isSuspendable= */ false,
-                        /* pairingConfig= */ null));
+                        /* pairingConfig= */ null,
+                        /* wifiAwareMetrics= */ mDut,
+                        /* clientId= */ 12));
         mDut.recordDiscoverySessionWithRanging(uid3, true, 0, 110, clients);
         mDut.recordDiscoveryStatus(uid3, NanStatusCode.SUCCESS, false, 114, 6, tag3);
 
@@ -561,7 +577,9 @@ public class WifiAwareMetricsTest extends WifiBaseTest {
                         /* instantModeEnabled= */ false,
                         /* instantModeBand= */ 0,
                         /* isSuspendable= */ false,
-                        /* pairingConfig= */ null));
+                        /* pairingConfig= */ null,
+                        /* wifiAwareMetrics= */ mDut,
+                        /* clientId= */ 11));
 
         // a few failures
         mDut.recordDiscoveryStatus(uid1, NanStatusCode.INTERNAL_FAILURE, true, 6, tag1);
