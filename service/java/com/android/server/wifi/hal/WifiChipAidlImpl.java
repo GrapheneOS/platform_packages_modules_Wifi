@@ -64,7 +64,6 @@ import android.net.wifi.WifiAnnotations;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
-import android.os.Build;
 import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 import android.util.Log;
@@ -1092,12 +1091,9 @@ public class WifiChipAidlImpl implements IWifiChip {
     }
 
     private static boolean shouldIgnoreDebugRingBufferLoggingRequests() {
-        return switch (Build.DEVICE) {
-            // There's an MTE Wi-Fi HAL crash on 8th and 9th gen Pixel devices that is triggered by
-            // debug ring buffer logging
-            case "shiba", "husky", "akita", "tokay", "caiman", "komodo", "comet" -> true;
-            default -> false;
-        };
+        // There's an MTE Wi-Fi HAL crash on Google Pixel devices that is triggered by
+        // debug ring buffer logging
+        return "google".equals(android.os.Build.BRAND) && android.os.Process.isMemoryTaggingSupported();
     }
 
     /**
