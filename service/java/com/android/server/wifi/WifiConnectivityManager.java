@@ -1080,8 +1080,10 @@ public class WifiConnectivityManager {
         }
         Log.i(TAG, "Scheduling delayed carrier partial scan to run in "
                 + mDelayedCarrierSelectionTimeMs + " ms");
-        mEventHandler.postDelayed(() -> startDelayedCarrierPartialScan(),
-                mDelayedCarrierPartialScanToken, mDelayedCarrierSelectionTimeMs);
+        mWifiThreadRunner.postDelayed(() -> startDelayedCarrierPartialScan(),
+                mDelayedCarrierSelectionTimeMs,
+                "Trigger delayed carrier partial scan",
+                mDelayedCarrierPartialScanToken);
         mDelayedCarrierPartialScanScheduled = true;
     }
 
@@ -2315,12 +2317,14 @@ public class WifiConnectivityManager {
             localLog("Saved networks / suggestions update will restart pno scan in "
                     + NETWORK_CHANGE_TRIGGER_PNO_THROTTLE_MS + "ms");
             mDelayedPnoScanPending = true;
-            mEventHandler.postDelayed(
+            mWifiThreadRunner.postDelayed(
                     () -> {
                         mDelayedPnoScanPending = false;
                         startConnectivityScan(false);
                     },
-                    mDelayedPnoScanToken, NETWORK_CHANGE_TRIGGER_PNO_THROTTLE_MS);
+                    NETWORK_CHANGE_TRIGGER_PNO_THROTTLE_MS,
+                    "Trigger delayed PNO scan",
+                    mDelayedPnoScanToken);
         }
     }
 
@@ -2977,7 +2981,7 @@ public class WifiConnectivityManager {
             mHighMvmtDelayedPartialScanTimerSet = false;
         }
         if (mDelayedCarrierPartialScanScheduled) {
-            mEventHandler.removeCallbacksAndMessages(mDelayedCarrierPartialScanToken);
+            mWifiThreadRunner.removeCallbacks(mDelayedCarrierPartialScanToken);
             mDelayedCarrierPartialScanScheduled = false;
         }
     }
@@ -2992,20 +2996,20 @@ public class WifiConnectivityManager {
         }
         localLog("schedulePeriodicScanTimer intervalMs " + intervalMs);
         mPeriodicScanTimerSet = true;
-        mEventHandler.postDelayed(() -> {
+        mWifiThreadRunner.postDelayed(() -> {
             mPeriodicScanTimerSet = false;
             // Schedule the next timer and start a single scan if screen is on.
             if (mScreenOn) {
                 startPeriodicSingleScan();
             }
-        }, mPeriodicScanTimerToken, intervalMs);
+        }, intervalMs, "Schedule next periodic scan", mPeriodicScanTimerToken);
     }
 
     // Cancel periodic scan timer
     private void cancelPeriodicScanTimer() {
         if (mPeriodicScanTimerSet) {
             localLog("cancelPeriodicScanTimer");
-            mEventHandler.removeCallbacksAndMessages(mPeriodicScanTimerToken);
+            mWifiThreadRunner.removeCallbacks(mPeriodicScanTimerToken);
             mPeriodicScanTimerSet = false;
         }
     }
@@ -3105,17 +3109,18 @@ public class WifiConnectivityManager {
         if (mScreenOn) {
             // cancel any queued PNO scans since the screen is turned on.
             mDelayedPnoScanPending = false;
-            mEventHandler.removeCallbacksAndMessages(mDelayedPnoScanToken);
+            mWifiThreadRunner.removeCallbacks(mDelayedPnoScanToken);
 
             if (mNextScreenOnConnectivityScanDelayMs > 0) {
-                mEventHandler.postDelayed(() -> {
+                mWifiThreadRunner.postDelayed(() -> {
                     startConnectivityScan(SCAN_ON_SCHEDULE);
-                }, mDelayedStartPeriodicScanToken, mNextScreenOnConnectivityScanDelayMs);
+                }, mNextScreenOnConnectivityScanDelayMs, "Trigger screen on scan",
+                        mDelayedStartPeriodicScanToken);
                 mNextScreenOnConnectivityScanDelayMs = 0;
                 return;
             }
         } else {
-            mEventHandler.removeCallbacksAndMessages(mDelayedStartPeriodicScanToken);
+            mWifiThreadRunner.removeCallbacks(mDelayedStartPeriodicScanToken);
         }
         startConnectivityScan(SCAN_ON_SCHEDULE);
     }

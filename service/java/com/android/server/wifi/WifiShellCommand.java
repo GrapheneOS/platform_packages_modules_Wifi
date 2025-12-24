@@ -2779,6 +2779,14 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                                                 WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128,
                                                 pairingPw));
                                         }
+
+                                        @Override
+                                        public void onMessageReceived(PeerHandle peerHandle,
+                                                byte[] message) {
+                                            Log.d(TAG, "onMessageReceived: "
+                                                    + new String(message));
+                                            sPeerHandle = peerHandle;
+                                        }
                                     }, mWifiThreadRunner.getHandler());
                         } catch (Exception e) {
                             pw.println(e.getLocalizedMessage());
@@ -2787,6 +2795,20 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                         return true;
                     }, false);
                     return success ? 0 : -1;
+                }
+                case "aware-send-message": {
+                    if (sDiscoverySession == null) {
+                        pw.println("null discover session");
+                        return -1;
+                    }
+                    if (sPeerHandle == null) {
+                        pw.println("null peer handle");
+                        return -1;
+                    }
+                    String serviceInfo = getNextArgRequired();
+                    mWifiThreadRunner.post(() -> sDiscoverySession.sendMessage(sPeerHandle,
+                            1, serviceInfo.getBytes(StandardCharsets.UTF_8)));
+                    return 0;
                 }
                 case "aware-stop-publish-subscribe": {
                     if (sDiscoverySession == null) {

@@ -1797,10 +1797,9 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testWificondSignalPoll_throwsException() {
+    public void testWificondSignalPoll_returnsNull() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.wificondSignalPoll(CLIENT_IFACE_NAME));
+        assertNull(mDut.wificondSignalPoll(CLIENT_IFACE_NAME));
     }
 
     @Test
