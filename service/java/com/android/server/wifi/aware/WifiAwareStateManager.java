@@ -826,6 +826,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         public void onActiveCountryCodeChanged(@androidx.annotation.NonNull String countryCode) {
             mAwareBand5InstantCommunicationChannelFreq = -1;
             reconfigure();
+            mAwareMetrics.handleActiveCountryCodeChanged(countryCode);
         }
 
         @Override
@@ -1321,6 +1322,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.arg2 = clientId;
         msg.obj = callback;
         msg.getData().putParcelable(MESSAGE_BUNDLE_KEY_CONFIG, subscribeConfig);
+        mAwareMetrics.recordPeerFoundStart(clientId, false);
         mSm.sendMessage(msg);
     }
 
@@ -3901,7 +3903,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             client.onClusterChange(mClusterEventType, mClusterId, mCurrentDiscoveryInterfaceMac);
             mClients.append(clientId, client);
             mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients, callerType,
-                    callingFeatureId);
+                    callingFeatureId, clientId);
             try {
                 if (mVdbg) {
                     Log.v(TAG, "Connect success for clientId:" + clientId);
@@ -3969,7 +3971,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return false;
         }
         mClients.delete(clientId);
-        mAwareMetrics.recordAttachSessionDuration(client.getCreationTime());
+        mAwareMetrics.recordAttachSessionDuration(client.getCreationTime(), clientId);
         SparseArray<WifiAwareDiscoverySessionState> sessions = client.getSessions();
         int size = sessions.size();
         for (int i = 0; i < sessions.size(); ++i) {
@@ -4508,7 +4510,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             client.enableVerboseLogging(mVerboseLoggingEnabled, mVdbg);
             mClients.put(clientId, client);
             mAwareMetrics.recordAttachSession(uid, notifyIdentityChange, mClients, callerType,
-                    callingFeatureId);
+                    callingFeatureId, clientId);
             try {
                 if (mVdbg) {
                     Log.v(TAG, "Connect success for clientId:" + clientId);
@@ -5327,6 +5329,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         int peerId = data.second.onMatch(requestorinstanceid, peerMac, serviceSpecificInfo,
                 matchFilter, rangingIndication, rangeMm, cipherSuite, scid, pairingAlias,
                 pairingConfig, vendorData);
+        // Update subscribe result
+        mAwareMetrics.updatePeerFoundResult(data.first.getClientId(), data.second.getSessionId(),
+                WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND, rangingIndication);
+
         if (TextUtils.isEmpty(pairingAlias)) {
             return;
         }
@@ -5353,6 +5359,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             Log.e(TAG, "onMatch: no session found for pubSubId=" + pubSubId);
             return;
         }
+        // Update subscribe result
+        mAwareMetrics.updatePeerFoundResult(data.first.getClientId(), data.second.getSessionId(),
+                WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__EXPIRED, 0);
+
         data.second.onMatchExpired(requestorInstanceId);
     }
 
@@ -5383,6 +5393,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
         mAwareMetrics.recordDiscoverySessionDuration(data.second.getCreationTime(),
                 data.second.isPublishSession(), data.second.getSessionId());
+
+        mAwareMetrics.recordPeerFoundResult(data.first.getClientId(), data.second.getSessionId());
         sendAwareResourcesChangedBroadcast();
     }
 
@@ -5413,7 +5425,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         for (int i = 0; i < mClients.size(); ++i) {
             WifiAwareClientState client = mClients.valueAt(i);
-            mAwareMetrics.recordAttachSessionDuration(client.getCreationTime());
+            mAwareMetrics.recordAttachSessionDuration(client.getCreationTime(), mClients.keyAt(i));
             SparseArray<WifiAwareDiscoverySessionState> sessions = client.getSessions();
             for (int j = 0; j < sessions.size(); ++j) {
                 mAwareMetrics.recordDiscoverySessionDuration(sessions.valueAt(j).getCreationTime(),

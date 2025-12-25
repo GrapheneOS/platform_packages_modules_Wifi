@@ -6432,6 +6432,7 @@ public class WifiMetrics {
             } else {
                 mLastScreenOffTimeMillis = mClock.getElapsedSinceBootMillis();
             }
+            mWifiAwareMetrics.handleScreenStateChanged(screenOn);
         }
     }
 
