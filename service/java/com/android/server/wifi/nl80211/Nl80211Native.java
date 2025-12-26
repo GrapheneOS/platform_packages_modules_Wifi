@@ -21,6 +21,8 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFIN
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_ALPHA2;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_TYPE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_STATUS_CODE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_TIMED_OUT;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_FREQ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_160;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_20;
@@ -31,11 +33,14 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDT
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CHAN_WIDTH_80P80;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_ASSOCIATE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_CH_SWITCH_NOTIFY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_CONNECT;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DEL_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DISASSOCIATE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DISCONNECT;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_REG_CHANGE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_ROAM;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCAN_ABORTED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_SCHED_SCAN_STOPPED;
@@ -74,6 +79,7 @@ import com.android.server.wifi.util.NetdWrapper;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -112,6 +118,8 @@ public class Nl80211Native {
         public boolean pnoScanStarted;
         public int enodevCounter;
         public Nl80211Utils.WiphyInfo wiphyInfo;
+        public @Nullable byte[] associatedBssid;
+        public int associatedFreqMhz;
         public final @NonNull Executor scanCallbackExecutor;
         public final @NonNull ScanEventCallback scanEventCallback;
         public final @NonNull ScanEventCallback pnoScanEventCallback;
@@ -253,6 +261,41 @@ public class Nl80211Native {
                 }
             };
 
+    /**
+     * Handles CMD_ASSOCIATE, CMD_CONNECT, and CMD_ROAM
+     */
+    private void handleAssociationEvent(int command, @NonNull GenericNetlinkMsg message) {
+        ClientInterfaceInfo clientIfaceInfo = getClientInterfaceInfoForBroadcast(message);
+        if (clientIfaceInfo == null) return;
+
+        if (message.getAttribute(NL80211_ATTR_TIMED_OUT) != null) {
+            Log.w(TAG, "Association event " + command + " timed out");
+            updateClientInterfaceForDisassociation(clientIfaceInfo);
+            return;
+        }
+
+        // Note: wificond's MlmeAssociateEvent ignores the status code for NL80211_CMD_ASSOCIATE, so
+        // we must maintain this behavior for parity.
+        if (command == NL80211_CMD_CONNECT) {
+            Short statusCode = message.getAttributeValueAsShort(NL80211_ATTR_STATUS_CODE);
+            if (statusCode != null && statusCode != 0) {
+                Log.e(TAG, "Connection failed with status code " + statusCode);
+                updateClientInterfaceForDisassociation(clientIfaceInfo);
+                return;
+            }
+        }
+
+        byte[] bssid = message.getAttributeValueAsByteArray(NL80211_ATTR_MAC);
+        if (bssid == null) {
+            Log.e(TAG, "Failed to get BSSID from association event " + command);
+            // Roam events do not carry a bssid on failure, so we just clear state
+            updateClientInterfaceForDisassociation(clientIfaceInfo);
+            return;
+        }
+
+        updateClientInterfaceForAssociation(clientIfaceInfo, bssid);
+    }
+
     // Called on the main Wifi thread.
     private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mAssociateCallback =
             (command, message) -> {
@@ -260,14 +303,42 @@ public class Nl80211Native {
                     if (mVerboseLoggingEnabled) {
                         Log.d(TAG, "Received NL80211 broadcast: " + message);
                     }
-
-                    ClientInterfaceInfo clientIfaceInfo =
-                            getClientInterfaceInfoForBroadcast(message);
-                    if (clientIfaceInfo == null) return;
-
-                    clientIfaceInfo.associated = true;
+                    handleAssociationEvent(command, message);
                 }
             };
+
+    // Called on the main Wifi thread.
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mConnectCallback =
+            (command, message) -> {
+                synchronized (Nl80211Native.this) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "Received NL80211 broadcast: " + message);
+                    }
+                    handleAssociationEvent(command, message);
+                }
+            };
+
+    // Called on the main Wifi thread.
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mRoamCallback =
+            (command, message) -> {
+                synchronized (Nl80211Native.this) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "Received NL80211 broadcast: " + message);
+                    }
+                    handleAssociationEvent(command, message);
+                }
+            };
+
+    /**
+     * Handles CMD_DISASSOCIATE and CMD_DISCONNECT
+     */
+    private void handleDisassociationEvent(@NonNull GenericNetlinkMsg message) {
+        ClientInterfaceInfo clientIfaceInfo =
+                getClientInterfaceInfoForBroadcast(message);
+        if (clientIfaceInfo == null) return;
+
+        updateClientInterfaceForDisassociation(clientIfaceInfo);
+    }
 
     // Called on the main Wifi thread.
     private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mDisassociateCallback =
@@ -277,11 +348,19 @@ public class Nl80211Native {
                         Log.d(TAG, "Received NL80211 broadcast: " + message);
                     }
 
-                    ClientInterfaceInfo clientIfaceInfo =
-                            getClientInterfaceInfoForBroadcast(message);
-                    if (clientIfaceInfo == null) return;
+                    handleDisassociationEvent(message);
+                }
+            };
 
-                    clientIfaceInfo.associated = false;
+    // Called on the main Wifi thread.
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mDisconnectCallback =
+            (command, message) -> {
+                synchronized (Nl80211Native.this) {
+                    if (mVerboseLoggingEnabled) {
+                        Log.d(TAG, "Received NL80211 broadcast: " + message);
+                    }
+
+                    handleDisassociationEvent(message);
                 }
             };
 
@@ -436,6 +515,33 @@ public class Nl80211Native {
         Log.e(TAG, "Could not find iface for client iface broadcast message with ifIndex "
                 + ifIndex);
         return null;
+    }
+
+    private void updateClientInterfaceForAssociation(
+            @NonNull ClientInterfaceInfo clientIfaceInfo, @NonNull byte[] bssid) {
+        clientIfaceInfo.associated = true;
+        clientIfaceInfo.associatedBssid = bssid;
+        int associatedFreqMhz =
+                getAssociatedFreqMhz(clientIfaceInfo.ifName, clientIfaceInfo.associatedBssid);
+        if (associatedFreqMhz != 0) {
+            clientIfaceInfo.associatedFreqMhz = associatedFreqMhz;
+        }
+    }
+
+    private int getAssociatedFreqMhz(@NonNull String ifaceName, @NonNull byte[] bssid) {
+        for (NativeScanResult scanResult : mNl80211Utils.getScanResults(ifaceName)) {
+            if (scanResult.isAssociated() && Arrays.equals(scanResult.bssid, bssid)) {
+                return scanResult.getFrequencyMhz();
+            }
+        }
+        return 0;
+    }
+
+    private void updateClientInterfaceForDisassociation(
+            @NonNull ClientInterfaceInfo clientIfaceInfo) {
+        clientIfaceInfo.associated = false;
+        clientIfaceInfo.associatedBssid = null;
+        clientIfaceInfo.associatedFreqMhz = 0;
     }
 
     private ApInterfaceInfo getApInterfaceInfoForBroadcast(GenericNetlinkMsg broadcast) {
@@ -821,6 +927,7 @@ public class Nl80211Native {
     }
 
     private void registerCallbacksForClientIface() {
+        // Scanning
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_NEW_SCAN_RESULTS,
                 mNewScanResultsCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCAN_ABORTED,
@@ -830,13 +937,21 @@ public class Nl80211Native {
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_SCHED_SCAN_STOPPED,
                 mSchedScanStoppedCallback);
 
+        // Connection
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_ASSOCIATE,
                 mAssociateCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_DISASSOCIATE,
                 mDisassociateCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_CONNECT,
+                mConnectCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_DISCONNECT,
+                mDisconnectCallback);
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_ROAM,
+                mRoamCallback);
     }
 
     private void unregisterCallbacksForClientIface() {
+        // Scanning
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_NEW_SCAN_RESULTS,
                 mNewScanResultsCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCAN_ABORTED,
@@ -846,10 +961,17 @@ public class Nl80211Native {
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_SCHED_SCAN_STOPPED,
                 mSchedScanStoppedCallback);
 
+        // Connection
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_ASSOCIATE,
                 mAssociateCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_DISASSOCIATE,
                 mDisassociateCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_CONNECT,
+                mConnectCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_DISCONNECT,
+                mDisconnectCallback);
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_ROAM,
+                mRoamCallback);
     }
 
     private void registerCountryCodeCallbacks() {
