@@ -45,6 +45,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.NetworkRequestUserSelectionCallback;
+import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiScanner.ScanData;
@@ -121,6 +122,8 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     private BroadcastReceiver mWifiStateReceiver;
     private WifiManager.SuggestionConnectionStatusListener mSuggestionConnectionStatusListener;
     private WifiManager.SuggestionUserApprovalStatusListener mSuggestionUserApprovalStatusListener;
+    private WifiManagerSnippet.SnippetLocalOnlyConnectionFailureListener
+              mLocalOnlyConnectionFailureListener;
     private WifiManager.NetworkRequestUserSelectionCallback mNetworkRequestUserSelectionCallback;
     private WifiNetworkRequestMatchCallback mNetworkRequestMatchCallback;
     private BroadcastReceiver mNetworkSuggestionPostConnectionReceiver;
@@ -286,6 +289,25 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         */
         public int getConnectedClientsCount() {
             return this.mConnectedClientsCount;
+        }
+    }
+
+    private class SnippetLocalOnlyConnectionFailureListener implements
+              WifiManager.LocalOnlyConnectionFailureListener{
+        private final String mCallbackId;
+
+        SnippetLocalOnlyConnectionFailureListener(String callbackId) {
+            mCallbackId = callbackId;
+        }
+
+        @Override
+        public void onConnectionFailed(@NonNull WifiNetworkSpecifier networkSpecifier,
+                int failureReason) {
+            Log.d(TAG, "onConntionFailed, reason=" + failureReason);
+            SnippetEvent event = new SnippetEvent(mCallbackId, "onConnectionFailed");
+            event.getData().putInt("failureReason", failureReason);
+            event.getData().putString("networkSpecifier", networkSpecifier.toString());
+            mEventCache.postEvent(event);
         }
     }
 
@@ -1523,6 +1545,27 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         Log.d(TAG, "NetworkRequestMatchCallback registered with callbackId: " + callbackId);
     }
 
+    /**
+     * Unregisters the network request match callback.
+     *
+     * This method should be called to clean up the callback registered via
+     * @link #wifiRegisterNetworkRequestMatchCallback}. It also clears the
+     * saved user selection callback.
+     */
+    @Rpc(description = "Unregisters the network request match callback.")
+    public void wifiUnregisterNetworkRequestMatchCallback() {
+        if (mNetworkRequestMatchCallback == null) {
+            Log.w(TAG, "No active network request match callback to unregister.");
+        } else {
+            executeWithShellPermission(() -> mWifiManager.unregisterNetworkRequestMatchCallback(
+                    mNetworkRequestMatchCallback));
+            mNetworkRequestMatchCallback = null;
+            synchronized (mLock) {
+                mNetworkRequestUserSelectionCallback = null;
+            }
+        }
+    }
+
     private class WifiNetworkRequestMatchCallback implements
             WifiManager.NetworkRequestMatchCallback {
         private final String mEventPrefix;
@@ -1540,6 +1583,11 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
             synchronized (mLock) {
                 mNetworkRequestUserSelectionCallback = userSelectionCallback;
             }
+            String eventName = mEventPrefix + "OnUserSelectionCallbackRegistration";
+            SnippetEvent event =
+                    new SnippetEvent(mCallbackId, eventName);
+            mEventCache.postEvent(event);
+            Log.d(TAG, "NetworkRequestMatchCallback called for " + eventName);
         }
 
         @Override
@@ -1554,7 +1602,8 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         public void onMatch(List<ScanResult> scanResults) {
             String eventName = mEventPrefix + "OnMatch";
             SnippetEvent event = new SnippetEvent(mCallbackId, eventName);
-            event.getData().putString("SSID", scanResults.get(0).getWifiSsid().toString());
+            String rawSsid = scanResults.get(0).getWifiSsid().toString();
+            event.getData().putString("SSID", WifiJsonConverter.trimQuotationMarks(rawSsid));
             mEventCache.postEvent(event);
             Log.d(TAG, "NetworkRequestMatchCallback called for " + eventName);
         }
@@ -1602,7 +1651,7 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         return addresses;
     }
 
-        /**
+    /**
      * Gets the randomized MAC address for a given network.
      * @param jsonConfig A JSONObject containing the SSID of the network.
      * @return A {@link MacAddress} object, or null if not found.
@@ -1627,6 +1676,48 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
         }
         Log.d(TAG, "No matching network found for SSID: " + targetSsid);
         return null;
+    }
+
+    /**
+     * Add LocalOnlyConnectionFailureListener for Wi-Fi local-only connection failure events.
+     *
+     * @param callbackId A unique identifier assigned by Mobly to track this asynchronous operation.
+     * @see #wifiRemoveLocalOnlyConnectionFailureListener
+     */
+    @AsyncRpc(description = "Adds a listener for localOnlyConnectionFailure.")
+    public void wifiAddLocalOnlyConnectionFailureListener(String callbackId) {
+        if (mLocalOnlyConnectionFailureListener != null) {
+            Log.w(TAG, "Listener already exists, removing the old one.");
+            wifiRemoveLocalOnlyConnectionFailureListener();
+        }
+
+        mLocalOnlyConnectionFailureListener =
+                new SnippetLocalOnlyConnectionFailureListener(callbackId);
+
+        executeWithShellPermission(() -> mWifiManager.addLocalOnlyConnectionFailureListener(
+                mContext.getMainExecutor(), mLocalOnlyConnectionFailureListener));
+    }
+
+    /**
+     * Remove the existing LocalOnlyConnectionFailureListener.
+     */
+    @Rpc(description = "Removes the localOnlyConnectionFailureListener")
+    public void wifiRemoveLocalOnlyConnectionFailureListener() {
+        if (mLocalOnlyConnectionFailureListener != null) {
+            mWifiManager
+                .removeLocalOnlyConnectionFailureListener(mLocalOnlyConnectionFailureListener);
+            mLocalOnlyConnectionFailureListener = null;
+        }
+    }
+
+    /**
+     * Check if STA concurrency for local-only connections is supported.
+     *
+     * @return true if supported, false otherwise.
+     */
+    @Rpc(description = "Check if STA concurrency for local-only connections is supported.")
+    public boolean wifiIsStaConcurrencyForLocalOnlyConnectionsSupported() {
+        return mWifiManager.isStaConcurrencyForLocalOnlyConnectionsSupported();
     }
 
 }
