@@ -2577,20 +2577,75 @@ public class InformationElementUtilTest extends WifiBaseTest {
         ie.id = InformationElement.EID_EXTENSION_PRESENT;
         ie.idExt = InformationElement.EID_EXT_MULTI_LINK;
 
-        ie.bytes = new byte[] {
-                (byte) 0x10,  (byte) 0x00,                              // Control
-                (byte) 0x08,  (byte) 0x02, (byte) 0x34, (byte) 0x56,    // Common Info
-                (byte) 0x78,  (byte) 0x9A, (byte) 0xBC, (byte) 0x01,
-                (byte) 0x00,  (byte) 0x08, (byte) 0x02, (byte) 0x00,    // First Link Info
-                (byte) 0x00,  (byte) 0x00, (byte) 0x00, (byte) 0x00,    //
-                (byte) 0x00,  (byte) 0x08, (byte) 0x03, (byte) 0x00,    // Second Link Info
-                (byte) 0x00,  (byte) 0x00, (byte) 0x00, (byte) 0x00     //
+        ie.bytes = new byte[]{(byte) 0x10, (byte) 0x00,              // Control
+                (byte) 0x08, (byte) 0x02, (byte) 0x34, (byte) 0x56,  // Common Info
+                (byte) 0x78, (byte) 0x9A, (byte) 0xBC, (byte) 0x01, (byte) 0x00, (byte) 0x06,
+                (byte) 0x02, (byte) 0x00,    // First Link Info (ID=0, Len=6, LinkID=2)
+                (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00,   // STA Info Len=1, STA
+                                                                      // Profile (3 bytes)
+                (byte) 0x00, (byte) 0x06, (byte) 0x03, (byte) 0x00,   // Second Link Info (ID=0,
+                                                                      // Len=6, LinkID=3)
+                (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00    // STA Info Len=1, STA
+                                                                      // Profile (3 bytes)
         };
         InformationElementUtil.MultiLink multiLink = new InformationElementUtil.MultiLink();
         multiLink.from(ie);
         assertTrue(multiLink.isPresent());
         assertEquals(1, multiLink.getLinkId());
         assertEquals(2, multiLink.getAffiliatedLinks().size());
+        assertEquals(2, multiLink.getAffiliatedLinks().get(0).getLinkId());
+        assertEquals(3, multiLink.getAffiliatedLinks().get(1).getLinkId());
+    }
+
+    /**
+     * Verify Multi-Link IE parsing with multiple per-STA profiles and mixed sub-element types.
+     */
+    @Test
+    public void parseMultiLinkIeWithMixedSubElements() throws Exception {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_EXTENSION_PRESENT;
+        ie.idExt = InformationElement.EID_EXT_MULTI_LINK;
+
+        ie.bytes = new byte[] {
+                // Control: Type=0 (Basic), Link ID Info Present
+                (byte) 0x10,  (byte) 0x00,
+                // Common Info: Length=8, MLD MAC Address, Link ID=1
+                (byte) 0x08,  (byte) 0x02, (byte) 0x34, (byte) 0x56,
+                (byte) 0x78,  (byte) 0x9A, (byte) 0xBC, (byte) 0x01,
+                // First per-STA Profile: ID=0, Length=0x07
+                (byte) 0x00,  (byte) 0x07,
+                // STA Control: Link ID=2
+                (byte) 0x02, (byte) 0x00,
+                // STA Info and Profile
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                // Unknown sub-element (should be skipped): ID=5, Length=4
+                (byte) 0x05,  (byte) 0x04,
+                (byte) 0xAA, (byte) 0xBB, (byte) 0xCC, (byte) 0xDD,
+                // Second per-STA Profile: ID=0, Length=0x07
+                (byte) 0x00,  (byte) 0x07,
+                // STA Control: Link ID=3
+                (byte) 0x03, (byte) 0x00,
+                // STA Info and Profile
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                // Another unknown sub-element: ID=7, Length=2
+                (byte) 0x07,  (byte) 0x02,
+                (byte) 0x11, (byte) 0x22,
+                // Third per-STA Profile: ID=0, Length=0x07
+                (byte) 0x00,  (byte) 0x07,
+                // STA Control: Link ID=4
+                (byte) 0x04, (byte) 0x00,
+                // STA Info and Profile
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
+        };
+        InformationElementUtil.MultiLink multiLink = new InformationElementUtil.MultiLink();
+        multiLink.from(ie);
+        assertTrue(multiLink.isPresent());
+        assertEquals(1, multiLink.getLinkId());
+        // Should have 3 per-STA profiles (unknown sub-elements skipped)
+        assertEquals(3, multiLink.getAffiliatedLinks().size());
+        assertEquals(2, multiLink.getAffiliatedLinks().get(0).getLinkId());
+        assertEquals(3, multiLink.getAffiliatedLinks().get(1).getLinkId());
+        assertEquals(4, multiLink.getAffiliatedLinks().get(2).getLinkId());
     }
 
     /**
@@ -2959,6 +3014,34 @@ public class InformationElementUtilTest extends WifiBaseTest {
     @Test
     public void testGetHS2VendorSpecificIEWithNullIE() {
         InformationElementUtil.getHS2VendorSpecificIE(new InformationElement[] {null});
+    }
+
+    /**
+     * Verify that Multi-Link IE with AP MLD ID and Link Info is completely ignored.
+     * Even if Link Info is present, we skip the entire element when AP MLD ID is set.
+     */
+    @Test
+    public void parseMultiLinkIeWithApMldIdAndLinkInfoIsIgnored() throws Exception {
+        InformationElement ie = new InformationElement();
+        ie.id = InformationElement.EID_EXTENSION_PRESENT;
+        ie.idExt = InformationElement.EID_EXT_MULTI_LINK;
+
+        // Control field: 0x10 0x02
+        // Bit 4 (Link ID Info Present) = 1, Bit 9 (AP MLD ID Info Present) = 1
+        ie.bytes = new byte[]{(byte) 0x10, (byte) 0x02, // Control (Link ID + AP MLD ID)
+                (byte) 0x09, (byte) 0x02, (byte) 0x34, (byte) 0x56, // Common Info: Len=9, MLD MAC
+                (byte) 0x78, (byte) 0x9A, (byte) 0xBC, (byte) 0x02, // MLD MAC cont., Link ID=2
+                (byte) 0x07,                                        // AP MLD ID = 7
+                (byte) 0x00, (byte) 0x06, (byte) 0x20, (byte) 0x00, // Link Info: ID=0, Len=6,
+                                                                    // STA Control
+                (byte) 0x01, (byte) 0x11, (byte) 0x22, (byte) 0x33  // STA Info Len=1, STA Profile
+        };
+        InformationElementUtil.MultiLink multiLink = new InformationElementUtil.MultiLink();
+        multiLink.from(ie);
+        // Should NOT be present - entire element is skipped
+        assertFalse(multiLink.isPresent());
+        // Affiliated links should be empty
+        assertTrue(multiLink.getAffiliatedLinks().isEmpty());
     }
 }
 

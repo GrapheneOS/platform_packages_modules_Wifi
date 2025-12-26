@@ -125,14 +125,17 @@ public class NetworkDetailTest extends WifiBaseTest {
         ies[1] = new InformationElement();
         ies[1].id = InformationElement.EID_EXTENSION_PRESENT;
         ies[1].idExt = InformationElement.EID_EXT_MULTI_LINK;
-        ies[1].bytes = new byte[] {
-                (byte) 0x10,  (byte) 0x00,                              // Control
-                (byte) 0x08,  (byte) 0x02, (byte) 0x34, (byte) 0x56,    // Common Info
-                (byte) 0x78,  (byte) 0x9A, (byte) 0xBC, (byte) 0x01,
-                (byte) 0x00,  (byte) 0x08, (byte) 0x02, (byte) 0x00,    // First Link Info
-                (byte) 0x00,  (byte) 0x00, (byte) 0x00, (byte) 0x00,    //
-                (byte) 0x00,  (byte) 0x08, (byte) 0x03, (byte) 0x00,    // Second Link Info
-                (byte) 0x00,  (byte) 0x00, (byte) 0x00, (byte) 0x00     //
+        ies[1].bytes = new byte[]{(byte) 0x10, (byte) 0x00,         // Control
+                (byte) 0x08, (byte) 0x02, (byte) 0x34, (byte) 0x56, // Common Info
+                (byte) 0x78, (byte) 0x9A, (byte) 0xBC, (byte) 0x01,
+                (byte) 0x00, (byte) 0x06, (byte) 0x02, (byte) 0x00, // First Link Info (ID=0, Len=6,
+                                                                    // LinkID=2)
+                (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, // STA Info Len=1, STA
+                                                                    // Profile (3 bytes)
+                (byte) 0x00, (byte) 0x06, (byte) 0x03, (byte) 0x00, // Second Link Info (ID=0,
+                                                                    // Len=6, LinkID=3)
+                (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00  // STA Info Len=1, STA
+                // Profile (3 bytes)
         };
         NetworkDetail networkDetail = new NetworkDetail(TEST_BSSID, ies,
                 Collections.emptyList(), 5745);
