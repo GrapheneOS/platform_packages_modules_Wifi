@@ -173,8 +173,13 @@ public class WifiNativeTest extends WifiBaseTest {
             new FateMapping(WifiLoggerHal.RX_PKT_FATE_DRV_DROP_OTHER, "driver dropped (other)"),
             new FateMapping((byte) 42, "42")
     };
-    private static final WifiNl80211Manager.SignalPollResult SIGNAL_POLL_RESULT =
-            new WifiNl80211Manager.SignalPollResult(-60, 12, 6, 5240);
+    private static final Nl80211Native.SignalPollResult SIGNAL_POLL_RESULT =
+            new Nl80211Native.SignalPollResult.Builder()
+                    .setCurrentRssiDbm(-60)
+                    .setTxBitrateMbps(12)
+                    .setRxBitrateMbps(6)
+                    .setAssociationFrequencyMHz(5240)
+                    .build();
 
     private static final Set<Integer> SCAN_FREQ_SET = Set.of(
             2410,
@@ -977,7 +982,7 @@ public class WifiNativeTest extends WifiBaseTest {
      */
     @Test
     public void testSignalPoll() throws Exception {
-        when(mNl80211Native.wificondSignalPoll(WIFI_IFACE_NAME))
+        when(mNl80211Native.signalPoll(WIFI_IFACE_NAME))
                 .thenReturn(SIGNAL_POLL_RESULT);
         when(mStaIfaceHal.getSignalPollResults(WIFI_IFACE_NAME)).thenReturn(null);
 
@@ -988,7 +993,7 @@ public class WifiNativeTest extends WifiBaseTest {
                 pollResults.getFrequency());
         assertEquals(SIGNAL_POLL_RESULT.rxBitrateMbps, pollResults.getRxLinkSpeed());
 
-        verify(mNl80211Native).wificondSignalPoll(WIFI_IFACE_NAME);
+        verify(mNl80211Native).signalPoll(WIFI_IFACE_NAME);
     }
 
     /**

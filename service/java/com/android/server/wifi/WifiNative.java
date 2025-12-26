@@ -4345,8 +4345,7 @@ public class WifiNative {
                 ifaceName);
         if (results == null) {
             // Fallback to Nl80211.
-            WifiNl80211Manager.SignalPollResult result =
-                    mNl80211Native.wificondSignalPoll(ifaceName);
+            Nl80211Native.SignalPollResult result = mNl80211Native.signalPoll(ifaceName);
             if (result != null) {
                 // Convert WifiNl80211Manager#SignalPollResult to WifiSignalPollResults.
                 // Assume single link and linkId = 0.
