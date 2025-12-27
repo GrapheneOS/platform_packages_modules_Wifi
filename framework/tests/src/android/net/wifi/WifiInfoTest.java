@@ -585,6 +585,8 @@ public class WifiInfoTest {
         assertEquals(WifiManager.UNKNOWN_SSID, wifiInfo.getSSID());
         assertNull(wifiInfo.getBSSID());
         assertEquals(-1, wifiInfo.getNetworkId());
+        assertFalse(wifiInfo.isTrusted());
+        assertFalse(wifiInfo.isRestricted());
         if (SdkLevel.isAtLeastS()) {
             assertFalse(wifiInfo.isOemPaid());
             assertFalse(wifiInfo.isOemPrivate());
