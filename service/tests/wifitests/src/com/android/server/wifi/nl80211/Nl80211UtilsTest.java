@@ -62,6 +62,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_I
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_PROTOCOL_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_REG;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_SCAN;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_WIPHY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
@@ -143,9 +144,11 @@ public class Nl80211UtilsTest {
             new GenericNetlinkMsg(NL80211_CMD_GET_INTERFACE, (short) 0, (short) 0, 0);
     private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_SCAN =
             new GenericNetlinkMsg(NL80211_CMD_GET_SCAN, (short) 0, (short) 0, 0);
-
     private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_REG =
             new GenericNetlinkMsg(NetlinkConstants.NL80211_CMD_GET_REG, (short) 0, (short) 0, 0);
+    private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_STATION =
+            new GenericNetlinkMsg(NetlinkConstants.NL80211_CMD_GET_STATION, (short) 0, (short) 0,
+                    0);
 
     @Mock private Nl80211Proxy mNl80211Proxy;
     @Mock private NetworkInterface mNetworkInterface;
@@ -176,6 +179,8 @@ public class Nl80211UtilsTest {
                 .thenReturn(TEST_NL80211_REQUEST_GET_SCAN);
         when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_GET_REG)))
                 .thenReturn(TEST_NL80211_REQUEST_GET_REG);
+        when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_GET_STATION)))
+                .thenReturn(TEST_NL80211_REQUEST_GET_STATION);
     }
 
     @After
@@ -1367,5 +1372,123 @@ public class Nl80211UtilsTest {
         boolean result = mNl80211Utils.stopPnoScan(TEST_IF_INDEX);
 
         assertFalse(result);
+    }
+
+    private GenericNetlinkMsg createGetStationResponse(
+            Integer txGood, Integer txBad, Byte signal, Integer txBitrate, Integer rxBitrate) {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg(NetlinkConstants.NL80211_CMD_NEW_STATION,
+                (short) 0, (short) 0, 0);
+        List<StructNlAttr> staInfoAttrs = new ArrayList<>();
+        if (txGood != null) {
+            staInfoAttrs.add(new StructNlAttr(
+                    NetlinkConstants.NL80211_STA_INFO_TX_PACKETS, txGood));
+        }
+        if (txBad != null) {
+            staInfoAttrs.add(new StructNlAttr(
+                    NetlinkConstants.NL80211_STA_INFO_TX_FAILED, txBad));
+        }
+        if (signal != null) {
+            staInfoAttrs.add(new StructNlAttr(
+                    NetlinkConstants.NL80211_STA_INFO_SIGNAL, new byte[]{signal}));
+        }
+
+        if (txBitrate != null) {
+            StructNlAttr rate32Attr = new StructNlAttr(
+                    NetlinkConstants.NL80211_RATE_INFO_BITRATE32, txBitrate);
+            ByteBuffer payload = ByteBuffer.allocate(rate32Attr.getAlignedLength());
+            rate32Attr.pack(payload);
+            staInfoAttrs.add(new StructNlAttr(
+                    NetlinkConstants.NL80211_STA_INFO_TX_BITRATE, payload.array()));
+        }
+
+        if (rxBitrate != null) {
+            StructNlAttr rate32Attr = new StructNlAttr(
+                    NetlinkConstants.NL80211_RATE_INFO_BITRATE32, rxBitrate);
+            ByteBuffer payload = ByteBuffer.allocate(rate32Attr.getAlignedLength());
+            rate32Attr.pack(payload);
+            staInfoAttrs.add(new StructNlAttr(
+                    NetlinkConstants.NL80211_STA_INFO_RX_BITRATE, payload.array()));
+        }
+
+        int staInfoPayloadLength = 0;
+        for (StructNlAttr attr : staInfoAttrs) {
+            staInfoPayloadLength += attr.getAlignedLength();
+        }
+
+        ByteBuffer staInfoPayload = ByteBuffer.allocate(staInfoPayloadLength);
+        for (StructNlAttr attr : staInfoAttrs) {
+            attr.pack(staInfoPayload);
+        }
+
+        msg.addAttribute(new StructNlAttr(
+                NetlinkConstants.NL80211_ATTR_STA_INFO, staInfoPayload.array()));
+        return msg;
+    }
+
+    @Test
+    public void testGetStationInfo_success() {
+        int txGood = 100, txBad = 10, txBitrate = 240, rxBitrate = 120;
+        byte signal = -50;
+        GenericNetlinkMsg response = createGetStationResponse(txGood, txBad, signal, txBitrate,
+                rxBitrate);
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(eq(TEST_NL80211_REQUEST_GET_STATION)))
+                .thenReturn(new Nl80211Response(response));
+
+        Nl80211Utils.StationInfo stationInfo = mNl80211Utils.getStationInfo(TEST_IF_INDEX,
+                TEST_MAC_ADDR);
+
+        assertNotNull(stationInfo);
+        assertEquals(txGood, stationInfo.txPackets);
+        assertEquals(txBad, stationInfo.txFailed);
+        assertEquals(signal, stationInfo.signalDbm);
+        assertEquals(txBitrate, stationInfo.txBitrate100Kbps);
+        assertEquals(rxBitrate, stationInfo.rxBitrate100Kbps);
+    }
+
+    @Test
+    public void testGetStationInfo_errorResponse() {
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(eq(TEST_NL80211_REQUEST_GET_STATION)))
+                .thenReturn(new Nl80211Response(ENODEV));
+        assertNull(mNl80211Utils.getStationInfo(TEST_IF_INDEX, TEST_MAC_ADDR));
+    }
+
+    @Test
+    public void testGetStationInfo_missingStaInfo() {
+        GenericNetlinkMsg response = new GenericNetlinkMsg(
+                NetlinkConstants.NL80211_CMD_NEW_STATION, (short) 0, (short) 0, 0);
+        // Missing NL80211_ATTR_STA_INFO
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(eq(TEST_NL80211_REQUEST_GET_STATION)))
+                .thenReturn(new Nl80211Response(response));
+        assertNull(mNl80211Utils.getStationInfo(TEST_IF_INDEX, TEST_MAC_ADDR));
+    }
+
+    @Test
+    public void testGetStationInfo_partialData_bitratesMissing() {
+        int txGood = 100;
+        int txBad = 10;
+        byte signal = -50;
+        GenericNetlinkMsg response = createGetStationResponse(txGood, txBad, signal, null, null);
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(eq(TEST_NL80211_REQUEST_GET_STATION)))
+                .thenReturn(new Nl80211Response(response));
+
+        Nl80211Utils.StationInfo stationInfo = mNl80211Utils.getStationInfo(TEST_IF_INDEX,
+                TEST_MAC_ADDR);
+
+        assertNotNull(stationInfo);
+        assertEquals(txGood, stationInfo.txPackets);
+        assertEquals(txBad, stationInfo.txFailed);
+        assertEquals(signal, stationInfo.signalDbm);
+        assertEquals(0, stationInfo.txBitrate100Kbps); // Should default to 0
+        assertEquals(0, stationInfo.rxBitrate100Kbps); // Should default to 0
+    }
+
+    @Test
+    public void testGetStationInfo_missingMandatoryField() {
+        // txBad and signal are missing, which are mandatory.
+        GenericNetlinkMsg response = createGetStationResponse(100, null, null, 240, 120);
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(eq(TEST_NL80211_REQUEST_GET_STATION)))
+                .thenReturn(new Nl80211Response(response));
+
+        assertNull(mNl80211Utils.getStationInfo(TEST_IF_INDEX, TEST_MAC_ADDR));
     }
 }
