@@ -133,3 +133,10 @@ def record_wifi_mainline_version(device: android_device.AndroidDevice):
     version = ''
   device.add_device_info('wifi_mainline_version', version)
 
+
+def convert_str_to_bool(value: str | bool) -> bool:
+  """Converts the given arg to bool if it's a string. Otherwise returns as is.
+  """
+  if isinstance(value, str):
+    return value.lower() == 'true'
+  return value

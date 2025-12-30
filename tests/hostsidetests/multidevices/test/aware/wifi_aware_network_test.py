@@ -15,6 +15,7 @@
 
 import logging
 import sys
+from typing import Any, Optional
 
 from android.platform.test.annotations import ApiTest
 from mobly import asserts
@@ -23,6 +24,7 @@ from mobly import records
 from mobly import test_runner
 from mobly import utils
 from mobly.controllers import android_device
+import sniffer_helper
 import wifi_test_utils
 
 from aware import aware_snippet_utils
@@ -43,6 +45,10 @@ _TRANSPORT_PROTOCOL_TCP = (
     constants.WifiAwareTestConstants.TRANSPORT_PROTOCOL_TCP
 )
 _TEST_FREQUENCY_5745 = 5745
+
+# Use alias for type annotation since we cannot import this module for some
+# test invocations.
+OpenWrtDevice = Any
 
 
 class WifiAwareNetworkTest(base_test.BaseTestClass):
@@ -75,6 +81,8 @@ class WifiAwareNetworkTest(base_test.BaseTestClass):
     publisher: android_device.AndroidDevice
     subscriber: android_device.AndroidDevice
 
+    _sniffer: sniffer_helper.SnifferHelper
+
     def setup_class(self):
         # Register and set up Android devices in parallel.
         self.ads = self.register_controller(android_device, min_number=2)
@@ -99,6 +107,12 @@ class WifiAwareNetworkTest(base_test.BaseTestClass):
                 not device.wifi.wifiAwareIsAvailable(),
                 f'Wi-Fi Aware is not available on {device}.',
             )
+
+        self._sniffer = sniffer_helper.SnifferHelper()
+        if wifi_test_utils.convert_str_to_bool(
+            self.user_params.get('enable_sniffer', False)
+        ):
+            self._sniffer.register_controller_for_sniffer(test_class_obj=self)
 
     def _setup_device(self, device: android_device.AndroidDevice):
         device.load_snippet('wifi', _SNIPPET_PACKAGE_NAME)
@@ -619,6 +633,8 @@ class WifiAwareNetworkTest(base_test.BaseTestClass):
             network_specifier_on_sub or constants.WifiAwareNetworkSpecifier()
         )
 
+        self._sniffer.start_packet_capture_for_aware_discovery()
+
         # Step 1: Attach Wi-Fi Aware sessions.
         pub_attach_session, _ = aware_snippet_utils.start_attach(
             self.publisher, pub_config.ranging_enabled
@@ -714,14 +730,36 @@ class WifiAwareNetworkTest(base_test.BaseTestClass):
             request_network_handler=sub_network_handler,
         )
         # Check frequency if the config forces a channel.
+        channels_in_mhz = network_cap_changed_event.data.get(
+            constants.NetworkCbEventKey.CHANNEL_IN_MHZ,
+            None
+        )
         if network_specifier_on_sub.channel_frequency_m_hz:
             asserts.assert_equal(
-                network_cap_changed_event.data[
-                    constants.NetworkCbEventKey.CHANNEL_IN_MHZ
-                ],
+                channels_in_mhz,
                 [network_specifier_on_pub.channel_frequency_m_hz],
                 f'{self.subscriber} Channel freq does not match the request.',
             )
+
+        if self._sniffer.enabled:
+            logging.info('Stopping the sniffer for discovery phase.')
+            # Ignore the captured packets since the discovery phase does not
+            # raise any error.
+            self._sniffer.stop_packet_capture(current_test_info=None)
+            if channels_in_mhz is not None:
+                logging.info(
+                    'Starting sniffer for datapath phase on frequencies: %s',
+                    channels_in_mhz
+                )
+                self._sniffer.start_packet_capture_on_frequencies(
+                    frequencies_mhz=channels_in_mhz
+                )
+            else:
+                logging.info(
+                    'Skip sniffer for datapath phase since it failed to obtain'
+                    ' frequency info from network callback event: %s',
+                    network_cap_changed_event,
+                )
 
         # Step 5: Establish a socket connection and send messages through it.
         aware_snippet_utils.establish_socket_connection(
@@ -790,10 +828,15 @@ class WifiAwareNetworkTest(base_test.BaseTestClass):
         })
 
     def on_fail(self, record: records.TestResult) -> None:
+        self._sniffer.stop_packet_capture(self.current_test_info)
         logging.info('Collecting bugreports...')
         android_device.take_bug_reports(
             self.ads, destination=self.current_test_info.output_path
         )
+
+    def on_pass(self, record: records.TestResult) -> None:
+        # Set current_test_info=None to ignore the captured packets.
+        self._sniffer.stop_packet_capture(current_test_info=None)
 
 
 if __name__ == '__main__':
