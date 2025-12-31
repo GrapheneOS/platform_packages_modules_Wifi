@@ -1162,10 +1162,15 @@ public class WifiAwareMetrics {
         data.mIs5gAwareSupported = mIs5gAwareSupported;
         data.mRangingIndication = data.mRangingIndication | rangingIndication;
         // Wifi STA info
-        WifiInfo wifiInfo = mWifiManager.getConnectionInfo();
-        data.mIsStaConnected = wifiInfo.getSupplicantState() == SupplicantState.COMPLETED;
-        data.mStaFrequency = data.mIsStaConnected
+        if (mWifiManager != null) {
+            WifiInfo wifiInfo = mWifiManager.getConnectionInfo();
+            data.mIsStaConnected = wifiInfo.getSupplicantState() == SupplicantState.COMPLETED;
+            data.mStaFrequency = data.mIsStaConnected
             ? wifiInfo.getFrequency() : -1;
+        } else {
+            data.mIsStaConnected = false;
+            data.mStaFrequency = -1;
+        }
     }
 
     /**
