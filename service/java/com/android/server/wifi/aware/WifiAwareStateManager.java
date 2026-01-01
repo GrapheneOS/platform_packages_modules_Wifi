@@ -1281,6 +1281,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.arg1 = COMMAND_TYPE_TERMINATE_SESSION;
         msg.arg2 = clientId;
         msg.obj = sessionId;
+        mAwareMetrics.recordPeerFoundResult(clientId, sessionId);
         mSm.sendMessage(msg);
     }
 

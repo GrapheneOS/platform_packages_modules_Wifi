@@ -157,7 +157,7 @@ public class WifiAwareMetrics {
     private boolean mInstantModeEnabled;
     private boolean mCurrentScreenState = true;
     private String mLastCountryCode = null;
-    private Boolean mIs5gAwareSupported = false;
+    private Boolean mIs5gAwareSupported = null;
 
     // peer found data
     private static class PeerFoundSession {
@@ -168,7 +168,7 @@ public class WifiAwareMetrics {
         long mFromDiscoveryLatencyMs;
         int mRangingIndication;
         boolean mHasEverScreenOff;
-        Boolean mIs5gAwareSupported;
+        boolean mIs5gAwareSupported;
         boolean mIsStaConnected;
         int mStaFrequency;
     }
@@ -1149,9 +1149,9 @@ public class WifiAwareMetrics {
             return;
         }
         Log.v(TAG, "Update peer found for clientId= " + clientId
-                + "sessionId= " +  sessionId
-                + "result= " + result
-                + "rangingIndication" + rangingIndication);
+                + ", sessionId= " +  sessionId
+                + ", result= " + result
+                + ", rangingIndication= " + rangingIndication);
 
         // Aware info
         long currentTimeMs = mClock.getElapsedSinceBootMillis();
@@ -1159,7 +1159,7 @@ public class WifiAwareMetrics {
         data.mFromDiscoveryLatencyMs = currentTimeMs - mDiscoveryStartTimeMsMap.get(sessionId, 0);
         data.mPeerFoundResult = result;
         data.mHasEverScreenOff = mHasEverScreenOffMap.get(clientId, !mCurrentScreenState);
-        data.mIs5gAwareSupported = mIs5gAwareSupported;
+        data.mIs5gAwareSupported = mIs5gAwareSupported == null ? false : mIs5gAwareSupported;
         data.mRangingIndication = data.mRangingIndication | rangingIndication;
         // Wifi STA info
         if (mWifiManager != null) {
@@ -1182,15 +1182,14 @@ public class WifiAwareMetrics {
             Log.e(TAG, "No peer found data for clientId= " + clientId);
             return;
         }
-        Log.v(TAG, "Report peer found result for clientId= " + clientId
-                + ", sessionId= " + sessionId);
         // Never found peer, update SESSION_TERMINATED status
         if (data.mPeerFoundResult
                 == WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__RESULT_UNKNOWN) {
             updatePeerFoundResult(clientId, sessionId,
                     WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__SESSION_TERMINATED, 0);
         }
-
+        Log.v(TAG, "Report peer found result for clientId= " + clientId
+                + ", sessionId= " + sessionId);
         // Log final peer found status
         int[] uid = new int[]{mDiscoveryUidMap.get(sessionId, 0)};
         String[] tag = new String[]{mDiscoveryAttributionTagMap.get(sessionId)};

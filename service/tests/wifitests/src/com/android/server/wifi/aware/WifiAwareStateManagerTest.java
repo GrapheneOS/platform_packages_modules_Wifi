@@ -1080,6 +1080,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (5) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
+        verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
+                eq(sessionId.getValue()));
 
         // (6) app updates session (app already knows that terminated - will get
         // a local FAIL).
@@ -1636,6 +1638,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (5) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
+        verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
+                eq(sessionId.getValue()));
 
         // (6) app updates session
         mDut.updateSubscribe(clientId, sessionId.getValue(), subscribeConfig);
@@ -4811,6 +4815,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (10) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
+        verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
+                eq(sessionId.getValue()));
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock).reportAwareInstantModeEnabled(anyBoolean());
@@ -4958,6 +4964,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (9) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
+        verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
+                eq(sessionId.getValue()));
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock).reportAwareInstantModeEnabled(anyBoolean());
@@ -5113,6 +5121,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (9) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
+        verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
+                eq(sessionId.getValue()));
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock).reportAwareInstantModeEnabled(anyBoolean());
@@ -5257,6 +5267,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (8) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
+        verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
+                eq(sessionId.getValue()));
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
@@ -5393,6 +5405,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (7) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
+        verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
+                eq(sessionId.getValue()));
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
@@ -5500,6 +5514,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (10) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
+        verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
+                eq(sessionId.getValue()));
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
@@ -5608,6 +5624,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (10) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
+        verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
+                eq(sessionId.getValue()));
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
