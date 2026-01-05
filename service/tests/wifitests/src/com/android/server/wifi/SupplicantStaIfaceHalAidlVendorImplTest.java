@@ -2006,6 +2006,8 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
      */
     @Test
     public void testCreateRttController() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(mDut.isServiceVersionAtLeast(5));
         executeAndValidateInitializationSequence();
         android.hardware.wifi.supplicant.ISupplicantWifiRttController rttControllerMock =
                 mock(android.hardware.wifi.supplicant.ISupplicantWifiRttController.class);
