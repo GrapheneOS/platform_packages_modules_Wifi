@@ -1893,11 +1893,21 @@ public class WifiScoreReportTest extends WifiBaseTest {
                 mExternalScoreUpdateObserverCbCaptor.capture());
         when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
         mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+        mWifiInfo.setNetworkId(TEST_NETWORK_ID);
 
         mExternalScoreUpdateObserverCbCaptor.getValue().unblockAllBssids();
         mLooper.dispatchAll();
         verify(mWifiBlocklistMonitor).clearBssidBlocklistForReason(
                 eq(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE));
+        verify(mWifiConnectivityManager, never())
+                .forceConnectivityScan(ClientModeImpl.WIFI_WORK_SOURCE);
+
+        mWifiInfo.setNetworkId(-1);
+        mExternalScoreUpdateObserverCbCaptor.getValue().unblockAllBssids();
+        mLooper.dispatchAll();
+        verify(mWifiBlocklistMonitor, times(2)).clearBssidBlocklistForReason(
+                eq(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE));
+        verify(mWifiConnectivityManager).forceConnectivityScan(ClientModeImpl.WIFI_WORK_SOURCE);
     }
 
     @Test
