@@ -346,8 +346,8 @@
     <string name="wifi_disconnect_dialog_positive_button">Continue</string>
     <string name="wifi_disconnect_dialog_negative_button">Cancel</string>
 
-    <string name="wifi_disconnect_dialog_new_connection_title">Connect to a new Wi\u2011Fi network?</string>
-    <string name="wifi_disconnect_dialog_new_connection_message"> <xliff:g id="app_name">%1$s</xliff:g> will disconnect when you connect to <xliff:g id="ssid">%2$s</xliff:g> network. </string>
+    <string name="wifi_disconnect_dialog_new_connection_title">Connect to a different Wi\u2011Fi network?</string>
+    <string name="wifi_disconnect_dialog_new_connection_message">Connecting to <xliff:g id="ssid">%2$s</xliff:g> will disconnect <xliff:g id="app_name">%1$s</xliff:g>. </string>
     <string name="wifi_disconnect_dialog_new_connection_positive_button">Connect</string>
 
 </resources>

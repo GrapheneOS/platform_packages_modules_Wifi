@@ -1600,7 +1600,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(netId);
             String message = mContext.getString(
                     R.string.wifi_disconnect_dialog_new_connection_message,
-                    appName, config.SSID);
+                    config.SSID, appName);
             String positiveButton = mContext.getString(
                     R.string.wifi_disconnect_dialog_new_connection_positive_button);
             String negativeButton = mContext.getString(
