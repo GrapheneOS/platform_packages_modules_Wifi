@@ -878,7 +878,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     @Override
     @Nullable
     public ProximityDetectionCharacteristics getProximityDetectionCharacteristics() {
-        enforceAccessPermission();
+        enforceNetworkStackPermission();
         if (VDBG) {
             Log.v(TAG, "getProximityDetectionCharacteristics:");
         }
@@ -905,12 +905,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
      */
     @Override
     public void setProximityDetectionDeviceName(@NonNull String deviceName) {
-        final int uid = getMockableCallingUid();
-        if (!checkNetworkSettingsOrNetworkStackPermission(
-                getMockableCallingUid())) {
-            throw new SecurityException(
-                    "Uid=" + uid + " is not allowed to setProximityDetectionDeviceName");
-        }
+        enforceNetworkStackPermission();
         if (VDBG) {
             Log.v(TAG, "setProximityDetectionDeviceName:" + deviceName);
         }
@@ -929,16 +924,11 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
      * See {@link WifiRttManager#getProximityDetectionRandomizedMacAddress()}
      */
     @Override
-    public MacAddress getProximityDetectionRandomizedMacAddress(@NonNull String callingFeatureId,
-            @NonNull String packageName, Bundle extras) {
-        Objects.requireNonNull(packageName, "packageName must not be null");
-        final int uid = getMockableCallingUid();
-        // permission checks
-        enforceRttManagementPermissions(uid, callingFeatureId, packageName,
-                extras);
+    public MacAddress getProximityDetectionRandomizedMacAddress() {
+        enforceNetworkStackPermission();
         if (VDBG) {
             Log.v(TAG, "getProximityDetectionRandomizedMacAddress:"
-                    + mProximityRangingRandomizedMacAddress + " uid=" + uid);
+                    + mProximityRangingRandomizedMacAddress);
         }
         if (mWifiRttController != null && mIsHALProximityRangingSupported) {
             return mProximityRangingRandomizedMacAddress;
@@ -951,17 +941,14 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
      * See {@link WifiRttManager#registerProximityDetectionMacAddressCallback(Executor,
      * WifiRttManager.ProximityDetectionMacAddressCallback)}
      */
-    public void registerProximityDetectionMacAddressCallback(@NonNull String callingFeatureId,
-            @NonNull String packageName, @NonNull IProximityDetectionMacAddressCallback callback,
-            Bundle extras) {
+    @Override
+    public void registerProximityDetectionMacAddressCallback(
+            @NonNull IProximityDetectionMacAddressCallback callback) {
         Objects.requireNonNull(callback, "Listener must not be null");
-        Objects.requireNonNull(packageName, "packageName must not be null");
-        final int uid = getMockableCallingUid();
-        // permission checks
-        enforceRttManagementPermissions(uid, callingFeatureId, packageName, extras);
+        enforceNetworkStackPermission();
         if (VDBG) {
             Log.v(TAG, "registerProximityDetectionMacAddressCallback: from pid="
-                    + Binder.getCallingPid() + ", uid=" + uid);
+                    + Binder.getCallingPid());
         }
         // TODO Add implementation
     }
@@ -970,17 +957,14 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
      * See {@link WifiRttManager#unregisterProximityDetectionMacAddressCallback(
      * WifiRttManager.ProximityDetectionMacAddressCallback)}
      */
-    public void unregisterProximityDetectionMacAddressCallback(@NonNull String callingFeatureId,
-            @NonNull String packageName, @NonNull IProximityDetectionMacAddressCallback callback,
-            Bundle extras) {
+    @Override
+    public void unregisterProximityDetectionMacAddressCallback(
+            @NonNull IProximityDetectionMacAddressCallback callback) {
         Objects.requireNonNull(callback, "Listener must not be null");
-        Objects.requireNonNull(packageName, "packageName must not be null");
-        final int uid = getMockableCallingUid();
-        // permission checks
-        enforceRttManagementPermissions(uid, callingFeatureId, packageName, extras);
+        enforceNetworkStackPermission();
         if (VDBG) {
             Log.v(TAG, "unregisterProximityDetectionMacAddressCallback: from pid="
-                    + Binder.getCallingPid() + ", uid=" + uid);
+                    + Binder.getCallingPid());
         }
         // TODO Add implementation
     }
@@ -993,10 +977,11 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     @Override
     public void startContinuousRanging(IBinder binder, String callingPackage,
             String callingFeatureId, WorkSource workSource, RangingRequest request,
-            IContinuousRangingResultCallback callback, Bundle extras) {
+            IContinuousRangingResultCallback callback) {
         Objects.requireNonNull(binder, "binder must not be null");
         Objects.requireNonNull(callback, "Callback must not be null");
         Objects.requireNonNull(callingPackage, "packageName must not be null");
+        enforceNetworkStackPermission();
         if (VDBG) {
             Log.v(TAG, "startContinuousRanging: binder=" + binder + ", callingPackage="
                     + callingPackage + ", workSource=" + workSource + ", request=" + request
@@ -1023,9 +1008,6 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             }
             return;
         }
-        // permission checks
-        enforceRttManagementPermissions(getMockableCallingUid(), callingFeatureId, callingPackage,
-                extras);
 
         // TODO check if PD is supported
 
@@ -1066,6 +1048,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
      */
     @Override
     public void stopContinuousRanging(WorkSource workSource) {
+        enforceNetworkStackPermission();
         if (VDBG) {
             Log.i(TAG, "stopContinuousRanging");
         }
@@ -1125,6 +1108,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         mProximityRangingRandomizedMacAddress = macAddress;
     }
 
+    private void enforceNetworkStackPermission() {
+        mContext.enforceCallingOrSelfPermission(android.Manifest.permission.NETWORK_STACK, TAG);
+    }
+
     private void enforceAccessPermission() {
         mContext.enforceCallingOrSelfPermission(android.Manifest.permission.ACCESS_WIFI_STATE, TAG);
     }
@@ -1141,41 +1128,6 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private boolean checkLocationHardware() {
         return mContext.checkCallingOrSelfPermission(android.Manifest.permission.LOCATION_HARDWARE)
                 == PackageManager.PERMISSION_GRANTED;
-    }
-
-    /**
-     * Check that the UID has one of the following permissions:
-     * {@link android.Manifest.permission.NETWORK_SETTINGS}
-     * {@link android.Manifest.permission.NETWORK_STACK}
-     *
-     * @param uid the UID to check
-     * @return whether the UID has any of the above permissions
-     */
-    private boolean checkNetworkSettingsOrNetworkStackPermission(int uid) {
-        return mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
-                || mWifiPermissionsUtil.checkNetworkStackPermission(uid);
-    }
-
-    /**
-     * Enforces the necessary permissions for a caller to access RTT management APIs.
-     *
-     * @param packageName The package name of the calling application.
-     */
-    private void enforceRttManagementPermissions(int uid, @NonNull String callingFeatureId,
-            @NonNull String packageName, Bundle extras) {
-        // permission checks
-        enforceLocationHardware();
-        enforceAccessPermission();
-        enforceChangePermission();
-        mWifiPermissionsUtil.checkPackage(uid, packageName);
-        if (!mWifiPermissionsUtil.checkNearbyDevicesPermission(
-                (AttributionSource) extras.getParcelable(
-                        WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE, AttributionSource.class),
-                true, "wifi proximity ranging")) {
-            // No nearby permission. Check for location permission.
-            mWifiPermissionsUtil.enforceFineLocationPermission(
-                    packageName, callingFeatureId, uid);
-        }
     }
 
     private void sendRttStateChangedBroadcast(boolean enabled) {

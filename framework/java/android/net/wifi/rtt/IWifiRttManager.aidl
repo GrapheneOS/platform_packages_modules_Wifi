@@ -37,16 +37,13 @@ interface IWifiRttManager {
     Bundle getRttCharacteristics();
     ProximityDetectionCharacteristics getProximityDetectionCharacteristics();
     void setProximityDetectionDeviceName(in String deviceName);
-    MacAddress getProximityDetectionRandomizedMacAddress(
-            in String callingFeatureId, in String callingPackage, in Bundle extras);
-    void registerProximityDetectionMacAddressCallback(in String callingFeatureId,
-            in String callingPackage, in IProximityDetectionMacAddressCallback callback,
-            in Bundle extras);
-    void unregisterProximityDetectionMacAddressCallback(in String callingFeatureId,
-            in String callingPackage, in IProximityDetectionMacAddressCallback callback,
-            in Bundle extras);
+    MacAddress getProximityDetectionRandomizedMacAddress();
+    void registerProximityDetectionMacAddressCallback(
+            in IProximityDetectionMacAddressCallback callback);
+    void unregisterProximityDetectionMacAddressCallback(
+            in IProximityDetectionMacAddressCallback callback);
     void startContinuousRanging(in IBinder binder, in String callingPackage,
             in String callingFeatureId, in WorkSource workSource, in RangingRequest request,
-            in IContinuousRangingResultCallback callback, in Bundle extras);
+            in IContinuousRangingResultCallback callback);
     void stopContinuousRanging(in WorkSource workSource);
 }
