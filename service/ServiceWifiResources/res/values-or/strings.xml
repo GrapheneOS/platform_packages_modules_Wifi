@@ -31,7 +31,7 @@
     <string name="wifi_suggestion_title" msgid="2564179935989099139">"ପ୍ରସ୍ତାବିତ ୱାଇ-ଫାଇ ନେଟ୍‌ୱାର୍କଗୁଡ଼ିକୁ ଅନୁମତି ଦେବେ?"</string>
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> ପ୍ରସ୍ତାବିତ ନେଟ୍‌ୱାର୍କଗୁଡ଼ିକ। ଡିଭାଇସ୍ ହୁଏତ ସ୍ୱଚାଳିତ ଭାବେ ସଂଯୋଗ ହୋଇପାରେ।"</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
-    <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"ନାହିଁ, ଥାଉ"</string>
+    <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"ନା, ଧନ୍ୟବାଦ"</string>
     <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> ୱାଇ-ଫାଇ ସହ ସଂଯୋଗ କରିବେ?"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"ଏହି ନେଟୱାର୍କଗୁଡ଼ିକ ଏକ SIM ID ପ୍ରାପ୍ତ କରେ ଯାହା ଡିଭାଇସର ଲୋକେସନ୍ ଟ୍ରାକ୍ କରିବାରେ ବ୍ୟବହାର କରାଯାଇପାରିବ"</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"ସଂଯୋଗ କରନ୍ତୁ"</string>
