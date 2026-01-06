@@ -1138,11 +1138,9 @@ public class WifiRttManagerTest {
     public void testGetProximityDetectionRandomizedMacAddress() throws Exception {
         assumeTrue(Environment.isSdkNewerThanB());
         MacAddress macAddress = MacAddress.fromString("00:01:02:03:04:05");
-        when(mockRttService.getProximityDetectionRandomizedMacAddress(eq(featureId),
-                eq(packageName), any(Bundle.class))).thenReturn(macAddress);
+        when(mockRttService.getProximityDetectionRandomizedMacAddress()).thenReturn(macAddress);
         assertEquals(macAddress, mDut.getProximityDetectionRandomizedMacAddress());
-        verify(mockRttService).getProximityDetectionRandomizedMacAddress(eq(featureId),
-                eq(packageName), any(Bundle.class));
+        verify(mockRttService).getProximityDetectionRandomizedMacAddress();
     }
 
     @Test
@@ -1150,9 +1148,8 @@ public class WifiRttManagerTest {
         assumeTrue(Environment.isSdkNewerThanB());
         Consumer<MacAddress> callback = mock(Consumer.class);
         mDut.registerProximityDetectionMacAddressCallback(mMockLooperExecutor, callback);
-        verify(mockRttService).registerProximityDetectionMacAddressCallback(eq(featureId),
-                eq(packageName), any(IProximityDetectionMacAddressCallback.class),
-                any(Bundle.class));
+        verify(mockRttService).registerProximityDetectionMacAddressCallback(
+                any(IProximityDetectionMacAddressCallback.class));
     }
 
     @Test
@@ -1178,8 +1175,7 @@ public class WifiRttManagerTest {
         Consumer<MacAddress> callback = mock(Consumer.class);
         mDut.registerProximityDetectionMacAddressCallback(mMockLooperExecutor, callback);
         verify(mockRttService, times(1)).registerProximityDetectionMacAddressCallback(
-                eq(featureId), eq(packageName), any(IProximityDetectionMacAddressCallback.class),
-                any(Bundle.class));
+                any(IProximityDetectionMacAddressCallback.class));
     }
 
     @Test
@@ -1188,9 +1184,8 @@ public class WifiRttManagerTest {
         Consumer<MacAddress> callback = mock(Consumer.class);
         mDut.registerProximityDetectionMacAddressCallback(mMockLooperExecutor, callback);
         mDut.unregisterProximityDetectionMacAddressCallback(callback);
-        verify(mockRttService).unregisterProximityDetectionMacAddressCallback(eq(featureId),
-                eq(packageName), any(IProximityDetectionMacAddressCallback.class),
-                any(Bundle.class));
+        verify(mockRttService).unregisterProximityDetectionMacAddressCallback(
+                any(IProximityDetectionMacAddressCallback.class));
     }
 
     @Test
@@ -1199,8 +1194,7 @@ public class WifiRttManagerTest {
         Consumer<MacAddress> callback = mock(Consumer.class);
         mDut.unregisterProximityDetectionMacAddressCallback(callback);
         verify(mockRttService, never()).unregisterProximityDetectionMacAddressCallback(
-                eq(featureId), eq(packageName),
-                any(IProximityDetectionMacAddressCallback.class), any(Bundle.class));
+                any(IProximityDetectionMacAddressCallback.class));
     }
 
     // New tests for Proximity Detection Ranging APIs
@@ -1376,10 +1370,10 @@ public class WifiRttManagerTest {
 
         verify(mockRttService).startContinuousRanging(any(IBinder.class), eq(packageName),
                 eq(featureId), eq(null), eq(request),
-                any(IContinuousRangingResultCallback.class), any(Bundle.class));
+                any(IContinuousRangingResultCallback.class));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testStartContinuousRangingWithNullCallback() throws Exception {
         assumeTrue(Environment.isSdkNewerThanB());
         RangingRequest request = new RangingRequest.Builder()
