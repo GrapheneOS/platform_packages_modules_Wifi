@@ -16,12 +16,15 @@
 
 package com.android.server.wifi.p2p;
 
+import android.net.wifi.util.Environment;
 import android.os.IBinder;
 import android.os.IBinder.DeathRecipient;
 import android.os.RemoteException;
+import android.os.ServiceSpecificException;
 import android.util.Log;
 
 import com.android.server.wifi.WifiInjector;
+import com.android.wifi.flags.Flags;
 
 /**
  * Implementation of Supplicant P2P Iface HAL using the vendor AIDL service.
@@ -105,6 +108,33 @@ public class SupplicantP2pIfaceHalAidlVendorImpl extends SupplicantP2pIfaceHalAi
     public boolean isInitializationComplete() {
         synchronized (mLock) {
             return mISupplicant != null;
+        }
+    }
+
+    @Override
+    protected boolean setCurrentUserIdentity(int userId) {
+        final String methodStr = "setCurrentUserIdentity";
+        if (!Environment.isSdkNewerThanB() || !Flags.multiUserWifiEnhancement()) {
+            return true;
+        }
+        synchronized (mLock) {
+            if (mISupplicant == null) {
+                Log.e(TAG, "mISupplicant is null");
+                return false;
+            }
+            if (getCachedServiceVersion() < 5) {
+                return true;
+            }
+            try {
+                mISupplicant.setCurrentUserIdentity(userId);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+                return false;
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+                return false;
+            }
         }
     }
 }

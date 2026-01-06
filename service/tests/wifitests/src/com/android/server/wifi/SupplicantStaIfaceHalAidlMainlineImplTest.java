@@ -85,6 +85,7 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
     @Mock private PackageManager mPackageManager;
     @Mock private ISupplicantStaIface mISupplicantStaIfaceMock;
     @Mock private WifiConfigManager mWifiConfigManager;
+    @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
 
     private MockitoSession mSession;
     private TestLooper mLooper = new TestLooper();
@@ -130,7 +131,9 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
         when(mIMainlineSupplicantMock.asBinder()).thenReturn(mServiceBinderMock);
         when(mIMainlineSupplicantMock.getVendorSupplicant()).thenReturn(mISupplicantMock);
         when(mWifiInjector.getWifiConfigManager()).thenReturn(mWifiConfigManager);
+        when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(mWifiConfigManager.getCurrentUserId()).thenReturn(0);
+        when(mISupplicantMock.getInterfaceVersion()).thenReturn(5);
 
         mDut = new SupplicantStaIfaceHalSpy(mContext, mWifiMonitor, mHandler, mClock,
                 mWifiMetrics, mWifiGlobals, mSsidTranslator, mWifiInjector);

@@ -362,22 +362,14 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
         }
     }
 
-    private boolean setCurrentUserIdentity(int userId) {
-        synchronized (mLock) {
-            final String methodStr = "setCurrentUserIdentity";
-            if (!checkSupplicantAndLogFailure(methodStr)) {
-                return false;
-            }
-            try {
-                mISupplicant.setCurrentUserIdentity(userId);
-                return true;
-            } catch (RemoteException e) {
-                handleRemoteException(e, methodStr);
-            } catch (ServiceSpecificException e) {
-                handleServiceSpecificException(e, methodStr);
-            }
-            return false;
-        }
+    /**
+     * Set the user identity for the supplicant.
+     *
+     * @param userId The user identity to set.
+     * @return true on success, false otherwise.
+     */
+    protected boolean setCurrentUserIdentity(int userId) {
+        return true;
     }
 
     /**

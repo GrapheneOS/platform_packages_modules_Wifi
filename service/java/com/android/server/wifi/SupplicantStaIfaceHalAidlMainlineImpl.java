@@ -191,13 +191,13 @@ public class SupplicantStaIfaceHalAidlMainlineImpl extends SupplicantStaIfaceHal
                     return false;
                 }
                 Log.i(TAG, "Obtained ISupplicant binder.");
+                getStableAidlServiceVersion();
 
                 mWaitForDeathLatch = null;
                 mIMainlineSupplicant.asBinder()
                         .linkToDeath(mSupplicantDeathRecipient, /* flags= */  0);
                 setLogLevel(mVerboseHalLoggingEnabled);
                 registerNonStandardCertCallback();
-
             } catch (RemoteException e) {
                 handleRemoteException(e, methodStr);
                 return false;
@@ -208,6 +208,19 @@ public class SupplicantStaIfaceHalAidlMainlineImpl extends SupplicantStaIfaceHal
 
             Log.i(TAG, "Service was started successfully");
             return true;
+        }
+    }
+
+    private void getStableAidlServiceVersion() throws RemoteException {
+        synchronized (mLock) {
+            if (mISupplicant == null) return;
+            if (mServiceVersion == -1) {
+                mServiceVersion = mISupplicant.getInterfaceVersion();
+                mWifiInjector.getSettingsConfigStore().put(
+                        WifiSettingsConfigStore.SUPPLICANT_HAL_AIDL_SERVICE_VERSION,
+                        mServiceVersion);
+                Log.i(TAG, "Remote service version was cached");
+            }
         }
     }
 
@@ -222,6 +235,40 @@ public class SupplicantStaIfaceHalAidlMainlineImpl extends SupplicantStaIfaceHal
     public boolean isInitializationComplete() {
         synchronized (mLock) {
             return mIMainlineSupplicant != null && mISupplicant != null;
+        }
+    }
+
+    @Override
+    protected boolean setCurrentUserIdentity(int userId) {
+        synchronized (mLock) {
+            if (mIMainlineSupplicant == null) {
+                Log.e(TAG, "mIMainlineSupplicant is null");
+                return false;
+            }
+            // If the service version is at least 5, use the ISupplicant binder directly.
+            // Otherwise, use the IMainlineSupplicant binder.
+            if (isServiceVersionAtLeast(5)) {
+                try {
+                    mISupplicant.setCurrentUserIdentity(userId);
+                    return true;
+                } catch (RemoteException e) {
+                    handleRemoteException(e, "setCurrentUserIdentity");
+                    return false;
+                } catch (ServiceSpecificException e) {
+                    handleServiceSpecificException(e, "setCurrentUserIdentity");
+                    return false;
+                }
+            }
+            try {
+                mIMainlineSupplicant.setCurrentUserIdentity(userId);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, "setCurrentUserIdentity");
+                return false;
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, "setCurrentUserIdentity");
+                return false;
+            }
         }
     }
 
