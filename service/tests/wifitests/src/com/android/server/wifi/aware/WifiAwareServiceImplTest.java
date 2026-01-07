@@ -45,6 +45,7 @@ import android.content.pm.PackageManager;
 import android.net.wifi.OuiKeyedData;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.aware.AwareDataPathRequest;
 import android.net.wifi.aware.Characteristics;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
@@ -822,6 +823,43 @@ public class WifiAwareServiceImplTest extends WifiBaseTest {
                 return null;
             }
         });
+    }
+
+    @Test
+    public void testRequestDataPath() {
+        int sessionId = 123;
+        int peerId = 456;
+        AwareDataPathRequest request = mock(AwareDataPathRequest.class);
+        int clientId = doConnect();
+
+        mDut.requestDataPath(clientId, sessionId, peerId, request);
+
+        verify(mAwareStateManagerMock).requestDataPath(clientId, sessionId, peerId, request);
+    }
+
+    @Test
+    public void testRespondToDataPath() {
+        int sessionId = 123;
+        int peerId = 456;
+        AwareDataPathRequest request = mock(AwareDataPathRequest.class);
+        boolean accept = true;
+        int clientId = doConnect();
+
+        mDut.respondToDataPath(clientId, sessionId, peerId, request, accept);
+
+        verify(mAwareStateManagerMock).respondToDataPathRequest(clientId, sessionId, peerId,
+                request, accept);
+    }
+
+    @Test
+    public void testReleaseDataPath() throws Exception {
+        int sessionId = 123;
+        int peerId = 456;
+        int clientId = doConnect();
+
+        mDut.releaseDataPath(clientId, sessionId, peerId);
+
+        verify(mAwareStateManagerMock).releaseDataPathRequest(clientId, sessionId, peerId);
     }
 
     @Test

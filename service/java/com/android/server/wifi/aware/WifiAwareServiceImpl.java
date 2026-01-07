@@ -678,6 +678,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
                     + ", peerId=" + peerId
                     + ", request=" + request);
         }
+        mStateManager.requestDataPath(clientId, sessionId, peerId, request);
     }
 
     @Override
@@ -694,6 +695,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
                     + ", request=" + request
                     + ", accept=" + accept);
         }
+        mStateManager.respondToDataPathRequest(clientId, sessionId, peerId, request, accept);
     }
 
     @Override
@@ -706,6 +708,7 @@ public class WifiAwareServiceImpl extends IWifiAwareManager.Stub {
             Log.v(TAG, "releaseDataPath: clientId=" + clientId + ", sessionId=" + sessionId
                     + ", peerId=" + peerId);
         }
+        mStateManager.releaseDataPathRequest(clientId, sessionId, peerId);
     }
 
     @Override
