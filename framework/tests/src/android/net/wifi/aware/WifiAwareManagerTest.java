@@ -47,8 +47,8 @@ import android.net.wifi.RttManager;
 import android.net.wifi.SynchronousExecutor;
 import android.net.wifi.util.Environment;
 import android.net.wifi.util.HexEncoding;
-import android.os.Build;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Parcel;
@@ -2168,37 +2168,38 @@ public class WifiAwareManagerTest {
         java.util.Map<String, String> txtRecord = new java.util.HashMap<>();
         txtRecord.put("key1", "value1");
         txtRecord.put("key2", "value2");
-        byte[] tlvBuffer = WifiAwareManager.getTxtRecordTlvBuffer(txtRecord);
-        java.util.Map<String, String> rereadTxtRecord = WifiAwareManager.getTxtRecordMap(tlvBuffer);
+        byte[] tlvBuffer = WifiAwareManager.createTxtRecordTlvBuffer(txtRecord);
+        java.util.Map<String, String> rereadTxtRecord = WifiAwareManager
+                .createTxtRecordMap(tlvBuffer);
         assertEquals(txtRecord, rereadTxtRecord);
 
         // 2. empty TXT record
         txtRecord.clear();
-        tlvBuffer = WifiAwareManager.getTxtRecordTlvBuffer(txtRecord);
-        rereadTxtRecord = WifiAwareManager.getTxtRecordMap(tlvBuffer);
+        tlvBuffer = WifiAwareManager.createTxtRecordTlvBuffer(txtRecord);
+        rereadTxtRecord = WifiAwareManager.createTxtRecordMap(tlvBuffer);
         assertEquals(txtRecord, rereadTxtRecord);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testGetTxtRecordMapInvalidTlv() {
-        WifiAwareManager.getTxtRecordMap(new byte[10]);
+    public void testCreateTxtRecordMapInvalidTlv() {
+        WifiAwareManager.createTxtRecordMap(new byte[10]);
     }
 
     @Test(expected = NullPointerException.class)
-    public void testGetTxtRecordTlvBufferNull() {
-        WifiAwareManager.getTxtRecordTlvBuffer(null);
+    public void testCreateTxtRecordTlvBufferNull() {
+        WifiAwareManager.createTxtRecordTlvBuffer(null);
     }
 
     @Test(expected = NullPointerException.class)
-    public void testGetTxtRecordMapNull() {
-        WifiAwareManager.getTxtRecordMap(null);
+    public void testCreateTxtRecordMapNull() {
+        WifiAwareManager.createTxtRecordMap(null);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testGetTxtRecordTlvBufferEmptyKey() {
+    public void testCreateTxtRecordTlvBufferEmptyKey() {
         java.util.Map<String, String> txtRecord = new java.util.HashMap<>();
         txtRecord.put("", "value");
-        WifiAwareManager.getTxtRecordTlvBuffer(txtRecord);
+        WifiAwareManager.createTxtRecordTlvBuffer(txtRecord);
     }
 
     @Test
