@@ -3967,6 +3967,49 @@ public class WifiScanningServiceTest extends WifiBaseTest {
         verify(mBatteryStats).reportWifiScanStoppedFromSource(eq(ws));
     }
 
+    /**
+     * Verify that when an emergency scan fails, an alarm is dispatch to turn off wifi.
+     */
+    @Test
+    public void startServiceAndTriggerEmergencySingleScanWithoutDriverLoaded_Failure()
+            throws Exception {
+        mWifiScanningServiceImpl.startService();
+        mLooper.dispatchAll();
+        TestClient client = new TestClient();
+        InOrder order = inOrder(client.listener, mWifiScannerImpl0);
+        WorkSource ws = new WorkSource(2292);
+        // successful start
+        when(mWifiScannerImpl0.startSingleScan(any(WifiNative.ScanSettings.class),
+                any(WifiNative.ScanEventHandler.class))).thenReturn(true);
+
+        // emergency scan request
+        WifiScanner.ScanSettings requestSettings =
+                triggerEmergencySingleScanAndVerify(ws, client);
+
+        // Indicate start of emergency scan.
+        verify(mWifiManager).setEmergencyScanRequestInProgress(true);
+
+        // Now simulate WifiManager enabling scanning.
+        setupAndLoadDriver(TEST_MAX_SCAN_BUCKETS_IN_CAPABILITIES);
+
+        // verify scan start
+        WifiNative.ScanEventHandler eventHandler =
+                verifyStartSingleScan(order, computeSingleScanNativeSettings(requestSettings));
+        verify(mBatteryStats).reportWifiScanStartedFromSource(eq(ws));
+
+        // Simulate the scan failure
+        eventHandler.onScanRequestFailed(WifiScanner.REASON_ABORT);
+        mLooper.dispatchAll();
+        client.verifyFailedResponse(
+                WifiScanner.REASON_ABORT,
+                "Scan aborted");
+
+        // Ensure that we indicate the end of emergency scan processing after the timeout.
+        mAlarmManager.dispatch(EMERGENCY_SCAN_END_INDICATION_ALARM_TAG);
+        mLooper.dispatchAll();
+        verify(mWifiManager).setEmergencyScanRequestInProgress(false);
+    }
+
     @Test
     public void startServiceAndTriggerEmergencySingleScanWithoutDriverLoaded() throws Exception {
         mWifiScanningServiceImpl.startService();

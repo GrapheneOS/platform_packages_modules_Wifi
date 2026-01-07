@@ -1692,6 +1692,7 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
 
         void sendOpFailedToAllAndClear(RequestList<?> clientHandlers, int reason,
                 String description) {
+            boolean emergencyScanFailed = false;
             for (RequestInfo<?> entry : clientHandlers) {
                 logCallback("singleScanFailed", entry.clientInfo,
                         "reason=" + reason + ", " + description);
@@ -1701,6 +1702,24 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                     loge("Failed to call onFailure: " + entry.clientInfo);
                 }
                 entry.clientInfo.unregister();
+                Object settings = entry.settings;
+                if (settings != null && settings instanceof WifiScanner.ScanSettings) {
+                    if (((WifiScanner.ScanSettings) settings).ignoreLocationSettings) {
+                        emergencyScanFailed = true;
+                    }
+                }
+            }
+            if (emergencyScanFailed) {
+                // We were processing an emergency scan failure, post alarm to inform WifiManager
+                // end of that scan processing. If another scan is processed before the alarm fires,
+                // this timer is restarted (AlarmManager.set() using the same listener resets the
+                // timer). This delayed indication of emergency scan end prevents
+                // quick wifi toggle on/off if there is a burst of emergency scans when wifi is off.
+                mAlarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                        mClock.getElapsedSinceBootMillis()
+                                + EMERGENCY_SCAN_END_INDICATION_DELAY_MILLIS,
+                        EMERGENCY_SCAN_END_INDICATION_ALARM_TAG,
+                        mEmergencyScanEndIndicationListener, getHandler());
             }
             clientHandlers.clear();
         }
