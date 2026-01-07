@@ -19,8 +19,9 @@ package com.android.server.wifi.entitlement.http;
 import com.android.libraries.entitlement.http.HttpConstants.ContentType;
 
 import com.google.auto.value.AutoValue;
-import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,17 +50,26 @@ public abstract class HttpResponse {
     public abstract String responseMessage();
 
     /**
-     * Content of the "Set-Cookie" response header.
+     * Content of the "Set-Cookie" response header. Deep immutability is enforced in the builder.
      */
-    public abstract ImmutableList<String> cookies();
+    @SuppressWarnings("AutoValueImmutableFields")
+    public abstract List<String> cookies();
 
     /**
      * Builder of {@link HttpResponse}.
      */
     @AutoValue.Builder
     public abstract static class Builder {
+        /** Internal method for AutoValue to build the class. */
+        abstract HttpResponse autoBuild();
+
         /** Builds a HttpResponse object. */
-        public abstract HttpResponse build();
+        public HttpResponse build() {
+            // We need a deep copy to firewall the returned instance from any Builder reuse and
+            // ensure immutability.
+            setCookies(Collections.unmodifiableList(new ArrayList<>(cookies())));
+            return autoBuild();
+        }
 
         /**
          * Set the content type of the response to the {@link HttpResponse#Builder}.
@@ -85,6 +95,9 @@ public abstract class HttpResponse {
          * Sets the content of the "Set-Cookie" response headers.
          */
         public abstract Builder setCookies(List<String> cookies);
+
+        /** Returns the cookies. */
+        abstract List<String> cookies();
     }
 
     /**
@@ -96,7 +109,7 @@ public abstract class HttpResponse {
                 .setBody("")
                 .setResponseCode(0)
                 .setResponseMessage("")
-                .setCookies(ImmutableList.of());
+                .setCookies(Collections.emptyList());
     }
 
     /**

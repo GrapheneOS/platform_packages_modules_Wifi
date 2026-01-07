@@ -30,14 +30,13 @@ import com.android.libraries.entitlement.EapAkaHelper;
 import com.android.libraries.entitlement.ServiceEntitlementException;
 import com.android.modules.utils.BackgroundThread;
 import com.android.server.wifi.entitlement.http.HttpClient;
+import com.android.server.wifi.entitlement.http.HttpConstants.Headers;
 import com.android.server.wifi.entitlement.http.HttpConstants.RequestMethod;
 import com.android.server.wifi.entitlement.http.HttpRequest;
 import com.android.server.wifi.entitlement.http.HttpResponse;
 import com.android.server.wifi.entitlement.response.ChallengeResponse;
 import com.android.server.wifi.entitlement.response.GetImsiPseudonymResponse;
 import com.android.server.wifi.entitlement.response.Response;
-
-import com.google.common.net.HttpHeaders;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -105,9 +104,9 @@ public class CarrierSpecificServiceEntitlement {
         mHttpRequestBuilder = HttpRequest.builder()
                 .setUrl(serverUrl)
                 .setRequestMethod(RequestMethod.POST)
-                .addRequestProperty(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
-                .addRequestProperty(HttpHeaders.CONTENT_ENCODING, ENCODING_GZIP)
-                .addRequestProperty(HttpHeaders.ACCEPT, MIME_TYPE_JSON)
+                .addRequestProperty(Headers.CONTENT_TYPE, MIME_TYPE_JSON)
+                .addRequestProperty(Headers.CONTENT_ENCODING, ENCODING_GZIP)
+                .addRequestProperty(Headers.ACCEPT, MIME_TYPE_JSON)
                 .setTimeoutInSec(CONNECT_TIMEOUT_SECS);
         mEapAkaHelper = eapAkaHelper;
         mBackgroundHandler = backgroundHandler;
@@ -283,4 +282,3 @@ public class CarrierSpecificServiceEntitlement {
         void onFailure(int carrierId, @FailureReasonCode int reasonCode, String description);
     }
 }
-
