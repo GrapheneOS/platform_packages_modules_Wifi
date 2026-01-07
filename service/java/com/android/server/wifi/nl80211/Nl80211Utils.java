@@ -119,8 +119,6 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.net.module.util.netlink.StructNlAttr;
 import com.android.net.module.util.netlink.StructNlMsgHdr;
 
-import java.net.NetworkInterface;
-import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -542,17 +540,13 @@ public class Nl80211Utils {
     private int getIfaceIndex(@NonNull String ifaceName) {
         Objects.requireNonNull(ifaceName);
 
-        try {
-            NetworkInterface netIface = NetworkInterface.getByName(ifaceName);
-            if (netIface == null) {
-                Log.e(TAG, "Failed to get NetworkInterface for " + ifaceName);
-                return -1;
-            }
-            return netIface.getIndex();
-        } catch (SocketException e) {
-            Log.e(TAG, "Failed to get iface index for " + ifaceName, e);
+        InterfaceInfo ifaceInfo = getInterfaceInfo(ifaceName);
+        if (ifaceInfo == null) {
+            Log.e(TAG, "Failed to get interface info for " + ifaceName);
             return -1;
         }
+
+        return ifaceInfo.ifIndex;
     }
 
     /**
@@ -567,41 +561,13 @@ public class Nl80211Utils {
             return mCachedWiphyIndexes.get(ifaceName);
         }
 
-        int ifIndex = getIfaceIndex(ifaceName);
-        if (ifIndex == -1) {
+        InterfaceInfo info = getInterfaceInfo(ifaceName);
+        if (info == null) {
             return -1;
         }
 
-        StructNlAttr ifIndexAttr = new StructNlAttr(NL80211_ATTR_IFINDEX, ifIndex);
-
-        GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_WIPHY,
-                StructNlMsgHdr.NLM_F_DUMP, ifIndexAttr);
-
-        if (request == null) {
-            Log.e(TAG, "Failed to create GET_WIPHY request");
-            return -1;
-        }
-
-        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
-        if (response == null || response.isError()) {
-            Log.e(TAG, "Failed to get response for GET_WIPHY");
-            return -1;
-        }
-
-        for (GenericNetlinkMsg msg : response.getMessages()) {
-            if (msg.getCommand() != NL80211_CMD_NEW_WIPHY) {
-                Log.e(TAG, "Wrong command in response: " + msg.getCommand());
-                continue;
-            }
-            Integer wiphyIndex = msg.getAttributeValueAsInteger(NL80211_ATTR_WIPHY);
-            if (wiphyIndex != null) {
-                mCachedWiphyIndexes.put(ifaceName, wiphyIndex);
-                return wiphyIndex;
-            }
-        }
-
-        Log.e(TAG, "Failed to get wiphy index from reply message");
-        return -1;
+        mCachedWiphyIndexes.put(ifaceName, info.wiphyIndex);
+        return info.wiphyIndex;
     }
 
     /**
@@ -1061,22 +1027,13 @@ public class Nl80211Utils {
     }
 
     /**
-     * Gets information about all interfaces associated with a given wiphy.
-     * @param wiphyIndex The index of the wiphy device, or -1 to query all wiphys.
+     * Gets information about all interfaces.
      * @return A list of {@link InterfaceInfo} objects, or null on failure.
      */
     @Nullable
-    public List<InterfaceInfo> getInterfaces(int wiphyIndex) {
-        GenericNetlinkMsg request;
-        if (wiphyIndex != -1) {
-            StructNlAttr wiphyIndexAttr = new StructNlAttr(NL80211_ATTR_WIPHY, wiphyIndex);
-            request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
-                    StructNlMsgHdr.NLM_F_DUMP,
-                    wiphyIndexAttr);
-        } else {
-            request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
-                    StructNlMsgHdr.NLM_F_DUMP);
-        }
+    public List<InterfaceInfo> getInterfaces() {
+        GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(NL80211_CMD_GET_INTERFACE,
+                StructNlMsgHdr.NLM_F_DUMP);
 
         if (request == null) {
             Log.e(TAG, "Failed to create GET_INTERFACE request");
@@ -1117,27 +1074,18 @@ public class Nl80211Utils {
      */
     @Nullable
     public InterfaceInfo getInterfaceInfo(@NonNull String ifaceName) {
-        int wiphyIndex = getWiphyIndex(ifaceName);
-        if (wiphyIndex == -1) {
-            Log.e(TAG, "Failed to get wiphy index for " + ifaceName);
-            return null;
-        }
-
-        List<Nl80211Utils.InterfaceInfo> interfaces = getInterfaces(wiphyIndex);
+        List<Nl80211Utils.InterfaceInfo> interfaces = getInterfaces();
         if (interfaces == null) {
-            Log.e(TAG, "Failed to get interfaces for wiphy " + wiphyIndex);
+            Log.e(TAG, "Failed to get interfaces");
             return null;
         }
 
-        Nl80211Utils.InterfaceInfo foundInterface = null;
         for (Nl80211Utils.InterfaceInfo info : interfaces) {
             if (ifaceName.equals(info.name)) {
-                foundInterface = info;
-                break;
+                return info;
             }
         }
-
-        return foundInterface;
+        return null;
     }
 
     /**

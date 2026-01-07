@@ -3953,19 +3953,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
     }
 
     private int getInterfaces(PrintWriter pw) {
-        int wiphyIndex = -1;
-        String wiphyArg = getNextArg();
-        if (wiphyArg != null) {
-            try {
-                wiphyIndex = Integer.parseInt(wiphyArg);
-            } catch (NumberFormatException e) {
-                pw.println("Invalid wiphyIndex specified.");
-                return -1;
-            }
-        }
-
         List<Nl80211Utils.InterfaceInfo> interfaces =
-                mNl80211Native.getInterfaces(wiphyIndex);
+                mNl80211Native.getInterfaces();
         if (interfaces == null || interfaces.isEmpty()) {
             pw.println("No interfaces found.");
         } else {
@@ -4680,8 +4669,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  get-max-scan-ssids <interface>");
         pw.println("    Gets the max scan ssids of the interface.");
         pw.println("    -n Force use nl80211 implementation.");
-        pw.println("  get-interfaces <wiphyIndex>");
-        pw.println("    Lists all interfaces for the given wiphy index.");
+        pw.println("  get-interfaces");
+        pw.println("    Lists all interfaces.");
         pw.println("  setup-client-interface <interface>");
         pw.println("    For debugging. Sets up an interface via"
                 + " Nl80211Native.setupInterfaceForClientMode and outputs to logcat whenever scan"

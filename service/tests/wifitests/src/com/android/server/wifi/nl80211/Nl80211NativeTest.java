@@ -640,7 +640,7 @@ public class Nl80211NativeTest {
         mDut = initNl80211Native(false);
         List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
         interfaces.add(new Nl80211Utils.InterfaceInfo(1, 0, CLIENT_IFACE_NAME, new byte[6]));
-        when(mNl80211Utils.getInterfaces(anyInt())).thenReturn(interfaces);
+        when(mNl80211Utils.getInterfaces()).thenReturn(interfaces);
         List<String> interfaceNames = mDut.getInterfaceNames();
         assertEquals(List.of(CLIENT_IFACE_NAME), interfaceNames);
     }
@@ -649,7 +649,7 @@ public class Nl80211NativeTest {
     @Test
     public void testGetInterfaceNames_failure_returnsNull() {
         mDut = initNl80211Native(false);
-        when(mNl80211Utils.getInterfaces(anyInt())).thenReturn(null);
+        when(mNl80211Utils.getInterfaces()).thenReturn(null);
         List<String> interfaceNames = mDut.getInterfaceNames();
         assertNull(interfaceNames);
     }
@@ -694,7 +694,7 @@ public class Nl80211NativeTest {
     public void testSetupInterfaceForClientMode_getInterfacesFails() {
         mDut = initNl80211Native(false);
         when(mNl80211Utils.getWiphyIndex(CLIENT_IFACE_NAME)).thenReturn(0);
-        when(mNl80211Utils.getInterfaces(0)).thenReturn(null);
+        when(mNl80211Utils.getInterfaces()).thenReturn(null);
 
         assertEquals(false, mDut.setupInterfaceForClientMode(
                 CLIENT_IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
@@ -706,7 +706,7 @@ public class Nl80211NativeTest {
         when(mNl80211Utils.getWiphyIndex(CLIENT_IFACE_NAME)).thenReturn(0);
         List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
         interfaces.add(new Nl80211Utils.InterfaceInfo(0, 0, "anotheriface", new byte[6]));
-        when(mNl80211Utils.getInterfaces(0)).thenReturn(interfaces);
+        when(mNl80211Utils.getInterfaces()).thenReturn(interfaces);
 
         assertEquals(false, mDut.setupInterfaceForClientMode(
                 CLIENT_IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback));
