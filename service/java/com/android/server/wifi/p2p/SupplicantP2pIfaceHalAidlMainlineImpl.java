@@ -172,4 +172,39 @@ public class SupplicantP2pIfaceHalAidlMainlineImpl extends SupplicantP2pIfaceHal
             return mIMainlineSupplicant != null && mISupplicant != null;
         }
     }
+
+    @Override
+    protected boolean setCurrentUserIdentity(int userId) {
+        final String methodStr = "setCurrentUserIdentity";
+        synchronized (mLock) {
+            if (mIMainlineSupplicant == null) {
+                Log.e(TAG, "mIMainlineSupplicant is null");
+                return false;
+            }
+            // If the service version is at least 5, use the ISupplicant binder directly.
+            // Otherwise, use the IMainlineSupplicant binder.
+            if (getCachedServiceVersion() >= 5) {
+                try {
+                    mISupplicant.setCurrentUserIdentity(userId);
+                    return true;
+                } catch (RemoteException e) {
+                    handleRemoteException(e, methodStr);
+                    return false;
+                } catch (ServiceSpecificException e) {
+                    handleServiceSpecificException(e, methodStr);
+                    return false;
+                }
+            }
+            try {
+                mIMainlineSupplicant.setCurrentUserIdentity(userId);
+                return true;
+            } catch (RemoteException e) {
+                handleRemoteException(e, methodStr);
+                return false;
+            } catch (ServiceSpecificException e) {
+                handleServiceSpecificException(e, methodStr);
+                return false;
+            }
+        }
+    }
 }
