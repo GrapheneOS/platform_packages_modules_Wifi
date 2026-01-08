@@ -70,6 +70,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.ref.WeakReference;
 import java.nio.BufferOverflowException;
+import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -1235,7 +1236,7 @@ public class WifiAwareManager {
         }
         @Override
         public void onBootstrappingVerificationConfirmed(int peerId, boolean accept, int method,
-        byte[] serviceSpecificInfo) {
+                byte[] serviceSpecificInfo) {
             if (accept) {
                 mHandler.post(() -> mOriginalCallback.onBootstrappingSucceeded(
                         new PeerHandle(peerId), method, serviceSpecificInfo));
@@ -1516,14 +1517,15 @@ public class WifiAwareManager {
     }
 
     /**
-     * Get the TLV buffer containing the TXT record.
+     * Create the TLV buffer containing the TXT record as per the Wi-Fi Aware specifications 4.0
+     * Table 150.
      *
      * @param txtRecord txtMap TXT record with key/value pair in a map confirming to format defined
      *                  at http://files.dns-sd.org/draft-cheshire-dnsext-dns-sd.txt.
      * @return The TLV buffer containing the TXT record.
      */
     @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
-    public @NonNull static byte[] getTxtRecordTlvBuffer(@NonNull Map<String, String> txtRecord) {
+    public @NonNull static byte[] createTxtRecordTlvBuffer(@NonNull Map<String, String> txtRecord) {
         Objects.requireNonNull(txtRecord, "txtRecord cannot be null");
         TlvBufferUtils.TlvConstructor txt = new TlvBufferUtils.TlvConstructor(0, 1);
         txt.allocate(65535); // 65535 is the max size of text info.
@@ -1534,6 +1536,7 @@ public class WifiAwareManager {
                 txt.putString(0, entry.getKey() + "=" + entry.getValue());
         }
         TlvBufferUtils.TlvConstructor tlvBuffer = new TlvBufferUtils.TlvConstructor(1, 2);
+        tlvBuffer.setByteOrder(ByteOrder.LITTLE_ENDIAN);
         tlvBuffer.allocate(65538);
         tlvBuffer.putByteArray(4, txt.getArray());
 
@@ -1541,19 +1544,21 @@ public class WifiAwareManager {
     }
 
     /**
-     * Get the TXT record map from the TLV buffer.
+     * Create the TXT record map from the TLV buffer which generate by
+     * {@link #createTxtRecordTlvBuffer(Map)}
      *
      * @param txtRecordTlvBuffer The TLV buffer containing the TXT record.
      * @return The TXT record map.
      */
     @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
-    public @NonNull static Map<String, String> getTxtRecordMap(
-            @Nullable byte[] txtRecordTlvBuffer) {
+    public @NonNull static Map<String, String> createTxtRecordMap(
+            @NonNull byte[] txtRecordTlvBuffer) {
         Objects.requireNonNull(txtRecordTlvBuffer, "txtRecordTlvBuffer cannot be null");
-        if (!TlvBufferUtils.isValid(txtRecordTlvBuffer, 1, 2)) {
+        if (!TlvBufferUtils.isValidEndian(txtRecordTlvBuffer, 1, 2, ByteOrder.LITTLE_ENDIAN)) {
             throw new IllegalArgumentException("Invalid txtRecordTlvBuffer provided");
         }
         TlvBufferUtils.TlvIterable iter = new TlvBufferUtils.TlvIterable(1, 2, txtRecordTlvBuffer);
+        iter.setByteOrder(ByteOrder.LITTLE_ENDIAN);
         Map<String, String> txtRecord = new HashMap<>();
         for (TlvBufferUtils.TlvElement elem : iter) {
             if (elem.type == 4) {
