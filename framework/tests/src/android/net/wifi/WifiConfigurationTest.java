@@ -1054,6 +1054,8 @@ public class WifiConfigurationTest {
     @Test
     @RequiresFlagsEnabled(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public void testGetProfileKeyForPrivateNetworks() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(Flags.multiUserWifiEnhancement()).thenReturn(true);
         WifiConfiguration config = new WifiConfiguration();
         final String mSsid = "\"TestAp\"";
         config.SSID = mSsid;
