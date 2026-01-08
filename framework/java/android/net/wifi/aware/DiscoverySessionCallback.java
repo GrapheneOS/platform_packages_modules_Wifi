@@ -376,11 +376,7 @@ public class DiscoverySessionCallback {
      * @param peerHandle The bootstrapping peer handle
      * @param method     The bootstrapping method accepted by the peer
      *
-     * @deprecated Use {@link #onBootstrappingSucceeded(PeerHandle, int, byte[])} instead.
-     *             Once the new callback is overrided, this callback will not be triggered.
      */
-    @Deprecated
-    @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
     public void onBootstrappingSucceeded(@NonNull PeerHandle peerHandle,
             @AwarePairingConfig.BootstrappingMethod int method){
 
@@ -388,7 +384,11 @@ public class DiscoverySessionCallback {
 
     /**
      * Callback indicating that a Bootstrapping method negotiation succeeded.
-     * The follow-up out-of-band bootstrapping can start
+     * The follow-up out-of-band bootstrapping can start.
+     *
+     * <p>
+     * This variant is similar to {@link #onBootstrappingSucceeded(PeerHandle, int)}, but
+     * includes optional service specific information provided by the peer during the request.
      *
      * @param peerHandle The bootstrapping peer handle
      * @param method     The bootstrapping method accepted by the peer
