@@ -245,7 +245,7 @@ public class Nl80211Proxy {
         } catch (ErrnoException | IllegalArgumentException | InterruptedIOException e) {
             mWifiMetrics.reportNl80211CommandResult(sent,
                     WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_EXCEPTION);
-            Log.i(TAG, "Unable to receive Nl80211 messages. " + e);
+            Log.i(TAG, "Unable to receive Nl80211 messages. ", e);
             return null;
         }
         return new Nl80211Response(messages.toArray(new GenericNetlinkMsg[0]));
