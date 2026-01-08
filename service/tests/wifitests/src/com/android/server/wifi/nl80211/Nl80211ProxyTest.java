@@ -421,6 +421,55 @@ public class Nl80211ProxyTest {
                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_DONE));
     }
 
+    @Test
+    public void testReceiveNl80211Response_mixedSequenceNumbers_skipsMismatchedMessages()
+            throws Exception {
+        final int sentSeqNum = 10;
+        final int mismatchedSeqNum = sentSeqNum + 1;
+
+        GenericNetlinkMsg requestMsg = new GenericNetlinkMsg(
+                Nl80211TestUtils.TEST_COMMAND,
+                Nl80211TestUtils.TEST_TYPE,
+                Nl80211TestUtils.TEST_FLAGS,
+                sentSeqNum);
+        GenericNetlinkMsg correctResponse = new GenericNetlinkMsg(
+                (short) (Nl80211TestUtils.TEST_COMMAND + 2),
+                Nl80211TestUtils.TEST_TYPE,
+                StructNlMsgHdr.NLM_F_MULTI,
+                sentSeqNum);
+        StructNlMsgHdr doneHdr = new StructNlMsgHdr(
+                0, NLMSG_DONE, StructNlMsgHdr.NLM_F_MULTI, sentSeqNum);
+        ByteBuffer doneBuf = Nl80211TestUtils.createByteBuffer(doneHdr.nlmsg_len);
+        doneHdr.pack(doneBuf);
+        doneBuf.position(0);
+
+        GenericNetlinkMsg mismatchedResponse = new GenericNetlinkMsg(
+                (short) (Nl80211TestUtils.TEST_COMMAND + 1),
+                Nl80211TestUtils.TEST_TYPE,
+                StructNlMsgHdr.NLM_F_MULTI,
+                mismatchedSeqNum);
+        StructNlMsgHdr mismatchedDoneHdr = new StructNlMsgHdr(
+                0, NLMSG_DONE, StructNlMsgHdr.NLM_F_MULTI, mismatchedSeqNum);
+        ByteBuffer mismatchedDoneBuf =
+                Nl80211TestUtils.createByteBuffer(mismatchedDoneHdr.nlmsg_len);
+        mismatchedDoneHdr.pack(mismatchedDoneBuf);
+        mismatchedDoneBuf.position(0);
+
+        when(NetlinkUtils.recvMessage(any(), anyInt(), anyLong()))
+                .thenReturn(genericNetlinkMessagesToByteBuffer(mismatchedResponse))
+                .thenReturn(mismatchedDoneBuf)
+                .thenReturn(genericNetlinkMessagesToByteBuffer(correctResponse))
+                .thenReturn(doneBuf);
+
+        Nl80211Response response = mDut.sendMessageAndReceiveResponse(requestMsg);
+
+        // Mismatched message should be skipped, but we should still read the matching message.
+        assertNotNull(response);
+        assertFalse(response.isError());
+        assertEquals(1, response.getMessages().size());
+        assertTrue(correctResponse.equals(response.getMessages().get(0)));
+    }
+
     /**
      * Test that we can successfully send an Nl80211 message and receive a response using
      * the asynchronous send/receive method.
