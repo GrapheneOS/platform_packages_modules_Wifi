@@ -213,21 +213,8 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
                 // P2P iface already exists
                 return false;
             }
-            if (Environment.isSdkNewerThanB() && Flags.multiUserWifiEnhancement()
-                    && (getCachedServiceVersion() >= 5 || mIsUsingMainlineSupplicant)) {
-                final String methodStr = "setCurrentUserIdentity";
-                if (!checkSupplicantAndLogFailure(methodStr)) {
-                    return false;
-                }
-                try {
-                    mISupplicant.setCurrentUserIdentity(userId);
-                } catch (RemoteException e) {
-                    handleRemoteException(e, methodStr);
-                    return false;
-                } catch (ServiceSpecificException e) {
-                    handleServiceSpecificException(e, methodStr);
-                    return false;
-                }
+            if (!setCurrentUserIdentity(userId)) {
+                return false;
             }
             ISupplicantP2pIface iface = addIface(ifaceName);
             if (iface == null) {
@@ -249,6 +236,14 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
             return true;
         }
     }
+
+    /**
+     * Set the user identity for the supplicant.
+     *
+     * @param userId The user identity to set.
+     * @return true on success, false otherwise.
+     */
+    protected abstract boolean setCurrentUserIdentity(int userId);
 
     private ISupplicantP2pIface addIface(@NonNull String ifaceName) {
         synchronized (mLock) {
@@ -2864,7 +2859,7 @@ public abstract class SupplicantP2pIfaceHalAidlBase implements ISupplicantP2pIfa
         }
     }
 
-    private int getCachedServiceVersion() {
+    protected int getCachedServiceVersion() {
         if (mServiceVersion == -1) {
             mServiceVersion = mWifiInjector.getSettingsConfigStore().get(
                     WifiSettingsConfigStore.SUPPLICANT_HAL_AIDL_SERVICE_VERSION);

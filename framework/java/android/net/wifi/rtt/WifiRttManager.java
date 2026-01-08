@@ -349,13 +349,12 @@ public class WifiRttManager {
      *         or {@code null} if the feature is not supported or currently unavailable.
      *
      * @throws UnsupportedOperationException if the API is not supported on this SDK version.
-     * @throws SecurityException if the caller does not have the required permissions.
      * @hide
      */
     @SystemApi
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
-    @RequiresPermission(ACCESS_WIFI_STATE)
+    @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     @Nullable
     public ProximityDetectionCharacteristics getProximityDetectionCharacteristics() {
         if (!Environment.isSdkNewerThanB()) {
@@ -385,7 +384,6 @@ public class WifiRttManager {
      * *                   UTF-8 string, and its byte representation must not exceed 32 bytes.
      *
      * @throws UnsupportedOperationException if the API is not supported on this SDK version.
-     * @throws SecurityException if the caller does not have the required permissions.
      * @throws IllegalArgumentException if the {@code deviceName} is null, empty, or longer than
      *                                  32 characters.
      *
@@ -394,10 +392,7 @@ public class WifiRttManager {
     @SystemApi
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
-    @RequiresPermission(anyOf = {
-            android.Manifest.permission.NETWORK_SETTINGS,
-            android.Manifest.permission.NETWORK_STACK
-    })
+    @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void setProximityDetectionDeviceName(
             @NonNull @Size(min = 1, max = 32) String deviceName) {
         if (!Environment.isSdkNewerThanB()) {
@@ -431,29 +426,19 @@ public class WifiRttManager {
      * Register a callback using
      * {@link #registerProximityDetectionMacAddressCallback(Executor, Consumer)} to
      * receive updates on the randomized MAC address.
-     * <p>
-     * The application need to have the following permissions:
-     * {@link android.Manifest.permission#LOCATION_HARDWARE},
-     * {@link android.Manifest.permission#ACCESS_WIFI_STATE},
-     * {@link android.Manifest.permission#CHANGE_WIFI_STATE},
-     * and {@link android.Manifest.permission#NEARBY_WIFI_DEVICES} with
-     *     android:usesPermissionFlags="neverForLocation", or
-     *     {@link android.Manifest.permission#ACCESS_FINE_LOCATION}.
      *
      * @return The current randomized {@link MacAddress} for proximity detection operations.
      * Returns {@code null} if Proximity Detection is not supported, Wi-Fi is not currently active,
      * or if an error occurs.
      *
      * @throws UnsupportedOperationException if the API is not supported on this SDK version.
-     * @throws SecurityException if the caller does not have the required permissions.
      *
      * @hide
      */
     @SystemApi
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
-    @RequiresPermission(allOf = {LOCATION_HARDWARE, ACCESS_FINE_LOCATION, CHANGE_WIFI_STATE,
-            ACCESS_WIFI_STATE, NEARBY_WIFI_DEVICES}, conditional = true)
+    @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     @Nullable
     public MacAddress getProximityDetectionRandomizedMacAddress() {
         if (!Environment.isSdkNewerThanB()) {
@@ -466,8 +451,7 @@ public class WifiRttManager {
         extras.putParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE,
                 getAttributionSourceInternal());
         try {
-            return mService.getProximityDetectionRandomizedMacAddress(mContext.getAttributionTag(),
-                    mContext.getOpPackageName(), extras);
+            return mService.getProximityDetectionRandomizedMacAddress();
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -488,28 +472,18 @@ public class WifiRttManager {
      * registering this callback, an application is notified of the new MAC address as soon as it
      * changes. The application should then invalidate the old MAC address and update any ongoing
      * operations or re-share the new address with its peers as needed.
-     * <p>
-     * The application need to have the following permissions:
-     * {@link android.Manifest.permission#LOCATION_HARDWARE},
-     * {@link android.Manifest.permission#ACCESS_WIFI_STATE},
-     * {@link android.Manifest.permission#CHANGE_WIFI_STATE},
-     * and {@link android.Manifest.permission#NEARBY_WIFI_DEVICES} with
-     *     android:usesPermissionFlags="neverForLocation", or
-     *     {@link android.Manifest.permission#ACCESS_FINE_LOCATION}.
      *
      * @param executor The {@link Executor} on which to invoke the callback.
      * @param callback A {@link Consumer} that will be invoked with the new {@link MacAddress}.
      *
      * @throws UnsupportedOperationException if the API is not supported on this SDK version.
-     * @throws SecurityException if the caller does not have the required permissions.
      * @throws IllegalArgumentException if the callback or executor is null.
      * @hide
      */
     @RequiresApi(37)
     @SystemApi
     @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
-    @RequiresPermission(allOf = {LOCATION_HARDWARE, ACCESS_FINE_LOCATION, CHANGE_WIFI_STATE,
-            ACCESS_WIFI_STATE, NEARBY_WIFI_DEVICES}, conditional = true)
+    @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void registerProximityDetectionMacAddressCallback(
             @NonNull @CallbackExecutor Executor executor,
             @NonNull Consumer<MacAddress> callback) {
@@ -543,8 +517,7 @@ public class WifiRttManager {
                             }
                         };
                 sProximityDetectionMacAddressCallbackMap.put(callbackIdentifier, callbackProxy);
-                mService.registerProximityDetectionMacAddressCallback(mContext.getAttributionTag(),
-                        mContext.getOpPackageName(), callbackProxy, extras);
+                mService.registerProximityDetectionMacAddressCallback(callbackProxy);
             } catch (RemoteException e) {
                 sProximityDetectionMacAddressCallbackMap.remove(callbackIdentifier);
                 throw e.rethrowFromSystemServer();
@@ -555,15 +528,6 @@ public class WifiRttManager {
     /**
      * Unregisters a previously registered proximity detection MAC address callback.
      *
-     * <p>
-     * The application need to have the following permissions:
-     * {@link android.Manifest.permission#LOCATION_HARDWARE},
-     * {@link android.Manifest.permission#ACCESS_WIFI_STATE},
-     * {@link android.Manifest.permission#CHANGE_WIFI_STATE},
-     * and {@link android.Manifest.permission#NEARBY_WIFI_DEVICES} with
-     *     android:usesPermissionFlags="neverForLocation", or
-     *     {@link android.Manifest.permission#ACCESS_FINE_LOCATION}.
-     *
      * @param callback The {@link Consumer} to unregister.
      *
      * @throws UnsupportedOperationException if the API is not supported on this SDK version.
@@ -573,8 +537,7 @@ public class WifiRttManager {
     @RequiresApi(37)
     @SystemApi
     @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
-    @RequiresPermission(allOf = {LOCATION_HARDWARE, ACCESS_FINE_LOCATION, CHANGE_WIFI_STATE,
-            ACCESS_WIFI_STATE, NEARBY_WIFI_DEVICES}, conditional = true)
+    @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void unregisterProximityDetectionMacAddressCallback(
             @NonNull Consumer<MacAddress> callback) {
         if (!Environment.isSdkNewerThanB()) {
@@ -596,8 +559,7 @@ public class WifiRttManager {
                     return;
                 }
                 mService.unregisterProximityDetectionMacAddressCallback(
-                        mContext.getAttributionTag(), mContext.getOpPackageName(),
-                        sProximityDetectionMacAddressCallbackMap.get(callbackIdentifier), extras);
+                        sProximityDetectionMacAddressCallbackMap.get(callbackIdentifier));
             } catch (RemoteException e) {
                 throw e.rethrowFromSystemServer();
             } finally {
@@ -615,14 +577,6 @@ public class WifiRttManager {
      * exists, this request will fail and an {@code onRangingFailure()} callback with
      * {@code STATUS_BUSY} will be delivered. The existing session must be explicitly
      * terminated by calling {@link #stopContinuousRanging(WorkSource)}.
-     * <p>
-     * The application need to have the following permissions:
-     * {@link android.Manifest.permission#LOCATION_HARDWARE},
-     * {@link android.Manifest.permission#ACCESS_WIFI_STATE},
-     * {@link android.Manifest.permission#CHANGE_WIFI_STATE},
-     * and {@link android.Manifest.permission#NEARBY_WIFI_DEVICES} with
-     *     android:usesPermissionFlags="neverForLocation", or
-     *     {@link android.Manifest.permission#ACCESS_FINE_LOCATION}.
      *
      * @param workSource A mechanism to specify an alternative work-source for the request.
      * @param request  A request specifying a set of devices whose distance measurements are
@@ -635,8 +589,7 @@ public class WifiRttManager {
     @SystemApi
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
-    @RequiresPermission(allOf = {LOCATION_HARDWARE, ACCESS_FINE_LOCATION, CHANGE_WIFI_STATE,
-            ACCESS_WIFI_STATE, NEARBY_WIFI_DEVICES}, conditional = true)
+    @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void startContinuousRanging(@Nullable WorkSource workSource,
             @NonNull RangingRequest request,
             @NonNull @CallbackExecutor Executor executor,
@@ -679,18 +632,18 @@ public class WifiRttManager {
                             clearCallingIdentity();
                             executor.execute(() -> callback.onRangingStopped(reason));
                         }
-                    }, extras);
+                    });
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
     }
 
     /**
-     * Stop all continuous ranging requests for the specified work sources. The requests have been
-     * requested using {@link #startContinuousRanging(WorkSource, RangingRequest, Executor,
-     * ContinuousRangingResultCallback)}. This method will cause the
+     * Stop all continuous ranging requests for the specified work sources.
+     * The requests have been requested using {@link #startContinuousRanging(WorkSource,
+     * RangingRequest, Executor, ContinuousRangingResultCallback)}. This method will cause the
      * {@link ContinuousRangingResultCallback#onRangingStopped(int)} method to be invoked.
-     * Calling this when no continuous session is active has no effect.
+     * <p> Calling this when no continuous session is active has no effect.
      *
      * @param workSource The work-sources of the requesters.
      *
@@ -699,7 +652,7 @@ public class WifiRttManager {
     @SystemApi
     @RequiresApi(37)
     @FlaggedApi(Flags.FLAG_PROXIMITY_RANGING)
-    @RequiresPermission(allOf = {LOCATION_HARDWARE})
+    @RequiresPermission(android.Manifest.permission.NETWORK_STACK)
     public void stopContinuousRanging(@Nullable WorkSource workSource) {
         if (!Environment.isSdkNewerThanB()) {
             throw new UnsupportedOperationException();

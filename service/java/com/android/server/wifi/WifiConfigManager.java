@@ -3566,7 +3566,9 @@ public class WifiConfigManager {
      */
     public void resetSimNetworks() {
         if (mVerboseLoggingEnabled) localLog("resetSimNetworks");
-        for (WifiConfiguration config : getInternalConfiguredNetworks()) {
+        WifiConfiguration[] copiedConfigs = getInternalConfiguredNetworks()
+                .toArray(new WifiConfiguration[0]);
+        for (WifiConfiguration config : copiedConfigs) {
             if (config.enterpriseConfig == null
                     || !config.enterpriseConfig.isAuthenticationSimBased()) {
                 continue;

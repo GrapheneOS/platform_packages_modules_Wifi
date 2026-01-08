@@ -384,6 +384,10 @@ public class WifiScoreReport {
             }
             mWifiBlocklistMonitor.clearBssidBlocklistForReason(
                     WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE);
+            if (mWifiInfo.getNetworkId() == -1) {
+                // WiFi is not connected, trigger a scan to find new networks.
+                mWifiConnectivityManager.forceConnectivityScan(ClientModeImpl.WIFI_WORK_SOURCE);
+            }
         }
 
         @Override

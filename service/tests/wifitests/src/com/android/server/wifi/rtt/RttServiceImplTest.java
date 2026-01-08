@@ -281,7 +281,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         when(mockPermissionUtil.checkCallersLocationPermission(eq(mPackageName), eq(mFeatureId),
                 anyInt(), anyBoolean(), nullable(String.class))).thenReturn(true);
         when(mockPermissionUtil.isLocationModeEnabled()).thenReturn(true);
-        when(mockPermissionUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
+        when(mockPermissionUtil.checkNetworkStackPermission(anyInt())).thenReturn(true);
         when(mockRttControllerHal.rangeRequest(anyInt(), any(RangingRequest.class))).thenReturn(
                 true);
         when(mockHalDeviceManager.isStarted()).thenReturn(true);
@@ -2129,8 +2129,7 @@ public class RttServiceImplTest extends WifiBaseTest {
     public void testGetProximityDetectionRandomizedMacAddress_whenDisabled_returnsNull() {
         assumeTrue(Environment.isSdkNewerThanB());
         mDut.setHALProximityRangingSupported(false);
-        MacAddress macAddress = mDut.getProximityDetectionRandomizedMacAddress(mFeatureId,
-                mPackageName, mExtras);
+        MacAddress macAddress = mDut.getProximityDetectionRandomizedMacAddress();
         assertNull(macAddress);
     }
 
@@ -2138,8 +2137,7 @@ public class RttServiceImplTest extends WifiBaseTest {
     public void testGetProximityDetectionRandomizedMacAddress() {
         assumeTrue(Environment.isSdkNewerThanB());
         mDut.setHALProximityRangingSupported(true);
-        MacAddress macAddress = mDut.getProximityDetectionRandomizedMacAddress(mFeatureId,
-                mPackageName, mExtras);
+        MacAddress macAddress = mDut.getProximityDetectionRandomizedMacAddress();
         assertNotNull(macAddress);
     }
 
@@ -2151,7 +2149,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         IContinuousRangingResultCallback callback = mock(IContinuousRangingResultCallback.class);
 
         mDut.startContinuousRanging(mockIbinder, mPackageName, mFeatureId, null, request,
-                callback, mExtras);
+                callback);
         mMockLooper.dispatchAll();
 
         // No exception should be thrown
@@ -2170,19 +2168,19 @@ public class RttServiceImplTest extends WifiBaseTest {
         // Null request
         assertThrows(IllegalArgumentException.class,
                 () -> mDut.startContinuousRanging(mockIbinder, mPackageName, mFeatureId, null,
-                        null, callback, mExtras));
+                        null, callback));
 
         // Empty request
         RangingRequest emptyRequest = new RangingRequest.Builder().build();
         assertThrows(IllegalArgumentException.class,
                 () -> mDut.startContinuousRanging(mockIbinder, mPackageName, mFeatureId, null,
-                        emptyRequest, callback, mExtras));
+                        emptyRequest, callback));
 
         // Non-STA responder
         RangingRequest nonStaRequest = RttTestUtils.getDummyRangingRequest((byte) 1);
         assertThrows(IllegalArgumentException.class,
                 () -> mDut.startContinuousRanging(mockIbinder, mPackageName, mFeatureId, null,
-                        nonStaRequest, callback, mExtras));
+                        nonStaRequest, callback));
     }
 
     @Test

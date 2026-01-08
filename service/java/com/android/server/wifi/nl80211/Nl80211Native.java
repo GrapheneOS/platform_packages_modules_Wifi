@@ -838,7 +838,7 @@ public class Nl80211Native {
      */
     public synchronized @Nullable List<String> getInterfaceNames() {
         if (!mIsInitialized) return null;
-        List<Nl80211Utils.InterfaceInfo> ifaceInfo = mNl80211Utils.getInterfaces(-1);
+        List<Nl80211Utils.InterfaceInfo> ifaceInfo = mNl80211Utils.getInterfaces();
         if (ifaceInfo == null) return null;
 
         List<String> interfaceNames = new ArrayList<>();
@@ -2182,14 +2182,13 @@ public class Nl80211Native {
     }
 
     /**
-     * Gets information about all interfaces associated with a given wiphy.
-     * @param wiphyIndex The index of the wiphy device.
+     * Gets information about all interfaces.
      * @return A list of {@link Nl80211Utils.InterfaceInfo} objects, or null on failure.
      */
     @VisibleForTesting
     @Nullable
-    public synchronized List<Nl80211Utils.InterfaceInfo> getInterfaces(int wiphyIndex) {
-        return mNl80211Utils.getInterfaces(wiphyIndex);
+    public synchronized List<Nl80211Utils.InterfaceInfo> getInterfaces() {
+        return mNl80211Utils.getInterfaces();
     }
 
     /**

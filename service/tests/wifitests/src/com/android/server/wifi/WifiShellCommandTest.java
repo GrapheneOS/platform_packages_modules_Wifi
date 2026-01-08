@@ -1564,7 +1564,7 @@ public class WifiShellCommandTest extends WifiBaseTest {
         List<Nl80211Utils.InterfaceInfo> interfaces = new ArrayList<>();
         interfaces.add(new Nl80211Utils.InterfaceInfo(
                 ifaceIndex, wiphyIndex, ifaceName, macAddress));
-        when(mNl80211Native.getInterfaces(wiphyIndex)).thenReturn(interfaces);
+        when(mNl80211Native.getInterfaces()).thenReturn(interfaces);
 
         assertEquals(
                 0,
@@ -1573,15 +1573,15 @@ public class WifiShellCommandTest extends WifiBaseTest {
                         new FileDescriptor(),
                         new FileDescriptor(),
                         new FileDescriptor(),
-                        new String[] {"get-interfaces", String.valueOf(wiphyIndex)}));
-        verify(mNl80211Native).getInterfaces(wiphyIndex);
+                        new String[] {"get-interfaces"}));
+        verify(mNl80211Native).getInterfaces();
     }
 
     @Test
     public void testGetInterfaces_noInterfaces() {
         BinderUtil.setUid(Process.ROOT_UID);
         final int wiphyIndex = 0;
-        when(mNl80211Native.getInterfaces(wiphyIndex)).thenReturn(null);
+        when(mNl80211Native.getInterfaces()).thenReturn(null);
 
         assertEquals(
                 0,
@@ -1590,8 +1590,8 @@ public class WifiShellCommandTest extends WifiBaseTest {
                         new FileDescriptor(),
                         new FileDescriptor(),
                         new FileDescriptor(),
-                        new String[] {"get-interfaces", String.valueOf(wiphyIndex)}));
-        verify(mNl80211Native).getInterfaces(wiphyIndex);
+                        new String[] {"get-interfaces"}));
+        verify(mNl80211Native).getInterfaces();
     }
 
     @Test

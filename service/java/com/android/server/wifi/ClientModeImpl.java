@@ -1597,11 +1597,14 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 continueConnectToUserSelectNetwork(connectedConfig, attributionTag, netId, uid);
             };
             String appName = mNetworkFactory.getConnectedAppName();
+            if (appName.isEmpty()) {
+                appName = "Unknown App";
+            }
             String title = mContext.getString(R.string.wifi_disconnect_dialog_new_connection_title);
             WifiConfiguration config = mWifiConfigManager.getConfiguredNetwork(netId);
             String message = mContext.getString(
                     R.string.wifi_disconnect_dialog_new_connection_message,
-                    appName, config.SSID);
+                    config.SSID, appName);
             String positiveButton = mContext.getString(
                     R.string.wifi_disconnect_dialog_new_connection_positive_button);
             String negativeButton = mContext.getString(
@@ -2129,8 +2132,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     disconnect();
                 };
                 String appName = mNetworkFactory.getConnectedAppName();
-                String title = mContext.getString(R.string.wifi_disconnect_dialog_title,
-                        appName.isEmpty() ? config.SSID : appName);
+                if (appName.isEmpty()) {
+                    appName = "Unknown App";
+                }
+                String title = mContext.getString(R.string.wifi_disconnect_dialog_title, appName);
                 String message = mContext.getString(
                         R.string.wifi_disconnect_dialog_message, appName);
                 String positiveButton = mContext.getString(
