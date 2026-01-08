@@ -913,6 +913,7 @@ public class Nl80211Native {
 
             String countryCode = mNl80211Utils.getCountryCode(ifaceInfo.wiphyIndex);
             if (countryCode != null && !countryCode.equals(mCountryCode)) {
+                Log.i(TAG, "Notifying country code for client iface setup: " + countryCode);
                 mCountryCode = countryCode;
                 notifyCountryCodeChangedListeners(countryCode);
             }
@@ -1077,6 +1078,7 @@ public class Nl80211Native {
 
             String countryCode = mNl80211Utils.getCountryCode(ifaceInfo.wiphyIndex);
             if (countryCode != null && !countryCode.equals(mCountryCode)) {
+                Log.i(TAG, "Notifying country code for AP iface setup: " + countryCode);
                 mCountryCode = countryCode;
                 notifyCountryCodeChangedListeners(countryCode);
             }
@@ -1994,7 +1996,6 @@ public class Nl80211Native {
                 Log.e(TAG, "listener cannot be null");
                 return false;
             }
-            if (!mIsInitialized) return false;
 
             mCountryCodeChangedListeners.put(listener, executor);
             return true;
@@ -2027,7 +2028,6 @@ public class Nl80211Native {
                 Log.e(TAG, "listener cannot be null");
                 return;
             }
-            if (!mIsInitialized) return;
 
             mCountryCodeChangedListeners.remove(listener);
         }
