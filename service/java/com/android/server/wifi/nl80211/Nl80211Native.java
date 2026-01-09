@@ -85,6 +85,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.SelfRecovery;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.util.NetdWrapper;
+import com.android.wifi.resources.R;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -1854,10 +1855,24 @@ public class Nl80211Native {
      */
     public @Nullable DeviceWiphyCapabilities getDeviceWiphyCapabilities(
             @NonNull String ifaceName) {
+        // Some devices don't have support of 11ax/be indicated by the chip,
+        // so an override config value is used
+        boolean is11axOverrideEnabled = mWifiInjector.getContext().getResources()
+                .getBoolean(R.bool.config_wifi11axSupportOverride);
+        boolean is11beOverrideEnabled = mWifiInjector.getContext().getResources()
+                .getBoolean(R.bool.config_wifi11beSupportOverride);
+
         if (useWificond()) {
             android.net.wifi.nl80211.DeviceWiphyCapabilities wificondCaps =
                     mWificondManager.getDeviceWiphyCapabilities(ifaceName);
             if (wificondCaps == null) return null;
+            if (is11axOverrideEnabled) {
+                wificondCaps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX, true);
+            }
+            if (is11beOverrideEnabled) {
+                wificondCaps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE, true);
+            }
+
             return new DeviceWiphyCapabilities(wificondCaps);
         }
 
@@ -1892,9 +1907,9 @@ public class Nl80211Native {
             capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC,
                     wiphyInfo.bandInfo.is80211acSupported);
             capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX,
-                    wiphyInfo.bandInfo.is80211axSupported);
+                    wiphyInfo.bandInfo.is80211axSupported || is11axOverrideEnabled);
             capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE,
-                    wiphyInfo.bandInfo.is80211beSupported);
+                    wiphyInfo.bandInfo.is80211beSupported || is11beOverrideEnabled);
             capabilities.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ,
                     wiphyInfo.bandInfo.is160MhzSupported);
             capabilities.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ,

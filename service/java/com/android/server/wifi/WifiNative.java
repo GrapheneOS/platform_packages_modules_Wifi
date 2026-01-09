@@ -5279,8 +5279,7 @@ public class WifiNative {
     /**
      * Set the Wiphy capabilities of a device for a given interface
      *
-     * @deprecated This method is kept for backwards compatibility. New callers should use
-     * {@link #setDeviceWiphyCapabilities(String, DeviceWiphyCapabilities)}.
+     * @deprecated This method is kept for backwards compatibility.
      *
      * @param ifaceName name of the interface
      * @param capabilities the wiphy capabilities to set for this interface
@@ -5289,24 +5288,13 @@ public class WifiNative {
     @Keep
     public void setDeviceWiphyCapabilities(@NonNull String ifaceName,
             android.net.wifi.nl80211.DeviceWiphyCapabilities capabilities) {
-        setDeviceWiphyCapabilities(ifaceName, new DeviceWiphyCapabilities(capabilities));
-    }
-
-    /**
-     * Set the Wiphy capabilities of a device for a given interface
-     *
-     * @param ifaceName name of the interface
-     * @param capabilities the wiphy capabilities to set for this interface
-     */
-    public void setDeviceWiphyCapabilities(@NonNull String ifaceName,
-            DeviceWiphyCapabilities capabilities) {
         synchronized (mLock) {
             Iface iface = mIfaceMgr.getIface(ifaceName);
             if (iface == null) {
                 Log.e(TAG, "Failed to set device capabilities, interface not found: " + ifaceName);
                 return;
             }
-            iface.phyCapabilities = capabilities;
+            iface.phyCapabilities = new DeviceWiphyCapabilities(capabilities);
         }
     }
 
