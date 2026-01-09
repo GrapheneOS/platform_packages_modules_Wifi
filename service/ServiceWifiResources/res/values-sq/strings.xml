@@ -218,11 +218,16 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> është me cilësi të ulët. Të kalohet në <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Kalo"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Mos kalo"</string>
-    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"Të shkëputet <xliff:g id="APP_NAME">%1$s</xliff:g>?"</string>
-    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"Shkëputja e Wi‑Fi do të bëjë që <xliff:g id="APP_NAME">%1$s</xliff:g> të shkëputet. Të vazhdohet?"</string>
-    <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"Vazhdo"</string>
+    <!-- no translation found for wifi_disconnect_dialog_title (7541989406466882747) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_message (5116841532118842227) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_positive_button (1193888906224230855) -->
+    <skip />
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Anulo"</string>
-    <string name="wifi_disconnect_dialog_new_connection_title" msgid="624715160252254674">"Dëshiron të lidhesh me një rrjet të ri Wi‑Fi?"</string>
-    <string name="wifi_disconnect_dialog_new_connection_message" msgid="534271497503164022">"<xliff:g id="APP_NAME">%1$s</xliff:g> do të shkëputet kur të lidhesh me rrjetin <xliff:g id="SSID">%2$s</xliff:g>."</string>
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (6276398076311281426) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (2830348590173029295) -->
+    <skip />
     <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"Lidh"</string>
 </resources>

@@ -218,11 +218,16 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> aşağı keyfiyyətlidir. <xliff:g id="SSID_1">%2$s</xliff:g> seçiminə dəyişilsin?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Dəyişin"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Dəyişməyin"</string>
-    <string name="wifi_disconnect_dialog_title" msgid="94664204061356025">"<xliff:g id="APP_NAME">%1$s</xliff:g> ayrılsın?"</string>
-    <string name="wifi_disconnect_dialog_message" msgid="523085058096307605">"Wi‑Fi-dan ayırdıqda <xliff:g id="APP_NAME">%1$s</xliff:g> da ayrılacaq. Davam etmək istəyirsiniz?"</string>
-    <string name="wifi_disconnect_dialog_positive_button" msgid="81882845888322268">"Davam edin"</string>
+    <!-- no translation found for wifi_disconnect_dialog_title (7541989406466882747) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_message (5116841532118842227) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_positive_button (1193888906224230855) -->
+    <skip />
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Ləğv edin"</string>
-    <string name="wifi_disconnect_dialog_new_connection_title" msgid="624715160252254674">"Yeni Wi‑Fi şəbəkəsinə qoşulsun?"</string>
-    <string name="wifi_disconnect_dialog_new_connection_message" msgid="534271497503164022">"<xliff:g id="SSID">%2$s</xliff:g> şəbəkəsinə qoşulduğunuz zaman <xliff:g id="APP_NAME">%1$s</xliff:g> ayrılacaq."</string>
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (6276398076311281426) -->
+    <skip />
+    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (2830348590173029295) -->
+    <skip />
     <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"Qoşulun"</string>
 </resources>
