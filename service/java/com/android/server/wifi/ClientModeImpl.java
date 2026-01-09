@@ -1812,7 +1812,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     @Override
     public DeviceWiphyCapabilities getDeviceWiphyCapabilities() {
-        return mWifiNative.getDeviceWiphyCapabilities(mInterfaceName);
+        return mWifiNative.getDeviceWiphyCapabilities(mInterfaceName, /* isBridgedAp */ false);
     }
 
     /**
