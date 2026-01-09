@@ -14,11 +14,17 @@
 
 """CTS Wi-Fi Location Info Foreground tests."""
 
+from android.platform.test.annotations import ApiTest
 from mobly import asserts
 from mobly import base_test
 from mobly.controllers import android_device
 
 
+@ApiTest(
+    apis=[
+        "android.Manifest.permission#ACCESS_FINE_LOCATION",
+    ]
+)
 class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
     _WIFI_SNIPPET_PACKAGE = "com.google.snippet.wifi"
     _FINE_LOCATION_PERMISSION = "android.permission.ACCESS_FINE_LOCATION"
@@ -43,7 +49,6 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
         self.dut.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
 
     def teardown_test(self):
-        self.dut.wifi.wifiToggleState(True)
         self.dut.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         self.dut.unload_snippet("wifi")
         self.dut.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
