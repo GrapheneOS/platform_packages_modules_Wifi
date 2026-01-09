@@ -1072,7 +1072,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onSessionTerminatedNotification(publishId, reasonTerminate, true);
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(true),
                 anyInt());
@@ -1086,7 +1086,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         // (6) app updates session (app already knows that terminated - will get
         // a local FAIL).
@@ -1176,12 +1176,17 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                                 CHANNEL_WIDTH_80MHZ),
                         new WifiAvailableChannel(5745, WifiAvailableChannel.OP_MODE_WIFI_AWARE,
                                 CHANNEL_WIDTH_80MHZ)));
+        when(mMockWifiManager.getUsableChannels(WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS,
+                WifiAvailableChannel.OP_MODE_WIFI_AWARE))
+                .thenReturn(List.of(new WifiAvailableChannel(5220,
+                        WifiAvailableChannel.OP_MODE_WIFI_AWARE, CHANNEL_WIDTH_80MHZ)));
         mActiveCountryCodeChangedCallback.onActiveCountryCodeChanged("US");
         mMockLooper.dispatchAll();
-        inOrderM.verify(mAwareMetricsMock).handleActiveCountryCodeChanged("US");
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 any(), eq(false), eq(false), eq(true), eq(false), eq(false), eq(true),
                 eq(5745), anyInt());
+        verify(mAwareMetricsMock).setIsAwareBandSupported(eq(WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS),
+                eq(true));
         mDut.onConfigSuccessResponse(transactionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
@@ -1264,12 +1269,17 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 WifiAvailableChannel.FILTER_NAN_INSTANT_MODE))
                 .thenReturn(List.of(new WifiAvailableChannel(5220,
                         WifiAvailableChannel.OP_MODE_WIFI_AWARE, CHANNEL_WIDTH_80MHZ)));
+        when(mMockWifiManager.getUsableChannels(WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS,
+                WifiAvailableChannel.OP_MODE_WIFI_AWARE))
+                .thenReturn(List.of(new WifiAvailableChannel(5220,
+                        WifiAvailableChannel.OP_MODE_WIFI_AWARE, CHANNEL_WIDTH_80MHZ)));
         mActiveCountryCodeChangedCallback.onActiveCountryCodeChanged("US");
         mMockLooper.dispatchAll();
-        inOrderM.verify(mAwareMetricsMock).handleActiveCountryCodeChanged("US");
         inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
                 any(), eq(false), eq(false), eq(true), eq(false), eq(false), eq(true),
                 eq(5220), anyInt());
+        verify(mAwareMetricsMock).setIsAwareBandSupported(eq(WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS),
+                eq(true));
         mDut.onConfigSuccessResponse(transactionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
@@ -1630,7 +1640,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false),
                 anyInt());
@@ -1644,7 +1654,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         // (6) app updates session
         mDut.updateSubscribe(clientId, sessionId.getValue(), subscribeConfig);
@@ -1920,7 +1930,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrderM.verify(mAwareMetricsMock).recordMatchIndicationForRangeEnabledSubscribe(false);
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
         int peerId1 = peerIdCaptor.getValue();
 
         mDut.onMatchNotification(subscribeId, requestorId, peerMac, peerSsi.getBytes(),
@@ -1929,7 +1939,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(EGRESS_MET_MASK));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(EGRESS_MET_MASK), any());
         inOrder.verify(mockSessionCallback).onMatchWithDistance(peerIdCaptor.capture(),
                 eq(peerSsi.getBytes()), eq(peerMatchFilter.getBytes()), eq(rangedDistance),
                 anyInt(), isNull(), isNull(), isNull(), isNull());
@@ -2255,7 +2265,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(peerMatchFilter.getBytes()), anyInt(), isNull(), isNull(), isNull(), isNull());
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
 
         // (3) send message to invalid peer ID
         mDut.sendMessage(uid, clientId, sessionId.getValue(), peerIdCaptor.getValue() + 5,
@@ -2327,7 +2337,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(peerMatchFilter.getBytes()), anyInt(), isNull(), isNull(), isNull(), isNull());
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
 
         // (3) send 2 messages and enqueue successfully
         mDut.sendMessage(uid, clientId, sessionId.getValue(), peerIdCaptor.getValue(),
@@ -2456,7 +2466,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(peerMatchFilter.getBytes()), anyInt(), isNull(), isNull(), isNull(), isNull());
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
 
         // (3) send message and enqueue successfully
         mDut.sendMessage(uid, clientId, sessionId.getValue(), peerIdCaptor.getValue(),
@@ -2546,7 +2556,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(peerMatchFilter.getBytes()), anyInt(), isNull(), isNull(), isNull(), isNull());
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
 
         // (3) send message and enqueue successfully
         mDut.sendMessage(uid, clientId, sessionId.getValue(), peerIdCaptor.getValue(),
@@ -2639,7 +2649,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
         inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(), isNull(),
                 anyInt(), isNull(), isNull(), isNull(), isNull());
 
@@ -2776,7 +2786,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId1),
                 eq(sessionId1.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
         inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor1.capture(), isNull(), isNull(),
                 anyInt(), isNull(), isNull(), isNull(), isNull());
 
@@ -2785,7 +2795,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId2),
                 eq(sessionId2.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
         inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor2.capture(), isNull(), isNull(),
                 anyInt(), isNull(), isNull(), isNull(), isNull());
 
@@ -2907,7 +2917,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
         inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(), isNull(),
                 anyInt(), isNull(), isNull(), isNull(), isNull());
 
@@ -3045,7 +3055,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
         inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), eq(peerSsi.getBytes()),
                 eq(peerMatchFilter.getBytes()), anyInt(), isNull(), isNull(), isNull(), isNull());
 
@@ -4288,7 +4298,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrderM.verify(mAwareMetricsMock).recordMatchIndicationForRangeEnabledSubscribe(false);
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
         int peerId1 = peerIdCaptor.getValue();
 
         mDut.onMatchNotification(subscribeId, requestorId, peerMac, peerSsi.getBytes(),
@@ -4301,7 +4311,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrderM.verify(mAwareMetricsMock).recordMatchIndicationForRangeEnabledSubscribe(true);
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(EGRESS_MET_MASK));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(EGRESS_MET_MASK), any());
         int peerId2 = peerIdCaptor.getValue();
 
         assertEquals(peerId1, peerId2);
@@ -4314,7 +4324,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__EXPIRED), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__EXPIRED), eq(0), any());
         verifyNoMoreInteractions(mockCallback, mockSessionCallback, mMockNative, mAwareMetricsMock);
     }
 
@@ -4813,7 +4823,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onSessionTerminatedNotification(publishId, reasonTerminate, true);
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(true),
                 anyInt());
@@ -4822,7 +4832,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock).reportAwareInstantModeEnabled(anyBoolean());
@@ -4963,7 +4973,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onSessionTerminatedNotification(publishId, reasonTerminate, true);
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(true),
                 anyInt());
@@ -4972,7 +4982,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock).reportAwareInstantModeEnabled(anyBoolean());
@@ -5060,7 +5070,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 isNull(), anyInt(), isNull(), isNull(), any(), isNull());
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
         // (4) Initiate bootstrapping request
         mDut.initiateBootStrappingSetupRequest(clientId, sessionId.getValue(),
                 peerIdCaptor.getValue(), AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, 0, null,
@@ -5121,7 +5131,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false),
                 anyInt());
@@ -5130,7 +5140,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock).reportAwareInstantModeEnabled(anyBoolean());
@@ -5220,7 +5230,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
         inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(),
                 isNull(), anyInt(), isNull(), eq(alias), any(), isNull());
         int localPeerId = peerIdCaptor.getValue();
@@ -5268,7 +5278,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false),
                 anyInt());
@@ -5277,7 +5287,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
@@ -5363,7 +5373,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
         inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(),
                 isNull(), anyInt(), isNull(), isNull(), any(), isNull());
         // (3) Initiate bootstrapping request
@@ -5406,7 +5416,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false),
                 anyInt());
@@ -5415,7 +5425,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
@@ -5515,7 +5525,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onSessionTerminatedNotification(publishId, reasonTerminate, true);
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(true),
                 anyInt());
@@ -5524,7 +5534,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
@@ -5625,7 +5635,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
         inOrder.verify(mockSessionCallback).onSessionTerminated(reasonTerminate);
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false),
                 anyInt());
@@ -5634,7 +5644,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock, atLeastOnce()).reportAwareInstantModeEnabled(anyBoolean());
@@ -6446,13 +6456,13 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(true),
                 anyInt());
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         // (11) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock).reportAwareInstantModeEnabled(anyBoolean());
@@ -6542,7 +6552,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 isNull(), anyInt(), isNull(), isNull(), any(), isNull());
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
-                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0));
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
 
         // (4) Initiate bootstrapping request
         mDut.initiateBootStrappingSetupRequest(clientId, sessionId.getValue(),
@@ -6617,13 +6627,13 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false),
                 anyInt());
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         // (10) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
-                eq(sessionId.getValue()));
+                eq(sessionId.getValue()), any());
 
         validateInternalSessionInfoCleanedUp(clientId, sessionId.getValue());
         verify(mAwareMetricsMock).reportAwareInstantModeEnabled(anyBoolean());

@@ -25,11 +25,9 @@ import android.content.Context;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
-import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseArray;
@@ -83,7 +81,6 @@ public class WifiAwareMetrics {
 
     private final Object mLock = new Object();
     private final Clock mClock;
-    private WifiManager mWifiManager;
 
     // enableUsage/disableUsage data
     private long mLastEnableUsageMs = 0;
@@ -156,7 +153,6 @@ public class WifiAwareMetrics {
     private final SparseIntArray mDiscoveryUidMap = new SparseIntArray();
     private boolean mInstantModeEnabled;
     private boolean mCurrentScreenState = true;
-    private String mLastCountryCode = null;
     private Boolean mIs5gAwareSupported = null;
 
     // peer found data
@@ -175,9 +171,8 @@ public class WifiAwareMetrics {
     private Map<Integer, PeerFoundSession> mPeerFoundByClientId = new HashMap<>();
     private final SparseBooleanArray mHasEverScreenOffMap = new SparseBooleanArray();
 
-    public WifiAwareMetrics(Clock clock, Context context) {
+    public WifiAwareMetrics(Clock clock) {
         mClock = clock;
-        mWifiManager = context.getSystemService(WifiManager.class);
     }
 
     /**
@@ -193,29 +188,11 @@ public class WifiAwareMetrics {
     }
 
     /**
-     * Get aware band support capability
+     *  Set is Aware supported on band.
      */
-    private Boolean isAwareBandSupported(int band) {
-        Boolean isBandSupported = null;
-        if (mWifiManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            try {
-                isBandSupported = !mWifiManager.getUsableChannels(
-                    band,
-                    WifiAvailableChannel.OP_MODE_WIFI_AWARE).isEmpty();
-            } catch (UnsupportedOperationException e) {
-                Log.e(TAG, "Failed to get " + band + " Aware channels: " + e);
-            }
-        }
-        return isBandSupported;
-    }
-
-    /**
-     *  Handle country code change. Only check band capability when country code actually changed
-     */
-    public void handleActiveCountryCodeChanged(@androidx.annotation.NonNull String countryCode) {
-        if (countryCode != mLastCountryCode) {
-            mLastCountryCode = countryCode;
-            mIs5gAwareSupported = isAwareBandSupported(WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS);
+    public void setIsAwareBandSupported(int band, boolean supported) {
+       if (band == WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS) {
+            mIs5gAwareSupported = supported;
         }
     }
 
@@ -264,10 +241,6 @@ public class WifiAwareMetrics {
             }
             mLastEnableAwareMs = mClock.getElapsedSinceBootMillis();
             mLastEnableAwareInThisSampleWindowMs = mLastEnableAwareMs;
-        }
-        // Get 5G support capability
-        if (mIs5gAwareSupported == null) {
-            mIs5gAwareSupported = isAwareBandSupported(WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS);
         }
     }
 
@@ -1142,7 +1115,7 @@ public class WifiAwareMetrics {
      * Store peer found status and report until termination
      */
     public void updatePeerFoundResult(int clientId, int sessionId, int result,
-            int rangingIndication) {
+            int rangingIndication, WifiInfo wifiInfo) {
         PeerFoundSession data = mPeerFoundByClientId.get(clientId);
         if (data == null) {
             Log.e(TAG, "No peer found data for clientId= " + clientId);
@@ -1162,21 +1135,14 @@ public class WifiAwareMetrics {
         data.mIs5gAwareSupported = mIs5gAwareSupported == null ? false : mIs5gAwareSupported;
         data.mRangingIndication = data.mRangingIndication | rangingIndication;
         // Wifi STA info
-        if (mWifiManager != null) {
-            WifiInfo wifiInfo = mWifiManager.getConnectionInfo();
-            data.mIsStaConnected = wifiInfo.getSupplicantState() == SupplicantState.COMPLETED;
-            data.mStaFrequency = data.mIsStaConnected
-            ? wifiInfo.getFrequency() : -1;
-        } else {
-            data.mIsStaConnected = false;
-            data.mStaFrequency = -1;
-        }
+        data.mIsStaConnected = wifiInfo.getSupplicantState() == SupplicantState.COMPLETED;
+        data.mStaFrequency = data.mIsStaConnected ? wifiInfo.getFrequency() : -1;
     }
 
     /**
      * Report whether peer is found and wifi status information
      */
-    public void recordPeerFoundResult(int clientId, int sessionId) {
+    public void recordPeerFoundResult(int clientId, int sessionId, WifiInfo wifiInfo) {
         PeerFoundSession data = mPeerFoundByClientId.get(clientId);
         if (data == null) {
             Log.e(TAG, "No peer found data for clientId= " + clientId);
@@ -1186,7 +1152,8 @@ public class WifiAwareMetrics {
         if (data.mPeerFoundResult
                 == WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__RESULT_UNKNOWN) {
             updatePeerFoundResult(clientId, sessionId,
-                    WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__SESSION_TERMINATED, 0);
+                    WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__SESSION_TERMINATED,
+                    0, wifiInfo);
         }
         Log.v(TAG, "Report peer found result for clientId= " + clientId
                 + ", sessionId= " + sessionId);
