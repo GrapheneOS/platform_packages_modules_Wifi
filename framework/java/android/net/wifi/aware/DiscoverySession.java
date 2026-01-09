@@ -39,6 +39,7 @@ import com.android.modules.utils.build.SdkLevel;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.util.Map;
 
 /**
  * A class representing a single publish or subscribe Aware session. This object
@@ -375,9 +376,10 @@ public class DiscoverySession implements AutoCloseable {
     }
 
     /**
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 7.6.4.1.
      * Initiate a Wi-Fi Aware bootstrapping setup request to create a pairing with the target peer.
      * The Aware bootstrapping request should be done in the context of a discovery session -
-     * after a publish/subscribe
+     * after a publish/subscribe.
      * {@link DiscoverySessionCallback#onServiceDiscovered(ServiceDiscoveryInfo)} event is received.
      * The peer will check if the method can be fulfilled by
      * {@link AwarePairingConfig.Builder#setBootstrappingMethods(int)}
@@ -406,6 +408,7 @@ public class DiscoverySession implements AutoCloseable {
     }
 
     /**
+     * Defined as per Wi-Fi Aware specifications version 4.0 Section 7.6.4.1.
      * Initiate a Wi-Fi Aware bootstrapping setup request to create a pairing with the target peer.
      * The Aware bootstrapping request should be done in the context of a discovery session -
      * after a publish/subscribe
@@ -420,7 +423,11 @@ public class DiscoverySession implements AutoCloseable {
      * @param method one of the AwarePairingConfig#PAIRING_BOOTSTRAPPING_ values, should match one
      *               of the methods received from {@link ServiceDiscoveryInfo#getPairingConfig()}
      *               {@link AwarePairingConfig#getBootstrappingMethods()}
-     * @param message The message to be transmitted.
+     * @param message  An arbitrary byte array which can be sent as service info in Service
+     *                 Descriptor Extension attribute (SDEA) - see Wi-Fi Aware specification 9.5.4.2
+     *                 for more details. Recommnaded to use
+     *                 {@link WifiAwareManager#getTxtRecordTlvBuffer(Map)} to create key-value
+     *                 message in DNS-SD format.
      */
     @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)
     @RequiresApi(37)

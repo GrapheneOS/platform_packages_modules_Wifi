@@ -124,6 +124,7 @@ public class WifiAwareDataPathStateManager {
     private static final NetworkCapabilities sNetworkCapabilitiesFilter =
             makeNetworkCapabilitiesFilter();
     private final Set<String> mInterfaces = new HashSet<>();
+    private final Set<String> mUsedNdis = new HashSet<>();
     private final ArrayMap<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation>
             mNetworkRequestsCache = new ArrayMap<>();
     private Context mContext;
@@ -310,6 +311,7 @@ public class WifiAwareDataPathStateManager {
         }
 
         mInterfaces.remove(interfaceName);
+        mUsedNdis.remove(interfaceName);
     }
 
     /**
@@ -397,7 +399,7 @@ public class WifiAwareDataPathStateManager {
      * @param mac           The discovery MAC address of the peer.
      * @param ndpId         The locally assigned ID for the data-path.
      * @param message       The app_info HAL field (peer's info: binary blob)
-     * @return False if has error, otherwise return true
+     * @return False if no match found, true if match found
      */
     public boolean onDataPathRequest(int pubSubId, byte[] mac, int ndpId,
             byte[] message) {
@@ -422,7 +424,7 @@ public class WifiAwareDataPathStateManager {
                     message);
             if (ndpInfo == null) {
                 Log.wtf(TAG, "onDataPathRequest: initiator-side ndpInfo is null?!");
-                return false;
+                return true;
             }
             if (peerServerInfo != null) {
                 if (peerServerInfo.port != 0) {
@@ -436,7 +438,7 @@ public class WifiAwareDataPathStateManager {
                 }
             }
 
-            return false; //ignore this for NDP set up flow: it is used to obtain app_info from Resp
+            return true; //ignore this for NDP set up flow: it is used to obtain app_info from Resp
         }
 
         AwareNetworkRequestInformation nnri = null;
@@ -484,7 +486,6 @@ public class WifiAwareDataPathStateManager {
             if (sVdbg) {
                 Log.v(TAG, "onDataPathRequest: network request cache = " + mNetworkRequestsCache);
             }
-            mMgr.respondToDataPathRequest(false, ndpId, "", null, false, null, null);
             return false;
         }
 
@@ -494,10 +495,12 @@ public class WifiAwareDataPathStateManager {
         if (nnri.interfaceName == null) {
             Log.w(TAG,
                     "onDataPathRequest: request " + networkSpecifier + " no interface available");
-            mMgr.respondToDataPathRequest(false, ndpId, "", null, false, null, null);
+            mMgr.respondToDataPathRequest(false, ndpId, "", null, false, nnri.networkSpecifier,
+                    mac, nnri.networkSpecifier.peerId, nnri.networkSpecifier.clientId,
+                    nnri.networkSpecifier.sessionId, null);
             mNetworkRequestsCache.remove(networkSpecifier);
             mNetworkFactory.letAppKnowThatRequestsAreUnavailable(nnri);
-            return false;
+            return true;
         }
 
         NdpInfo ndpInfo = new NdpInfo(ndpId);
@@ -511,7 +514,9 @@ public class WifiAwareDataPathStateManager {
                 NetworkInformationData.buildTlv(nnri.networkSpecifier.port,
                         nnri.networkSpecifier.transportProtocol),
                 nnri.networkSpecifier.isOutOfBand(),
-                nnri.networkSpecifier, mac);
+                nnri.networkSpecifier, mac, nnri.networkSpecifier.peerId,
+                nnri.networkSpecifier.clientId,
+                nnri.networkSpecifier.sessionId, null);
 
         return true;
     }
@@ -1106,11 +1111,11 @@ public class WifiAwareDataPathStateManager {
                             ? NanDataPathChannelCfg.FORCE_CHANNEL_SETUP
                             : NanDataPathChannelCfg.REQUEST_CHANNEL_SETUP;
                 }
-                mMgr.initiateDataPathSetup(networkSpecifier, nnri.specifiedPeerInstanceId,
+                mMgr.initiateDataPathSetup(networkSpecifier, networkSpecifier.peerId,
                         channelRequestType, channel,
                         nnri.specifiedPeerDiscoveryMac, nnri.interfaceName,
-                        nnri.networkSpecifier.isOutOfBand(), null
-                );
+                        nnri.networkSpecifier.isOutOfBand(), null, networkSpecifier.clientId,
+                        networkSpecifier.sessionId, null);
                 nnri.state =
                         AwareNetworkRequestInformation.STATE_INITIATOR_WAIT_FOR_REQUEST_RESPONSE;
             } else {
@@ -1295,6 +1300,9 @@ public class WifiAwareDataPathStateManager {
             Log.v(TAG, "selectInterfaceForRequest: req=" + req + ", mNetworkRequestsCache="
                     + mNetworkRequestsCache);
         }
+        for (String iface : mUsedNdis) {
+            unused.remove(iface);
+        }
 
         for (AwareNetworkRequestInformation nnri : mNetworkRequestsCache.values()) {
             if (nnri == req || nnri.interfaceName == null) {
@@ -1342,6 +1350,39 @@ public class WifiAwareDataPathStateManager {
 
         Log.e(TAG, "selectInterfaceForRequest: req=" + req + " - no interfaces available!");
         return null;
+    }
+
+    /**
+     * Return the first available NDI
+     * @return Name of the NDI, null if no available interface is found
+     */
+    public String getAvailableNdi() {
+        SortedSet<String> unused = new TreeSet<>(mInterfaces);
+        for (AwareNetworkRequestInformation nnri : mNetworkRequestsCache.values()) {
+            if (nnri.interfaceName == null) {
+                continue;
+            }
+            unused.remove(nnri.interfaceName);
+        }
+        for (String iface : mUsedNdis) {
+            unused.remove(iface);
+        }
+        if (!unused.isEmpty()) {
+            mUsedNdis.add(unused.first());
+            return unused.first();
+        }
+        return null;
+    }
+
+    /**
+     * Release the NDI
+     * @param interfaceName name of the NDI to release
+     */
+    public void releaseNdi(String interfaceName) {
+        if (TextUtils.isEmpty(interfaceName)) {
+            return;
+        }
+        mUsedNdis.remove(interfaceName);
     }
 
     /**
@@ -1789,7 +1830,6 @@ public class WifiAwareDataPathStateManager {
      *   - Port
      *   - Transport protocol
      */
-    @VisibleForTesting
     public static class NetworkInformationData {
         // All package visible to allow usage in unit testing
         /* package */ static final int IPV6_LL_TYPE = 0x00; // Table 82
@@ -1964,6 +2004,7 @@ public class WifiAwareDataPathStateManager {
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("WifiAwareDataPathStateManager:");
         pw.println("  mInterfaces: " + mInterfaces);
+        pw.println("  mUsedNdis: " + mUsedNdis);
         pw.println("  sNetworkCapabilitiesFilter: " + sNetworkCapabilitiesFilter);
         pw.println("  mNetworkRequestsCache: " + mNetworkRequestsCache);
         pw.println("  mNetworkFactory:");
