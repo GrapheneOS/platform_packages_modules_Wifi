@@ -20,6 +20,7 @@ from android.platform.test.annotations import ApiTest
 from mobly import asserts
 from mobly import base_test
 from mobly import records
+from mobly import signals
 from mobly import test_runner
 from mobly import utils
 from mobly.controllers import android_device
@@ -605,30 +606,23 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
 
         # Step 8: Both devices shouldn't get pairing verification callback.
         try:
-          pub_pairing_success_event = pub_session_handler.waitAndGet(
+          pub_session_handler.waitAndGet(
               event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_VERIFICATION_SUCCEEDED,
               timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
           )
+          raise signals.TestFailure('Publisher received pairing verification callback.')
         except Exception as e:
           self.publisher.log.info(
               'Publisher did not receive pairing verification callback.')
         try:
-          sub_pairing_success_event = sub_session_handler.waitAndGet(
+          sub_session_handler.waitAndGet(
               event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_VERIFICATION_SUCCEEDED,
               timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
           )
+          raise signals.TestFailure('Subscriber received pairing verification callback.')
         except Exception as e:
           self.subscriber.log.info(
               'Subscriber did not receive pairing verification callback.')
-
-        asserts.assert_is_none(
-            pub_pairing_success_event,
-            'Publisher received wrong pairing verification callback.',
-        )
-        asserts.assert_is_none(
-            sub_pairing_success_event,
-            'Subscriber received wrong pairing verification callback.',
-        )
 
         # Clean up Wi-Fi Aware resources.
         self.publisher.wifi.wifiAwareCloseDiscoverSession(pub_session)
