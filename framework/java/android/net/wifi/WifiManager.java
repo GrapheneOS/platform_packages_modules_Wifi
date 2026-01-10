@@ -6212,9 +6212,9 @@ public class WifiManager {
      * <p>
      * This will return {@code false} if a non-null BSSID is set but the caller does not have any of
      * <ul>
-     *     <li>{@link android.Manifest.permission.NETWORK_SETTINGS}</li>
-     *     <li>{@link android.Manifest.permission.NETWORK_STACK}</li>
-     *     <li>{@link NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK}</li>
+     *     <li>{@link android.Manifest.permission#NETWORK_SETTINGS}</li>
+     *     <li>{@link android.Manifest.permission#NETWORK_STACK}</li>
+     *     <li>{@link NetworkStack#PERMISSION_MAINLINE_NETWORK_STACK}</li>
      * </ul>
      * @param config a configuration would like to be checked.
      * @return true if config is valid, otherwise false.
