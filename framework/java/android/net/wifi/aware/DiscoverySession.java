@@ -426,7 +426,7 @@ public class DiscoverySession implements AutoCloseable {
      * @param message  An arbitrary byte array which can be sent as service info in Service
      *                 Descriptor Extension attribute (SDEA) - see Wi-Fi Aware specification 9.5.4.2
      *                 for more details. Recommnaded to use
-     *                 {@link WifiAwareManager#getTxtRecordTlvBuffer(Map)} to create key-value
+     *                 {@link WifiAwareManager#createTxtRecordTlvBuffer(Map)} to create key-value
      *                 message in DNS-SD format.
      */
     @FlaggedApi(FLAG_SEND_SERVICE_SPECIFIC_INFO_IN_BOOTSTRAPPING_REQUEST)

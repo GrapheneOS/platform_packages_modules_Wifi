@@ -2388,6 +2388,44 @@ public class Nl80211NativeTest {
     }
 
     @Test
+    public void testRegisterCountryCodeChangedListener_beforeInitialization_success() {
+        mDut = new Nl80211Native(mNl80211Proxy, mNl80211Utils, mNetdWrapper,
+                mWificondManager, mWifiInjector, false);
+        when(mNl80211Utils.getCountryCode(WIPHY_INDEX_0)).thenReturn(COUNTRY_CODE);
+
+        // Register the listener before initialization/setup
+        mDut.registerCountryCodeChangedListener(mExecutor, mCountryCodeChangedListener);
+
+        // Initialize and set up a client interface, which should trigger the notification
+        mDut.initialize();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+
+        // Verify that the listener was called with the initial country code
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(runnableCaptor.capture());
+        runnableCaptor.getValue().run();
+        verify(mCountryCodeChangedListener).onCountryCodeChanged(COUNTRY_CODE);
+    }
+
+    @Test
+    public void testUnregisterCountryCodeChangedListener_beforeInitialization_success() {
+        mDut = new Nl80211Native(mNl80211Proxy, mNl80211Utils, mNetdWrapper,
+                mWificondManager, mWifiInjector, false);
+        when(mNl80211Utils.getCountryCode(WIPHY_INDEX_0)).thenReturn(COUNTRY_CODE);
+
+        // Register and unregister the listener before initialization/setup
+        mDut.registerCountryCodeChangedListener(mExecutor, mCountryCodeChangedListener);
+        mDut.unregisterCountryCodeChangedListener(mCountryCodeChangedListener);
+
+        // Initialize and set up a client interface
+        mDut.initialize();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+
+        // Verify that the listener was NOT called
+        verify(mExecutor, never()).execute(any());
+    }
+
+    @Test
     public void testCountryCodeChanged_sameCode_doesNotNotifyListeners() {
         mDut = initNl80211Native(false);
         when(mNl80211Utils.getCountryCode(WIPHY_INDEX_0)).thenReturn(COUNTRY_CODE);

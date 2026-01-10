@@ -1145,11 +1145,11 @@ package android.net.wifi.aware {
   @RestrictedForEnvironment(environments=android.annotation.RestrictedForEnvironment.ENVIRONMENT_SDK_RUNTIME, from=android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) public class WifiAwareManager {
     method @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.CHANGE_WIFI_STATE}) public void attach(@NonNull android.net.wifi.aware.AttachCallback, @Nullable android.os.Handler);
     method @RequiresPermission(allOf={android.Manifest.permission.ACCESS_WIFI_STATE, android.Manifest.permission.CHANGE_WIFI_STATE, android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.NEARBY_WIFI_DEVICES}, conditional=true) public void attach(@NonNull android.net.wifi.aware.AttachCallback, @NonNull android.net.wifi.aware.IdentityChangedListener, @Nullable android.os.Handler);
+    method @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") @NonNull public static java.util.Map<java.lang.String,java.lang.String> createTxtRecordMap(@NonNull byte[]);
+    method @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") @NonNull public static byte[] createTxtRecordTlvBuffer(@NonNull java.util.Map<java.lang.String,java.lang.String>);
     method @Nullable @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public android.net.wifi.aware.AwareResources getAvailableAwareResources();
     method @Nullable @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public android.net.wifi.aware.Characteristics getCharacteristics();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public void getPairedDevices(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.util.List<java.lang.String>>);
-    method @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") @NonNull public static java.util.Map<java.lang.String,java.lang.String> getTxtRecordMap(@Nullable byte[]);
-    method @FlaggedApi("com.android.wifi.flags.send_service_specific_info_in_bootstrapping_request") @NonNull public static byte[] getTxtRecordTlvBuffer(@NonNull java.util.Map<java.lang.String,java.lang.String>);
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isAvailable();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isDeviceAttached();
     method @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE) public boolean isInstantCommunicationModeEnabled();
