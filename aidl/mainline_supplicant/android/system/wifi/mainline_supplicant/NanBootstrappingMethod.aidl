@@ -32,5 +32,5 @@ enum NanBootstrappingMethod {
     QR_SCAN_MASK = 1 << 7,
     NFC_READER_MASK = 1 << 8,
     SERVICE_MANAGED_MASK = 1 << 14,
-    HANDSHAKE_SHIP_MASK = 1 << 15
+    HANDSHAKE_SKIPPED_MASK = 1 << 15
 }
