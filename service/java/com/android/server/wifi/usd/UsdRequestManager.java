@@ -17,6 +17,7 @@
 package com.android.server.wifi.usd;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.net.MacAddress;
@@ -32,6 +33,8 @@ import android.net.wifi.usd.SessionCallback;
 import android.net.wifi.usd.SubscribeConfig;
 import android.net.wifi.usd.SubscribeSession;
 import android.net.wifi.usd.SubscribeSessionCallback;
+import android.net.wifi.usd.ProximityRangingInfo;
+import android.net.wifi.WifiAnnotations;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
@@ -105,6 +108,7 @@ public class UsdRequestManager {
     };
     private static final int TEMP_SESSION_TIMEOUT_MILLIS = 1000;
     private static final int TTL_GAP_MILLIS = 1000;
+    private static final int DEVICE_IDENTITY_KEY_LENGTH = 16;
 
     private final RemoteCallbackList<IBooleanListener> mPublisherListenerList =
             new RemoteCallbackList<IBooleanListener>();
@@ -304,6 +308,80 @@ public class UsdRequestManager {
     }
 
     /**
+     * A class for RTT Proximity Ranging Protocol Information from HAL.
+     */
+    public static final class UsdHalProximityRangingProtocolInfo {
+        public final String deviceName;
+        public final boolean isEdcaBasedRangingSupported;
+        public final boolean isNtbNonSecureLtfRangingSupported;
+        public final boolean isNtbSecureLtfRangingSupported;
+        public final boolean isUnauthenticatedPasnModeSupported;
+        public final boolean isAuthenticatedPasnModeSupported;
+        public final boolean isEdcaBasedIstaRoleSupported;
+        public final boolean isEdcaBasedRstaRoleSupported;
+        public final boolean isNtbIstaRoleSupported;
+        public final boolean isNtbRstaRoleSupported;
+        public final @WifiAnnotations.ChannelWidth int maxSupportedPacketBandwidthEdcaBased;
+        public final @WifiAnnotations.PreambleType int maxSupportedPreambleEdcaBased;
+        public final @WifiAnnotations.ChannelWidth int maxSupportedPacketBandwidthNtb;
+        public final @WifiAnnotations.PreambleType int maxSupportedPreambleNtb;
+        public final boolean is6GHzSupported;
+
+        public UsdHalProximityRangingProtocolInfo(String deviceName,
+                boolean isEdcaBasedRangingSupported,
+                boolean isNtbNonSecureLtfRangingSupported,
+                boolean isNtbSecureLtfRangingSupported,
+                boolean isUnauthenticatedPasnModeSupported,
+                boolean isAuthenticatedPasnModeSupported,
+                boolean isEdcaBasedIstaRoleSupported,
+                boolean isEdcaBasedRstaRoleSupported,
+                boolean isNtbIstaRoleSupported,
+                boolean isNtbRstaRoleSupported,
+                @WifiAnnotations.ChannelWidth int maxSupportedPacketBandwidthEdcaBased,
+                @WifiAnnotations.PreambleType int maxSupportedPreambleEdcaBased,
+                @WifiAnnotations.ChannelWidth int maxSupportedPacketBandwidthNtb,
+                @WifiAnnotations.PreambleType int maxSupportedPreambleNtb,
+                boolean is6GHzSupported) {
+            this.deviceName = deviceName;
+            this.isEdcaBasedRangingSupported = isEdcaBasedRangingSupported;
+            this.isNtbNonSecureLtfRangingSupported = isNtbNonSecureLtfRangingSupported;
+            this.isNtbSecureLtfRangingSupported = isNtbSecureLtfRangingSupported;
+            this.isUnauthenticatedPasnModeSupported = isUnauthenticatedPasnModeSupported;
+            this.isAuthenticatedPasnModeSupported = isAuthenticatedPasnModeSupported;
+            this.isEdcaBasedIstaRoleSupported = isEdcaBasedIstaRoleSupported;
+            this.isEdcaBasedRstaRoleSupported = isEdcaBasedRstaRoleSupported;
+            this.isNtbIstaRoleSupported = isNtbIstaRoleSupported;
+            this.isNtbRstaRoleSupported = isNtbRstaRoleSupported;
+            this.maxSupportedPacketBandwidthEdcaBased = maxSupportedPacketBandwidthEdcaBased;
+            this.maxSupportedPreambleEdcaBased = maxSupportedPreambleEdcaBased;
+            this.maxSupportedPacketBandwidthNtb = maxSupportedPacketBandwidthNtb;
+            this.maxSupportedPreambleNtb = maxSupportedPreambleNtb;
+            this.is6GHzSupported = is6GHzSupported;
+        }
+    }
+
+    public static final class UsdHalDeviceIdentityKey {
+        public final byte[] data;
+
+        private UsdHalDeviceIdentityKey(byte[] data) {
+            this.data = data;
+        }
+
+        /**
+         * Creates a key from the provided data.
+         * Returns null if the data is invalid, forcing the caller to handle the error.
+         */
+        @Nullable
+        public static UsdHalDeviceIdentityKey tryCreate(byte[] data) {
+            if (data == null || data.length != DEVICE_IDENTITY_KEY_LENGTH) {
+                Log.e(TAG, "Invalid UsdHal identity key length");
+                return null;
+            }
+            return new UsdHalDeviceIdentityKey(data);
+        }
+    }
+
+    /**
      * A class for USD discovery info from HAL.
      */
     public static final class UsdHalDiscoveryInfo {
@@ -315,10 +393,18 @@ public class UsdRequestManager {
         public final int serviceProtoType;
         public final boolean isFsdEnabled;
         public final byte[] matchFilter;
+        @Nullable
+        public final UsdHalProximityRangingProtocolInfo proximityRangingProtocolInfo;
+        @Nullable
+        public final UsdHalDeviceIdentityKey deviceIdentityKey;
 
         public UsdHalDiscoveryInfo(int ownId, int peerId, MacAddress peerMacAddress,
                 byte[] serviceSpecificInfo, int serviceProtoType, boolean isFsdEnabled,
-                byte[] matchFilter) {
+                byte[] matchFilter,
+                @Nullable
+                UsdHalProximityRangingProtocolInfo proximityRangingProtocolInfo,
+                @Nullable
+                UsdHalDeviceIdentityKey deviceIdentityKey) {
             this.ownId = ownId;
             this.peerId = peerId;
             this.peerMacAddress = peerMacAddress;
@@ -326,6 +412,8 @@ public class UsdRequestManager {
             this.serviceProtoType = serviceProtoType;
             this.isFsdEnabled = isFsdEnabled;
             this.matchFilter = matchFilter;
+            this.proximityRangingProtocolInfo = proximityRangingProtocolInfo;
+            this.deviceIdentityKey = deviceIdentityKey;
         }
     }
 
@@ -405,6 +493,9 @@ public class UsdRequestManager {
                     mUsdCapabilities.maxMatchFilterLengthBytes);
             bundle.putInt(Characteristics.KEY_MAX_SERVICE_NAME_LENGTH,
                     mUsdCapabilities.maxServiceNameLengthBytes);
+            bundle.putBoolean(
+                    Characteristics.KEY_BOOLEAN_FINDING_PROXIMITY_DETECTION_DEVICES_SUPPORTED,
+                    mUsdCapabilities.isProximityRangingSupported);
         }
         return new Characteristics(bundle);
     }
@@ -790,6 +881,33 @@ public class UsdRequestManager {
             usdSession.sessionCleanup();
         }
 
+        @Nullable
+        private ProximityRangingInfo createProximityRangingInfo(
+            UsdHalProximityRangingProtocolInfo halInfo) {
+            if (halInfo == null) {
+                return null;
+            }
+
+            return new ProximityRangingInfo.Builder()
+                .setDeviceName(halInfo.deviceName)
+                .set80211mcBasedRangingSupported(halInfo.isEdcaBasedRangingSupported)
+                .setNtbSecureLtfRangingSupported(halInfo.isNtbSecureLtfRangingSupported)
+                .setNtbNonSecureLtfRangingSupported(halInfo.isNtbNonSecureLtfRangingSupported)
+                .setUnauthenticatedPasnModeSupported(halInfo.isUnauthenticatedPasnModeSupported)
+                .setAuthenticatedPasnModeSupported(halInfo.isAuthenticatedPasnModeSupported)
+                .set80211mcBasedIstaRoleSupported(halInfo.isEdcaBasedIstaRoleSupported)
+                .set80211mcBasedRstaRoleSupported(halInfo.isEdcaBasedRstaRoleSupported)
+                .setNtbIstaRoleSupported(halInfo.isNtbIstaRoleSupported)
+                .setNtbRstaRoleSupported(halInfo.isNtbRstaRoleSupported)
+                .setMaxSupportedPacketWidth80211mcBased(
+                    halInfo.maxSupportedPacketBandwidthEdcaBased)
+                .setMaxSupportedPreamble80211mcBased(halInfo.maxSupportedPreambleEdcaBased)
+                .setMaxSupportedPacketWidthNtb(halInfo.maxSupportedPacketBandwidthNtb)
+                .setMaxSupportedPreambleNtb(halInfo.maxSupportedPreambleNtb)
+                .set6GHzSupported(halInfo.is6GHzSupported)
+                .build();
+        }
+
         @Override
         public void onUsdPublishReplied(UsdHalDiscoveryInfo info) {
             // Check whether session matches.
@@ -807,7 +925,9 @@ public class UsdRequestManager {
                 // Pass unique peer hash to the application. When the application gives back the
                 // peer hash, it'll be used to retrieve the peer.
                 usdSession.mIPublishSessionCallback.onPublishReplied(usdSession.getPeerHash(peer),
-                        info.serviceSpecificInfo, info.serviceProtoType, info.isFsdEnabled);
+                        info.serviceSpecificInfo, info.serviceProtoType, info.isFsdEnabled,
+                        createProximityRangingInfo(info.proximityRangingProtocolInfo),
+                        info.deviceIdentityKey != null ? info.deviceIdentityKey.data : null);
             } catch (RemoteException e) {
                 Log.e(TAG, "onUsdPublishReplied " + e);
             }
@@ -829,7 +949,9 @@ public class UsdRequestManager {
                 // peer hash, it'll be used to retrieve the peer.
                 usdSession.mISubscribeSessionCallback.onSubscribeDiscovered(
                         usdSession.getPeerHash(peer), info.serviceSpecificInfo,
-                        info.serviceProtoType, info.isFsdEnabled);
+                        info.serviceProtoType, info.isFsdEnabled,
+                        createProximityRangingInfo(info.proximityRangingProtocolInfo),
+                        info.deviceIdentityKey != null ? info.deviceIdentityKey.data : null);
             } catch (RemoteException e) {
                 Log.e(TAG, "onUsdServiceDiscovered " + e);
             }

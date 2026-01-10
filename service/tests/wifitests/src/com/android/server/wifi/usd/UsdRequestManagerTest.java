@@ -17,8 +17,13 @@
 package com.android.server.wifi.usd;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
@@ -36,6 +41,9 @@ import android.net.wifi.usd.ISubscribeSessionCallback;
 import android.net.wifi.usd.PublishConfig;
 import android.net.wifi.usd.SessionCallback;
 import android.net.wifi.usd.SubscribeConfig;
+import android.net.wifi.usd.ProximityRangingInfo;
+import android.net.wifi.WifiAnnotations;
+import android.net.wifi.ScanResult;
 import android.os.IBinder;
 import android.os.RemoteException;
 
@@ -54,6 +62,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,6 +84,8 @@ public class UsdRequestManagerTest extends WifiBaseTest {
     private static final String USD_TEST_SERVICE_NAME = "UsdTest";
     private static final int USD_TEST_PERIOD_MILLIS = 200;
     private static final int USD_TTL_SEC = 3000;
+    private static final @WifiAnnotations.ChannelWidth int TEST_MAX_BW =
+        ScanResult.CHANNEL_WIDTH_160MHZ;
     @Mock
     private Clock mClock;
     @Mock
@@ -130,7 +141,7 @@ public class UsdRequestManagerTest extends WifiBaseTest {
 
     private UsdCapabilitiesInternal getMockUsdCapabilities() {
         return new UsdCapabilitiesInternal(true, true, 1024, 255,
-                255, 1, 1);
+                255, 1, 1, false);
     }
 
     /**
@@ -277,7 +288,7 @@ public class UsdRequestManagerTest extends WifiBaseTest {
     @Test
     public void testUsdSubscribeFailureWhenUnsupported() throws RemoteException {
         when(mWifiNative.getUsdCapabilities()).thenReturn(new UsdCapabilitiesInternal(false,
-                true, 1024, 255, 255, 1, 1));
+                true, 1024, 255, 255, 1, 1, false));
         mUsdRequestManager.getCharacteristics();
         SubscribeConfig subscribeConfig = new SubscribeConfig.Builder(USD_TEST_SERVICE_NAME)
                 .setQueryPeriodMillis(USD_TEST_PERIOD_MILLIS)
@@ -299,7 +310,7 @@ public class UsdRequestManagerTest extends WifiBaseTest {
     @Test
     public void testUsdPublishFailureWhenUnsupported() throws RemoteException {
         when(mWifiNative.getUsdCapabilities()).thenReturn(new UsdCapabilitiesInternal(true,
-                false, 1024, 255, 255, 1, 1));
+                false, 1024, 255, 255, 1, 1, false));
         mUsdRequestManager.getCharacteristics();
         PublishConfig publishConfig = new PublishConfig.Builder(USD_TEST_SERVICE_NAME)
                 .setAnnouncementPeriodMillis(USD_TEST_PERIOD_MILLIS)
@@ -399,5 +410,113 @@ public class UsdRequestManagerTest extends WifiBaseTest {
                 .setTtlSeconds(USD_TTL_SEC).build();
         mUsdRequestManager.subscribe(subscribeConfig, mSubscribeSessionCallback);
         verify(mSubscribeSessionCallback).onSubscribeFailed(SessionCallback.FAILURE_NOT_AVAILABLE);
+    }
+
+    /**
+     * Test the creation and validation of Proximity Ranging internal HAL info classes.
+     * This addresses nullability risks in UsdHalDiscoveryInfo and key length validation.
+     */
+    @Test
+    public void testUsdHalProximityRangingInfoCreation() {
+        UsdRequestManager.UsdHalProximityRangingProtocolInfo protocolInfo =
+                new UsdRequestManager.UsdHalProximityRangingProtocolInfo(
+                        "TestDevice", true, false, true, true, false, true, true, false, true,
+                        TEST_MAX_BW, 1, TEST_MAX_BW, 1,
+                        true);
+
+        assertEquals("TestDevice", protocolInfo.deviceName);
+        byte[] validKey = new byte[16]; // Must be exactly 16 bytes
+        UsdRequestManager.UsdHalDeviceIdentityKey devKey =
+                UsdRequestManager.UsdHalDeviceIdentityKey.tryCreate(validKey);
+        assertNotNull(devKey);
+        assertArrayEquals(validKey, devKey.data);
+
+        android.net.MacAddress peerMac = android.net.MacAddress.fromString("00:11:22:33:44:55");
+        UsdRequestManager.UsdHalDiscoveryInfo infoWithPr =
+                new UsdRequestManager.UsdHalDiscoveryInfo(
+                1, 2, peerMac, mSsi, 0, true, null, protocolInfo, devKey);
+        assertNotNull(infoWithPr.proximityRangingProtocolInfo);
+        assertNotNull(infoWithPr.deviceIdentityKey);
+
+        UsdRequestManager.UsdHalDiscoveryInfo infoWithNulls =
+                new UsdRequestManager.UsdHalDiscoveryInfo(
+                1, 2, peerMac, mSsi, 0, true, null, null, null);
+        assertNull(infoWithNulls.proximityRangingProtocolInfo);
+        assertNull(infoWithNulls.deviceIdentityKey);
+    }
+
+    /**
+     * Verifies the transformation of UsdHalProximityRangingProtocolInfo into the
+     * public ProximityRangingInfo SDK object during a publish reply event.
+     */
+    @Test
+    public void testOnUsdPublishReplied_ProximityRangingMapping() throws RemoteException {
+        PublishConfig publishConfig = new PublishConfig.Builder(USD_TEST_SERVICE_NAME)
+                .setEventsEnabled(true).build();
+        when(mPublishSessionCallback.asBinder()).thenReturn(mAppBinder);
+        when(mUsdNativeManager.publish(any(), anyInt(), any())).thenReturn(true);
+        mUsdRequestManager.publish(publishConfig, mPublishSessionCallback);
+        mUsdNativeEventsCallback.onUsdPublishStarted(USD_REQUEST_COMMAND_ID, TEST_PUBLISH_ID);
+
+        UsdRequestManager.UsdHalProximityRangingProtocolInfo halPrInfo =
+                new UsdRequestManager.UsdHalProximityRangingProtocolInfo(
+                        "TestDevice", true, false, true, true, false, true, true, false, true,
+                        TEST_MAX_BW, 1, TEST_MAX_BW, 1,
+                        true);
+
+        UsdRequestManager.UsdHalDiscoveryInfo discoveryInfo =
+                new UsdRequestManager.UsdHalDiscoveryInfo(
+                TEST_PUBLISH_ID, 2002, android.net.MacAddress.fromString("00:11:22:33:44:55"),
+                mSsi, 0, true, null, halPrInfo, null);
+
+        mUsdNativeEventsCallback.onUsdPublishReplied(discoveryInfo);
+
+        org.mockito.ArgumentCaptor<ProximityRangingInfo> prCaptor =
+                org.mockito.ArgumentCaptor.forClass(ProximityRangingInfo.class);
+        verify(mPublishSessionCallback).onPublishReplied(anyInt(), any(), anyInt(),
+                anyBoolean(), prCaptor.capture(), any());
+        ProximityRangingInfo result = prCaptor.getValue();
+
+        assertNotNull(result);
+        assertEquals("TestDevice", result.getDeviceName());
+        assertEquals(true, result.is80211mcBasedRangingSupported());
+        assertEquals(false, result.isNtbNonSecureLtfRangingSupported());
+        assertEquals(true, result.isUnauthenticatedPasnModeSupported());
+        assertEquals(false, result.isAuthenticatedPasnModeSupported());
+        assertEquals(true, result.is80211mcBasedIstaRoleSupported());
+        assertEquals(false, result.isNtbIstaRoleSupported());
+        assertEquals(true, result.isNtbRstaRoleSupported());
+        assertEquals(true, result.is6GHzSupported());
+        assertEquals(TEST_MAX_BW, result.getMaxSupportedPacketWidth80211mcBased());
+        assertEquals(1, result.getMaxSupportedPreamble80211mcBased());
+    }
+
+    /**
+     * Verifies that when Proximity Ranging info is null in the HAL metadata,
+     * the SDK object passed to the application is also null.
+     */
+    @Test
+    public void testOnUsdServiceDiscovered_NullProximityRangingMapping() throws RemoteException {
+        // Setup active subscribe session
+        SubscribeConfig config = new SubscribeConfig.Builder(USD_TEST_SERVICE_NAME).build();
+        when(mSubscribeSessionCallback.asBinder()).thenReturn(mAppBinder);
+        when(mUsdNativeManager.subscribe(any(), anyInt(), any())).thenReturn(true);
+        mUsdRequestManager.subscribe(config, mSubscribeSessionCallback);
+        mUsdNativeEventsCallback.onUsdSubscribeStarted(USD_REQUEST_COMMAND_ID, TEST_SUBSCRIBE_ID);
+
+        // Discovery info with NULL Proximity Ranging protocol info
+        UsdRequestManager.UsdHalDiscoveryInfo discoveryInfo =
+                new UsdRequestManager.UsdHalDiscoveryInfo(
+                TEST_SUBSCRIBE_ID, 3003, android.net.MacAddress.fromString("66:77:88:99:00:11"),
+                mSsi, 0, false, null, null, null);
+
+        mUsdNativeEventsCallback.onUsdServiceDiscovered(discoveryInfo);
+
+        org.mockito.ArgumentCaptor<ProximityRangingInfo> prCaptor =
+                org.mockito.ArgumentCaptor.forClass(ProximityRangingInfo.class);
+        verify(mSubscribeSessionCallback).onSubscribeDiscovered(anyInt(), any(), anyInt(),
+                anyBoolean(), prCaptor.capture(), any());
+        ProximityRangingInfo result = prCaptor.getValue();
+        assertNull(result);
     }
 }

@@ -122,8 +122,13 @@ import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiMigration;
 import android.net.wifi.WifiSsid;
-import android.net.wifi.flags.Flags;
 import android.net.wifi.util.Environment;
+import android.net.wifi.usd.Config;
+import android.net.wifi.usd.PublishConfig;
+import android.net.wifi.usd.SubscribeConfig;
+import android.hardware.wifi.supplicant.UsdPublishConfig;
+import android.hardware.wifi.supplicant.UsdSubscribeConfig;
+import android.hardware.wifi.supplicant.UsdServiceProtoType;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -194,9 +199,14 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
     private static final String ICON_FILE_NAME  = "blahblah";
     private static final int ICON_FILE_SIZE = 72;
     private static final String HS20_URL = "http://blahblah";
+    private static final String SERVICE_NAME = "TestService";
     private static final long PMK_CACHE_EXPIRATION_IN_SEC = 1024;
     private static final byte[] CONNECTED_MAC_ADDRESS_BYTES = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
     private static final long TIME_START_MS = 0L;
+    private static final int USD_CMD_ID = 12;
+    private static final byte[] SELF_DEV_IDENTITY_KEY = {0x10, 0x11, 0x12, 0x13, 0x14,
+                0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F};
+    private static final byte[] SPECIFIC_SERVICE_INFO = {0x11, 0x12, 0x13, 0x14};
 
     private @Mock ISupplicant mISupplicantMock;
     private @Mock IBinder mServiceBinderMock;
@@ -268,7 +278,8 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
         MockitoAnnotations.initMocks(this);
         // Mock WifiMigration to avoid calling into its static methods
         mSession = ExtendedMockito.mockitoSession()
-                .mockStatic(Flags.class, withSettings().lenient())
+                .mockStatic(android.net.wifi.flags.Flags.class, withSettings().lenient())
+                .mockStatic(com.android.wifi.flags.Flags.class, withSettings().lenient())
                 .mockStatic(WifiMigration.class, withSettings().lenient())
                 .startMocking();
         mIfaceInfoList = new IfaceInfo[3];
@@ -290,7 +301,9 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
                     return ssids;
                 });
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
-        when(Flags.legacyKeystoreToWifiBlobstoreMigrationReadOnly()).thenReturn(true);
+        when(android.net.wifi.flags.Flags.legacyKeystoreToWifiBlobstoreMigrationReadOnly())
+                .thenReturn(true);
+        when(com.android.wifi.flags.Flags.proximityRangingImpl()).thenReturn(true);
         mDut = new SupplicantStaIfaceHalSpy(mContext, mWifiMonitor, mHandler, mClock,
                 mWifiMetrics, mWifiGlobals, mSsidTranslator, mWifiInjector);
     }
@@ -3589,5 +3602,78 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
         PrintWriter pw = mock(PrintWriter.class);
         mDut.dump(pw);
         verify(pw, atLeastOnce()).println(anyString());
+    }
+
+    /**
+     * Test {@link SupplicantStaIfaceHalAidlVendorImpl#startUsdPublish(String, int,
+     * PublishConfig)} with valid HAL PublishConfig translation.
+     */
+    @Test
+    public void testStartUsdPublishWithValidHalPublishConfig() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        PublishConfig frameworkPublishConfig = new PublishConfig.Builder(SERVICE_NAME)
+                .setPublishType(PublishConfig.PUBLISH_TYPE_SOLICITED)
+                .setServiceSpecificInfo(SPECIFIC_SERVICE_INFO)
+                .setServiceProtoType(Config.SERVICE_PROTO_TYPE_GENERIC)
+                .setSelfDeviceIdentityKey(SELF_DEV_IDENTITY_KEY)
+                .setProximityRangingEnabled(true)
+                .build();
+        executeAndValidateInitializationSequence();
+        mDut.setupIface(WLAN0_IFACE_NAME);
+
+        doNothing().when(mISupplicantStaIfaceMock).startUsdPublish(
+                anyInt(), any(UsdPublishConfig.class));
+        assertTrue(mDut.startUsdPublish(WLAN0_IFACE_NAME, USD_CMD_ID,
+                frameworkPublishConfig));
+        ArgumentCaptor<UsdPublishConfig> captor = ArgumentCaptor.forClass(UsdPublishConfig.class);
+        verify(mISupplicantStaIfaceMock).startUsdPublish(
+                eq(USD_CMD_ID), captor.capture());
+
+        UsdPublishConfig halPublishConfig = captor.getValue();
+        assertEquals(UsdPublishConfig.PublishType.SOLICITED_ONLY, halPublishConfig.publishType);
+        assertArrayEquals(SELF_DEV_IDENTITY_KEY, halPublishConfig.usdBaseConfig.selfDevIk.data);
+        assertArrayEquals(SPECIFIC_SERVICE_INFO,
+                halPublishConfig.usdBaseConfig.serviceSpecificInfo);
+        assertEquals(UsdServiceProtoType.GENERIC, halPublishConfig.usdBaseConfig.serviceProtoType);
+        assertTrue(halPublishConfig.usdBaseConfig.isRangingEnabled);
+        assertEquals(SERVICE_NAME, halPublishConfig.usdBaseConfig.serviceName);
+    }
+
+    /**
+     * Test {@link SupplicantStaIfaceHalAidlVendorImpl#startUsdSubscribe(String, int,
+     * SubscribeConfig)} with valid HAL SubscribeConfig translation.
+     */
+    @Test
+    public void testStartUsdSubscribeWithValidHalSubscribeConfig() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        SubscribeConfig frameworkSubscribeConfig = new SubscribeConfig.Builder(SERVICE_NAME)
+                .setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)
+                .setServiceSpecificInfo(SPECIFIC_SERVICE_INFO)
+                .setServiceProtoType(Config.SERVICE_PROTO_TYPE_GENERIC)
+                .setSelfDeviceIdentityKey(SELF_DEV_IDENTITY_KEY)
+                .setProximityRangingEnabled(true)
+                .build();
+        executeAndValidateInitializationSequence();
+        mDut.setupIface(WLAN0_IFACE_NAME);
+
+        doNothing().when(mISupplicantStaIfaceMock).startUsdSubscribe(
+                anyInt(), any(UsdSubscribeConfig.class));
+        assertTrue(mDut.startUsdSubscribe(WLAN0_IFACE_NAME, USD_CMD_ID,
+                frameworkSubscribeConfig));
+        ArgumentCaptor<UsdSubscribeConfig> captor =
+                ArgumentCaptor.forClass(UsdSubscribeConfig.class);
+        verify(mISupplicantStaIfaceMock).startUsdSubscribe(
+                eq(USD_CMD_ID), captor.capture());
+
+        UsdSubscribeConfig halSubscribeConfig = captor.getValue();
+        assertEquals(UsdSubscribeConfig.SubscribeType.ACTIVE_MODE,
+                halSubscribeConfig.subscribeType);
+        assertArrayEquals(SELF_DEV_IDENTITY_KEY, halSubscribeConfig.usdBaseConfig.selfDevIk.data);
+        assertArrayEquals(SPECIFIC_SERVICE_INFO,
+                halSubscribeConfig.usdBaseConfig.serviceSpecificInfo);
+        assertEquals(UsdServiceProtoType.GENERIC,
+                halSubscribeConfig.usdBaseConfig.serviceProtoType);
+        assertTrue(halSubscribeConfig.usdBaseConfig.isRangingEnabled);
+        assertEquals(SERVICE_NAME, halSubscribeConfig.usdBaseConfig.serviceName);
     }
 }

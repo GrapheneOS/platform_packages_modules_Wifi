@@ -84,6 +84,7 @@ import com.android.server.wifi.hotspot2.anqp.Constants;
 import com.android.server.wifi.usd.UsdRequestManager;
 import com.android.server.wifi.util.HalAidlUtil;
 import com.android.server.wifi.util.NativeUtil;
+import com.android.wifi.flags.Flags;
 
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
@@ -780,18 +781,12 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     @Override
     public void onUsdPublishReplied(UsdServiceDiscoveryInfo info) {
         mEventHandler.post(() -> {
-            if (mStaIfaceHal.getUsdEventsCallback() == null) {
-                Log.e(TAG, "UsdEventsCallback callback is null");
+            if (mStaIfaceHal.getUsdEventsCallback() == null || info == null) {
+                Log.e(TAG, "UsdEventsCallback callback is null or info is null");
                 return;
             }
             UsdRequestManager.UsdHalDiscoveryInfo usdHalDiscoveryInfo =
-                    new UsdRequestManager.UsdHalDiscoveryInfo(info.ownId,
-                            info.peerId,
-                            MacAddress.fromBytes(info.peerMacAddress),
-                            info.serviceSpecificInfo,
-                            info.protoType,
-                            info.isFsd,
-                            info.matchFilter);
+                    halToFrameworkUsdHalDiscoveryInfo(info);
             mStaIfaceHal.getUsdEventsCallback().onUsdPublishReplied(usdHalDiscoveryInfo);
         });
     }
@@ -799,20 +794,56 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
     @Override
     public void onUsdServiceDiscovered(UsdServiceDiscoveryInfo info) {
         mEventHandler.post(() -> {
-            if (mStaIfaceHal.getUsdEventsCallback() == null) {
+            if (mStaIfaceHal.getUsdEventsCallback() == null && info != null) {
                 Log.e(TAG, "UsdEventsCallback callback is null");
                 return;
             }
             UsdRequestManager.UsdHalDiscoveryInfo usdHalDiscoveryInfo =
-                    new UsdRequestManager.UsdHalDiscoveryInfo(info.ownId,
-                            info.peerId,
-                            MacAddress.fromBytes(info.peerMacAddress),
-                            info.serviceSpecificInfo,
-                            info.protoType,
-                            info.isFsd,
-                            info.matchFilter);
+                    halToFrameworkUsdHalDiscoveryInfo(info);
             mStaIfaceHal.getUsdEventsCallback().onUsdServiceDiscovered(usdHalDiscoveryInfo);
         });
+    }
+
+    private UsdRequestManager.UsdHalDiscoveryInfo halToFrameworkUsdHalDiscoveryInfo(
+            UsdServiceDiscoveryInfo info) {
+        UsdRequestManager.UsdHalProximityRangingProtocolInfo protocolInfo = null;
+        UsdRequestManager.UsdHalDeviceIdentityKey peerDevIk = null;
+        if (getInterfaceVersion() >= 5 && Flags.proximityRangingImpl()) {
+            if (info.prInfo != null) {
+                protocolInfo = new UsdRequestManager.UsdHalProximityRangingProtocolInfo(
+                        info.prInfo.deviceName == null ? "" : info.prInfo.deviceName,
+                        info.prInfo.isEdcaBasedRangingSupported,
+                        info.prInfo.isNtbNonSecureLtfRangingSupported,
+                        info.prInfo.isNtbSecureLtfRangingSupported,
+                        info.prInfo.isUnauthenticatedPasnModeSupported,
+                        info.prInfo.isAuthenticatedPasnModeSupported,
+                        info.prInfo.isEdcaBasedIstaRoleSupported,
+                        info.prInfo.isEdcaBasedRstaRoleSupported,
+                        info.prInfo.isNtbIstaRoleSupported,
+                        info.prInfo.isNtbRstaRoleSupported,
+                        info.prInfo.maxSupportedPacketBandwidthEdcaBased,
+                        info.prInfo.maxSupportedPreambleEdcaBased,
+                        info.prInfo.maxSupportedPacketBandwidthNtb,
+                        info.prInfo.maxSupportedPreambleNtb,
+                        info.prInfo.is6GHzSupported
+                );
+            }
+
+            if (info.peerDevIk != null && info.peerDevIk.data != null) {
+                peerDevIk = UsdRequestManager.UsdHalDeviceIdentityKey.tryCreate(
+                    info.peerDevIk.data
+                );
+            }
+        }
+
+        return  new UsdRequestManager.UsdHalDiscoveryInfo(info.ownId,
+                        info.peerId,
+                        MacAddress.fromBytes(info.peerMacAddress),
+                        info.serviceSpecificInfo,
+                        info.protoType,
+                        info.isFsd,
+                        info.matchFilter,
+                        protocolInfo, peerDevIk);
     }
 
     @Override

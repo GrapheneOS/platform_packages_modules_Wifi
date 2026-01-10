@@ -22,6 +22,7 @@ while the app is running in the background.
 import time
 import logging
 
+from android.platform.test.annotations import ApiTest
 from mobly import asserts
 from mobly import base_test
 from mobly import utils
@@ -30,6 +31,11 @@ from mobly import test_runner
 import wifi_test_utils
 
 
+@ApiTest(
+    apis=[
+        "android.Manifest.permission#ACCESS_BACKGROUND_LOCATION",
+    ]
+)
 class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
     _WIFI_SNIPPET_PACKAGE = "com.google.snippet.wifi"
     _FINE_LOCATION_PERMISSION = "android.permission.ACCESS_FINE_LOCATION"
@@ -64,15 +70,10 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
 
     def teardown_test(self):
         for ad in self.ads:
-            ad.wifi.wifiToggleState(True)
             ad.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
             ad.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
             ad.unload_snippet("wifi")
             ad.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
-            if not ad.wifi.wifiIsApEnabled():
-                ad.wifi.tetheringStopTethering()
-        if hasattr(self, 'dut2') and self.dut2:
-            self.dut2.wifi.wifiStopLocalOnlyHotspot()
 
     def _connect_dut_to_hotspot(self):
         """Starts a hotspot on one device and connects the other to it."""
@@ -191,6 +192,8 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
                 "wifiGetConnectionInfoWithoutShellPermission returned None, check logcat for SecurityException.")
         except Exception as e:
             asserts.fail(f"Test failed due to exception: {e}")
+        finally:
+            self.dut2.wifi.wifiStopLocalOnlyHotspot()
 
     def test_connection_info_retrieval_not_allow_with_fine_location_permission(self):
         """Verifies connection info retrieval returns redacted info with only fine location.
@@ -218,6 +221,8 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
                 "wifiGetConnectionInfoWithoutShellPermission returned None, check logcat for SecurityException.")
         except Exception as e:
             asserts.fail(f"Test failed due to exception: {e}")
+        finally:
+            self.dut2.wifi.wifiStopLocalOnlyHotspot()
 
     def test_transport_info_retrieval_allowed_with_background_location_permission(self):
         """Verifies transport info retrieval succeeds with background and fine location.
@@ -241,6 +246,8 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
                 "wifiGetTransportInfo returned None, check logcat for SecurityException.")
         except Exception as e:
             asserts.fail(f"Test failed due to exception: {e}")
+        finally:
+            self.dut2.wifi.wifiStopLocalOnlyHotspot()
 
     def test_transport_info_retrieval_not_allowed_with_fine_location_permission(self):
         """Verifies transport info retrieval fails with only fine location permission.
@@ -264,6 +271,8 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
                 "wifiGetTransportInfo returned None, check logcat for SecurityException.")
         except Exception as e:
             asserts.fail(f"Test failed due to exception: {e}")
+        finally:
+            self.dut2.wifi.wifiStopLocalOnlyHotspot()
 
 if __name__ == '__main__':
     test_runner.main()
