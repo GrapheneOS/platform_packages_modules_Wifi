@@ -50,6 +50,19 @@ public final class HttpConstants {
         public static final String NAME = "Content-Type";
     }
 
+    /**
+     * Standard HTTP headers.
+     */
+    public static final class Headers {
+        private Headers() {
+        }
+
+        public static final String ACCEPT = "Accept";
+        public static final String CONTENT_ENCODING = "Content-Encoding";
+        public static final String CONTENT_TYPE = "Content-Type";
+        public static final String RETRY_AFTER = "Retry-After";
+    }
+
     static final int DEFAULT_TIMEOUT_IN_SEC = 30;
 
     /**

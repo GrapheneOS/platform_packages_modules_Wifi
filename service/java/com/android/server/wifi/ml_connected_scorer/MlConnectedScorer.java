@@ -32,10 +32,11 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiUsabilityStatsEntry;
 import android.util.Log;
 
+import androidx.annotation.VisibleForTesting;
+
 import com.android.server.wifi.ConnectedScoreResult;
 import com.android.server.wifi.ConnectedScorer;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
 import java.util.ArrayDeque;

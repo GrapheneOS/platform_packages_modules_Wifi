@@ -24,12 +24,15 @@ import android.net.Network;
 import androidx.annotation.Nullable;
 
 import com.google.auto.value.AutoValue;
-import com.google.common.collect.ImmutableListMultimap;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /** The parameters of an http request. */
 @AutoValue
@@ -52,8 +55,9 @@ public abstract class HttpRequest {
      */
     public abstract JSONArray postDataJsonArray();
 
-    /** HTTP header fields. */
-    public abstract ImmutableListMultimap<String, String> requestProperties();
+    /** HTTP header fields. Deep immutability is enforced in the builder. */
+    @SuppressWarnings("AutoValueImmutableFields")
+    public abstract Map<String, List<String>> requestProperties();
 
     /** The client side timeout, in seconds. See {@link Builder#setTimeoutInSec}. */
     public abstract int timeoutInSec();
@@ -65,9 +69,25 @@ public abstract class HttpRequest {
     /** Builder of {@link HttpRequest}. */
     @AutoValue.Builder
     public abstract static class Builder {
+        private final Map<String, List<String>> mRequestProperties = new HashMap<>();
+
+        abstract Builder setRequestProperties(Map<String, List<String>> requestProperties);
+
+        abstract HttpRequest autoBuild();
 
         /** Builds a HttpRequest object. */
-        public abstract HttpRequest build();
+        public HttpRequest build() {
+            // We need a deep copy to firewall the returned instance from any Builder reuse and
+            // ensure immutability.
+            Map<String, List<String>> deepCopy = new HashMap<>();
+            for (Map.Entry<String, List<String>> entry : mRequestProperties.entrySet()) {
+                deepCopy.put(
+                        entry.getKey(),
+                        Collections.unmodifiableList(new ArrayList<>(entry.getValue())));
+            }
+            setRequestProperties(Collections.unmodifiableMap(deepCopy));
+            return autoBuild();
+        }
 
         /** Sets the URL. */
         public abstract Builder setUrl(@NonNull String url);
@@ -91,11 +111,12 @@ public abstract class HttpRequest {
          */
         public abstract Builder setPostDataJsonArray(@NonNull JSONArray postDataJsonArray);
 
-        abstract ImmutableListMultimap.Builder<String, String> requestPropertiesBuilder();
-
         /** Adds an HTTP header field. */
         public Builder addRequestProperty(@NonNull String key, @NonNull String value) {
-            requestPropertiesBuilder().put(key, value);
+            if (!mRequestProperties.containsKey(key)) {
+                mRequestProperties.put(key, new ArrayList<>());
+            }
+            mRequestProperties.get(key).add(value);
             return this;
         }
 
@@ -105,7 +126,10 @@ public abstract class HttpRequest {
           * one value at a time.
           */
         public Builder addRequestProperty(@NonNull String key, @NonNull List<String> value) {
-            requestPropertiesBuilder().putAll(key, value);
+            if (!mRequestProperties.containsKey(key)) {
+                mRequestProperties.put(key, new ArrayList<>());
+            }
+            mRequestProperties.get(key).addAll(value);
             return this;
         }
 
