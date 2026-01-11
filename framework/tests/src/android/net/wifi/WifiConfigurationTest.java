@@ -1316,6 +1316,14 @@ public class WifiConfigurationTest {
         wpa3EnterpriseConfig.convertLegacyFieldsToSecurityParamsIfNeeded();
         assertNotNull(wpa3EnterpriseConfig.getSecurityParams(SECURITY_TYPE_EAP_WPA3_ENTERPRISE));
 
+        // If EAP key management is set to FT_EAP and requirePmf is true, it is WPA3 Enterprise.
+        wpa3EnterpriseConfig = new WifiConfiguration();
+        wpa3EnterpriseConfig.allowedKeyManagement.set(KeyMgmt.FT_EAP);
+        wpa3EnterpriseConfig.requirePmf = true;
+        wpa3EnterpriseConfig.allowedProtocols.set(Protocol.RSN);
+        wpa3EnterpriseConfig.convertLegacyFieldsToSecurityParamsIfNeeded();
+        assertNotNull(wpa3EnterpriseConfig.getSecurityParams(SECURITY_TYPE_EAP_WPA3_ENTERPRISE));
+
         // If key management is NONE and wep key is set, it is WEP type.
         WifiConfiguration wepConfig = new WifiConfiguration();
         wepConfig.allowedKeyManagement.set(KeyMgmt.NONE);
