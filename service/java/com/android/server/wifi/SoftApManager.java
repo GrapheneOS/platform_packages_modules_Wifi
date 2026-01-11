@@ -69,8 +69,6 @@ import com.android.server.wifi.util.WaitingState;
 import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
-import com.google.common.collect.ImmutableList;
-
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
@@ -78,6 +76,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1819,7 +1818,7 @@ public class SoftApManager implements ActiveModeManager {
                                 mRequestorWs);
                         mSoftApCallback.onClientsDisconnected(
                                 currentInfoWithClientsChanged,
-                                ImmutableList.of(client));
+                                Collections.singletonList(client));
                     }
 
                     mSoftApCallback.onConnectedClientsOrInfoChanged(mCurrentSoftApInfoMap,

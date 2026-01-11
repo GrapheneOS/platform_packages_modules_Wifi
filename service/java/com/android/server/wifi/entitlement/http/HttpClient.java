@@ -20,9 +20,6 @@ import static com.android.libraries.entitlement.ServiceEntitlementException.ERRO
 import static com.android.libraries.entitlement.ServiceEntitlementException.ERROR_MALFORMED_HTTP_RESPONSE;
 import static com.android.libraries.entitlement.ServiceEntitlementException.ERROR_SERVER_NOT_CONNECTABLE;
 
-import static com.google.common.base.Strings.nullToEmpty;
-import static com.google.common.net.HttpHeaders.CONTENT_ENCODING;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -35,9 +32,7 @@ import androidx.annotation.WorkerThread;
 
 import com.android.libraries.entitlement.ServiceEntitlementException;
 import com.android.server.wifi.entitlement.http.HttpConstants.ContentType;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.net.HttpHeaders;
+import com.android.server.wifi.entitlement.http.HttpConstants.Headers;
 
 import org.json.JSONObject;
 
@@ -48,6 +43,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
@@ -83,8 +79,8 @@ public class HttpClient {
                     // Android JSON toString() escapes forward-slash with back-slash. It's not
                     // supported by some vendor and not mandatory in JSON spec. Undo escaping.
                     postData = postData.replace("\\/", "/");
-                    ImmutableList<String> list = request.requestProperties().get(CONTENT_ENCODING);
-                    if ((list.size() > 0) && GZIP.equalsIgnoreCase(list.get(0))) {
+                    List<String> list = request.requestProperties().get(Headers.CONTENT_ENCODING);
+                    if ((list != null) && (list.size() > 0) && GZIP.equalsIgnoreCase(list.get(0))) {
                         out.write(toGzipBytes(postData));
                     } else {
                         out.write(postData.getBytes(UTF_8));
@@ -121,8 +117,10 @@ public class HttpClient {
             }
 
             // add HTTP headers
-            for (Map.Entry<String, String> entry : request.requestProperties().entries()) {
-                connection.addRequestProperty(entry.getKey(), entry.getValue());
+            for (Map.Entry<String, List<String>> entry : request.requestProperties().entrySet()) {
+                for (String value : entry.getValue()) {
+                    connection.addRequestProperty(entry.getKey(), value);
+                }
             }
 
             // set parameters
@@ -148,11 +146,12 @@ public class HttpClient {
             final int responseCode = connection.getResponseCode();
             if (responseCode != HttpsURLConnection.HTTP_OK) {
                 throw new ServiceEntitlementException(ERROR_HTTP_STATUS_NOT_SUCCESS, responseCode,
-                        connection.getHeaderField(HttpHeaders.RETRY_AFTER),
+                        connection.getHeaderField(Headers.RETRY_AFTER),
                         "Invalid connection response");
             }
             responseBuilder.setResponseCode(responseCode);
-            responseBuilder.setResponseMessage(nullToEmpty(connection.getResponseMessage()));
+            String responseMessage = connection.getResponseMessage();
+            responseBuilder.setResponseMessage(responseMessage != null ? responseMessage : "");
         } catch (IOException e) {
             throw new ServiceEntitlementException(
                     ERROR_HTTP_STATUS_NOT_SUCCESS, "Read response code failed!", e);
@@ -174,7 +173,7 @@ public class HttpClient {
             // URLConnection.getInputStream(). In case the caller sets the Accept-Encoding request
             // header explicitly to disable automatic decompression, the InputStream is decompressed
             // here.
-            if (GZIP.equalsIgnoreCase(connection.getHeaderField(CONTENT_ENCODING))) {
+            if (GZIP.equalsIgnoreCase(connection.getHeaderField(Headers.CONTENT_ENCODING))) {
                 return StreamUtils.inputStreamToGunzipString(in);
             }
             return StreamUtils.inputStreamToStringSafe(in);
