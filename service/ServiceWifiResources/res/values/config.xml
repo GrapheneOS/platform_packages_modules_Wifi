@@ -592,6 +592,11 @@
          in seconds when device is connected and screen is on -->
     <integer translatable="false" name="config_wifiConnectedHighRssiScanMinimumWindowSizeSec"> 600 </integer>
 
+    <!-- For networks that have successfully connected before, require more wrong password failures
+    to happen before permanently disabling it due to wrong password. This overlay configures that
+    threshold.-->
+    <integer translatable="false" name="config_wifiPreviouslyConnectedNetworkWrongPasswordThreshold"> 3 </integer>
+
     <!-- List of constants to indicate how many failures are needed to temporarily disable a network
     from auto-connect -->
     <integer translatable="false" name="config_wifiDisableReasonAssociationRejectionThreshold"> 3 </integer>

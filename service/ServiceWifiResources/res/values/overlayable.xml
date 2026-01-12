@@ -158,7 +158,7 @@
           <item type="integer" name="config_wifiPnoScanLowRssiNetworkRetryStartDelaySec" />
           <item type="integer" name="config_wifiPnoScanLowRssiNetworkRetryMaxDelaySec" />
           <item type="integer" name="config_wifiConnectedHighRssiScanMinimumWindowSizeSec" />
-
+          <item type="integer" name="config_wifiPreviouslyConnectedNetworkWrongPasswordThreshold" />
           <item type="integer" name="config_wifiDisableReasonAssociationRejectionThreshold" />
           <item type="integer" name="config_wifiDisableReasonAuthenticationFailureThreshold" />
           <item type="integer" name="config_wifiDisableReasonDhcpFailureThreshold" />
