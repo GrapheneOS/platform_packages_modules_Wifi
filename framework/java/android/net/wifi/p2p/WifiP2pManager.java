@@ -3320,9 +3320,9 @@ public class WifiP2pManager {
     /**
      * Request a list of all the persistent p2p groups stored in system.
      *
-     * <p>The caller must have one of {@link android.Manifest.permission.NETWORK_SETTINGS},
-     * {@link android.Manifest.permission.NETWORK_STACK}, and
-     * {@link android.Manifest.permission.READ_WIFI_CREDENTIAL}.
+     * <p>The caller must have one of {@link android.Manifest.permission#NETWORK_SETTINGS},
+     * {@link android.Manifest.permission#NETWORK_STACK}, and
+     * {@link android.Manifest.permission#READ_WIFI_CREDENTIAL}.
      *
      * <p>If targeting {@link android.os.Build.VERSION_CODES#TIRAMISU} or later,
      * the application must have {@link android.Manifest.permission#NEARBY_WIFI_DEVICES} with

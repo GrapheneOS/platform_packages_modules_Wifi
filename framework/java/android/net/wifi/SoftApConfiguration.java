@@ -1284,7 +1284,7 @@ public final class SoftApConfiguration implements Parcelable {
      * format documented in {@link WifiConfiguration#SSID}. If the SSID cannot be decoded as UTF-8,
      * then the SSID of the WifiConfiguration will be {@link WifiManager#UNKNOWN_SSID}.
      *
-     * <li> SoftAp band in {@link WifiConfiguration.apBand} only supports
+     * <li> SoftAp band in {@link WifiConfiguration#apBand} only supports
      * 2GHz, 5GHz, 2GHz+5GHz bands, so conversion is limited to these bands. </li>
      *
      * <li> SoftAp security type in {@link WifiConfiguration.KeyMgmt} only supports
@@ -1671,7 +1671,7 @@ public final class SoftApConfiguration implements Parcelable {
          * <p>
          * Use {@link WifiManager.SoftApCallback#onCapabilityChanged(SoftApCapability)} and
          * {@link SoftApCapability#areFeaturesSupported(long)}
-         * with {@link SoftApCapability.SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION} to determine
+         * with {@link SoftApCapability#SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION} to determine
          * whether or not this feature is supported.
          *
          * <p>
@@ -1819,7 +1819,7 @@ public final class SoftApConfiguration implements Parcelable {
          * Use {@link WifiManager#isBridgedApConcurrencySupported()} to determine
          * whether or not concurrent APs are supported.
          *
-         * Requires the driver to support {@link SoftApCapability.SOFTAP_FEATURE_ACS_OFFLOAD}
+         * Requires the driver to support {@link SoftApCapability#SOFTAP_FEATURE_ACS_OFFLOAD}
          * when multiple bands are configured. Otherwise,
          * {@link WifiManager#startTetheredHotspot(SoftApConfiguration)} will report error code
          * {@link WifiManager#SAP_START_FAILURE_UNSUPPORTED_CONFIGURATION}.
@@ -1871,7 +1871,7 @@ public final class SoftApConfiguration implements Parcelable {
          *
          * The channel auto selection will be offloaded to driver when
          * {@link SoftApCapability#areFeaturesSupported(long)}
-         * with {@link SoftApCapability.SOFTAP_FEATURE_ACS_OFFLOAD}
+         * with {@link SoftApCapability#SOFTAP_FEATURE_ACS_OFFLOAD}
          * return true. The driver will auto select the best channel (e.g. best performance)
          * based on environment interference. Check {@link SoftApCapability} for more detail.
          *
@@ -1977,7 +1977,7 @@ public final class SoftApConfiguration implements Parcelable {
          * <p>
          * Use {@link WifiManager.SoftApCallback#onCapabilityChanged(SoftApCapability)} and
          * {@link SoftApCapability#areFeaturesSupported(long)}
-         * with {@link SoftApCapability.SOFTAP_FEATURE_CLIENT_FORCE_DISCONNECT} to determine whether
+         * with {@link SoftApCapability#SOFTAP_FEATURE_CLIENT_FORCE_DISCONNECT} to determine whether
          * or not this feature is supported.
          *
          * @param maxNumberOfClients maximum client number of the AP.
@@ -2070,7 +2070,7 @@ public final class SoftApConfiguration implements Parcelable {
          * This method requires HAL support. HAL support can be determined using
          * {@link WifiManager.SoftApCallback#onCapabilityChanged(SoftApCapability)} and
          * {@link SoftApCapability#areFeaturesSupported(long)}
-         * with {@link SoftApCapability.SOFTAP_FEATURE_CLIENT_FORCE_DISCONNECT}
+         * with {@link SoftApCapability#SOFTAP_FEATURE_CLIENT_FORCE_DISCONNECT}
          *
          * <p>
          * If the method is called on a device without HAL support then starting the soft AP
@@ -2235,7 +2235,7 @@ public final class SoftApConfiguration implements Parcelable {
          * This method requires HAL support. HAL support can be determined using
          * {@link WifiManager.SoftApCallback#onCapabilityChanged(SoftApCapability)} and
          * {@link SoftApCapability#areFeaturesSupported(long)}
-         * with {@link SoftApCapability.SOFTAP_FEATURE_CLIENT_FORCE_DISCONNECT}
+         * with {@link SoftApCapability#SOFTAP_FEATURE_CLIENT_FORCE_DISCONNECT}
          *
          * <p>
          * If the method is called on a device without HAL support then starting the soft AP
@@ -2271,7 +2271,7 @@ public final class SoftApConfiguration implements Parcelable {
          * {@link #RANDOMIZATION_NON_PERSISTENT}.
          * Use {@link WifiManager.SoftApCallback#onCapabilityChanged(SoftApCapability)} and
          * {@link SoftApCapability#areFeaturesSupported(long)}
-         * with {@link SoftApCapability.SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION} to determine
+         * with {@link SoftApCapability#SOFTAP_FEATURE_MAC_ADDRESS_CUSTOMIZATION} to determine
          * whether or not this feature is supported.
          *
          * @param macRandomizationSetting One of the following setting:
@@ -2346,7 +2346,7 @@ public final class SoftApConfiguration implements Parcelable {
          * If enabled on devices that do not support 802.11ax then ignored.
          * Use {@link WifiManager.SoftApCallback#onCapabilityChanged(SoftApCapability)} and
          * {@link SoftApCapability#areFeaturesSupported(long)}
-         * with {@link SoftApCapability.SOFTAP_FEATURE_IEEE80211_AX} to determine
+         * with {@link SoftApCapability#SOFTAP_FEATURE_IEEE80211_AX} to determine
          * whether or not 802.11ax is supported on the Soft AP.
          * <p>
          * <li>If not set, defaults to true - which will be ignored on devices
@@ -2376,7 +2376,7 @@ public final class SoftApConfiguration implements Parcelable {
          * If enabled on devices that do not support 802.11be then ignored.
          * Use {@link WifiManager.SoftApCallback#onCapabilityChanged(SoftApCapability)} and
          * {@link SoftApCapability#areFeaturesSupported(long)}
-         * with {@link SoftApCapability.SOFTAP_FEATURE_IEEE80211_BE} to determine
+         * with {@link SoftApCapability#SOFTAP_FEATURE_IEEE80211_BE} to determine
          * whether or not 802.11be is supported on the Soft AP.
          * <p>
          * <li>If not set, defaults to true - which will be ignored on devices
