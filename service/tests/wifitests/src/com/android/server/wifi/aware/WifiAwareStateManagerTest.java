@@ -6279,6 +6279,68 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     }
 
     @Test
+    public void testHandleUserSwitchDisableAware() {
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+        assertTrue(mDut.isUsageEnabled());
+
+        int userId = 20;
+        when(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled()).thenReturn(false);
+
+        mDut.handleUserSwitch(userId);
+        mMockLooper.dispatchAll();
+
+        verify(mPairingConfigManager).reset();
+        assertFalse(mDut.isUsageEnabled());
+    }
+
+    @Test
+    public void testHandleUserSwitchDisableAwareFlagOff() {
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(false);
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+        assertTrue(mDut.isUsageEnabled());
+
+        int userId = 20;
+        when(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled()).thenReturn(false);
+
+        mDut.handleUserSwitch(userId);
+        mMockLooper.dispatchAll();
+
+        verify(mPairingConfigManager, never()).reset();
+        assertTrue(mDut.isUsageEnabled());
+    }
+
+    @Test
+    public void testHandleUserStopDisableAware() {
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+        assertTrue(mDut.isUsageEnabled());
+
+        when(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled()).thenReturn(false);
+
+        mDut.handleUserStop(TEST_USER_ID);
+        mMockLooper.dispatchAll();
+        verify(mPairingConfigManager).reset();
+        assertFalse(mDut.isUsageEnabled());
+    }
+
+    @Test
+    public void testHandleUserStopDisableAwareFlagOff() {
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(false);
+        mDut.enableUsage();
+        mMockLooper.dispatchAll();
+        assertTrue(mDut.isUsageEnabled());
+
+        when(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled()).thenReturn(false);
+
+        mDut.handleUserStop(TEST_USER_ID);
+        mMockLooper.dispatchAll();
+        verify(mPairingConfigManager, never()).reset();
+        assertTrue(mDut.isUsageEnabled());
+    }
+
+    @Test
     public void testPublishWithPairingSetupWithNewApi() throws Exception {
         assumeTrue(SdkLevel.isAtLeastU());
         final int clientId = 2005;
