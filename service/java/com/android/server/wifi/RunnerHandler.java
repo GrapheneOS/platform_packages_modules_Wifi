@@ -50,7 +50,6 @@ public class RunnerHandler extends Handler {
     private Set<String> mIgnoredClasses = new HashSet<>();
     private Set<String> mIgnoredMethods = new HashSet<>();
 
-    // TODO: b/246623192 Add Wifi metric for Runner state overruns.
     private final LocalLog mLocalLog;
     private boolean mVerboseLoggingEnabled = false;
 
