@@ -315,9 +315,11 @@ interface ISupplicantNanIface {
      *
      * @param cmdId Command Id to use for this invocation.
      * @param ndpInstanceId Data-path instance ID to be terminated.
+     * @param peerDiscMacAddr MAC address of the peer. This is the MAC address of the peer's
+     *        management/discovery NAN interface.
      * @throws ServiceSpecificException with one of the following values:
      *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
      *         |SupplicantStatusCode.FAILURE_UNKNOWN|
      */
-    void terminateDataPathRequest(in char cmdId, in int ndpInstanceId);
+    void terminateDataPathRequest(in char cmdId, in int ndpInstanceId, in byte[6] peerDiscMacAddr);
 }
