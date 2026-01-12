@@ -2582,7 +2582,6 @@ public class WifiNative {
      * @return true on success
      */
     public boolean setStaMacAddress(String interfaceName, MacAddress mac) {
-        // TODO(b/72459123): Suppress interface down/up events from this call
         // Trigger an explicit disconnect to avoid losing the disconnect event reason (if currently
         // connected) from supplicant if the interface is brought down for MAC address change.
         disconnect(interfaceName);
