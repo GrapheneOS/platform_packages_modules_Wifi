@@ -18,7 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="wifiResourcesAppLabel" product="default" msgid="3120115613525263696">"‏منابع Wi-Fi سیستم"</string>
     <string name="wifi_available_title" msgid="3899472737467127635">"‏اتصال به شبکه Wi‑Fi باز"</string>
-    <string name="wifi_available_title_connecting" msgid="7233590022728579868">"‏درحال اتصال به شبکه Wi‑Fi..."</string>
+    <string name="wifi_available_title_connecting" msgid="7233590022728579868">"‏درحال متصل شدن به شبکه Wi‑Fi..."</string>
     <string name="wifi_available_title_connected" msgid="6329493859989844201">"‏به شبکه Wi‑Fi متصل شد"</string>
     <string name="wifi_available_title_failed_to_connect" msgid="4840833680513368639">"‏به شبکه Wi-Fi متصل نشد"</string>
     <string name="wifi_available_content_failed_to_connect" msgid="4330035988269701861">"برای دیدن همه شبکه‌ها تک‌ضرب بزنید"</string>

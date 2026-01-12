@@ -218,16 +218,11 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> হৈছে নিম্ন গুণগত মানৰ। <xliff:g id="SSID_1">%2$s</xliff:g>লৈ সলনি কৰিবনে?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"সলনি কৰক"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"সলনি নকৰিব"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (7541989406466882747) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (5116841532118842227) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (1193888906224230855) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="7541989406466882747">"<xliff:g id="APP_NAME">%1$s</xliff:g>ৰ পৰা সংযোগ বিচ্ছিন্ন কৰিব নেকি?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="5116841532118842227">"এই নেটৱৰ্কৰ পৰা সংযোগ বিচ্ছিন্ন কৰিলে <xliff:g id="APP_NAME">%1$s</xliff:g>ৰ সংযোগ বিচ্ছিন্ন হ’ব।"</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="1193888906224230855">"সংযোগ বিচ্ছিন্ন কৰক"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"বাতিল কৰক"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (6276398076311281426) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (2830348590173029295) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="6276398076311281426">"এটা বেলেগ ৱাই-ফাই নেটৱৰ্কৰ সৈতে সংযোগ কৰিব নেকি?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="2830348590173029295">"<xliff:g id="SSID">%2$s</xliff:g>ৰ সৈতে সংযোগ কৰিলে <xliff:g id="APP_NAME">%1$s</xliff:g>ৰ সংযোগ বিচ্ছিন্ন হ’ব।"</string>
     <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"সংযোগ কৰক"</string>
 </resources>
