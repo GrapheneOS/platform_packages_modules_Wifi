@@ -74,6 +74,7 @@ import android.net.wifi.IIntegerListener;
 import android.net.wifi.IListListener;
 import android.net.wifi.OuiKeyedData;
 import android.net.wifi.WifiAvailableChannel;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.aware.AwareDataPathRequest;
@@ -427,6 +428,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private long mStartTime;
     private int mMaxNdpSessionLimit = 0;
+    private String mLastCountryCode = null;
+    private Boolean mIs5gAwareSupported = null;
+
     /**
      * Current logged in user ID.
      */
@@ -836,7 +840,21 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         public void onActiveCountryCodeChanged(@androidx.annotation.NonNull String countryCode) {
             mAwareBand5InstantCommunicationChannelFreq = -1;
             reconfigure();
-            mAwareMetrics.handleActiveCountryCodeChanged(countryCode);
+            if (mLastCountryCode != countryCode) {
+                mLastCountryCode = countryCode;
+                if (SdkLevel.isAtLeastS()) {
+                    try {
+                        mIs5gAwareSupported = !mWifiManager.getUsableChannels(
+                                WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS,
+                                WifiAvailableChannel.OP_MODE_WIFI_AWARE).isEmpty();
+                    } catch (UnsupportedOperationException e) {
+                        Log.e(TAG, "Failed to get usable channels: " + e);
+                        mIs5gAwareSupported = false;
+                    }
+                    mAwareMetrics.setIsAwareBandSupported(WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS,
+                            mIs5gAwareSupported);
+                }
+            }
         }
 
         @Override
@@ -1324,7 +1342,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.arg1 = COMMAND_TYPE_TERMINATE_SESSION;
         msg.arg2 = clientId;
         msg.obj = sessionId;
-        mAwareMetrics.recordPeerFoundResult(clientId, sessionId);
         mSm.sendMessage(msg);
     }
 
@@ -4189,6 +4206,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             mAwareMetrics.recordDiscoverySessionDuration(session.getCreationTime(),
                     session.isPublishSession(), sessionId);
         }
+        mAwareMetrics.recordPeerFoundResult(clientId, sessionId, mWifiManager.getConnectionInfo());
         sendAwareResourcesChangedBroadcast();
     }
 
@@ -5495,6 +5513,21 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         mAwareMetrics.recordEnableAware();
+        if (mIs5gAwareSupported == null) {
+            // Update 5g aware support status if not already set
+            if (SdkLevel.isAtLeastS()) {
+                try {
+                    mIs5gAwareSupported = !mWifiManager.getUsableChannels(
+                            WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS,
+                            WifiAvailableChannel.OP_MODE_WIFI_AWARE).isEmpty();
+                } catch (UnsupportedOperationException e) {
+                    Log.e(TAG, "Failed to get usable channels: " + e);
+                    mIs5gAwareSupported = false;
+                }
+                mAwareMetrics.setIsAwareBandSupported(WifiScanner.WIFI_BAND_5_GHZ_WITH_DFS,
+                    mIs5gAwareSupported);
+            }
+        }
     }
 
     private void onRangingResultsReceivedLocal(List<RangingResult> rangingResults,
@@ -5562,7 +5595,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 pairingConfig, vendorData);
         // Update subscribe result
         mAwareMetrics.updatePeerFoundResult(data.first.getClientId(), data.second.getSessionId(),
-                WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND, rangingIndication);
+                WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND, rangingIndication,
+                mWifiManager.getConnectionInfo());
 
         if (TextUtils.isEmpty(pairingAlias)) {
             return;
@@ -5592,7 +5626,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
         // Update subscribe result
         mAwareMetrics.updatePeerFoundResult(data.first.getClientId(), data.second.getSessionId(),
-                WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__EXPIRED, 0);
+                WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__EXPIRED, 0,
+                mWifiManager.getConnectionInfo());
 
         data.second.onMatchExpired(requestorInstanceId);
     }
@@ -5624,8 +5659,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
         mAwareMetrics.recordDiscoverySessionDuration(data.second.getCreationTime(),
                 data.second.isPublishSession(), data.second.getSessionId());
-
-        mAwareMetrics.recordPeerFoundResult(data.first.getClientId(), data.second.getSessionId());
+        mAwareMetrics.recordPeerFoundResult(data.first.getClientId(), data.second.getSessionId(),
+                mWifiManager.getConnectionInfo());
         sendAwareResourcesChangedBroadcast();
     }
 

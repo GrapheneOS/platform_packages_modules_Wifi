@@ -314,7 +314,7 @@ public class WifiInjector {
         mWifiHandlerThread.start();
         Looper wifiLooper = mWifiHandlerThread.getLooper();
         mWifiHandlerLocalLog = new LocalLog(1024);
-        WifiAwareMetrics awareMetrics = new WifiAwareMetrics(mClock, mContext);
+        WifiAwareMetrics awareMetrics = new WifiAwareMetrics(mClock);
         RttMetrics rttMetrics = new RttMetrics(mClock);
         mDppMetrics = new DppMetrics();
         mWifiMonitor = new WifiMonitor();
