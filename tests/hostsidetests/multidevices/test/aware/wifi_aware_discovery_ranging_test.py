@@ -24,6 +24,7 @@ from mobly import records
 from mobly import test_runner
 from mobly import utils
 from mobly.controllers import android_device
+import sniffer_helper
 import wifi_test_utils
 
 from aware import aware_snippet_utils
@@ -86,6 +87,8 @@ class WifiAwareDiscoveryRangingTest(base_test.BaseTestClass):
     pub_session: str | None = None
     sub_session: str | None = None
 
+    _sniffer: sniffer_helper.SnifferHelper
+
     def setup_class(self):
         # Register and set up Android devices in parallel.
         self.ads = self.register_controller(android_device, min_number=2)
@@ -115,6 +118,12 @@ class WifiAwareDiscoveryRangingTest(base_test.BaseTestClass):
                 f'{device} does not support Wi-Fi RTT.',
             )
 
+        self._sniffer = sniffer_helper.SnifferHelper()
+        if wifi_test_utils.convert_str_to_bool(
+            self.user_params.get('enable_sniffer', False)
+        ):
+            self._sniffer.register_controller_for_sniffer(test_class_obj=self)
+
     def _setup_device(self, device: android_device.AndroidDevice):
         device.load_snippet('wifi', _SNIPPET_PACKAGE_NAME)
         device.wifi.wifiEnable()
@@ -134,6 +143,8 @@ class WifiAwareDiscoveryRangingTest(base_test.BaseTestClass):
             subscribe_type=constants.SubscribeType.PASSIVE,
             max_distance_mm=_LARGE_ENOUGH_DISTANCE_MM,
         )
+
+        self._sniffer.start_packet_capture_for_aware_discovery()
 
         # Step 1 - 3: Set up Wi-Fi Aware discovery sessions, so it is ready
         # for ranging.
@@ -178,6 +189,8 @@ class WifiAwareDiscoveryRangingTest(base_test.BaseTestClass):
             subscribe_type=constants.SubscribeType.PASSIVE,
             max_distance_mm=_LARGE_ENOUGH_DISTANCE_MM,
         )
+
+        self._sniffer.start_packet_capture_for_aware_discovery()
 
         # Step 1 - 3: Set up Wi-Fi Aware discovery sessions, so it is ready
         # for ranging.
@@ -398,10 +411,15 @@ class WifiAwareDiscoveryRangingTest(base_test.BaseTestClass):
         })
 
     def on_fail(self, record: records.TestResult) -> None:
+        self._sniffer.stop_packet_capture(self.current_test_info)
         logging.info('Collecting bugreports...')
         android_device.take_bug_reports(
             self.ads, destination=self.current_test_info.output_path
         )
+
+    def on_pass(self, record: records.TestResult) -> None:
+        # Set current_test_info=None to ignore the captured packets.
+        self._sniffer.stop_packet_capture(current_test_info=None)
 
 
 if __name__ == '__main__':

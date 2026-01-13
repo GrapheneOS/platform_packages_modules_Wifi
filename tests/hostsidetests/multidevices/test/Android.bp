@@ -33,6 +33,11 @@ python_library_host {
     srcs: ["wifi_test_utils.py"],
 }
 
+python_library_host {
+    name: "sniffer_helper",
+    srcs: ["sniffer_helper.py"],
+}
+
 python_defaults {
     name: "CtsWifiMultiDevicePythonDefaults",
     libs: [
@@ -61,6 +66,7 @@ python_test_host {
         "wifi_aware_constants",
         "wifi_test_utils",
         "platform-test-py-annotations",
+        "sniffer_helper",
     ],
     device_common_data: [":wifi_mobly_snippet"],
     test_options: {
