@@ -87,6 +87,7 @@ import android.os.RemoteException;
 import android.os.WorkSource;
 import android.os.connectivity.WifiActivityEnergyInfo;
 import android.security.advancedprotection.AdvancedProtectionFeature;
+import android.security.advancedprotection.AdvancedProtectionManager;
 import android.telephony.SubscriptionInfo;
 import android.text.TextUtils;
 import android.util.ArraySet;
@@ -13902,6 +13903,11 @@ public class WifiManager {
             throw new UnsupportedOperationException();
         }
         List<AdvancedProtectionFeature> features = new ArrayList<>();
+        if (android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+            features.add(
+                    new AdvancedProtectionFeature(
+                            AdvancedProtectionManager.FEATURE_ID_DISALLOW_INSECURE_WIFI_AUTOJOIN));
+        }
         return features;
     }
 
