@@ -251,6 +251,11 @@ public class WifiInfo implements TransportInfo, Parcelable {
     private int mMaxSupportedTxLinkSpeed;
 
     /**
+     * Estimate TX throughput by the wifi service in Kbps.
+     */
+    private int mCalculatedTxKbps;
+
+    /**
      * Rx(receive) Link speed in Mbps
      */
     private int mRxLinkSpeed;
@@ -259,6 +264,11 @@ public class WifiInfo implements TransportInfo, Parcelable {
      * Max supported Rx(receive) link speed in Mbps
      */
     private int mMaxSupportedRxLinkSpeed;
+
+    /**
+     * Estimate RX throughput by the wifi service in Kbps.
+     */
+    private int mCalculatedRxKbps;
 
     /**
      * Frequency in MHz
@@ -654,6 +664,8 @@ public class WifiInfo implements TransportInfo, Parcelable {
             mApTidToLinkMappingNegotiationSupported =
                     source.mApTidToLinkMappingNegotiationSupported;
             mVendorData = new ArrayList<>(source.mVendorData);
+            mCalculatedTxKbps = source.mCalculatedTxKbps;
+            mCalculatedRxKbps = source.mCalculatedRxKbps;
         }
     }
 
@@ -1090,6 +1102,38 @@ public class WifiInfo implements TransportInfo, Parcelable {
      */
     public void setMaxSupportedTxLinkSpeedMbps(int maxSupportedTxLinkSpeed) {
         mMaxSupportedTxLinkSpeed = maxSupportedTxLinkSpeed;
+    }
+
+    /**
+     * Sets the estimated actual TX throughput
+     * @hide
+     */
+    public void setCalculatedTxKbps(int calculatedTxKbps) {
+        mCalculatedTxKbps = calculatedTxKbps;
+    }
+
+    /**
+     * Gets the estimated TX throughput
+     * @hide
+     */
+    public int getCalculatedTxKbps() {
+        return mCalculatedTxKbps;
+    }
+
+    /**
+     * Sets the estimated actual RX throughput
+     * @hide
+     */
+    public void setCalculatedRxKbps(int calculatedRxKbps) {
+        mCalculatedRxKbps = calculatedRxKbps;
+    }
+
+    /**
+     * Gets the estimated RX throughput
+     * @hide
+     */
+    public int getCalculatedRxKbps() {
+        return mCalculatedRxKbps;
     }
 
     /**
@@ -1592,9 +1636,13 @@ public class WifiInfo implements TransportInfo, Parcelable {
                 .append(", Tx Link speed: ").append(mTxLinkSpeed).append(LINK_SPEED_UNITS)
                 .append(", Max Supported Tx Link speed: ")
                 .append(mMaxSupportedTxLinkSpeed).append(LINK_SPEED_UNITS)
+                .append(", Calculated Tx : ")
+                .append(mCalculatedTxKbps / 1000).append(LINK_SPEED_UNITS)
                 .append(", Rx Link speed: ").append(mRxLinkSpeed).append(LINK_SPEED_UNITS)
                 .append(", Max Supported Rx Link speed: ")
                 .append(mMaxSupportedRxLinkSpeed).append(LINK_SPEED_UNITS)
+                .append(", Calculated Rx : ")
+                .append(mCalculatedRxKbps / 1000).append(LINK_SPEED_UNITS)
                 .append(", Frequency: ").append(mFrequency).append(FREQUENCY_UNITS)
                 .append(", Net ID: ").append(mNetworkId)
                 .append(", Metered hint: ").append(mMeteredHint)
@@ -1713,6 +1761,8 @@ public class WifiInfo implements TransportInfo, Parcelable {
         dest.writeTypedList(mAffiliatedMloLinks);
         dest.writeBoolean(mApTidToLinkMappingNegotiationSupported);
         dest.writeList(mVendorData);
+        dest.writeInt(mCalculatedTxKbps);
+        dest.writeInt(mCalculatedRxKbps);
     }
 
     /**
@@ -1780,6 +1830,8 @@ public class WifiInfo implements TransportInfo, Parcelable {
                 info.mAffiliatedMloLinks = in.createTypedArrayList(MloLink.CREATOR);
                 info.mApTidToLinkMappingNegotiationSupported = in.readBoolean();
                 info.mVendorData = ParcelUtil.readOuiKeyedDataList(in);
+                info.mCalculatedTxKbps = in.readInt();
+                info.mCalculatedRxKbps = in.readInt();
                 return info;
             }
 
@@ -1950,7 +2002,9 @@ public class WifiInfo implements TransportInfo, Parcelable {
                 && Objects.equals(mNetworkKey, thatWifiInfo.mNetworkKey)
                 && mApTidToLinkMappingNegotiationSupported
                 == thatWifiInfo.mApTidToLinkMappingNegotiationSupported
-                && Objects.equals(mVendorData, thatWifiInfo.mVendorData);
+                && Objects.equals(mVendorData, thatWifiInfo.mVendorData)
+                && mCalculatedTxKbps == thatWifiInfo.mCalculatedTxKbps
+                && mCalculatedRxKbps == thatWifiInfo.mCalculatedRxKbps;
     }
 
     @Override
@@ -2003,7 +2057,9 @@ public class WifiInfo implements TransportInfo, Parcelable {
                 mRestricted,
                 mNetworkKey,
                 mApTidToLinkMappingNegotiationSupported,
-                mVendorData);
+                mVendorData,
+                mCalculatedTxKbps,
+                mCalculatedRxKbps);
     }
 
     /**

@@ -398,6 +398,10 @@ public class WifiDataStall {
             mIsThroughputSufficient = true;
             mWifiMetrics.resetWifiIsUnusableLinkLayerStats();
             mWifiMetrics.incrementThroughputKbpsCount(mTxTputKbps, mRxTputKbps, currFrequency);
+            if (newStats != null) {
+                wifiInfo.setCalculatedTxKbps(mTxTputKbps);
+                wifiInfo.setCalculatedRxKbps(mRxTputKbps);
+            }
             return WifiIsUnusableEvent.TYPE_UNKNOWN;
         }
 
@@ -482,6 +486,8 @@ public class WifiDataStall {
             mRxTputKbps = INVALID_THROUGHPUT;
         }
         mWifiMetrics.incrementThroughputKbpsCount(mTxTputKbps, mRxTputKbps, currFrequency);
+        wifiInfo.setCalculatedTxKbps(mTxTputKbps);
+        wifiInfo.setCalculatedRxKbps(mRxTputKbps);
 
         mIsThroughputSufficient = isThroughputSufficientInternal(mTxTputKbps, mRxTputKbps,
                 isTxTrafficHigh, isRxTrafficHigh, timeDeltaLastTwoPollsMs, txBytes, rxBytes);

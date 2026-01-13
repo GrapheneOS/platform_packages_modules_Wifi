@@ -856,6 +856,8 @@ public class WifiScoreReport {
         stats.add(Integer.toString(mWifiInfo.getRxLinkSpeedMbps()));
         stats.add(Integer.toString(network.getTxLinkBandwidthKbps() / 1000));
         stats.add(Long.toString(network.getRxLinkBandwidthKbps() / 1000));
+        stats.add(mWifiInfo.getCalculatedTxKbps() / 1000 + "Mbps");
+        stats.add(mWifiInfo.getCalculatedRxKbps() / 1000 + "Mbps");
         stats.add(Long.toString(mWifiMetrics.getTotalBeaconRxCount()));
         stats.add(StringUtil.doubleToString(mWifiInfo.getSuccessfulTxPacketsPerSecond(), 2));
         stats.add(StringUtil.doubleToString(mWifiInfo.getRetriedTxPacketsPerSecond(), 2));
@@ -943,7 +945,8 @@ public class WifiScoreReport {
         // link2UsageState}, ..etc.
         pw.println(
                 "time,session,netid,rssi,filtered_rssi,rssi_threshold,freq,txLinkSpeed,"
-                    + "rxLinkSpeed,txTput,rxTput,bcnCnt,tx_good,tx_retry,tx_bad,rx_pps,nudrq,nuds,"
+                    + "rxLinkSpeed,txTput,rxTput,calculatedTx,calculatedRx,bcnCnt,tx_good,"
+                    + "tx_retry,tx_bad,rx_pps,nudrq,nuds,"
                     + "internalScorerType, internalScore, internalAdjustedScore, internalIsUsable,"
                     + " externalScore,"
                     + "{linkId,linkRssi,linkFreq,txLinkSpeed,rxLinkSpeed,linkBcnCnt,"
