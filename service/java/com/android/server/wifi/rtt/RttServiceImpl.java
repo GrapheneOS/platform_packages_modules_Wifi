@@ -69,11 +69,11 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.PowerManager;
+import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.WorkSource;
 import android.os.WorkSource.WorkChain;
-import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseIntArray;
@@ -94,6 +94,7 @@ import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
+import com.android.server.wifi.util.StringUtil;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
@@ -110,6 +111,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
@@ -142,6 +144,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private WifiNative mWifiNative;
     private ActiveModeWarden mActiveModeWarden;
     private String mSupplicantWifiRttControllerInterfaceName = null;
+    private int mCurrentWifiState = WifiManager.WIFI_STATE_UNKNOWN;
     @VisibleForTesting
     SupplicantWifiRttController mSupplicantWifiRttController;
     private SupplicantWifiRttController.ProximityRangingCapabilities mProximityRangingCapabilities;
@@ -153,22 +156,20 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     @VisibleForTesting
     public static final long HAL_AWARE_RANGING_TIMEOUT_MS = 10_000; // 10 sec
 
+    @VisibleForTesting
+    public static final long HAL_PROXIMITY_RANGING_TIMEOUT_MS = 120_000; // 120 sec
+
     // arbitrary, larger than anything reasonable
     /* package */ static final int MAX_QUEUED_PER_UID = 20;
     private WifiConfigManager mWifiConfigManager;
     static final int MAX_ALLOWED_PEERS_PER_CONTINUOUS_RANGING_REQUEST = 1;
-    // TODO Remove after HAL implementation
-    private boolean mIsHALProximityRangingSupported = false;
     static final String DEFAULT_PR_DEVICE_NAME_PREFIX = "Android_PR_";
-    private String mProximityRangingDeviceName = null;
-    private MacAddress mProximityRangingRandomizedMacAddress = null;
-    /**
-     * Used for testing
-     */
     @VisibleForTesting
-    public void setHALProximityRangingSupported(boolean value) {
-        mIsHALProximityRangingSupported = value;
-    }
+    String mProximityRangingDeviceName = null;
+    @VisibleForTesting
+    MacAddress mProximityRangingRandomizedMacAddress = null;
+    private final RemoteCallbackList<IProximityDetectionMacAddressCallback>
+            mProximityDetectionMacAddressCallbacks = new RemoteCallbackList<>();
 
     /**
      * Callback for handling ranging results and status updates from the supplicant HAL.
@@ -184,6 +185,9 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                     if (mVerboseLoggingEnabled) {
                         Log.d(TAG, "onRangingResults: cmdId=" + cmdId);
                     }
+                    mRttServiceSynchronized.mHandler.post(
+                            () -> mRttServiceSynchronized.onContinuousRangingResults(cmdId,
+                                    rangingResults));
                 }
                 @Override
                 public void onContinuousRangingStatusChanged(int cmdId, int code) {
@@ -191,6 +195,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                         Log.d(TAG, "onContinuousRangingStatusChanged: cmdId=" + cmdId
                                 + ", code=" + code);
                     }
+                    // Not used for now.
                 }
                 @Override
                 public void onContinuousRangingTerminated(int cmdId,
@@ -199,6 +204,9 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                         Log.d(TAG, "onContinuousRangingTerminated: cmdId=" + cmdId
                                 + ", reason=" + reason);
                     }
+                    mRttServiceSynchronized.mHandler.post(
+                            () -> mRttServiceSynchronized.removeContinuousRangingSession(cmdId,
+                                    reason));
                 }
             };
 
@@ -412,8 +420,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         mWifiNative = wifiNative;
         mActiveModeWarden = activeModeWarden;
         if (Flags.proximityRanging() && Environment.isSdkNewerThanB()) {
-            setProximityRangingDeviceName(generateDefaultProximityRangingDeviceName());
-            setProximityRangingRandomizedMacAddress(generateProximityRangingRandomizedMacAddress());
+            setProximityRangingDeviceName(generateProximityRangingRandomizedDeviceName());
+            mProximityRangingRandomizedMacAddress = generateProximityRangingRandomizedMacAddress();
         }
 
         mRttServiceSynchronized.mHandler.post(() -> {
@@ -497,38 +505,59 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         updateVerboseLoggingEnabled();
     }
 
+    private boolean isProximityRangingFeatureSupported() {
+        return Environment.isSdkNewerThanB()
+                && Flags.proximityRanging() && Flags.proximityRangingImpl();
+    }
+
     /**
      * Set the current Wi-Fi state.
      * @param newState The new Wi-Fi state.
      */
     public void setWifiState(int newState) {
         if (VDBG) {
-            Log.d(TAG, "setWifiState: newState=" + newState);
+            Log.d(TAG, "setWifiState: newState=" + newState + ", mCurrentWifiState="
+                    + mCurrentWifiState);
         }
-        if (newState == WifiManager.WIFI_STATE_ENABLED) {
+        if (mCurrentWifiState == newState) {
+            return;
+        }
+
+        if (!(isProximityRangingFeatureSupported()
+                && mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))) {
+            return;
+        }
+        if (newState != WifiManager.WIFI_STATE_ENABLED
+                && newState != WifiManager.WIFI_STATE_DISABLED) {
+            return;
+        }
+        boolean isEnabled = newState == WifiManager.WIFI_STATE_ENABLED;
+        if (isEnabled) {
             Log.i(TAG, "Wi-Fi Turned ON - Try to create SupplicantWifiRttController");
-            if (Flags.proximityRangingImpl() && Environment.isSdkNewerThanB()
-                    && mWifiNative.isSupplicantAidlServiceVersionAtLeast(5)) {
-                mSupplicantWifiRttController = mWifiNative
-                        .createSupplicantWifiRttController(
-                                mActiveModeWarden
-                                        .getPrimaryClientModeManager().getInterfaceName());
-                if (mSupplicantWifiRttController != null) {
-                    Log.i(TAG, "Successfully created SupplicantWifiRttController");
-                    mSupplicantWifiRttController.registerRttEventCallback(
-                            mSupplicantRttEventCallback);
-                    if (!initializeSupplicantWifiRttController()) {
-                        Log.i(TAG, "Failed to initialize SupplicantWifiRttController");
-                        mSupplicantWifiRttController = null;
-                    }
-                } else {
-                    Log.i(TAG, "Failed to create SupplicantWifiRttController");
+            mSupplicantWifiRttController = mWifiNative
+                    .createSupplicantWifiRttController(
+                            mActiveModeWarden
+                                    .getPrimaryClientModeManager().getInterfaceName());
+            if (mSupplicantWifiRttController != null) {
+                Log.i(TAG, "Successfully created SupplicantWifiRttController");
+                mSupplicantWifiRttController.registerRttEventCallback(
+                        mSupplicantRttEventCallback);
+                if (!initializeSupplicantWifiRttController()) {
+                    Log.i(TAG, "Failed to initialize SupplicantWifiRttController");
+                    mSupplicantWifiRttController = null;
                 }
+            } else {
+                Log.i(TAG, "Failed to create SupplicantWifiRttController");
             }
-        } else if (newState == WifiManager.WIFI_STATE_DISABLED) {
+        } else { // isEnabled is false, so Wi-Fi is disabled
             Log.i(TAG, "Wi-Fi Turned OFF - Remove SupplicantWifiRttController");
-            mSupplicantWifiRttController = null;
+            if (mSupplicantWifiRttController != null) {
+                mRttServiceSynchronized.cleanUpContinuousRangingSessions(0, null,
+                        ContinuousRangingResultCallback.TERMINATE_REASON_UNKNOWN);
+                mSupplicantWifiRttController = null;
+            }
         }
+        mCurrentWifiState = newState;
     }
 
     /*
@@ -607,10 +636,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         if (mCapabilities == null && mWifiRttController != null) {
             mCapabilities = mWifiRttController.getRttCapabilities();
         }
-        return covertCapabilitiesToBundle(mCapabilities);
+        return convertCapabilitiesToBundle(mCapabilities);
     }
 
-    private Bundle covertCapabilitiesToBundle(WifiRttController.Capabilities capabilities) {
+    private Bundle convertCapabilitiesToBundle(WifiRttController.Capabilities capabilities) {
         Bundle characteristics = new Bundle();
         if (capabilities == null) {
             return characteristics;
@@ -859,8 +888,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         // Set the device name
         mSupplicantWifiRttController.setProximityRangingDeviceName(mProximityRangingDeviceName);
         // Set the device randomized MAC address
-        mSupplicantWifiRttController.setProximityRangingMacAddress(
-                mProximityRangingRandomizedMacAddress.toByteArray());
+        if (!setProximityRangingRandomizedMacAddressToHalAndNotifyApps()) {
+            Log.e(TAG, "Failed to set randomized MAC address");
+            return false;
+        }
         // Cache the capabilities
         mProximityRangingCapabilities = mSupplicantWifiRttController
                 .getProximityRangingCapabilities();
@@ -882,22 +913,88 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         if (VDBG) {
             Log.v(TAG, "getProximityDetectionCharacteristics:");
         }
-        // Return early if the feature is not supported
-        if (mWifiRttController == null || !mIsHALProximityRangingSupported) {
+        if (!isProximityRangingFeatureSupported()) {
+            Log.i(TAG, "Proximity Ranging is not supported on this build");
             return null;
         }
-        // TODO Add a check for the AIDL capability and populate the bundle.
-        Bundle bundle = new Bundle();
-        if (VDBG) {
-            Log.v(TAG, "getProximityDetectionCharacteristics Device Name: "
-                    + mProximityRangingDeviceName);
+        if (mSupplicantWifiRttController == null) {
+            Log.e(TAG, "getProximityDetectionCharacteristics: Failed to get controller");
+            return null;
         }
-        // TODO Call the SupplicantWifiRttController API to get the capabilities
-        //  and converts to a ProximityDetectionCharacteristics object. Also cache the AIDL
-        //  object for future use.
-        bundle.putString(ProximityDetectionCharacteristics
-                .KEY_STRING_PROXIMITY_DETECTION_DEVICE_NAME, mProximityRangingDeviceName);
+        if (mProximityRangingCapabilities == null) {
+            mProximityRangingCapabilities =
+                    mSupplicantWifiRttController.getProximityRangingCapabilities();
+        }
+        if (mProximityRangingCapabilities == null) {
+            Log.e(TAG, "getProximityDetectionCharacteristics: Failed to get capabilities");
+            return null;
+        }
+        Bundle bundle = convertProximityRangingCapabilitiesToBundle(mProximityRangingCapabilities);
         return new ProximityDetectionCharacteristics(bundle);
+    }
+
+    @VisibleForTesting
+    Bundle convertProximityRangingCapabilitiesToBundle(
+            SupplicantWifiRttController.ProximityRangingCapabilities capabilities) {
+        Bundle characteristics = new Bundle();
+        if (capabilities == null) {
+            return characteristics;
+        }
+        characteristics.putInt(ProximityDetectionCharacteristics
+                        .KEY_INT_MAX_NUM_CONTINUOUS_RANGING_SEEKER_SESSIONS,
+                capabilities.maxNumContinuousRangingSeekerSessions);
+        characteristics.putInt(ProximityDetectionCharacteristics
+                        .KEY_INT_MAX_NUM_CONTINUOUS_RANGING_ADVERTISER_SESSIONS,
+                capabilities.maxNumContinuousRangingAdvertiserSessions);
+        characteristics.putBoolean(ProximityDetectionCharacteristics
+                        .KEY_BOOLEAN_CONCURRENT_ISTA_RSTA_OPERATION_SUPPORTED,
+                capabilities.isConcurrentIStaRStaOperationSupported);
+        characteristics.putInt(ProximityDetectionCharacteristics
+                        .KEY_INT_MIN_ALLOWED_RANGING_INTERVAL_80211MC_MS,
+                capabilities.minAllowedRangingInterval80211mc);
+        characteristics.putInt(ProximityDetectionCharacteristics
+                        .KEY_INT_MIN_ALLOWED_RANGING_INTERVAL_NTB_MS,
+                capabilities.minAllowedRangingIntervalNtbMs);
+        characteristics.putString(ProximityDetectionCharacteristics
+                .KEY_STRING_PROXIMITY_DETECTION_DEVICE_NAME, mProximityRangingDeviceName);
+        characteristics.putBoolean(ProximityDetectionCharacteristics
+                        .KEY_BOOLEAN_80211MC_BASED_RANGING_SUPPORTED,
+                capabilities.is80211mcBasedRangingSupported);
+        characteristics.putBoolean(ProximityDetectionCharacteristics
+                        .KEY_BOOLEAN_NTB_SECURE_HE_LTF_RANGING_SUPPORTED,
+                capabilities.isNtbSecureLtfRangingSupported);
+        characteristics.putBoolean(ProximityDetectionCharacteristics
+                        .KEY_BOOLEAN_NTB_NON_SECURE_HE_LTF_RANGING_SUPPORTED,
+                capabilities.isNtbNonSecureLtfRangingSupported);
+        characteristics.putBoolean(
+                ProximityDetectionCharacteristics.KEY_BOOLEAN_80211MC_BASED_ISTA_ROLE,
+                capabilities.is80211mcBasedIstaRoleSupported);
+        characteristics.putBoolean(
+                ProximityDetectionCharacteristics.KEY_BOOLEAN_80211MC_BASED_RSTA_ROLE,
+                capabilities.is80211mcBasedRstaRoleSupported);
+        characteristics.putBoolean(ProximityDetectionCharacteristics.KEY_BOOLEAN_NTB_ISTA_ROLE,
+                capabilities.isNtbIstaRoleSupported);
+        characteristics.putBoolean(ProximityDetectionCharacteristics.KEY_BOOLEAN_NTB_RSTA_ROLE,
+                capabilities.isNtbRstaRoleSupported);
+        characteristics.putInt(ProximityDetectionCharacteristics
+                        .KEY_INT_MAX_SUPPORTED_PACKET_WIDTH_80211MC_BASED,
+                capabilities.maxSupportedPacketBandwidth80211mcBased);
+        characteristics.putInt(ProximityDetectionCharacteristics
+                        .KEY_INT_MAX_SUPPORTED_PREAMBLE_80211MC_BASED,
+                capabilities.maxSupportedPreamble80211mcBased);
+        characteristics.putInt(ProximityDetectionCharacteristics
+                        .KEY_INT_MAX_SUPPORTED_PACKET_WIDTH_NTB,
+                capabilities.maxSupportedPacketBandwidthNtb);
+        characteristics.putInt(ProximityDetectionCharacteristics
+                        .KEY_INT_MAX_SUPPORTED_PREAMBLE_NTB,
+                capabilities.maxSupportedPreambleNtb);
+        characteristics.putBoolean(
+                ProximityDetectionCharacteristics.KEY_BOOLEAN_UNAUTHENTICATED_PASN,
+                capabilities.isUnauthenticatedPasnModeSupported);
+        characteristics.putBoolean(
+                ProximityDetectionCharacteristics.KEY_BOOLEAN_AUTHENTICATED_PASN,
+                capabilities.isAuthenticatedPasnModeSupported);
+        return characteristics;
     }
 
     /**
@@ -906,6 +1003,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     @Override
     public void setProximityDetectionDeviceName(@NonNull String deviceName) {
         enforceNetworkStackPermission();
+        if (!isProximityRangingFeatureSupported()) {
+            throw new UnsupportedOperationException(
+                    "Proximity Ranging is not supported on this build");
+        }
         if (VDBG) {
             Log.v(TAG, "setProximityDetectionDeviceName:" + deviceName);
         }
@@ -915,9 +1016,12 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         if (deviceName.length() > 32) {
             throw new IllegalArgumentException("deviceName must not be longer than 32 bytes");
         }
-        setProximityRangingDeviceName(deviceName);
-        // TODO Add implementation to call SupplicantWifiRttController to set device name and set
-        //  the same name in ProximityDetectionCharacteristics object.
+        mRttServiceSynchronized.mHandler.post(() -> {
+            setProximityRangingDeviceName(deviceName);
+            if (mSupplicantWifiRttController != null) {
+                mSupplicantWifiRttController.setProximityRangingDeviceName(deviceName);
+            }
+        });
     }
 
     /**
@@ -926,15 +1030,19 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     @Override
     public MacAddress getProximityDetectionRandomizedMacAddress() {
         enforceNetworkStackPermission();
+        if (!isProximityRangingFeatureSupported()) {
+            throw new UnsupportedOperationException(
+                    "Proximity Ranging is not supported on this build");
+        }
         if (VDBG) {
             Log.v(TAG, "getProximityDetectionRandomizedMacAddress:"
                     + mProximityRangingRandomizedMacAddress);
         }
-        if (mWifiRttController != null && mIsHALProximityRangingSupported) {
-            return mProximityRangingRandomizedMacAddress;
-        } else {
+        if (mSupplicantWifiRttController == null) {
+            Log.e(TAG, "getProximityDetectionRandomizedMacAddress: Failed to get controller");
             return null;
         }
+        return mProximityRangingRandomizedMacAddress;
     }
 
     /**
@@ -950,7 +1058,22 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             Log.v(TAG, "registerProximityDetectionMacAddressCallback: from pid="
                     + Binder.getCallingPid());
         }
-        // TODO Add implementation
+        if (!isProximityRangingFeatureSupported()) {
+            throw new UnsupportedOperationException(
+                    "Proximity Ranging is not supported on this build");
+        }
+        final int uid = getMockableCallingUid();
+        mRttServiceSynchronized.mHandler.post(() -> {
+            if (!mProximityDetectionMacAddressCallbacks.register(callback, uid)) {
+                Log.e(TAG, "registerProximityDetectionMacAddressCallback: register failed");
+            } else if (mProximityRangingRandomizedMacAddress != null) {
+                try {
+                    callback.onResult(mProximityRangingRandomizedMacAddress);
+                } catch (RemoteException e) {
+                    Log.e(TAG, "onResult: remote exception -- " + e);
+                }
+            }
+        });
     }
 
     /**
@@ -962,11 +1085,19 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             @NonNull IProximityDetectionMacAddressCallback callback) {
         Objects.requireNonNull(callback, "Listener must not be null");
         enforceNetworkStackPermission();
+        if (!isProximityRangingFeatureSupported()) {
+            throw new UnsupportedOperationException(
+                    "Proximity Ranging is not supported on this build");
+        }
         if (VDBG) {
             Log.v(TAG, "unregisterProximityDetectionMacAddressCallback: from pid="
                     + Binder.getCallingPid());
         }
-        // TODO Add implementation
+        mRttServiceSynchronized.mHandler.post(() -> {
+            if (!mProximityDetectionMacAddressCallbacks.unregister(callback)) {
+                Log.e(TAG, "unregisterProximityDetectionMacAddressCallback: unregister failed");
+            }
+        });
     }
 
     /**
@@ -990,6 +1121,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         if (!Environment.isSdkNewerThanB()) {
             throw new UnsupportedOperationException("ContinuousRanging API is not supported");
         }
+        if (!isProximityRangingFeatureSupported()) {
+            throw new UnsupportedOperationException(
+                    "Proximity Ranging is not supported on this build");
+        }
         if (request == null || request.mRttPeers == null || request.mRttPeers.size() == 0) {
             throw new IllegalArgumentException("Request must not be null or empty");
         }
@@ -1002,45 +1137,71 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         if (!isAvailable()) {
             try {
                 callback.onRangingFailure(
-                        RangingResultCallback.STATUS_CODE_FAIL_RTT_NOT_AVAILABLE);
+                        ContinuousRangingResultCallback.FAILURE_REASON_RTT_NOT_AVAILABLE);
             } catch (RemoteException e) {
                 Log.e(TAG, "startContinuousRanging: disabled, callback failed -- " + e);
             }
             return;
         }
 
-        // TODO check if PD is supported
+        final int uid = getMockableCallingUid();
+        if (mSupplicantWifiRttController == null) {
+            Log.e(TAG, "startContinuousRanging: SupplicantWifiRttController is null");
+            try {
+                callback.onRangingFailure(
+                        ContinuousRangingResultCallback.FAILURE_REASON_RTT_NOT_AVAILABLE);
+            } catch (RemoteException e) {
+                Log.e(TAG, "startContinuousRanging: supplicant null, callback failed -- " + e);
+            }
+            return;
+        }
 
-        if (request.mRttPeers.size() != MAX_ALLOWED_PEERS_PER_CONTINUOUS_RANGING_REQUEST) {
-            // TODO send an error code
-            throw new IllegalArgumentException("Request must only contain one Responder");
+        if (request.mRttPeers.size() > MAX_ALLOWED_PEERS_PER_CONTINUOUS_RANGING_REQUEST) {
+            throw new IllegalArgumentException("Request must contain at most "
+                    + MAX_ALLOWED_PEERS_PER_CONTINUOUS_RANGING_REQUEST + " Responder");
         }
-        ResponderConfig responder = request.mRttPeers.getFirst();
-        if (responder.responderType != RESPONDER_STA) {
-            // TODO send an error code
-            throw new IllegalArgumentException("Responder type must be RESPONDER_STA");
-        }
-        if (responder.getMacAddress() == null && responder.getUsdPeerId() <= 0) {
-            // TODO send an error code
-            throw new IllegalArgumentException("Responder must have MAC address or USD peer ID");
-        }
-        if (responder.getSecureRangingConfig() == null) {
-            // TODO send an error code
-            throw new IllegalArgumentException("Responder must have secure ranging config");
-        }
-        if (responder.getProximityDetectionConfig() == null) {
-            // TODO send an error code
-            throw new IllegalArgumentException("Responder must have proximity detection config");
-        }
-        // TODO remove after testing
-        Log.i(TAG, "startContinuousRanging: responder=" + responder);
+        // Further validation done in RttServiceSynchronized
+        final WorkSource ws = workSource != null ? workSource.withoutNames() : null;
+
+        IBinder.DeathRecipient dr = new IBinder.DeathRecipient() {
+            @Override
+            public void binderDied() {
+                if (mVerboseLoggingEnabled) Log.v(TAG, "binderDied: uid=" + uid);
+                try {
+                    binder.unlinkToDeath(this, 0);
+                } catch (NoSuchElementException e) {
+                    Log.e(TAG, "ContinuousRanging binderDied(): unlinkToDeath failed -- " + e);
+                }
+
+                mRttServiceSynchronized.mHandler.post(() -> {
+                    mRttServiceSynchronized.cleanUpContinuousRangingSessions(uid, null,
+                            ContinuousRangingResultCallback.TERMINATE_REASON_UNKNOWN);
+                });
+            }
+        };
+
+
         try {
-            callback.onRangingFailure(
-                    ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
+            binder.linkToDeath(dr, 0);
         } catch (RemoteException e) {
-            Log.e(TAG, "startContinuousRanging: disabled, callback failed -- " + e);
+            Log.e(TAG, "Error on linkToDeath - " + e);
+            try {
+                callback.onRangingFailure(
+                        ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
+            } catch (RemoteException re) {
+                Log.e(TAG, "startContinuousRanging: linkToDeath failed, callback failed -- " + re);
+            }
+            return;
         }
-        // TODO Add implementation
+
+        mRttServiceSynchronized.mHandler.post(() -> {
+            WorkSource sourceToUse = ws;
+            if (ws == null || ws.isEmpty()) {
+                sourceToUse = new WorkSource(uid);
+            }
+            mRttServiceSynchronized.queueContinuousRangingRequest(uid, sourceToUse, binder, dr,
+                    callingPackage, callingFeatureId, request, callback);
+        });
     }
 
     /**
@@ -1052,24 +1213,30 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         if (VDBG) {
             Log.i(TAG, "stopContinuousRanging");
         }
-        // TODO: Add implementation
+        if (!isProximityRangingFeatureSupported()) {
+            throw new UnsupportedOperationException(
+                    "Proximity Ranging is not supported on this build");
+        }
+        final int uid = getMockableCallingUid();
+        final WorkSource ws = workSource != null ? workSource.withoutNames() : null;
+
+        mRttServiceSynchronized.mHandler.post(() -> {
+            WorkSource sourceToUse = ws;
+            if (ws == null || ws.isEmpty()) {
+                sourceToUse = new WorkSource(uid);
+            }
+            mRttServiceSynchronized.cleanUpContinuousRangingSessions(uid, sourceToUse,
+                    ContinuousRangingResultCallback.TERMINATE_REASON_USER_REQUEST);
+        });
     }
 
     /**
-     * Generates a default device name for Proximity Ranging based on the ANDROID_ID.
+     * Generates a randomized device name for Proximity Ranging
      *
-     * @return A string representing the default device name.
+     * @return A string representing the device name.
      */
-    private String generateDefaultProximityRangingDeviceName() {
-        String id = mFrameworkFacade.getSecureStringSetting(mContext,
-                Settings.Secure.ANDROID_ID);
-        if (TextUtils.isEmpty(id) || id.length() < 4) {
-            Log.w(TAG, "Could not generate default proximity ranging device name from ANDROID_ID");
-            // Fallback to a default name if ID is unavailable or too short
-            return DEFAULT_PR_DEVICE_NAME_PREFIX + "0000";
-        }
-        String postfix = id.substring(0, 4);
-        return DEFAULT_PR_DEVICE_NAME_PREFIX + postfix;
+    private String generateProximityRangingRandomizedDeviceName() {
+        return DEFAULT_PR_DEVICE_NAME_PREFIX + StringUtil.generateRandomString(4);
     }
 
     /**
@@ -1103,9 +1270,41 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     /**
      * Sets the Proximity Ranging MAC Address.
      */
-    private void setProximityRangingRandomizedMacAddress(MacAddress macAddress) {
-        if (VDBG) Log.v(TAG, "setProximityRangingRandomizedMacAddress: MAC: " + macAddress);
+    private boolean setProximityRangingRandomizedMacAddressToHalAndNotifyApps() {
+        if (VDBG) {
+            Log.v(TAG, "setProximityRangingRandomizedMacAddressToHalAndNotifyApps");
+        }
+        if (mSupplicantWifiRttController == null) {
+            Log.e(TAG, "setProximityRangingRandomizedMacAddressToHalAndNotifyApps failed:"
+                    + " SupplicantWifiRttController is null");
+            return false;
+        }
+        MacAddress macAddress = generateProximityRangingRandomizedMacAddress();
+        mSupplicantWifiRttController.setProximityRangingMacAddress(macAddress.toByteArray());
+        byte[] retrievedMacAddressBytes = mSupplicantWifiRttController
+                .getProximityRangingMacAddress();
+        if (retrievedMacAddressBytes == null || !Arrays.equals(macAddress.toByteArray(),
+                retrievedMacAddressBytes)) {
+            Log.e(TAG, "Failed to set proximity ranging MAC address. Set: " + macAddress
+                    + ", Retrieved: " + (retrievedMacAddressBytes == null ? "null"
+                    : MacAddress.fromBytes(retrievedMacAddressBytes).toString()));
+            return false;
+        }
         mProximityRangingRandomizedMacAddress = macAddress;
+        if (mProximityDetectionMacAddressCallbacks.getRegisteredCallbackCount() > 0) {
+            // Inform the application of the change in the MAC address
+            final int itemCount = mProximityDetectionMacAddressCallbacks.beginBroadcast();
+            for (int i = 0; i < itemCount; i++) {
+                try {
+                    mProximityDetectionMacAddressCallbacks.getBroadcastItem(i).onResult(
+                            macAddress);
+                } catch (RemoteException e) {
+                    Log.e(TAG, "onResult: remote exception -- " + e);
+                }
+            }
+            mProximityDetectionMacAddressCallbacks.finishBroadcast();
+        }
+        return true;
     }
 
     private void enforceNetworkStackPermission() {
@@ -1215,7 +1414,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         private int mNextCommandId = 1000;
         private Map<Integer, RttRequesterInfo> mRttRequesterInfo = new HashMap<>();
         private List<RttRequestInfo> mRttRequestQueue = new LinkedList<>();
+        private Map<Integer, ContinuousRangingRequestInfo> mContinuousRangingSessions =
+                new HashMap<>();
         private WakeupMessage mRangingTimeoutMessage = null;
+        private WakeupMessage mContinuousRangingTimeoutMessage = null;
 
         RttServiceSynchronized(Looper looper) {
             mHandler = new Handler(looper);
@@ -1223,6 +1425,9 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                     HAL_RANGING_TIMEOUT_TAG, () -> {
                 timeoutRangingRequest();
             });
+            mContinuousRangingTimeoutMessage = new WakeupMessage(mContext, mHandler,
+                    HAL_RANGING_TIMEOUT_TAG + " Continuous",
+                    this::timeoutContinuousRangingRequest);
         }
 
         private void cancelRanging(RttRequestInfo rri) {
@@ -1260,6 +1465,12 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             }
             mRttRequestQueue.clear();
             mRangingTimeoutMessage.cancel();
+            // Clean up continuous ranging sessions
+            if (isProximityRangingFeatureSupported()) {
+                cleanUpContinuousRangingSessions(0, null,
+                        ContinuousRangingResultCallback.TERMINATE_REASON_UNKNOWN);
+                mContinuousRangingTimeoutMessage.cancel();
+            }
         }
 
         /**
@@ -1313,6 +1524,40 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             }
         }
 
+        private void cleanUpContinuousRangingSessions(int uid, WorkSource workSource,
+                @ContinuousRangingResultCallback.RangingTerminateReason int reason) {
+            if (VDBG) {
+                Log.v(TAG, "cleanUpContinuousRangingSessions: uid=" + uid
+                        + ", workSource=" + workSource);
+            }
+            if (mSupplicantWifiRttController == null) return;
+
+            List<Integer> cmdIdsToCancel = new ArrayList<>();
+            if (uid == 0 && workSource == null) { // A null worksource means cancel all
+                cmdIdsToCancel.addAll(mContinuousRangingSessions.keySet());
+            } else {
+                for (ContinuousRangingRequestInfo session : mContinuousRangingSessions.values()) {
+                    boolean match = (uid != 0 && session.mUid == uid);
+                    if (!match && workSource != null) {
+                        if (session.mWorkSource != null) {
+                            session.mWorkSource.remove(workSource);
+                            if (session.mWorkSource.isEmpty()) {
+                                match = true;
+                            }
+                        }
+                    }
+                    if (match) {
+                        cmdIdsToCancel.add(session.mCmdId);
+                    }
+                }
+            }
+
+            for (int cmdId : cmdIdsToCancel) {
+                mSupplicantWifiRttController.rangeCancel(cmdId, new ArrayList<>());
+                removeContinuousRangingSession(cmdId, reason);
+            }
+        }
+
         private void timeoutRangingRequest() {
             if (VDBG) {
                 Log.v(TAG, "RttServiceSynchronized.timeoutRangingRequest mRttRequestQueue="
@@ -1343,6 +1588,21 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 RangingRequest request, IRttCallback callback,
                 boolean isCalledFromPrivilegedContext, Object attributionSource) {
             mRttMetrics.recordRequest(workSource, request);
+
+            if (isProximityRangingFeatureSupported() && !mContinuousRangingSessions.isEmpty()) {
+                Log.e(TAG, "queueRangingRequest:"
+                        + " another continuous rtt session is active");
+                binder.unlinkToDeath(dr, 0);
+                try {
+                    // TODO Define a new metrics for this
+                    mRttMetrics.recordOverallStatus(WifiMetricsProto.WifiRttLog.OVERALL_THROTTLE);
+                    callback.onRangingFailure(RangingResultCallback.STATUS_CODE_FAIL);
+                } catch (RemoteException e) {
+                    Log.e(TAG, "RttServiceSynchronized.queueRangingRequest: spamming, callback "
+                            + "failed -- " + e);
+                }
+                return;
+            }
 
             if (isRequestorSpamming(workSource)) {
                 Log.w(TAG,
@@ -1804,6 +2064,150 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             executeNextRangingRequestIfPossible(true);
         }
 
+        @SuppressLint("NewApi")
+        private int validateContinuousRangingRequest(
+                RangingRequest request) {
+            if (mSupplicantWifiRttController == null) {
+                Log.e(TAG, "validateContinuousRangingRequest:"
+                        + " SupplicantWifiRttController is null");
+                return ContinuousRangingResultCallback.FAILURE_REASON_RTT_NOT_AVAILABLE;
+            }
+            if (!mContinuousRangingSessions.isEmpty()) {
+                Log.e(TAG, "validateContinuousRangingRequest:"
+                        + " another continuous rtt session is active");
+                return ContinuousRangingResultCallback.FAILURE_REASON_RTT_BUSY;
+            }
+            if (!mRttRequestQueue.isEmpty()) {
+                Log.e(TAG, "validateContinuousRangingRequest:"
+                        + " another single shot rtt session is active");
+                return ContinuousRangingResultCallback.FAILURE_REASON_RTT_BUSY;
+            }
+            // More validation, specific to continuous ranging
+            ResponderConfig responder = request.mRttPeers.get(0);
+            if (responder.responderType != RESPONDER_STA) {
+                Log.e(TAG, "Responder type must be RESPONDER_STA for continuous ranging");
+                return ContinuousRangingResultCallback.FAILURE_REASON_GENERIC;
+            }
+            if (responder.getMacAddress() == null) {
+                // TODO: USD peer ID might be supported in future
+                Log.e(TAG, "Responder must have a MAC address for continuous ranging");
+                return ContinuousRangingResultCallback.FAILURE_REASON_GENERIC;
+            }
+            // For now, require both secure ranging and PD config
+            if (responder.getSecureRangingConfig() == null
+                    || responder.getProximityDetectionConfig() == null) {
+                Log.e(TAG, "Responder must have secure ranging and proximity detection config");
+                return ContinuousRangingResultCallback.FAILURE_REASON_GENERIC;
+            }
+            return 0;
+        }
+
+        private void queueContinuousRangingRequest(int uid, WorkSource workSource, IBinder binder,
+                IBinder.DeathRecipient dr, String callingPackage, String callingFeatureId,
+                RangingRequest request, IContinuousRangingResultCallback callback) {
+
+            int failureReason = validateContinuousRangingRequest(request);
+            if (failureReason != 0) {
+                try {
+                    callback.onRangingFailure(failureReason);
+                } catch (RemoteException e) {
+                    // ignored
+                }
+                try {
+                    binder.unlinkToDeath(dr, 0);
+                } catch (NoSuchElementException e) {
+                    Log.e(TAG, "queueContinuousRangingRequest: unlinkToDeath failed -- " + e);
+                }
+                return;
+            }
+
+            ContinuousRangingRequestInfo newRequest = new ContinuousRangingRequestInfo();
+            newRequest.mUid = uid;
+            newRequest.mWorkSource = workSource;
+            newRequest.mBinder = binder;
+            newRequest.mDr = dr;
+            newRequest.mCallingPackage = callingPackage;
+            newRequest.mCallingFeatureId = callingFeatureId;
+            newRequest.mRequest = request;
+            newRequest.mCallback = callback;
+            newRequest.mCmdId = mNextCommandId++;
+
+            if (mSupplicantWifiRttController.rangeRequest(newRequest.mCmdId, newRequest.mRequest)) {
+                mContinuousRangingSessions.put(newRequest.mCmdId, newRequest);
+                // TODO: Send the same session timeout to HAL
+                mContinuousRangingTimeoutMessage.schedule(
+                        mClock.getElapsedSinceBootMillis() + HAL_PROXIMITY_RANGING_TIMEOUT_MS);
+            } else {
+                Log.e(TAG, "queueContinuousRangingRequest: rangeRequest call failed");
+                try {
+                    callback.onRangingFailure(
+                            ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
+                } catch (RemoteException e) {
+                    // ignored
+                }
+                try {
+                    binder.unlinkToDeath(dr, 0);
+                } catch (NoSuchElementException e) {
+                    Log.e(TAG, "queueContinuousRangingRequest: unlinkToDeath failed -- " + e);
+                }
+            }
+        }
+
+        private void timeoutContinuousRangingRequest() {
+            if (mSupplicantWifiRttController == null) {
+                Log.e(TAG, "timeoutContinuousRangingRequest: SupplicantWifiRttController is null.");
+                return;
+            }
+            // For simplicity, timeout the oldest session. A better implementation might track
+            // timeouts per session.
+            if (mContinuousRangingSessions.isEmpty()) {
+                Log.w(TAG, "timeoutContinuousRangingRequest: but no sessions active!?");
+                return;
+            }
+            int cmdIdToTimeout = mContinuousRangingSessions.keySet().iterator().next();
+            Log.i(TAG, "timeoutContinuousRangingRequest: cmdId=" + cmdIdToTimeout);
+            mSupplicantWifiRttController.rangeCancel(cmdIdToTimeout, new ArrayList<>());
+            removeContinuousRangingSession(cmdIdToTimeout,
+                    ContinuousRangingResultCallback.TERMINATE_REASON_TIMEOUT);
+        }
+
+        private void onContinuousRangingResults(int cmdId, List<RangingResult> results) {
+            ContinuousRangingRequestInfo session = mContinuousRangingSessions.get(cmdId);
+            if (session == null) {
+                Log.e(TAG, "onContinuousRangingResults for unknown cmdId: " + cmdId);
+                return;
+            }
+
+            try {
+                // TODO: post-process results if needed, similar to one-shot ranging
+                session.mCallback.onRangingResults(results);
+            } catch (RemoteException e) {
+                Log.e(TAG, "onContinuousRangingResults: callback exception -- " + e);
+            }
+        }
+
+        private void removeContinuousRangingSession(int cmdId, int reason) {
+            mContinuousRangingTimeoutMessage.cancel();
+            ContinuousRangingRequestInfo session = mContinuousRangingSessions.remove(cmdId);
+            if (session == null) {
+                if (mVerboseLoggingEnabled) {
+                    Log.v(TAG, "removeContinuousRangingSession for unknown cmdId: " + cmdId);
+                }
+                return;
+            }
+
+            try {
+                session.mCallback.onRangingStopped(reason);
+            } catch (RemoteException e) {
+                Log.e(TAG, "removeContinuousRangingSession: callback exception -- " + e);
+            }
+            try {
+                session.mBinder.unlinkToDeath(session.mDr, 0);
+            } catch (NoSuchElementException e) {
+                Log.e(TAG, "removeContinuousRangingSession: unlinkToDeath failed -- " + e);
+            }
+        }
+
         /*
          * Post process the results:
          * - For requests without results: add FAILED results
@@ -1916,6 +2320,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             pw.println("  mRttRequesterInfo: " + mRttRequesterInfo);
             pw.println("  mRttRequestQueue: " + mRttRequestQueue);
             pw.println("  mRangingTimeoutMessage: " + mRangingTimeoutMessage);
+            pw.println("  mContinuousRangingSessions: " + mContinuousRangingSessions);
+            pw.println("  mContinuousRangingTimeoutMessage: " + mContinuousRangingTimeoutMessage);
             pw.println("  mWifiRttController: " + mWifiRttController);
             pw.println("  mHalDeviceManager: " + mHalDeviceManager);
             mRttMetrics.dump(fd, pw, args);
@@ -1960,6 +2366,27 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         public String toString() {
             return new StringBuilder("RttRequesterInfo: lastRangingExecuted=").append(
                     lastRangingExecuted).toString();
+        }
+    }
+
+    private static class ContinuousRangingRequestInfo {
+        int mUid;
+        WorkSource mWorkSource;
+        IBinder mBinder;
+        IBinder.DeathRecipient mDr;
+        String mCallingPackage;
+        String mCallingFeatureId;
+        RangingRequest mRequest;
+        IContinuousRangingResultCallback mCallback;
+
+        int mCmdId = 0; // uninitialized cmdId value
+
+        @Override
+        public String toString() {
+            return "ContinuousRangingRequestInfo: uid=" + mUid + ", workSource=" + mWorkSource
+                    + ", binder=" + mBinder + ", dr=" + mDr + ", callingPackage=" + mCallingPackage
+                    + ", callingFeatureId=" + mCallingFeatureId + ", request="
+                    + mRequest.toString() + ", callback=" + mCallback + ", cmdId=" + mCmdId;
         }
     }
 }
