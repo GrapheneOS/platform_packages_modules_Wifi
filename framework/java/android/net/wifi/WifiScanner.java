@@ -616,7 +616,7 @@ public class WifiScanner {
          *
          * On devices with multiple hardware radio chains (and hence different modes of scan),
          * this type serves as an indication to the hardware on what mode of scan to perform.
-         * Only apps holding {@link android.Manifest.permission.NETWORK_STACK} permission can set
+         * Only apps holding {@link android.Manifest.permission#NETWORK_STACK} permission can set
          * this value.
          *
          * Note: This serves as an intent and not as a stipulation, the wifi chip
