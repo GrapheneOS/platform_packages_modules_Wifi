@@ -2128,7 +2128,6 @@ public class RttServiceImplTest extends WifiBaseTest {
     public void testGetProximityDetectionCharacteristics_whenDisabled_returnsNull()
             throws Exception {
         assumeTrue(Environment.isSdkNewerThanB());
-        when(Flags.proximityRangingImpl()).thenReturn(true);
         ProximityDetectionCharacteristics characteristics =
                 mDut.getProximityDetectionCharacteristics();
         mMockLooper.dispatchAll();
@@ -2162,7 +2161,6 @@ public class RttServiceImplTest extends WifiBaseTest {
     public void testGetProximityDetectionRandomizedMacAddress_whenDisabled_returnsNull()
             throws Exception {
         assumeTrue(Environment.isSdkNewerThanB());
-        when(Flags.proximityRangingImpl()).thenReturn(true);
         MacAddress macAddress = mDut.getProximityDetectionRandomizedMacAddress();
         mMockLooper.dispatchAll();
         assertNull(macAddress);
@@ -2230,7 +2228,6 @@ public class RttServiceImplTest extends WifiBaseTest {
         when(clientModeManager.getInterfaceName()).thenReturn("wlan0");
 
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5)).thenReturn(true);
-        when(Flags.proximityRangingImpl()).thenReturn(true);
 
         mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
 
@@ -2240,7 +2237,6 @@ public class RttServiceImplTest extends WifiBaseTest {
 
     private void setupRttServiceForProximityRanging() throws Exception {
         assumeTrue(Environment.isSdkNewerThanB());
-        when(Flags.proximityRangingImpl()).thenReturn(true);
         mDut.mSupplicantWifiRttController = mMockSupplicantRttController;
         ClientModeManager clientModeManager = mock(ClientModeManager.class);
         when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(clientModeManager);
@@ -2315,8 +2311,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         reset(mMockSupplicantRttController);
         mDut.mSupplicantWifiRttController = null; // Clear state for the next test case
 
-        // Scenario 2: Wi-Fi ENABLED - Flags.proximityRangingImpl() is false
-        when(Flags.proximityRangingImpl()).thenReturn(false);
+        // Scenario 2: Wi-Fi ENABLED - Flags.proximityRanging() is false
+        when(Flags.proximityRanging()).thenReturn(false);
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
                 .thenReturn(true);
 
@@ -2331,7 +2327,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         // Scenario 3: Wi-Fi ENABLED - mWifiNative.isSupplicantAidlServiceVersionAtLeast(5) is
         // false
-        when(Flags.proximityRangingImpl()).thenReturn(true);
+        when(Flags.proximityRanging()).thenReturn(true);
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
                 .thenReturn(false);
 
@@ -2345,7 +2341,6 @@ public class RttServiceImplTest extends WifiBaseTest {
         mDut.mSupplicantWifiRttController = null;
 
         // Scenario 4: Wi-Fi ENABLED - createSupplicantWifiRttController returns null
-        when(Flags.proximityRangingImpl()).thenReturn(true);
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
                 .thenReturn(true);
         when(mWifiNative.createSupplicantWifiRttController("wlan0"))
@@ -2362,7 +2357,6 @@ public class RttServiceImplTest extends WifiBaseTest {
         mDut.mSupplicantWifiRttController = null;
 
         // Scenario 5: Wi-Fi ENABLED - initializeSupplicantWifiRttController returns false
-        when(Flags.proximityRangingImpl()).thenReturn(true);
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
                 .thenReturn(true);
         when(mWifiNative.createSupplicantWifiRttController("wlan0"))
