@@ -1238,6 +1238,76 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Validate that if the network specifier index mismatches, the data path is ended.
+     */
+    @Test
+    public void testDataPathInitiateSuccessIndexMismatch() throws Exception {
+        final int clientId = 123;
+        final byte pubSubId = 58;
+        final int requestorId = 1341234;
+        final int ndpId = 2;
+        final byte[] pmk = "01234567890123456789012345678901".getBytes();
+        final String passphrase = "some passphrase";
+        final byte[] peerDiscoveryMac = HexEncoding.decode("000102030405".toCharArray(), false);
+
+        ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
+        InOrder inOrder = inOrder(mMockNative, mMockCm, mMockCallback, mMockSessionCallback);
+        InOrder inOrderM = inOrder(mAwareMetricsMock);
+
+        // (0) initialize
+        DataPathEndPointInfo res = initDataPathEndPoint(true, clientId, pubSubId, requestorId,
+                peerDiscoveryMac, inOrder, inOrderM, false);
+
+        // (1) Request 1 (Dummy to bump index)
+        NetworkRequest nr1 = getSessionNetworkRequest(clientId, res.mSessionId, res.mPeerHandle,
+                pmk, passphrase, false, 0);
+        Message reqNetworkMsg1 = Message.obtain();
+        reqNetworkMsg1.what = NetworkProvider.CMD_REQUEST_NETWORK;
+        reqNetworkMsg1.obj = nr1;
+        reqNetworkMsg1.arg1 = 0;
+        res.mMessenger.send(reqNetworkMsg1);
+        mMockLooper.dispatchAll();
+        inOrderM.verify(mAwareMetricsMock).recordNdpRequestType(anyInt());
+        inOrder.verify(mMockNative).initiateDataPath(transactionId.capture(), anyInt(), anyInt(),
+                anyInt(), any(), any(), anyBoolean(), any(), any(), any(), anyByte(), anyBoolean());
+
+        // Cancel Request 1
+        Message endNetworkReqMsg = Message.obtain();
+        endNetworkReqMsg.what = NetworkFactory.CMD_CANCEL_REQUEST;
+        endNetworkReqMsg.obj = nr1;
+        res.mMessenger.send(endNetworkReqMsg);
+        mMockLooper.dispatchAll();
+
+        // (2) Request 2 (Target, will have index 1)
+        NetworkRequest nr2 = getSessionNetworkRequest(clientId, res.mSessionId, res.mPeerHandle,
+                pmk, passphrase, false, 1);
+        Message reqNetworkMsg2 = Message.obtain();
+        reqNetworkMsg2.what = NetworkProvider.CMD_REQUEST_NETWORK;
+        reqNetworkMsg2.obj = nr2;
+        reqNetworkMsg2.arg1 = 0;
+        res.mMessenger.send(reqNetworkMsg2);
+        mMockLooper.dispatchAll();
+        inOrderM.verify(mAwareMetricsMock).recordNdpRequestType(anyInt());
+
+        // (3) Call onDataPathInitiateSuccess with the wrong index
+        mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), ndpId);
+        mMockLooper.dispatchAll();
+
+        // (4) Verify the second request is processed
+        inOrder.verify(mMockNative).initiateDataPath(transactionId.capture(), anyInt(), anyInt(),
+                anyInt(), any(), any(), anyBoolean(), any(), any(), any(), anyByte(), anyBoolean());
+
+        // (5) Data path request sent completely
+        mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), ndpId + 1);
+        mMockLooper.dispatchAll();
+
+        // (4) Verify the first request is ended
+        verify(mMockNative).endDataPath(transactionId.capture(), eq(ndpId));
+        mDut.onEndDataPathResponse(transactionId.getValue(), true, 0);
+        mMockLooper.dispatchAll();
+    }
+
+    /**
      * Validate the success flow of the Initiator: using a direct network specifier with a non-null
      * peer mac and non-null PMK.
      */
