@@ -137,6 +137,7 @@ public class WifiAwareDataPathStateManager {
     private WifiAwareNetworkFactory mNetworkFactory;
     public NetdWrapper mNetdWrapper;
     private final SparseArray<Object> mDelayNetworkValidationMap = new SparseArray<>();
+    private int mNextNetworkSpecifierIndex = 0;
 
     // internal debug flag to override API check
     /* package */ boolean mAllowNdpResponderFromAnyOverride = false;
@@ -337,6 +338,12 @@ public class WifiAwareDataPathStateManager {
             mMgr.endDataPath(ndpId);
             return false;
         }
+        if (nnri.networkSpecifier.getIndex() != networkSpecifier.getIndex()) {
+                        Log.w(TAG, "onDataPathInitiateSuccess: network request mismatch"
+                            + "for networkSpecifier=" + networkSpecifier);
+            mMgr.endDataPath(ndpId);
+            return false;
+        }
 
         if (nnri.state
                 != AwareNetworkRequestInformation.STATE_INITIATOR_WAIT_FOR_REQUEST_RESPONSE) {
@@ -371,12 +378,19 @@ public class WifiAwareDataPathStateManager {
                             + reason);
         }
 
-        AwareNetworkRequestInformation nnri = mNetworkRequestsCache.remove(networkSpecifier);
+        AwareNetworkRequestInformation nnri = mNetworkRequestsCache.get(networkSpecifier);
         if (nnri == null) {
             Log.w(TAG, "onDataPathInitiateFail: network request not found for networkSpecifier="
                     + networkSpecifier);
             return;
         }
+        if (nnri.networkSpecifier.getIndex() != networkSpecifier.getIndex()) {
+                        Log.w(TAG, "onDataPathInitiateFail: network request mismatch"
+                            + "for networkSpecifier=" + networkSpecifier);
+            return;
+        }
+
+        mNetworkRequestsCache.remove(networkSpecifier);
         mNetworkFactory.letAppKnowThatRequestsAreUnavailable(nnri);
 
         if (nnri.state
@@ -1057,7 +1071,7 @@ public class WifiAwareDataPathStateManager {
                 releaseRequestAsUnfulfillableByAnyFactory(request);
                 return false;
             }
-
+            networkSpecifier.setIndex(mNextNetworkSpecifierIndex++);
             mNetworkRequestsCache.put(networkSpecifier, nnri);
             mAwareMetrics.recordNdpRequestType(networkSpecifier.type);
 
