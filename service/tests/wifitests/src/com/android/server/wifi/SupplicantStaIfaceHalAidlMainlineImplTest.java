@@ -225,7 +225,7 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
         when(mResources.getBoolean(
                 com.android.wifi.resources.R.bool.config_wifiMainlineSupplicantEnabled))
                 .thenReturn(true);
-        ExtendedMockito.doReturn(true).when(() -> Environment.isSdkAtLeastB());
+        ExtendedMockito.doReturn(true).when(() -> Environment.isSdkAtLeastC());
         ExtendedMockito.doReturn(true).when(() -> Flags.mainlineSupplicant());
         ExtendedMockito.doReturn(true).when(() -> Environment
                                                   .isMainlineSupplicantBinaryInWifiApex());
