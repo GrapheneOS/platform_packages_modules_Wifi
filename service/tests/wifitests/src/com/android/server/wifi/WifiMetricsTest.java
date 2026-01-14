@@ -281,7 +281,7 @@ public class WifiMetricsTest extends WifiBaseTest {
                         mFacade,
                         mClock,
                         mTestLooper.getLooper(),
-                        new WifiAwareMetrics(mClock, mContext),
+                        new WifiAwareMetrics(mClock),
                         new RttMetrics(mClock),
                         mWifiPowerMetrics,
                         mWifiP2pMetrics,

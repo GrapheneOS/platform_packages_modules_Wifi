@@ -3096,6 +3096,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             if (mFeatureFlags.publicBandsForLohs() && Environment.isSdkAtLeastB()) {
                 mIsExclusive = (request.getCustomConfig() != null)
                         && currentWsPriority >= WorkSourceHelper.PRIORITY_SYSTEM;
+                mLog.trace("Starting LOHS with a customized config, currentWsPriority is %")
+                        .c(currentWsPriority).flush();
             } else {
                 mIsExclusive = (request.getCustomConfig() != null);
             }

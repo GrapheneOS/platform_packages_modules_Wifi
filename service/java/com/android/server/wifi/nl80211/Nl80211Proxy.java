@@ -77,6 +77,8 @@ public class Nl80211Proxy {
             NL80211_MULTICAST_GROUP_REG,
             NL80211_MULTICAST_GROUP_MLME};
 
+    private static final long RECEIVE_MESSAGE_TIMEOUT_MS = 4000;
+
     private WifiMetrics mWifiMetrics;
     private boolean mIsInitialized;
     private FileDescriptor mNetlinkFd;
@@ -140,6 +142,12 @@ public class Nl80211Proxy {
     private @Nullable Nl80211Response receiveNl80211Response(@NonNull GenericNetlinkMsg sent) {
         List<GenericNetlinkMsg> messages = new ArrayList<>();
         boolean isAck = sent.isFlagEnabled(NLM_F_ACK);
+        if (sent.nlHeader == null) {
+            Log.wtf(TAG, "Sent message has no header!");
+            return null;
+        }
+        int expectedSeq = sent.nlHeader.nlmsg_seq;
+
         try {
             // The response may arrive in several batches, where each batch
             // can contain several individual messages.
@@ -150,7 +158,7 @@ public class Nl80211Proxy {
                         NetlinkUtils.recvMessage(
                                 mNetlinkFd,
                                 NetlinkUtils.DEFAULT_RECV_BUFSIZE,
-                                NetlinkUtils.IO_TIMEOUT_MS);
+                                RECEIVE_MESSAGE_TIMEOUT_MS);
                 // Netlink requires native order
                 recvBuffer.order(ByteOrder.nativeOrder());
 
@@ -165,6 +173,22 @@ public class Nl80211Proxy {
                         mWifiMetrics.reportNl80211CommandResult(sent,
                                 WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_NULL);
                         return null;
+                    }
+
+                    // Skip if the sequence number does not match. This may happen if the buffer
+                    // receives a reply after we've already timed out, which is then consumed by the
+                    // next command.
+                    if (nlMsgHdr.nlmsg_seq != expectedSeq) {
+                        Log.e(TAG, "Received a message with a mismatched sequence number. "
+                                + "Expected: " + expectedSeq
+                                + ", got: " + nlMsgHdr.nlmsg_seq + ". Skipping.");
+                        int payloadLength = nlMsgHdr.nlmsg_len - StructNlMsgHdr.STRUCT_SIZE;
+                        if (payloadLength < 0 || payloadLength > recvBuffer.remaining()) {
+                            Log.e(TAG, "Invalid payload length, unable to skip. " + payloadLength);
+                            break;
+                        }
+                        recvBuffer.position(recvBuffer.position() + payloadLength);
+                        continue;
                     }
 
                     // Error should terminate the response and return the error code.
@@ -221,7 +245,7 @@ public class Nl80211Proxy {
         } catch (ErrnoException | IllegalArgumentException | InterruptedIOException e) {
             mWifiMetrics.reportNl80211CommandResult(sent,
                     WifiStatsLog.WIFI_NL80211_COMMAND_RESULT_REPORTED__REASON_CODE__RESPONSE_NLMSG_EXCEPTION);
-            Log.i(TAG, "Unable to receive Nl80211 messages. " + e);
+            Log.i(TAG, "Unable to receive Nl80211 messages. ", e);
             return null;
         }
         return new Nl80211Response(messages.toArray(new GenericNetlinkMsg[0]));
