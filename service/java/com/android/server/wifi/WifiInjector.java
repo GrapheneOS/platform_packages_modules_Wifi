@@ -42,6 +42,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Process;
+import android.os.SystemProperties;
 import android.os.UserManager;
 import android.os.WorkSource;
 import android.provider.Settings.Secure;
@@ -377,6 +378,12 @@ public class WifiInjector {
         Nl80211Proxy nl80211Proxy = new Nl80211Proxy(mWifiHandler, mWifiMetrics);
         boolean isWificondMigrationEnabled = Environment.isSdkAtLeastB()
                 && mFeatureFlags.wificondToNl80211Migration();
+        // Force enable the wificond migration if wificond is already disabled.
+        if (!isWificondMigrationEnabled
+                && SystemProperties.get("init.svc.wificond").isEmpty()) {
+            Log.i(TAG, "Force enabling wificond migration due to wificond disabled.");
+            isWificondMigrationEnabled = true;
+        }
         mNl80211Native = new Nl80211Native(
                 nl80211Proxy,
                 new Nl80211Utils(nl80211Proxy),
