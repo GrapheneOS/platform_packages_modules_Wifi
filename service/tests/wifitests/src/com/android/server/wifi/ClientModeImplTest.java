@@ -255,6 +255,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     private static final int WPS_FRAMEWORK_NETWORK_ID = 10;
     private static final String DEFAULT_TEST_SSID = "\"GoogleGuest\"";
     private static final String OP_PACKAGE_NAME = "com.xxx";
+    private static final int THRESHOLD_TO_PERM_WRONG_PASSWORD = 3;
     private static final int TEST_UID = Process.SYSTEM_UID + 1000;
     private static final MacAddress TEST_GLOBAL_MAC_ADDRESS =
             MacAddress.fromString("10:22:34:56:78:92");
@@ -716,6 +717,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mWifiGlobals.getPollRssiIntervalMillis()).thenReturn(3000);
         when(mWifiGlobals.getIpReachabilityDisconnectEnabled()).thenReturn(true);
         when(mWifiGlobals.getRepeatedNudFailuresThreshold()).thenReturn(Integer.MAX_VALUE);
+        when(mWifiGlobals.getPreviouslyConnectedNetworkWrongPasswordThreshold())
+                .thenReturn(THRESHOLD_TO_PERM_WRONG_PASSWORD);
 
         when(mFrameworkFacade.getIntegerSetting(mContext,
                 Settings.Global.WIFI_FREQUENCY_BAND,
@@ -5036,7 +5039,7 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         // mock number of wrong password failures to be less than the threshold
         when(mPerNetworkRecentStats.getCount(WifiScoreCard.CNT_CONSECUTIVE_WRONG_PASSWORD_FAILURE))
-                .thenReturn(ClientModeImpl.THRESHOLD_TO_PERM_WRONG_PASSWORD - 1);
+                .thenReturn(THRESHOLD_TO_PERM_WRONG_PASSWORD - 1);
 
         // trigger the wrong password failure
         mCmi.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT,
@@ -5054,7 +5057,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         // Bump up the wrong password count to reach the threshold and verify the network is
         // disabled permanently.
         when(mPerNetworkRecentStats.getCount(WifiScoreCard.CNT_CONSECUTIVE_WRONG_PASSWORD_FAILURE))
-                .thenReturn(ClientModeImpl.THRESHOLD_TO_PERM_WRONG_PASSWORD);
+                .thenReturn(THRESHOLD_TO_PERM_WRONG_PASSWORD);
 
         startConnectSuccess();
         // trigger the wrong password failure
