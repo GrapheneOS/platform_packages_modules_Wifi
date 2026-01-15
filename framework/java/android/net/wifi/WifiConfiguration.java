@@ -715,6 +715,7 @@ public class WifiConfiguration implements Parcelable {
     private boolean isWpa3EnterpriseConfiguration() {
         if (!allowedKeyManagement.get(KeyMgmt.WPA_EAP_SHA256)
                 && !allowedKeyManagement.get(KeyMgmt.WPA_EAP)
+                && !allowedKeyManagement.get(KeyMgmt.FT_EAP)
                 && !allowedKeyManagement.get(KeyMgmt.IEEE8021X)) {
             return false;
         }

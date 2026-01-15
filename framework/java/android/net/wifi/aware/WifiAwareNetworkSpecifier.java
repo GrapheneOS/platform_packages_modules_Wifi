@@ -165,6 +165,21 @@ public final class WifiAwareNetworkSpecifier extends NetworkSpecifier implements
     private final boolean mForcedChannel;
 
     private final WifiAwareDataPathSecurityConfig mSecurityConfig;
+    private int index = 0;
+
+    /**
+     * @hide
+     */
+    public int getIndex() {
+        return index;
+    }
+
+    /**
+     * @hide
+     */
+    public void setIndex(int index) {
+        this.index = index;
+    }
 
     /**
      * Get the specified channel in MHZ for this Wi-Fi Aware network specifier.
@@ -354,6 +369,7 @@ public final class WifiAwareNetworkSpecifier extends NetworkSpecifier implements
                 .append(", transportProtocol=").append(transportProtocol)
                 .append(", channel=").append(mChannelInMhz)
                 .append(", forceChannel=").append(mForcedChannel)
+                .append(", index=").append(index)
                 .append("]");
         return sb.toString();
     }

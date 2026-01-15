@@ -506,8 +506,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     }
 
     private boolean isProximityRangingFeatureSupported() {
-        return Environment.isSdkNewerThanB()
-                && Flags.proximityRanging() && Flags.proximityRangingImpl();
+        return Environment.isSdkNewerThanB() && Flags.proximityRanging();
     }
 
     /**
