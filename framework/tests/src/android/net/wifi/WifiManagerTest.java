@@ -136,6 +136,8 @@ import android.os.RemoteException;
 import android.os.connectivity.WifiActivityEnergyInfo;
 import android.os.test.TestLooper;
 import android.platform.test.annotations.RequiresFlagsEnabled;
+import android.security.advancedprotection.AdvancedProtectionFeature;
+import android.security.advancedprotection.AdvancedProtectionManager;
 import android.util.ArraySet;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
@@ -4843,5 +4845,23 @@ public class WifiManagerTest {
         // Call and verify.
         mWifiManager.getSupportedInterfaceNames(executor, resultsCallback);
         verify(mWifiService).getSupportedInterfaceNames(any(IListListener.Stub.class));
+    }
+
+    @Test
+    @RequiresFlagsEnabled(android.security.Flags.FLAG_AAPM_FEATURE_DISABLE_INSECURE_WIFI_AUTOJOIN)
+    public void testGetAvailableAdvancedProtectionFeaturesWhenFlagIsEnabled() {
+        assumeTrue(Environment.isSdkAtLeastB());
+        List<AdvancedProtectionFeature> features =
+                mWifiManager.getAvailableAdvancedProtectionFeatures();
+        assertNotNull(features);
+        boolean isDisableInSecureWifiAutojoinSupported = false;
+        for (AdvancedProtectionFeature feature : features) {
+            if (feature.getId()
+                    == AdvancedProtectionManager.FEATURE_ID_DISALLOW_INSECURE_WIFI_AUTOJOIN) {
+                isDisableInSecureWifiAutojoinSupported = true;
+                break;
+            }
+        }
+        assertTrue(isDisableInSecureWifiAutojoinSupported);
     }
 }
