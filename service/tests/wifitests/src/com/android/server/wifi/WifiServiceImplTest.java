@@ -13665,40 +13665,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiMetrics).setLastThreadDeviceRole(3);
     }
 
-    @Test
-    public void testSetQueryAllowedWhenWepUsageControllerSupported() {
-        when(mFeatureFlags.wepDisabledInApm()).thenReturn(true);
-        WepNetworkUsageController testWepNetworkUsageController =
-                mock(WepNetworkUsageController.class);
-        when(mWifiInjector.getWepNetworkUsageController())
-                .thenReturn(testWepNetworkUsageController);
-        when(mWifiPermissionsUtil.checkNetworkSettingsPermission(anyInt())).thenReturn(true);
-        ConcreteClientModeManager cmmWep = mock(ConcreteClientModeManager.class);
-        WifiInfo mockWifiInfoWep = mock(WifiInfo.class);
-        List<ClientModeManager> cmms = Arrays.asList(cmmWep);
-        when(mActiveModeWarden.getClientModeManagers()).thenReturn(cmms);
-        when(mockWifiInfoWep.getCurrentSecurityType()).thenReturn(WifiInfo.SECURITY_TYPE_WEP);
-        when(cmmWep.getConnectionInfo()).thenReturn(mockWifiInfoWep);
-        mWifiServiceImpl = makeWifiServiceImpl();
-        mWifiServiceImpl.checkAndStartWifi();
-        mWifiServiceImpl.handleBootCompleted();
-        mLooper.dispatchAll();
-        // Verify boot complete go through the new design.
-        verify(mWifiSettingsConfigStore, never()).registerChangeListener(
-                eq(WIFI_WEP_ALLOWED),
-                mWepAllowedSettingChangedListenerCaptor.capture(),
-                any(Handler.class));
-        verify(mWifiGlobals, never()).setWepAllowed(anyBoolean());
-        verify(testWepNetworkUsageController).handleBootCompleted();
 
-        mWifiServiceImpl.setWepAllowed(false);
-        mLooper.dispatchAll();
-        verify(mWifiGlobals, never()).setWepAllowed(anyBoolean());
-        verify(mWifiSettingsConfigStore).put(eq(WIFI_WEP_ALLOWED), eq(false));
-        // WEP disconnect logic moved to WepNetworkUsageController.
-        verify(cmmWep, never()).disconnect();
-        verify(mWifiGlobals, never()).setWepAllowed(anyBoolean());
-    }
 
     @Test
     public void testUpdateSoftApCapabilityCheckMLOSupport() throws Exception {

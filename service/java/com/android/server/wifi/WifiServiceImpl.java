@@ -385,8 +385,6 @@ public class WifiServiceImpl extends IWifiManager.Stub {
 
     private final DefaultClientModeManager mDefaultClientModeManager;
 
-    private final WepNetworkUsageController mWepNetworkUsageController;
-
     private final FeatureFlags mFeatureFlags;
     @VisibleForTesting
     public final CountryCodeTracker mCountryCodeTracker;
@@ -841,7 +839,6 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         mWifiPulledAtomLogger = mWifiInjector.getWifiPulledAtomLogger();
         mAfcManager = mWifiInjector.getAfcManager();
         mTwtManager = mWifiInjector.getTwtManager();
-        mWepNetworkUsageController = mWifiInjector.getWepNetworkUsageController();
         mNl80211Native = mWifiInjector.getNl80211Native();
         if (Environment.isSdkAtLeastB()) {
             mIsUsdSupported = mContext.getResources().getBoolean(
@@ -875,19 +872,17 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             mWifiInjector.getWifiScanAlwaysAvailableSettingsCompatibility().initialize();
             mWifiInjector.getWifiNotificationManager().createNotificationChannels();
             // Old design, flag is disabled.
-            if (!mFeatureFlags.wepDisabledInApm()) {
-                mWifiGlobals.setWepAllowed(mSettingsConfigStore.get(WIFI_WEP_ALLOWED));
-                // Align the value between config store (i.e.WifiConfigStore.xml) and WifiGlobals.
-                mSettingsConfigStore.registerChangeListener(WIFI_WEP_ALLOWED,
-                        (key, value) -> {
-                            if (mWifiGlobals.isWepAllowed() != value) {
-                                handleWepAllowedChanged(value);
-                                Log.i(TAG, "Wep allowed is changed to "
-                                        + value);
-                            }
-                        },
-                        new Handler(mWifiHandlerThread.getLooper()));
-            }
+            mWifiGlobals.setWepAllowed(mSettingsConfigStore.get(WIFI_WEP_ALLOWED));
+            // Align the value between config store (i.e.WifiConfigStore.xml) and WifiGlobals.
+            mSettingsConfigStore.registerChangeListener(WIFI_WEP_ALLOWED,
+                    (key, value) -> {
+                        if (mWifiGlobals.isWepAllowed() != value) {
+                            handleWepAllowedChanged(value);
+                            Log.i(TAG, "Wep allowed is changed to "
+                                    + value);
+                        }
+                    },
+                    new Handler(mWifiHandlerThread.getLooper()));
             registerBroadcastReceiver(
                     new BroadcastReceiver() {
                         @Override
@@ -1167,10 +1162,6 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             }
             updateVerboseLoggingEnabled();
             mWifiInjector.getWifiDeviceStateChangeManager().handleBootCompleted();
-            if (mFeatureFlags.wepDisabledInApm()
-                    && mWepNetworkUsageController != null) {
-                mWepNetworkUsageController.handleBootCompleted();
-            }
             setPulledAtomCallbacks();
             mTwtManager.registerWifiNativeTwtEvents();
             mContext.registerReceiverForAllUsers(
@@ -6387,11 +6378,6 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 }
                 pw.println();
                 mResourceCache.dump(pw);
-                if (mFeatureFlags.wepDisabledInApm()
-                        && mWepNetworkUsageController != null) {
-                    pw.println();
-                    mWepNetworkUsageController.dump(fd, pw, args);
-                }
                 if (mScorerServiceConnection != null) {
                     pw.println("boundToExternalScorer successfully");
                 } else {
@@ -6580,10 +6566,6 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         mBackupRestoreController.enableVerboseLogging(mVerboseLoggingEnabled);
         if (SdkLevel.isAtLeastV() && mWifiInjector.getWifiVoipDetector() != null) {
             mWifiInjector.getWifiVoipDetector().enableVerboseLogging(mVerboseLoggingEnabled);
-        }
-        if (mFeatureFlags.wepDisabledInApm()
-                && mWepNetworkUsageController != null) {
-            mWepNetworkUsageController.enableVerboseLogging(mVerboseLoggingEnabled);
         }
     }
 
@@ -9361,9 +9343,6 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         mSettingsConfigStore.put(WIFI_WEP_ALLOWED, isAllowed);
     }
 
-    /**
-     * @deprecated Use mWepNetworkUsageController.handleWepAllowedChanged() instead.
-     */
     private void handleWepAllowedChanged(boolean isAllowed) {
         mWifiGlobals.setWepAllowed(isAllowed);
         if (!isAllowed) {
