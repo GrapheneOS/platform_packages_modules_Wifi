@@ -23,6 +23,7 @@ import static android.system.OsConstants.ENOENT;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_BSS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_EXT_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_FEATURE_FLAGS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_FRAME;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFNAME;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
@@ -58,6 +59,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_SIGNA
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATUS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATUS_ASSOCIATED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_TSF;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_FRAME;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_PROTOCOL_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_REG;
@@ -140,6 +142,9 @@ public class Nl80211UtilsTest {
             new GenericNetlinkMsg(NetlinkConstants.NL80211_CMD_GET_REG, (short) 0, (short) 0, 0);
     private static final GenericNetlinkMsg TEST_NL80211_REQUEST_GET_STATION =
             new GenericNetlinkMsg(NetlinkConstants.NL80211_CMD_GET_STATION, (short) 0, (short) 0,
+                    0);
+    private static final GenericNetlinkMsg TEST_NL80211_REQUEST_FRAME =
+            new GenericNetlinkMsg(NetlinkConstants.NL80211_CMD_FRAME, (short) 0, (short) 0,
                     0);
 
     @Mock private Nl80211Proxy mNl80211Proxy;
@@ -1412,5 +1417,43 @@ public class Nl80211UtilsTest {
                 .thenReturn(new Nl80211Response(response));
 
         assertNull(mNl80211Utils.getStationInfo(TEST_IF_INDEX, TEST_MAC_ADDR));
+    }
+
+    @Test
+    public void testSendMgmtFrame_success() {
+        long expectedCookie = 54321L;
+        GenericNetlinkMsg responseMsg =
+                new GenericNetlinkMsg(NL80211_CMD_FRAME, (short) 0, (short) 0, 0);
+        responseMsg.addAttribute(
+                new StructNlAttr(NetlinkConstants.NL80211_ATTR_COOKIE, expectedCookie));
+        Nl80211Response response = new Nl80211Response(responseMsg);
+
+        when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_FRAME)))
+                .thenReturn(TEST_NL80211_REQUEST_FRAME);
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_FRAME))
+                .thenReturn(response);
+
+        Long cookie = mNl80211Utils.sendMgmtFrame(TEST_IF_INDEX, TEST_SSID, /* mcs */ 5);
+
+        assertNotNull(cookie);
+        assertEquals(expectedCookie, cookie.longValue());
+
+        assertEquals(NL80211_CMD_FRAME, TEST_NL80211_REQUEST_FRAME.getCommand());
+        assertEquals(TEST_IF_INDEX,
+                (int) TEST_NL80211_REQUEST_FRAME.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX));
+        assertArrayEquals(TEST_SSID,
+                TEST_NL80211_REQUEST_FRAME.getAttributeValueAsByteArray(NL80211_ATTR_FRAME));
+    }
+
+    @Test
+    public void testSendMgmtFrame_proxyFailure() {
+        when(mNl80211Proxy.createNl80211Request(eq(NL80211_CMD_FRAME)))
+                .thenReturn(TEST_NL80211_REQUEST_FRAME);
+        when(mNl80211Proxy.sendMessageAndReceiveResponse(TEST_NL80211_REQUEST_FRAME))
+                .thenReturn(null);
+
+        Long cookie = mNl80211Utils.sendMgmtFrame(TEST_IF_INDEX, TEST_SSID, /* mcs */ 5);
+
+        assertNull(cookie);
     }
 }

@@ -16,8 +16,15 @@
 
 package com.android.server.wifi.nl80211;
 
+import static android.net.wifi.nl80211.WifiNl80211Manager.SEND_MGMT_FRAME_ERROR_ALREADY_STARTED;
+import static android.net.wifi.nl80211.WifiNl80211Manager.SEND_MGMT_FRAME_ERROR_NO_ACK;
+import static android.net.wifi.nl80211.WifiNl80211Manager.SEND_MGMT_FRAME_ERROR_TIMEOUT;
+import static android.net.wifi.nl80211.WifiNl80211Manager.SEND_MGMT_FRAME_ERROR_UNKNOWN;
+
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doThrow;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_ACK;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_CHANNEL_WIDTH;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_COOKIE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_ALPHA2;
@@ -25,6 +32,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_FREQ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_CH_SWITCH_NOTIFY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DEL_STATION;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_FRAME_TX_STATUS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_STATION;
@@ -69,14 +77,17 @@ import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.NativeWifiClient;
 import android.net.wifi.nl80211.WifiNl80211Manager;
 import android.os.Bundle;
+import android.os.Handler;
 
 import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.net.module.util.netlink.StructNlAttr;
 import com.android.net.module.util.netlink.StructNlMsgHdr;
+import com.android.server.wifi.Clock;
 import com.android.server.wifi.SelfRecovery;
 import com.android.server.wifi.WifiInjector;
+import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.util.NetdWrapper;
 
 import org.junit.Before;
@@ -110,6 +121,11 @@ public class Nl80211NativeTest {
     private static final int AP_IFACE_INDEX = 4;
     private static final String COUNTRY_CODE = "US";
 
+    private static final long TEST_COOKIE = 12345L;
+    private static final byte[] TEST_MGMT_FRAME = new byte[]{0x0B, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
+    private static final int TEST_MCS = 1;
+    private static final long TEST_START_TIME_MS = 100L;
+
     @Mock
     Nl80211Proxy mNl80211Proxy;
     @Mock
@@ -122,6 +138,10 @@ public class Nl80211NativeTest {
     WifiInjector mWifiInjector;
     @Mock
     SelfRecovery mSelfRecovery;
+    @Mock
+    WifiThreadRunner mWifiThreadRunner;
+    @Mock
+    Clock mClock;
     @Mock
     Executor mExecutor;
     @Mock
@@ -136,6 +156,8 @@ public class Nl80211NativeTest {
     Nl80211Native.PnoScanRequestCallback mPnoScanRequestCallback;
     @Mock
     WifiNl80211Manager.SendMgmtFrameCallback mSendMgmtFrameCallback;
+    @Mock
+    Handler mWifiHandler;
     @Mock
     Nl80211Native.CountryCodeChangedListener mCountryCodeChangedListener;
     @Mock
@@ -153,6 +175,10 @@ public class Nl80211NativeTest {
                 StructNlMsgHdr.NLM_F_DUMP))
                 .thenReturn(Nl80211TestUtils.createTestMessage());
         when(mWifiInjector.getSelfRecovery()).thenReturn(mSelfRecovery);
+        when(mWifiInjector.getWifiThreadRunner()).thenReturn(mWifiThreadRunner);
+        when(mWifiInjector.getClock()).thenReturn(mClock);
+        when(mClock.getWallClockMillis()).thenReturn(TEST_START_TIME_MS);
+        when(mWifiThreadRunner.getHandler()).thenReturn(mWifiHandler);
     }
 
     private Nl80211Native initNl80211Native(boolean useWificond) {
@@ -2257,11 +2283,226 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testSendMgmtFrame_throwsException() {
+    public void testSendMgmtFrame_successOnAck() {
         mDut = initNl80211Native(false);
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDut.sendMgmtFrame(
-                        CLIENT_IFACE_NAME, new byte[1], 0, mExecutor, mSendMgmtFrameCallback));
+        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsTxMgmtFrameMcs(true)
+                .build();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, wiphyFeatures);
+        when(mNl80211Utils.sendMgmtFrame(anyInt(), any(), anyInt())).thenReturn(TEST_COOKIE);
+        mDut.sendMgmtFrame(CLIENT_IFACE_NAME, TEST_MGMT_FRAME, TEST_MCS, mExecutor,
+                mSendMgmtFrameCallback);
+
+        ArgumentCaptor<Nl80211BroadcastMonitor.Nl80211BroadcastCallback> callbackCaptor =
+                ArgumentCaptor.forClass(Nl80211BroadcastMonitor.Nl80211BroadcastCallback.class);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_FRAME_TX_STATUS),
+                callbackCaptor.capture());
+
+        int expectedElapsedTimeMs = 150;
+        when(mClock.getWallClockMillis()).thenReturn(TEST_START_TIME_MS + expectedElapsedTimeMs);
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsLong(NL80211_ATTR_COOKIE)).thenReturn(TEST_COOKIE);
+        when(msg.getAttribute(NL80211_ATTR_ACK)).thenReturn(new StructNlAttr());
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(CLIENT_IFACE_INDEX);
+
+        callbackCaptor.getValue().onEvent(NL80211_CMD_FRAME_TX_STATUS, msg);
+        ArgumentCaptor<Runnable> callbackRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(callbackRunnableCaptor.capture());
+        callbackRunnableCaptor.getValue().run();
+        verify(mSendMgmtFrameCallback).onAck(expectedElapsedTimeMs);
+        verify(mSendMgmtFrameCallback, never()).onFailure(anyInt());
+        verify(mWifiHandler).removeCallbacks(any());
+    }
+
+    @Test
+    public void testSendMgmtFrame_failureOnNoAck() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsTxMgmtFrameMcs(true)
+                .build();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, wiphyFeatures);
+        when(mNl80211Utils.sendMgmtFrame(anyInt(), any(), anyInt())).thenReturn(TEST_COOKIE);
+        mDut.sendMgmtFrame(CLIENT_IFACE_NAME, TEST_MGMT_FRAME, TEST_MCS, mExecutor,
+                mSendMgmtFrameCallback);
+
+        ArgumentCaptor<Nl80211BroadcastMonitor.Nl80211BroadcastCallback> callbackCaptor =
+                ArgumentCaptor.forClass(Nl80211BroadcastMonitor.Nl80211BroadcastCallback.class);
+        verify(mNl80211Proxy).registerBroadcastCallback(
+                eq(NL80211_CMD_FRAME_TX_STATUS),
+                callbackCaptor.capture());
+
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsLong(NL80211_ATTR_COOKIE))
+                .thenReturn(TEST_COOKIE);
+        when(msg.getAttribute(NL80211_ATTR_ACK)).thenReturn(null); // No ACK
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(CLIENT_IFACE_INDEX);
+
+        callbackCaptor.getValue().onEvent(NL80211_CMD_FRAME_TX_STATUS, msg);
+        ArgumentCaptor<Runnable> callbackRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(callbackRunnableCaptor.capture());
+        callbackRunnableCaptor.getValue().run();
+        verify(mSendMgmtFrameCallback, never()).onAck(anyInt());
+        verify(mSendMgmtFrameCallback).onFailure(SEND_MGMT_FRAME_ERROR_NO_ACK);
+        verify(mWifiHandler).removeCallbacks(any());
+    }
+
+    @Test
+    public void testSendMgmtFrame_failureOnTimeout() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsTxMgmtFrameMcs(true)
+                .build();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, wiphyFeatures);
+        when(mNl80211Utils.sendMgmtFrame(anyInt(), any(), anyInt())).thenReturn(TEST_COOKIE);
+        mDut.sendMgmtFrame(CLIENT_IFACE_NAME, TEST_MGMT_FRAME, TEST_MCS, mExecutor,
+                mSendMgmtFrameCallback);
+
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mWifiHandler).postDelayed(runnableCaptor.capture(), anyLong());
+
+        runnableCaptor.getValue().run();
+        ArgumentCaptor<Runnable> callbackRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(callbackRunnableCaptor.capture());
+        callbackRunnableCaptor.getValue().run();
+        verify(mSendMgmtFrameCallback, never()).onAck(anyInt());
+        verify(mSendMgmtFrameCallback).onFailure(SEND_MGMT_FRAME_ERROR_TIMEOUT);
+    }
+
+    @Test
+    public void testSendMgmtFrame_failureOnSendError() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsTxMgmtFrameMcs(true)
+                .build();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, wiphyFeatures);
+        when(mNl80211Utils.sendMgmtFrame(anyInt(), any(), anyInt())).thenReturn(null);
+        mDut.sendMgmtFrame(CLIENT_IFACE_NAME, TEST_MGMT_FRAME, TEST_MCS, mExecutor,
+                mSendMgmtFrameCallback);
+
+        ArgumentCaptor<Runnable> callbackRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(callbackRunnableCaptor.capture());
+        callbackRunnableCaptor.getValue().run();
+        verify(mSendMgmtFrameCallback, never()).onAck(anyInt());
+        verify(mSendMgmtFrameCallback).onFailure(SEND_MGMT_FRAME_ERROR_UNKNOWN);
+        verify(mWifiHandler, never()).postDelayed(any(), anyLong());
+    }
+
+    @Test
+    public void testSendMgmtFrame_failureOnBadArgs() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsTxMgmtFrameMcs(true)
+                .build();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, wiphyFeatures);
+        mDut.sendMgmtFrame(CLIENT_IFACE_NAME, null /* shouldn't be null */, TEST_MCS, mExecutor,
+                mSendMgmtFrameCallback);
+
+        ArgumentCaptor<Runnable> callbackRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(callbackRunnableCaptor.capture());
+        callbackRunnableCaptor.getValue().run();
+        verify(mSendMgmtFrameCallback, never()).onAck(anyInt());
+        verify(mSendMgmtFrameCallback).onFailure(SEND_MGMT_FRAME_ERROR_UNKNOWN);
+        verify(mNl80211Utils, never()).sendMgmtFrame(anyInt(), any(), anyInt());
+    }
+
+    @Test
+    public void testSendMgmtFrame_failureAlreadyInProgress() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsTxMgmtFrameMcs(true)
+                .build();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, wiphyFeatures);
+        when(mNl80211Utils.sendMgmtFrame(anyInt(), any(), anyInt())).thenReturn(TEST_COOKIE);
+        mDut.sendMgmtFrame(CLIENT_IFACE_NAME, TEST_MGMT_FRAME, TEST_MCS, mExecutor,
+                mSendMgmtFrameCallback);
+
+        // Second call
+        WifiNl80211Manager.SendMgmtFrameCallback callback2 =
+                mock(WifiNl80211Manager.SendMgmtFrameCallback.class);
+        mDut.sendMgmtFrame(CLIENT_IFACE_NAME, TEST_MGMT_FRAME, TEST_MCS, mExecutor, callback2);
+
+        ArgumentCaptor<Runnable> callbackRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(callbackRunnableCaptor.capture());
+        callbackRunnableCaptor.getValue().run();
+        verify(callback2, never()).onAck(anyInt());
+        verify(callback2).onFailure(SEND_MGMT_FRAME_ERROR_ALREADY_STARTED);
+    }
+
+    @Test
+    public void testSendMgmtFrame_callbackIsCalledOnce_timeoutFirst() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsTxMgmtFrameMcs(true)
+                .build();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, wiphyFeatures);
+        when(mNl80211Utils.sendMgmtFrame(anyInt(), any(), anyInt())).thenReturn(TEST_COOKIE);
+        mDut.sendMgmtFrame(CLIENT_IFACE_NAME, TEST_MGMT_FRAME, TEST_MCS, mExecutor,
+                mSendMgmtFrameCallback);
+
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mWifiHandler).postDelayed(runnableCaptor.capture(), anyLong());
+
+        // Timeout fires
+        runnableCaptor.getValue().run();
+        ArgumentCaptor<Runnable> callbackRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(callbackRunnableCaptor.capture());
+        callbackRunnableCaptor.getValue().run();
+        verify(mSendMgmtFrameCallback).onFailure(SEND_MGMT_FRAME_ERROR_TIMEOUT);
+
+        // Then ACK comes in
+        ArgumentCaptor<Nl80211BroadcastMonitor.Nl80211BroadcastCallback> callbackCaptor =
+                ArgumentCaptor.forClass(Nl80211BroadcastMonitor.Nl80211BroadcastCallback.class);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_FRAME_TX_STATUS),
+                callbackCaptor.capture());
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsLong(NL80211_ATTR_COOKIE)).thenReturn(TEST_COOKIE);
+        when(msg.getAttribute(NL80211_ATTR_ACK)).thenReturn(new StructNlAttr());
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(CLIENT_IFACE_INDEX);
+        callbackCaptor.getValue().onEvent(NL80211_CMD_FRAME_TX_STATUS, msg);
+        // Executor should have only been called once from the timeout.
+        verify(mExecutor, times(1)).execute(any());
+
+        // verify onAck is not called
+        verify(mSendMgmtFrameCallback, never()).onAck(anyInt());
+        verify(mSendMgmtFrameCallback).onFailure(anyInt());
+    }
+
+    @Test
+    public void testSendMgmtFrame_callbackIsCalledOnce_ackFirst() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsTxMgmtFrameMcs(true)
+                .build();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, wiphyFeatures);
+        when(mNl80211Utils.sendMgmtFrame(anyInt(), any(), anyInt())).thenReturn(TEST_COOKIE);
+        mDut.sendMgmtFrame(CLIENT_IFACE_NAME, TEST_MGMT_FRAME, TEST_MCS, mExecutor,
+                mSendMgmtFrameCallback);
+
+        // ACK comes in first
+        int expectedElapsedTimeMs = 150;
+        when(mClock.getWallClockMillis()).thenReturn(TEST_START_TIME_MS + expectedElapsedTimeMs);
+        ArgumentCaptor<Nl80211BroadcastMonitor.Nl80211BroadcastCallback> callbackCaptor =
+                ArgumentCaptor.forClass(Nl80211BroadcastMonitor.Nl80211BroadcastCallback.class);
+        verify(mNl80211Proxy).registerBroadcastCallback(eq(NL80211_CMD_FRAME_TX_STATUS),
+                callbackCaptor.capture());
+        GenericNetlinkMsg msg = mock(GenericNetlinkMsg.class);
+        when(msg.getAttributeValueAsLong(NL80211_ATTR_COOKIE)).thenReturn(TEST_COOKIE);
+        when(msg.getAttribute(NL80211_ATTR_ACK)).thenReturn(new StructNlAttr());
+        when(msg.getAttributeValueAsInteger(NL80211_ATTR_IFINDEX)).thenReturn(CLIENT_IFACE_INDEX);
+        callbackCaptor.getValue().onEvent(NL80211_CMD_FRAME_TX_STATUS, msg);
+        ArgumentCaptor<Runnable> callbackRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(callbackRunnableCaptor.capture());
+        callbackRunnableCaptor.getValue().run();
+        verify(mSendMgmtFrameCallback).onAck(anyInt());
+
+        // Then timeout fires
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mWifiHandler).postDelayed(runnableCaptor.capture(), anyLong());
+        runnableCaptor.getValue().run();
+
+        // verify onAck is only called once and onFailure is never called
+        verify(mSendMgmtFrameCallback, never()).onFailure(anyInt());
+        verify(mSendMgmtFrameCallback).onAck(expectedElapsedTimeMs);
     }
 
     @Test
