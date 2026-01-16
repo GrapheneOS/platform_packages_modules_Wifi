@@ -148,8 +148,7 @@ public class SupplicantStaIfaceHalAidlMainlineImpl extends SupplicantStaIfaceHal
                         com.android.wifi.resources.R.bool.config_wifiMainlineSupplicantEnabled);
         // TODO (b/421247744): Remove the user build check once ready to deploy to user devices.
         BuildProperties buildProperties = BuildProperties.getInstance();
-        // TODO (b/421247744): Change the SDK check so that this only runs on Android 17+.
-        return isEnabledInOverlay && Environment.isSdkAtLeastB() && Flags.mainlineSupplicant()
+        return isEnabledInOverlay && Environment.isSdkAtLeastC() && Flags.mainlineSupplicant()
                 && Environment.isMainlineSupplicantBinaryInWifiApex()
                 && !isUnsupportedDevice(context) && !buildProperties.isUserBuild();
     }
