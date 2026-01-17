@@ -119,6 +119,15 @@ public class Environment {
      * @return True if the SDK > 36
      */
     public static boolean isSdkNewerThanB() {
-        return Build.VERSION.SDK_INT > Build.VERSION_CODES.BAKLAVA;
+        return isSdkAtLeastC();
+    }
+
+    /**
+     * Check if the device has a SDK >= 37
+     * @return True if the SDK >= 37
+     */
+    public static boolean isSdkAtLeastC() {
+        return Build.VERSION.CODENAME.equalsIgnoreCase("CINNAMON_BUN")
+                || Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN;
     }
 }

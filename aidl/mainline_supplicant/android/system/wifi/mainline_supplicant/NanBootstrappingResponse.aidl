@@ -16,6 +16,8 @@
 
 package android.system.wifi.mainline_supplicant;
 
+import android.system.wifi.mainline_supplicant.NanBootstrappingMethod;
+
 /**
  * See Wi-Fi Aware Specification 4.0 section 9.5.21.7.
  */
@@ -36,4 +38,9 @@ parcelable NanBootstrappingResponse {
      * Instance ID.
      */
     byte discoverySessionId;
+
+    /**
+     * One of |NanBootstrappingMethod| indicating the bootstrapping method in the request.
+     */
+    NanBootstrappingMethod responseBootstrappingMethod;
 }
