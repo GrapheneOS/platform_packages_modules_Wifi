@@ -6277,6 +6277,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         if (mFeatureFlags.multiUserWifiEnhancement()) {
             mPairingConfigManager.reset();
+            if (!isD2dAllowedWhenStaDisabled()) {
+                disableUsage(false);
+            }
         }
     }
 
@@ -6308,6 +6311,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         // TODO: b/449013275 Add Environment.isSdkNewerThanB())
         if (mFeatureFlags.multiUserWifiEnhancement()) {
             mPairingConfigManager.reset();
+            if (!isD2dAllowedWhenStaDisabled()) {
+                disableUsage(false);
+            }
         }
     }
 
