@@ -89,6 +89,8 @@ public class WifiAwareJsonDeserializer {
     // JSON Keys for NetworkRequest and WifiNetworkSpecifier
     private static final String BSSID = "bssid";
     private static final String PSK = "psk";
+    private static final String PREFERRED_CHANNELS_FREQUENCIES_MHZ =
+            "preferred_channels_frequencies_mhz";
     private static final String REMOVE_CAPABILITY = "remove_capability";
     private static final String SSID = "ssid";
     private static final String SSID_PATTERN = "ssid_pattern";
@@ -357,6 +359,15 @@ public class WifiAwareJsonDeserializer {
                 }
                 if (specifierJson.has(PSK)) {
                     wifiSpecBuilder.setWpa2Passphrase(specifierJson.getString(PSK));
+                }
+                if (specifierJson.has(PREFERRED_CHANNELS_FREQUENCIES_MHZ)) {
+                    JSONArray frequenciesJson =
+                            specifierJson.getJSONArray(PREFERRED_CHANNELS_FREQUENCIES_MHZ);
+                    int[] frequencies = new int[frequenciesJson.length()];
+                    for (int i = 0; i < frequenciesJson.length(); i++) {
+                        frequencies[i] = frequenciesJson.getInt(i);
+                    }
+                    wifiSpecBuilder.setPreferredChannelsFrequenciesMhz(frequencies);
                 }
                 requestBuilder.setNetworkSpecifier(wifiSpecBuilder.build());
             }
