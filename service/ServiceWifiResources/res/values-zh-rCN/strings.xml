@@ -218,16 +218,11 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g>质量不佳。要切换到<xliff:g id="SSID_1">%2$s</xliff:g>吗？"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"切换"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"不切换"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (7541989406466882747) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (5116841532118842227) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (1193888906224230855) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="7541989406466882747">"要断开与“<xliff:g id="APP_NAME">%1$s</xliff:g>”的连接吗？"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="5116841532118842227">"断开与此网络的连接将会导致“<xliff:g id="APP_NAME">%1$s</xliff:g>”断开连接。"</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="1193888906224230855">"断开连接"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"取消"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (6276398076311281426) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (2830348590173029295) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="6276398076311281426">"要连接到其他 WLAN 网络吗？"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="2830348590173029295">"连接到“<xliff:g id="SSID">%2$s</xliff:g>”将会导致“<xliff:g id="APP_NAME">%1$s</xliff:g>”断开连接。"</string>
     <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"连接"</string>
 </resources>

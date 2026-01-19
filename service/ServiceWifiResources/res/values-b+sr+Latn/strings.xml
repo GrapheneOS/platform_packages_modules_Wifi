@@ -218,16 +218,11 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> je lošeg kvaliteta. Želite da se prebacite na: <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Prebaci"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Ne prebacuj"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (7541989406466882747) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (5116841532118842227) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (1193888906224230855) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="7541989406466882747">"Želite li da prekinete vezu sa aplikacijom <xliff:g id="APP_NAME">%1$s</xliff:g>?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="5116841532118842227">"Ako prekinete vezu sa ovom mrežom, prekinućete je i za <xliff:g id="APP_NAME">%1$s</xliff:g>."</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="1193888906224230855">"Prekini vezu"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Otkaži"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (6276398076311281426) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (2830348590173029295) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="6276398076311281426">"Želite da se povežete na drugu WiFi mrežu?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="2830348590173029295">"Ako se povežete na <xliff:g id="SSID">%2$s</xliff:g>, prekinućete vezu sa uređajem <xliff:g id="APP_NAME">%1$s</xliff:g>."</string>
     <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"Poveži"</string>
 </resources>
