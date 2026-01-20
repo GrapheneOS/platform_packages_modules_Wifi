@@ -8,13 +8,12 @@ from mobly import test_runner
 from mobly import records
 from mobly.controllers import android_device
 
-from mobly.controllers.wifi import openwrt_device
-from mobly.controllers.wifi.lib import wifi_configs
-
+from connection import ap_helper
 from connection import constants
 from connection import test_utils
 from connection import ui_action_utils
 from connection import wifi_utils
+import wifi_test_utils
 
 
 class NetworkRequestTests(base_test.BaseTestClass):
@@ -24,9 +23,8 @@ class NetworkRequestTests(base_test.BaseTestClass):
     1. One Android device and one AP device.
   """
 
-  openwrt: openwrt_device.OpenWrtDevice
   ad: android_device.AndroidDevice
-  wifi_info: wifi_configs.WiFiConfig | None
+  ap_helper: ap_helper.ApHelper
   request_networkid: str
 
   _original_wifi_scan_throttle_state: bool | None = None
@@ -54,12 +52,21 @@ class NetworkRequestTests(base_test.BaseTestClass):
 
   @override
   def setup_class(self):
-    self.openwrt = self.register_controller(openwrt_device)[0]
-    # AP setup steps.
-    if self.user_params.get('reboot_ap', 'false') == 'true':
-      self.openwrt.reboot()
     self.ad = self.register_controller(android_device)[0]
     self._setup_android_device(self.ad)
+
+    self.ap_helper = ap_helper.ApHelper()
+    use_programmable_ap = wifi_test_utils.convert_str_to_bool(
+        self.user_params.get(
+            'use_programmable_ap', constants.USE_PROGRAMMABLE_AP_DEFAULT
+        )
+    )
+    self.ap_helper.initialize(
+        test_class_obj=self,
+        use_programmable_ap=use_programmable_ap,
+        ad=self.ad,
+    )
+
     # request_networkid support managing multiple network sessions.
     # But we only need one wifi connection in each test
     self.request_networkid = '0'
@@ -94,7 +101,7 @@ class NetworkRequestTests(base_test.BaseTestClass):
 
   @override
   def teardown_test(self) -> None:
-    self.openwrt.stop_all_wifi()
+    self.ap_helper.stop_programmable_ap()
     self.ad.wifi.wifiClearConfiguredNetworks()
     self.ad.wifi.connectivityUnregisterNetwork(self.request_networkid)
     self.ad.services.create_output_excerpts_all(self.current_test_info)
@@ -121,7 +128,7 @@ class NetworkRequestTests(base_test.BaseTestClass):
       2. The Android device should connect to the Wi-Fi AP.
       3. Network should be connected and not lost in 40 seconds.
     """
-    wifi_info = wifi_utils.start_wpa2_wifi(self.openwrt)
+    wifi_info = self.ap_helper.get_or_start_wifi()
 
     # DUT scans for the WiFi and verify the WiFi is discovered.
     wifi_utils.wait_for_expected_wifi_discovered(
@@ -177,7 +184,7 @@ class NetworkRequestTests(base_test.BaseTestClass):
       1. The Android device should discover the Wi-Fi AP.
       2. The Android device should connect to the Wi-Fi AP.
     """
-    wifi_info = wifi_utils.start_wpa2_wifi(self.openwrt)
+    wifi_info = self.ap_helper.get_or_start_wifi()
 
     # DUT scans for the WiFi and verify the Wifi is discovered.
     wifi_utils.wait_for_expected_wifi_discovered(
@@ -284,17 +291,19 @@ class NetworkRequestTests(base_test.BaseTestClass):
       1. Android device should discover the Wi-Fi AP.
       2. Android device failed to connect to the Wi-Fi AP.
     """
-    wifi_info = wifi_utils.start_wpa2_wifi(self.openwrt)
+    wifi_info = self.ap_helper.get_or_start_wifi()
+    invalid_psk = 'invalid_psk'
+    if wifi_info.password == invalid_psk:
+      invalid_psk = 'invalid_psk2'
 
     # DUT scans for the WiFi and verify the WiFi is discovered.
     wifi_utils.wait_for_expected_wifi_discovered(
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
-    wrong_password = 'wrong_password'
     # Set up the network request parameters.
     network_specifier = constants.NetworkSpecifier(
-        ssid=wifi_info.ssid, bssid=wifi_info.bssid, psk=wrong_password
+        ssid=wifi_info.ssid, bssid=wifi_info.bssid, psk=invalid_psk
     )
     network_request = constants.NetworkRequest(
         network_specifier=network_specifier,

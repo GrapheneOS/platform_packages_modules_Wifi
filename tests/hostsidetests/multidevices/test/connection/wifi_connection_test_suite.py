@@ -11,11 +11,7 @@ class WifiConnectionTestSuite(base_suite.BaseSuite):
   """CTS-V-Host WiFi connection test suite."""
 
   def setup_suite(self, config):
-    config_with_reboot = config.copy()
-    config_with_reboot.user_params['reboot_ap'] = 'true'
-
     self.add_test_class(
-        config=config_with_reboot,
         clazz=network_request_tests.NetworkRequestTests,
     )
     self.add_test_class(
