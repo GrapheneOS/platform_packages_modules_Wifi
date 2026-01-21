@@ -44,12 +44,12 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
 
     def setup_test(self):
         self.dut.wifi.wifiToggleState(True)
-        self.dut.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm revoke --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         self.dut.unload_snippet("wifi")
         self.dut.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
 
     def teardown_test(self):
-        self.dut.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm revoke --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         self.dut.unload_snippet("wifi")
         self.dut.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
         self.hotspot_device.unload_snippet("wifi")
@@ -89,7 +89,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
         Expected Result:
             The Wi-Fi scan attempt should succeed (return True).
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         asserts.assert_true(
             self.dut.wifi.wifiStartScanAndGetStatus(),
             "Scan trigger should succeed with location permission.")
@@ -118,7 +118,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
         Expected Result:
             The scan results retrieval should succeed (return True).
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         asserts.assert_true(
             self.dut.wifi.wifiGetScanResults(),
             "Scan results retrieval should succeed with location permission.")
@@ -157,7 +157,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
             The connection info retrieval should succeed (return not None).
         """
         try:
-            self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+            self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
             wifi_config = self._start_local_only_hotspot_and_get_config()
             self.dut.wifi.wifiConnecting(wifi_config)
             asserts.assert_is_not_none(
@@ -199,7 +199,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
             The transport info retrieval should succeed (return not None).
         """
         try:
-            self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+            self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
             wifi_config = self._start_local_only_hotspot_and_get_config()
             self.dut.wifi.wifiConnecting(wifi_config)
             asserts.assert_is_not_none(
