@@ -609,6 +609,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Mock DeviceWiphyCapabilities mDeviceWiphyCapabilities;
     @Mock ConnectivityDiagnosticsManager mConnectivityDiagnosticsManager;
     @Mock NetworkPreEvaluationManager mMockNetworkPreEvaluationManager;
+    @Mock WifiPowerStatsManager mWifiPowerStatsManager;
 
     @Captor ArgumentCaptor<WifiConfigManager.OnNetworkUpdateListener> mConfigUpdateListenerCaptor;
     @Captor ArgumentCaptor<WifiNetworkAgent.Callback> mWifiNetworkAgentCallbackCaptor;
@@ -754,6 +755,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mWifiInjector.getWifiDeviceStateChangeManager())
                 .thenReturn(mWifiDeviceStateChangeManager);
         when(mWifiInjector.getDeviceConfigFacade()).thenReturn(mDeviceConfigFacade);
+        when(mWifiInjector.getWifiPowerStatsManager()).thenReturn(mWifiPowerStatsManager);
         when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
         when(mWifiHandlerThread.getLooper()).thenReturn(mLooper.getLooper());
         when(mWifiNative.getDeviceWiphyCapabilities(any(), anyBoolean()))
@@ -12021,5 +12023,17 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         verify(mConnectivityDiagnosticsManager)
                 .registerConnectivityDiagnosticsCallback(any(), any(), any());
+    }
+
+    @Test
+    public void testGetWifiLinkLayerStatsUpdatesPowerStatsManager() throws Exception {
+        WifiLinkLayerStats stats = new WifiLinkLayerStats();
+        when(mWifiNative.getWifiLinkLayerStats(WIFI_IFACE_NAME)).thenReturn(stats);
+        when(mWifiNative.getSupportedFeatureSet(WIFI_IFACE_NAME)).thenReturn(
+                createCapabilityBitset(WifiManager.WIFI_FEATURE_LINK_LAYER_STATS));
+
+        mCmi.getWifiLinkLayerStats();
+
+        verify(mWifiPowerStatsManager).updateLatestLinkLayerStats(stats);
     }
 }
