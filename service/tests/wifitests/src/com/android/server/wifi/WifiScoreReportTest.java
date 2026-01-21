@@ -727,6 +727,30 @@ public class WifiScoreReportTest extends WifiBaseTest {
     }
 
     @Test
+    public void calculateAndReportScore_blockCurrentBssidIfRequestedByScorer() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        mWifiInfo.setRssi(TEST_RSSI);
+        mWifiInfo.setBSSID(TEST_BSSID);
+        ConnectedScoreResult scoreResult = ConnectedScoreResult.builder()
+                .setScore(TEST_SCORE)
+                .setAdjustedScore(ADJUSTED_SCORE)
+                .setIsWifiUsable(true)
+                .setShouldTriggerScan(false)
+                .setShouldBlockBssid(true)
+                .build();
+        when(mMockVelocityScorer.generateScoreResult(any(), any(), anyLong(), anyBoolean()))
+                .thenReturn(scoreResult);
+
+        mWifiScoreReportWithMockHelper.calculateAndReportScore(mMockWifiUsabilityStatsEntry);
+
+        verify(mWifiBlocklistMonitor).handleBssidConnectionFailure(
+                eq(mWifiInfo.getBSSID()),
+                any(),
+                eq(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE),
+                eq(mWifiInfo.getRssi()));
+    }
+
+    @Test
     public void mbbNetworkForceKeepUp() throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());
         reset(mNetworkAgent);
