@@ -1301,11 +1301,6 @@ public class WifiManagerSnippet extends WifiShellPermissionSnippet implements Sn
     @Rpc(description = "Retrieves the latest Wi-Fi scan results.")
     public JSONArray wifiGetScanResults() throws JSONException {
         JSONArray results = new JSONArray();
-        if (mContext.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            Log.e(TAG, "ACCESS_FINE_LOCATION permission not granted.");
-            return results;
-        }
         try {
             for (ScanResult result : mWifiManager.getScanResults()) {
                 results.put(WifiAwareSnippetConverter.serializeScanResult(result));
