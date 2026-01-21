@@ -16,7 +16,15 @@
 
 package com.android.server.wifi.nl80211;
 
+import static android.net.wifi.nl80211.WifiNl80211Manager.SEND_MGMT_FRAME_ERROR_ALREADY_STARTED;
+import static android.net.wifi.nl80211.WifiNl80211Manager.SEND_MGMT_FRAME_ERROR_MCS_UNSUPPORTED;
+import static android.net.wifi.nl80211.WifiNl80211Manager.SEND_MGMT_FRAME_ERROR_NO_ACK;
+import static android.net.wifi.nl80211.WifiNl80211Manager.SEND_MGMT_FRAME_ERROR_TIMEOUT;
+import static android.net.wifi.nl80211.WifiNl80211Manager.SEND_MGMT_FRAME_ERROR_UNKNOWN;
+
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_ACK;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_CHANNEL_WIDTH;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_COOKIE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_ALPHA2;
@@ -37,6 +45,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_CONNE
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DEL_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DISASSOCIATE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DISCONNECT;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_FRAME_TX_STATUS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_SCAN_RESULTS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_REG_CHANGE;
@@ -106,6 +115,8 @@ public class Nl80211Native {
     private static final int[] PNO_SCAN_DEFAULT_FREQS_5G =
             {5180, 5200, 5220, 5240, 5745, 5765, 5785, 5805};
 
+    private static final long SEND_MGMT_FRAME_TIMEOUT_MS = 1000;
+
     /**
      * Wrapper class to store all the information for a client mode interface.
      */
@@ -170,6 +181,13 @@ public class Nl80211Native {
     private @NonNull String mCountryCode = "";
     private final @NonNull ArrayMap<CountryCodeChangedListener, Executor>
             mCountryCodeChangedListeners = new ArrayMap<>();
+
+    private @Nullable Long mSendMgmtFrameCookie;
+    private long mSendMgmtFrameStartMs;
+    private @Nullable Executor mSendMgmtFrameExecutor;
+    private @Nullable WifiNl80211Manager.SendMgmtFrameCallback mSendMgmtFrameCallback;
+    private final @NonNull Runnable mSendMgmtFrameTimeoutRunnable;
+
 
     // Called on the main Wifi thread.
     private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mNewScanResultsCallback =
@@ -476,6 +494,8 @@ public class Nl80211Native {
     // Called on the main Wifi thread.
     private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mRegChangedCallback;
 
+    private Nl80211BroadcastMonitor.Nl80211BroadcastCallback mFrameTxStatusCallback;
+
     private int convertNl80211ChannelWidthToSoftApInfoChannelWidth(int nl80211ChannelWidth) {
         // Convert enum nl80211_chan_width to enum ChannelBandwidth
         switch (nl80211ChannelWidth) {
@@ -752,6 +772,62 @@ public class Nl80211Native {
                         }
                     }
                 };
+
+        // Initialize mFrameTxStatusCallback here so we can safely use mWifiInjector.
+        mFrameTxStatusCallback =
+                (command, message) -> {
+                    synchronized (Nl80211Native.this) {
+                        if (mVerboseLoggingEnabled) {
+                            Log.d(TAG, "Received NL80211 broadcast: " + message);
+                        }
+
+                        if (mSendMgmtFrameCookie == null) return;
+                        if (mSendMgmtFrameExecutor == null) return;
+                        if (mSendMgmtFrameCallback == null) return;
+
+                        ClientInterfaceInfo clientIfaceInfo =
+                                getClientInterfaceInfoForBroadcast(message);
+                        if (clientIfaceInfo == null) return;
+
+                        Long cookie = message.getAttributeValueAsLong(NL80211_ATTR_COOKIE);
+                        if (cookie == null) {
+                            Log.w(TAG, "Failed to get cookie from FRAME_TX_STATUS event");
+                            return;
+                        }
+                        if (!cookie.equals(mSendMgmtFrameCookie)) {
+                            Log.w(TAG, "Non-matching cookie in FRAME_TX_STATUS."
+                                    + " Expected " + mSendMgmtFrameCookie
+                                    + ", got " + cookie);
+                            return;
+                        }
+
+                        WifiNl80211Manager.SendMgmtFrameCallback callback = mSendMgmtFrameCallback;
+                        boolean wasAcked = message.getAttribute(NL80211_ATTR_ACK) != null;
+                        if (wasAcked) {
+                            long elapsedTimeMs = mWifiInjector.getClock().getWallClockMillis()
+                                    - mSendMgmtFrameStartMs;
+                            mSendMgmtFrameExecutor.execute(
+                                    () -> callback.onAck((int) elapsedTimeMs));
+                        } else {
+                            mSendMgmtFrameExecutor.execute(
+                                    () -> callback.onFailure(SEND_MGMT_FRAME_ERROR_NO_ACK));
+                        }
+
+                        clearSendMgmtFrameState();
+                    }
+                };
+
+        mSendMgmtFrameTimeoutRunnable = () -> {
+            synchronized (this) {
+                WifiNl80211Manager.SendMgmtFrameCallback callback = mSendMgmtFrameCallback;
+                if (mSendMgmtFrameExecutor != null && callback != null) {
+                    mSendMgmtFrameExecutor.execute(
+                            () -> callback.onFailure(SEND_MGMT_FRAME_ERROR_TIMEOUT));
+                }
+
+                clearSendMgmtFrameState();
+            }
+        };
     }
 
     /**
@@ -1014,6 +1090,10 @@ public class Nl80211Native {
                 mDisconnectCallback);
         mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_ROAM,
                 mRoamCallback);
+
+        // Link probing
+        mNl80211Proxy.registerBroadcastCallback(NL80211_CMD_FRAME_TX_STATUS,
+                mFrameTxStatusCallback);
     }
 
     private void unregisterCallbacksForClientIface() {
@@ -1038,6 +1118,10 @@ public class Nl80211Native {
                 mDisconnectCallback);
         mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_ROAM,
                 mRoamCallback);
+
+        // Link probing
+        mNl80211Proxy.unregisterBroadcastCallback(NL80211_CMD_FRAME_TX_STATUS,
+                mFrameTxStatusCallback);
     }
 
     private void registerCountryCodeCallbacks() {
@@ -2154,10 +2238,10 @@ public class Nl80211Native {
      * Note: The interface must have been already set up using
      * {@link #setupInterfaceForClientMode(String, Executor, ScanEventCallback, ScanEventCallback)}
      * or {@link #setupInterfaceForSoftApMode(String)}.
-     * @deprecated Not used anymore.
+     * @deprecated Currently only used for tests involving shell commands.
      *
      * @param ifaceName The interface on which to send the frame.
-     * @param frame The raw byte array of the management frame to tramit.
+     * @param frame The raw byte array of the management frame to transmit.
      * @param mcs The MCS (modulation and coding scheme), i.e. rate, at which to transmit the
      *            frame. Specified per IEEE 802.11.
      * @param executor The Executor on which to execute the callbacks.
@@ -2176,9 +2260,60 @@ public class Nl80211Native {
             return;
         }
 
-        // TODO (b/394409845): Remove all instances of sendMgmtFrame since it should be unused now.
-        Log.wtf(TAG, "sendMgmtFrame was called even though we don't expect any users!");
-        throw new UnsupportedOperationException();
+        synchronized (this) {
+            if (callback == null || executor == null) {
+                Log.e(TAG, "sendMgmtFrame: callback cannot be null!");
+                return;
+            }
+
+            if (frame == null) {
+                Log.e(TAG, "sendMgmtFrame: frame cannot be null!");
+                executor.execute(() -> callback.onFailure(SEND_MGMT_FRAME_ERROR_UNKNOWN));
+                return;
+            }
+
+            ClientInterfaceInfo clientIfaceInfo = mClientInterfaceInfos.get(ifaceName);
+            if (clientIfaceInfo == null) {
+                Log.e(TAG, "sendMgmtFrame: no active interface found for " + ifaceName);
+                executor.execute(() -> callback.onFailure(SEND_MGMT_FRAME_ERROR_UNKNOWN));
+                return;
+            }
+
+            if (mSendMgmtFrameCookie != null) {
+                Log.e(TAG, "An existing management frame transmission is in progress!");
+                executor.execute(() -> callback.onFailure(SEND_MGMT_FRAME_ERROR_ALREADY_STARTED));
+                return;
+            }
+
+            if (mcs >= 0 && !clientIfaceInfo.wiphyInfo.wiphyFeatures.supportsTxMgmtFrameMcs) {
+                Log.e(TAG, "MCS not supported for sendMgmtFrame");
+                executor.execute(() -> callback.onFailure(SEND_MGMT_FRAME_ERROR_MCS_UNSUPPORTED));
+                return;
+            }
+
+            Long cookie = mNl80211Utils.sendMgmtFrame(clientIfaceInfo.ifIndex, frame, mcs);
+            if (cookie == null) {
+                Log.e(TAG, "Failed to send management frame");
+                executor.execute(() -> callback.onFailure(SEND_MGMT_FRAME_ERROR_UNKNOWN));
+                return;
+            }
+
+            mSendMgmtFrameCookie = cookie;
+            mSendMgmtFrameStartMs = mWifiInjector.getClock().getWallClockMillis();
+            mSendMgmtFrameExecutor = executor;
+            mSendMgmtFrameCallback = callback;
+            mWifiInjector.getWifiThreadRunner().getHandler()
+                    .postDelayed(mSendMgmtFrameTimeoutRunnable, SEND_MGMT_FRAME_TIMEOUT_MS);
+        }
+    }
+
+    private void clearSendMgmtFrameState() {
+        mSendMgmtFrameCookie = null;
+        mSendMgmtFrameStartMs = 0;
+        mSendMgmtFrameExecutor = null;
+        mSendMgmtFrameCallback = null;
+        mWifiInjector.getWifiThreadRunner().getHandler()
+                .removeCallbacks(mSendMgmtFrameTimeoutRunnable);
     }
 
     /**
