@@ -220,7 +220,6 @@ import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.HandlerExecutor;
 import com.android.modules.utils.ParceledListSlice;
-import com.android.modules.utils.StringParceledListSlice;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.net.module.util.Inet4AddressUtils;
 import com.android.server.wifi.coex.CoexManager;
@@ -4286,20 +4285,20 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     @Override
     public Map<String, Map<Integer, List<ScanResult>>>
             getAllMatchingPasspointProfilesForScanResults(
-                    ParceledListSlice<ScanResult> scanResults) {
+                    List<ScanResult> scanResults) {
         if (!isSettingsOrSuw(Binder.getCallingPid(), Binder.getCallingUid())) {
             throw new SecurityException(TAG + ": Permission denied");
         }
         if (mVerboseLoggingEnabled) {
             mLog.info("getMatchingPasspointConfigurations uid=%").c(Binder.getCallingUid()).flush();
         }
-        if (scanResults == null || !ScanResultUtil.validateScanResultList(scanResults.getList())) {
+        if (scanResults == null || !ScanResultUtil.validateScanResultList(scanResults)) {
             Log.e(TAG, "Attempt to retrieve passpoint with invalid scanResult List");
             return Collections.emptyMap();
         }
         return mWifiThreadRunner.call(
             () -> mPasspointManager.getAllMatchingPasspointProfilesForScanResults(
-                    scanResults.getList()), Collections.emptyMap(),
+                    scanResults), Collections.emptyMap(),
                 TAG + "#getAllMatchingPasspointProfilesForScanResults");
     }
 
@@ -4308,7 +4307,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public void setSsidsAllowlist(@NonNull String packageName,
-            @NonNull ParceledListSlice<WifiSsid> ssids) {
+            @NonNull List<WifiSsid> ssids) {
         int uid = Binder.getCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, packageName);
         boolean hasPermission = mWifiPermissionsUtil.checkNetworkSettingsPermission(uid)
@@ -4323,8 +4322,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         if (mVerboseLoggingEnabled) {
             mLog.info("setSsidsAllowlist uid=%").c(uid).flush();
         }
-        List<WifiSsid> ssidList = ssids == null ? null : ssids.getList();
-        mWifiThreadRunner.post(() -> mWifiBlocklistMonitor.setSsidsAllowlist(ssidList),
+        mWifiThreadRunner.post(() -> mWifiBlocklistMonitor.setSsidsAllowlist(ssids),
                 TAG + "#setSsidsAllowlist");
     }
 
@@ -4360,19 +4358,19 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public Map<OsuProvider, List<ScanResult>> getMatchingOsuProviders(
-            ParceledListSlice<ScanResult> scanResults) {
+            List<ScanResult> scanResults) {
         if (!isSettingsOrSuw(Binder.getCallingPid(), Binder.getCallingUid())) {
             throw new SecurityException(TAG + ": Permission denied");
         }
         if (mVerboseLoggingEnabled) {
             mLog.info("getMatchingOsuProviders uid=%").c(Binder.getCallingUid()).flush();
         }
-        if (scanResults == null || !ScanResultUtil.validateScanResultList(scanResults.getList())) {
+        if (scanResults == null || !ScanResultUtil.validateScanResultList(scanResults)) {
             Log.w(TAG, "Attempt to retrieve OsuProviders with invalid scanResult List");
             return Collections.emptyMap();
         }
         return mWifiThreadRunner.call(
-            () -> mPasspointManager.getMatchingOsuProviders(scanResults.getList()),
+            () -> mPasspointManager.getMatchingOsuProviders(scanResults),
                 Collections.emptyMap(), TAG + "#getMatchingOsuProviders");
     }
 
@@ -4384,7 +4382,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public Map<OsuProvider, PasspointConfiguration> getMatchingPasspointConfigsForOsuProviders(
-            ParceledListSlice<OsuProvider> osuProviders) {
+            List<OsuProvider> osuProviders) {
         if (!isSettingsOrSuw(Binder.getCallingPid(), Binder.getCallingUid())) {
             throw new SecurityException(TAG + ": Permission denied");
         }
@@ -4392,13 +4390,13 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             mLog.info("getMatchingPasspointConfigsForOsuProviders uid=%").c(
                     Binder.getCallingUid()).flush();
         }
-        if (osuProviders == null || osuProviders.getList() == null) {
+        if (osuProviders == null || osuProviders.isEmpty()) {
             Log.e(TAG, "Attempt to retrieve Passpoint configuration with null osuProviders");
             return new HashMap<>();
         }
         return mWifiThreadRunner.call(
             () -> mPasspointManager.getMatchingPasspointConfigsForOsuProviders(
-                    osuProviders.getList()), Collections.emptyMap(),
+                    osuProviders), Collections.emptyMap(),
                 TAG + "#getMatchingPasspointConfigsForOsuProviders");
     }
 
@@ -4413,7 +4411,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public ParceledListSlice<WifiConfiguration> getWifiConfigsForPasspointProfiles(
-            StringParceledListSlice fqdnList) {
+            List<String> fqdnList) {
         if (!isSettingsOrSuw(Binder.getCallingPid(), Binder.getCallingUid())) {
             throw new SecurityException(TAG + ": Permission denied");
         }
@@ -4421,12 +4419,12 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             mLog.info("getWifiConfigsForPasspointProfiles uid=%").c(
                     Binder.getCallingUid()).flush();
         }
-        if (fqdnList == null || fqdnList.getList() == null || fqdnList.getList().isEmpty()) {
+        if (fqdnList == null || fqdnList.isEmpty()) {
             Log.e(TAG, "Attempt to retrieve WifiConfiguration with null fqdn List");
             return new ParceledListSlice<>(Collections.emptyList());
         }
         return new ParceledListSlice<>(mWifiThreadRunner.call(
-            () -> mPasspointManager.getWifiConfigsForPasspointProfiles(fqdnList.getList()),
+            () -> mPasspointManager.getWifiConfigsForPasspointProfiles(fqdnList),
                 Collections.emptyList(), TAG + "#getWifiConfigsForPasspointProfiles"));
     }
 
@@ -4443,7 +4441,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     @Override
     public ParceledListSlice<WifiConfiguration>
             getWifiConfigForMatchedNetworkSuggestionsSharedWithUser(
-                    ParceledListSlice<ScanResult> scanResults) {
+                    List<ScanResult> scanResults) {
         if (!isSettingsOrSuw(Binder.getCallingPid(), Binder.getCallingUid())) {
             throw new SecurityException(TAG + ": Permission denied");
         }
@@ -4451,7 +4449,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             mLog.info("getWifiConfigsForMatchedNetworkSuggestions uid=%").c(
                     Binder.getCallingUid()).flush();
         }
-        if (scanResults == null || !ScanResultUtil.validateScanResultList(scanResults.getList())) {
+        if (scanResults == null || !ScanResultUtil.validateScanResultList(scanResults)) {
             Log.w(TAG, "Attempt to retrieve WifiConfiguration with invalid scanResult List");
             return new ParceledListSlice<>(Collections.emptyList());
         }
@@ -4459,7 +4457,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 mWifiThreadRunner.call(
                 () -> mWifiNetworkSuggestionsManager
                         .getWifiConfigForMatchedNetworkSuggestionsSharedWithUser(
-                                scanResults.getList()), Collections.emptyList(),
+                                scanResults), Collections.emptyList(),
                 TAG + "#getWifiConfigForMatchedNetworkSuggestionsSharedWithUser"), true));
     }
 
@@ -5117,9 +5115,9 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      * @param listener returns the results
      */
     @Override
-    public void getBssidBlocklist(@NonNull ParceledListSlice<WifiSsid> ssids,
+    public void getBssidBlocklist(@NonNull List<WifiSsid> ssids,
             @NonNull IMacAddressListListener listener) {
-        if (ssids == null || ssids.getList() == null) {
+        if (ssids == null) {
             throw new IllegalArgumentException("Null ssids");
         }
         if (listener == null) {
@@ -5131,9 +5129,9 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             throw new SecurityException("No permission to call getBssidBlocklist");
         }
         Set<String> ssidSet;
-        if (!ssids.getList().isEmpty()) {
+        if (!ssids.isEmpty()) {
             ssidSet = new ArraySet<>();
-            for (WifiSsid ssid : ssids.getList()) {
+            for (WifiSsid ssid : ssids) {
                 ssidSet.add(ssid.toString());
             }
         } else {
@@ -5412,13 +5410,13 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     @Override
     @NonNull
     public Map<WifiNetworkSuggestion, List<ScanResult>> getMatchingScanResults(
-            @NonNull ParceledListSlice<WifiNetworkSuggestion> networkSuggestions,
-            @Nullable ParceledListSlice<ScanResult> scanResults,
+            @NonNull List<WifiNetworkSuggestion> networkSuggestions,
+            @Nullable List<ScanResult> scanResults,
             String callingPackage, String callingFeatureId) {
         enforceAccessPermission();
         int uid = Binder.getCallingUid();
         long ident = Binder.clearCallingIdentity();
-        if (networkSuggestions == null || networkSuggestions.getList() == null) {
+        if (networkSuggestions == null) {
             throw new IllegalArgumentException("networkSuggestions must not be null.");
         }
         try {
@@ -5428,13 +5426,13 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             return mWifiThreadRunner.call(
                     () -> {
                         if (scanResults == null
-                                || !ScanResultUtil.validateScanResultList(scanResults.getList())) {
+                                || !ScanResultUtil.validateScanResultList(scanResults)) {
                             return mWifiNetworkSuggestionsManager.getMatchingScanResults(
-                                    networkSuggestions.getList(),
+                                    networkSuggestions,
                                     mScanRequestProxy.getScanResults());
                         } else {
                             return mWifiNetworkSuggestionsManager.getMatchingScanResults(
-                                    networkSuggestions.getList(), scanResults.getList());
+                                    networkSuggestions, scanResults);
                         }
                     },
                     Collections.emptyMap(), TAG + "#getMatchingScanResults");
@@ -7038,7 +7036,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public int addNetworkSuggestions(
-            ParceledListSlice<WifiNetworkSuggestion> networkSuggestions, String callingPackageName,
+            List<WifiNetworkSuggestion> networkSuggestions, String callingPackageName,
             String callingFeatureId) {
         if (enforceChangePermission(callingPackageName) != MODE_ALLOWED) {
             return WifiManager.STATUS_NETWORK_SUGGESTIONS_ERROR_APP_DISALLOWED;
@@ -7083,7 +7081,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         }
 
         int success = mWifiThreadRunner.call(() -> mWifiNetworkSuggestionsManager.add(
-                networkSuggestions.getList(), callingUid, callingPackageName, callingFeatureId),
+                networkSuggestions, callingUid, callingPackageName, callingFeatureId),
                 WifiManager.STATUS_NETWORK_SUGGESTIONS_ERROR_INTERNAL,
                 TAG + "#addNetworkSuggestions");
         if (success != STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
@@ -7102,7 +7100,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public int removeNetworkSuggestions(
-            ParceledListSlice<WifiNetworkSuggestion> networkSuggestions, String callingPackageName,
+            List<WifiNetworkSuggestion> networkSuggestions, String callingPackageName,
             @WifiManager.ActionAfterRemovingSuggestion int action) {
         if (enforceChangePermission(callingPackageName) != MODE_ALLOWED) {
             return WifiManager.STATUS_NETWORK_SUGGESTIONS_ERROR_APP_DISALLOWED;
@@ -7120,7 +7118,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             return STATUS_NETWORK_SUGGESTIONS_SUCCESS;
         }
         int success = mWifiThreadRunner.call(() -> mWifiNetworkSuggestionsManager.remove(
-                networkSuggestions.getList(), callingUid, callingPackageName,
+                networkSuggestions, callingUid, callingPackageName,
                 action), WifiManager.STATUS_NETWORK_SUGGESTIONS_ERROR_INTERNAL,
                 TAG + "#removeNetworkSuggestions");
         if (success != STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
@@ -8700,11 +8698,11 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    public void notifyWifiSsidPolicyChanged(int policyType, ParceledListSlice<WifiSsid> ssids) {
+    public void notifyWifiSsidPolicyChanged(int policyType, List<WifiSsid> ssids) {
         if (!SdkLevel.isAtLeastT()) {
             throw new UnsupportedOperationException();
         }
-        if (ssids == null || ssids.getList() == null) {
+        if (ssids == null) {
             throw new IllegalArgumentException("SSID list may not be null");
         }
         if (!checkManageDeviceAdminsPermission(Binder.getCallingPid(), Binder.getCallingUid())) {
@@ -8721,13 +8719,13 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 WifiSsid ssid = wifiInfo.getWifiSsid();
 
                 if (policyType == WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_ALLOWLIST
-                        && !ssids.getList().contains(ssid)) {
+                        && !ssids.contains(ssid)) {
                     cmm.disconnect();
                     mLog.info("disconnect admin restricted network").flush();
                     continue;
                 }
                 if (policyType == WifiSsidPolicy.WIFI_SSID_POLICY_TYPE_DENYLIST
-                        && ssids.getList().contains(ssid)) {
+                        && ssids.contains(ssid)) {
                     cmm.disconnect();
                     mLog.info("disconnect admin restricted network").flush();
                     continue;
@@ -8778,16 +8776,15 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public void addCustomDhcpOptions(@NonNull WifiSsid ssid, @NonNull byte[] oui,
-            @NonNull ParceledListSlice<DhcpOption> options) {
+            @NonNull List<DhcpOption> options) {
         enforceAnyPermissionOf(android.Manifest.permission.NETWORK_SETTINGS,
                 android.Manifest.permission.OVERRIDE_WIFI_CONFIG);
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "addCustomDhcpOptions: ssid="
                     + ssid + ", oui=" + Arrays.toString(oui) + ", options=" + options);
         }
-        List<DhcpOption> dhcpOptionList = options == null ? null : options.getList();
         mWifiThreadRunner.post(() -> mWifiConfigManager.addCustomDhcpOptions(ssid, oui,
-                        dhcpOptionList),
+                        options),
                 TAG + "#addCustomDhcpOptions");
     }
 
@@ -8940,7 +8937,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    public void addQosPolicies(@NonNull ParceledListSlice<QosPolicyParams> policyParamsList,
+    public void addQosPolicies(@NonNull List<QosPolicyParams> policyParamsList,
             @NonNull IBinder binder, @NonNull String packageName,
             @NonNull IListListener listener) {
         if (!SdkLevel.isAtLeastU()) {
@@ -8955,39 +8952,37 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         }
 
         Objects.requireNonNull(policyParamsList, "policyParamsList cannot be null");
-        Objects.requireNonNull(policyParamsList.getList(),
-            "policyParamsList contents cannot be null");
         Objects.requireNonNull(binder, "binder cannot be null");
         Objects.requireNonNull(listener, "listener cannot be null");
 
-        if (policyParamsList.getList().size() == 0
-                || policyParamsList.getList().size()
+        if (policyParamsList.isEmpty()
+                || policyParamsList.size()
                 > WifiManager.getMaxNumberOfPoliciesPerQosRequest()
-                || !policyIdsAreUnique(policyParamsList.getList())
-                || !policiesHaveSameDirection(policyParamsList.getList())) {
+                || !policyIdsAreUnique(policyParamsList)
+                || !policiesHaveSameDirection(policyParamsList)) {
             throw new IllegalArgumentException("policyParamsList is invalid");
         }
 
         if (!mApplicationQosPolicyRequestHandler.isFeatureEnabled()) {
             Log.i(TAG, "addQosPolicies is disabled on this device");
-            rejectAllQosPolicies(policyParamsList.getList(), listener);
+            rejectAllQosPolicies(policyParamsList, listener);
             return;
         }
 
 
 
         if (!(SdkLevel.isAtLeastV() && isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AX))
-                && policyParamsList.getList().get(0).getDirection()
+                && policyParamsList.get(0).getDirection()
                 == QosPolicyParams.DIRECTION_UPLINK) {
             Log.e(TAG, "Uplink QoS policies are only supported on devices with SDK >= V"
                     + " and 11ax support");
-            rejectAllQosPolicies(policyParamsList.getList(), listener);
+            rejectAllQosPolicies(policyParamsList, listener);
             return;
         }
 
         mWifiThreadRunner.post(() -> {
             mApplicationQosPolicyRequestHandler.queueAddRequest(
-                    policyParamsList.getList(), listener, binder, uid);
+                    policyParamsList, listener, binder, uid);
         }, TAG + "#addQosPolicies");
     }
 

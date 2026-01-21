@@ -1343,7 +1343,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                         return -1;
                     }
                     int errorCode = mWifiService.addNetworkSuggestions(
-                            new ParceledListSlice(List.of(suggestion)), SHELL_PACKAGE_NAME, null);
+                            List.of(suggestion), SHELL_PACKAGE_NAME, null);
                     if (errorCode != WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
                         pw.println("Add network suggestion failed with error code: " + errorCode);
                         return -1;
@@ -1393,8 +1393,7 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                         pw.println("No matching suggestion to remove");
                         return -1;
                     }
-                    mWifiService.removeNetworkSuggestions(
-                            new ParceledListSlice<>(List.of(suggestion)),
+                    mWifiService.removeNetworkSuggestions(List.of(suggestion),
                             SHELL_PACKAGE_NAME, actionCode);
                     // untrusted/oem-paid networks need a corresponding NetworkRequest.
                     if (suggestion.isUntrusted()
@@ -1412,9 +1411,8 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     return 0;
                 }
                 case "remove-all-suggestions":
-                    mWifiService.removeNetworkSuggestions(
-                            new ParceledListSlice<>(Collections.emptyList()), SHELL_PACKAGE_NAME,
-                            WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT);
+                    mWifiService.removeNetworkSuggestions(Collections.emptyList(),
+                            SHELL_PACKAGE_NAME, WifiManager.ACTION_REMOVE_SUGGESTION_DISCONNECT);
                     return 0;
                 case "clear-all-suggestions":
                     mWifiThreadRunner.post(() -> mWifiNetworkSuggestionsManager.clear(),
