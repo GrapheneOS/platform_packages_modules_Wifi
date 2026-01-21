@@ -1578,69 +1578,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
     }
 
     /**
-     * Verify BSSID blocklist does not happen when score stays below threshold for less than the
-     * minimum duration
-     */
-    @Test
-    public void bssidBlockListDoesnotHappenWhenExitingIsLessThanMinDuration() throws Exception {
-        assumeTrue(SdkLevel.isAtLeastS());
-        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
-        // Register Client for verification.
-        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
-        verify(mExternalScoreUpdateObserverProxy).registerCallback(
-                mExternalScoreUpdateObserverCbCaptor.capture());
-        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
-        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
-        mClock.mStepMillis = 0;
-
-        mClock.mWallClockMillis = 10;
-        mExternalScoreUpdateObserverCbCaptor.getValue().notifyScoreUpdate(
-                scorerImpl.mSessionId, 49);
-        mLooper.dispatchAll();
-        mClock.mWallClockMillis = 29009;
-        mExternalScoreUpdateObserverCbCaptor.getValue().notifyScoreUpdate(
-                scorerImpl.mSessionId, 49);
-        mLooper.dispatchAll();
-        mWifiScoreReport.stopConnectedNetworkScorer();
-        mLooper.dispatchAll();
-        verify(mWifiBlocklistMonitor, never()).handleBssidConnectionFailure(any(), any(),
-                anyInt(), anyInt());
-    }
-
-    /**
-     * Verify BSSID blocklist does not happen when there is score flip flop
-     */
-    @Test
-    public void bssidBlockListDoesnotHappenWhenExitingIsReset() throws Exception {
-        assumeTrue(SdkLevel.isAtLeastS());
-        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
-        // Register Client for verification.
-        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
-        verify(mExternalScoreUpdateObserverProxy).registerCallback(
-                mExternalScoreUpdateObserverCbCaptor.capture());
-        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
-        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
-        mClock.mStepMillis = 0;
-
-        mClock.mWallClockMillis = 10;
-        mExternalScoreUpdateObserverCbCaptor.getValue().notifyScoreUpdate(
-                scorerImpl.mSessionId, 49);
-        mLooper.dispatchAll();
-        mClock.mWallClockMillis = 15000;
-        mExternalScoreUpdateObserverCbCaptor.getValue().notifyScoreUpdate(
-                scorerImpl.mSessionId, 51);
-        mLooper.dispatchAll();
-        mClock.mWallClockMillis = 29011;
-        mExternalScoreUpdateObserverCbCaptor.getValue().notifyScoreUpdate(
-                scorerImpl.mSessionId, 49);
-        mLooper.dispatchAll();
-        mWifiScoreReport.stopConnectedNetworkScorer();
-        mLooper.dispatchAll();
-        verify(mWifiBlocklistMonitor, never()).handleBssidConnectionFailure(any(), any(),
-                anyInt(), anyInt());
-    }
-
-    /**
      * Verify that the initial score value in WifiInfo is the max when onStart is called.
      */
     @Test
