@@ -218,16 +218,11 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> தரம் குறைவாக உள்ளது. <xliff:g id="SSID_1">%2$s</xliff:g>க்கு மாற்றவா?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"மாற்று"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"மாற்ற வேண்டாம்"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (7541989406466882747) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (5116841532118842227) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (1193888906224230855) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="7541989406466882747">"<xliff:g id="APP_NAME">%1$s</xliff:g> உடனான இணைப்பை நீக்கவா?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="5116841532118842227">"இந்த நெட்வொர்க்கில் இருந்து இணைப்பை நீக்குவது <xliff:g id="APP_NAME">%1$s</xliff:g> இணைப்பை நீக்கும்."</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="1193888906224230855">"இணைப்பை நீக்கு"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"ரத்துசெய்"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (6276398076311281426) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (2830348590173029295) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="6276398076311281426">"வேறொரு வைஃபை நெட்வொர்க்குடன் இணைக்கவா?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="2830348590173029295">"<xliff:g id="SSID">%2$s</xliff:g> உடன் இணைப்பது <xliff:g id="APP_NAME">%1$s</xliff:g> இணைப்பை நீக்கும்."</string>
     <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"இணை"</string>
 </resources>

@@ -218,16 +218,11 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> er af dårlig kvalitet. Vil du skifte til <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Skift"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Skift ikke"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (7541989406466882747) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (5116841532118842227) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (1193888906224230855) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="7541989406466882747">"Vil du afbryde forbindelsen til <xliff:g id="APP_NAME">%1$s</xliff:g>?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="5116841532118842227">"Hvis du afbryder forbindelsen til dette netværk, afbrydes forbindelsen til <xliff:g id="APP_NAME">%1$s</xliff:g>."</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="1193888906224230855">"Afbryd forbindelsen"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Annuller"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (6276398076311281426) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (2830348590173029295) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="6276398076311281426">"Vil du oprette forbindelse til et andet Wi-Fi-netværk?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="2830348590173029295">"Hvis du opretter forbindelse til <xliff:g id="SSID">%2$s</xliff:g>, afbrydes forbindelsen til <xliff:g id="APP_NAME">%1$s</xliff:g>."</string>
     <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"Opret forbindelse"</string>
 </resources>

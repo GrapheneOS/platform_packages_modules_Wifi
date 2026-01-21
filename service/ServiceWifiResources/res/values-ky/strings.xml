@@ -32,7 +32,7 @@
     <string name="wifi_suggestion_content" msgid="6985149577828091835">"<xliff:g id="NAME">%s</xliff:g> сунуштаган тармактар. Түзмөк автоматтык түрдө туташышы мүмкүн."</string>
     <string name="wifi_suggestion_action_allow_app" msgid="7757859972144671588">"Уруксат берүү"</string>
     <string name="wifi_suggestion_action_disallow_app" msgid="4565857699629860726">"Жок, рахмат"</string>
-    <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> Wi‑Fi тармагына туташтырылсынбы?"</string>
+    <string name="wifi_suggestion_imsi_privacy_title" msgid="8969261812845304079">"<xliff:g id="CARRIERNAME">%s</xliff:g> Wi‑Fi тармагына туташсынбы?"</string>
     <string name="wifi_suggestion_imsi_privacy_content" msgid="4266931269306079184">"Бул тармактарга SIM-картанын идентификатору берилип, анын жардамы менен түзмөктүн жайгашкан жерин аныктоого болот"</string>
     <string name="wifi_suggestion_action_allow_imsi_privacy_exemption_carrier" msgid="3888538126440442636">"Туташуу"</string>
     <string name="wifi_suggestion_action_disallow_imsi_privacy_exemption_carrier" msgid="3225397664735676024">"Туташпасын"</string>
@@ -218,16 +218,11 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> байланышы начар. <xliff:g id="SSID_1">%2$s</xliff:g> тармагына которуласызбы?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Которгуч"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Которулбасын"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (7541989406466882747) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (5116841532118842227) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (1193888906224230855) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="7541989406466882747">"<xliff:g id="APP_NAME">%1$s</xliff:g> колдонмосунан ажыратылсынбы?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="5116841532118842227">"Бул тармактан ажыратылса, <xliff:g id="APP_NAME">%1$s</xliff:g> да ажыратылат."</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="1193888906224230855">"Ажыратуу"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Жокко чыгаруу"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (6276398076311281426) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (2830348590173029295) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="6276398076311281426">"Башка Wi‑Fi тармагына туташасызбы?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="2830348590173029295">"<xliff:g id="SSID">%2$s</xliff:g> тармагына туташсаңыз, <xliff:g id="APP_NAME">%1$s</xliff:g> ажыратылат."</string>
     <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"Туташуу"</string>
 </resources>
