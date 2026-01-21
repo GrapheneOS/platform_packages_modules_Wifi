@@ -2006,6 +2006,25 @@ public class WifiScoreReportTest extends WifiBaseTest {
     }
 
     @Test
+    public void frameworkIgnoresSetPreEvaluationRequestWhenNotConnected() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastS());
+        when(mWifiConfigManager.getConfiguredNetwork(anyInt())).thenReturn(null);
+        assertEquals(ConnectedScorer.WIFI_INITIAL_SCORE, mWifiScoreReport.mLegacyIntScore);
+        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(
+                mExternalScoreUpdateObserverCbCaptor.capture());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+
+        mExternalScoreUpdateObserverCbCaptor.getValue()
+                .setPreEvaluationEnabled(true);
+        mLooper.dispatchAll();
+
+        verify(mMockNetworkPreEvaluationManager, never())
+                .setPreEvaluationEnabled(anyString(), anyBoolean());
+    }
+
+    @Test
     public void testClientNotNotifiedForLocalOnlyConnection() throws Exception {
         assumeTrue(SdkLevel.isAtLeastS());
         when(mNetworkAgent.getCurrentNetworkCapabilities()).thenReturn(
