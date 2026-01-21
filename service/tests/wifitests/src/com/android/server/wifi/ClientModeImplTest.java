@@ -6049,6 +6049,9 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         when(mWifiConfigManager.getLastSelectedNetwork()).thenReturn(FRAMEWORK_NETWORK_ID + 1);
 
+        // Mock connected network to be disabled due to no internet
+        mConnectedNetwork.getNetworkSelectionStatus().setNetworkSelectionDisableReason(
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_NO_INTERNET_PERMANENT);
         mWifiNetworkAgentCallbackCaptor.getValue().onValidationStatus(
                 NetworkAgent.VALIDATION_STATUS_VALID, null /* captivePortalUrl */);
         mLooper.dispatchAll();
@@ -6099,7 +6102,7 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         verify(mWifiConfigManager)
                 .setNetworkValidatedInternetAccess(FRAMEWORK_NETWORK_ID, true);
-        verify(mWifiConfigManager).updateNetworkSelectionStatus(
+        verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(
                 FRAMEWORK_NETWORK_ID, DISABLED_NONE);
         verify(mWifiScoreCard).noteValidationSuccess(any());
         verify(mWifiBlocklistMonitor).handleNetworkValidationSuccess(TEST_BSSID_STR, TEST_SSID);

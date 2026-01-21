@@ -7950,10 +7950,15 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         WifiConfiguration config = getConnectedWifiConfigurationInternal();
                         if (config != null) {
                             // re-enable autojoin
-                            mWifiConfigManager.updateNetworkSelectionStatus(
-                                    config.networkId,
-                                    WifiConfiguration.NetworkSelectionStatus
-                                            .DISABLED_NONE);
+                            int networkDisableReason = config.getNetworkSelectionStatus()
+                                    .getNetworkSelectionDisableReason();
+                            if (networkDisableReason == DISABLED_NO_INTERNET_TEMPORARY
+                                    || networkDisableReason == DISABLED_NO_INTERNET_PERMANENT) {
+                                mWifiConfigManager.updateNetworkSelectionStatus(
+                                        config.networkId,
+                                        WifiConfiguration.NetworkSelectionStatus
+                                                .DISABLED_NONE);
+                            }
                             mWifiConfigManager.setNetworkValidatedInternetAccess(
                                     config.networkId, true);
                             if (config.isPasspoint()
