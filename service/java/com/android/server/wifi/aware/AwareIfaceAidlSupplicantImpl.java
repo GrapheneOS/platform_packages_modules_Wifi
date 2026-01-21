@@ -63,6 +63,8 @@ import com.android.server.wifi.hal.WifiNanIface;
 import com.android.server.wifi.hal.WifiRttControllerAidlImpl;
 import com.android.server.wifi.util.HalAidlUtil;
 
+import java.security.SecureRandom;
+
 /**
  * Implementation using the AIDL interface for mainline supplicant.
  */
@@ -73,6 +75,14 @@ public class AwareIfaceAidlSupplicantImpl {
     private static final byte DEFAULT_RSSI_CLOSE_PROXIMITY = 50;
     private static final int DEFAULT_DWELL_TIME_MS = 150;
     private static final int DEFAULT_SCAN_PERIOD_SEC = 20;
+
+    // The first 4 bytes of the Cluster ID:
+    // - Bytes 0-2: OUI of Wi-Fi Alliance (50:6F:9A)
+    // - Byte 3: NAN type (01)
+    private static final byte[] BASE_CLUSTER_ID = MacAddress
+            .fromString("50:6F:9A:01:00:00").toByteArray();
+
+    private final SecureRandom mRandom = new SecureRandom();
 
     private ISupplicantNanIface mWifiNanIface;
     private String mIfaceName;
@@ -382,7 +392,7 @@ public class AwareIfaceAidlSupplicantImpl {
         return req;
     }
 
-    private static NanConfigRequest createNanConfigRequest(
+    private NanConfigRequest createNanConfigRequest(
             ConfigRequest configRequest, boolean notifyIdentityChange,
             WifiNanIface.PowerParameters powerParameters) {
         NanConfigRequest req = new NanConfigRequest();
@@ -397,6 +407,12 @@ public class AwareIfaceAidlSupplicantImpl {
         req.includeSubscribeServiceIdsInBeacon = true;
         req.numberOfSubscribeServiceIdsInBeacon = 0;
         req.rssiWindowSize = 8;
+        byte[] clusterId = copyArray(BASE_CLUSTER_ID);
+        byte[] randomPart = new byte[2];
+        mRandom.nextBytes(randomPart);
+        clusterId[clusterId.length - 2] = randomPart[0];
+        clusterId[clusterId.length - 1] = randomPart[1];
+        req.clusterId = clusterId;
 
         req.bandSpecificConfig = new NanBandSpecificConfig[3];
         req.bandSpecificConfig[NanBandIndex.NAN_BAND_24GHZ] = nanBandSpecificConfigs[0];
