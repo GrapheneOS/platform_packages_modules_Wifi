@@ -737,6 +737,15 @@ public class WifiScoreReport {
                     noteNudCheck();
                 }
             }
+
+            // Block current BSSID
+            if (scoreResult.shouldBlockBssid()) {
+                mWifiBlocklistMonitor.handleBssidConnectionFailure(mWifiInfo.getBSSID(),
+                        mWifiConfigManager.getConfiguredNetwork(mWifiInfo.getNetworkId()),
+                        WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE,
+                        mWifiInfo.getRssi());
+            }
+
             // Report to ConnectivityService
             reportNetworkScoreToConnectivityServiceIfNecessary(adjustedScore,
                     scoreResult.isWifiUsable());
