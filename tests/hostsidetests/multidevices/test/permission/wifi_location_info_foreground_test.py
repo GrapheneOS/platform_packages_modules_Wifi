@@ -17,7 +17,9 @@
 from android.platform.test.annotations import ApiTest
 from mobly import asserts
 from mobly import base_test
+from mobly import utils
 from mobly.controllers import android_device
+import wifi_test_utils
 
 
 @ApiTest(
@@ -36,11 +38,17 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
             asserts.skip("This test requires at least two Android devices.")
         self.dut = self.android_devices[0]
         self.hotspot_device = self.android_devices[1]
-        self.dut.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
-        self.hotspot_device.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
-        # Ensure system-wide location services are enabled for consistent test results.
-        self.dut.adb.shell("settings put secure location_mode 3")
-        self.hotspot_device.adb.shell("settings put secure location_mode 3")
+        utils.concurrent_exec(
+            self._setup_device,
+            param_list=[[ad] for ad in self.android_devices],
+            raise_on_exception=True,
+        )
+
+    def _setup_device(self, ad: android_device.AndroidDevice) -> None:
+        ad.load_snippet('wifi',  self._WIFI_SNIPPET_PACKAGE)
+        wifi_test_utils.enable_wifi_verbose_logging(ad)
+        wifi_test_utils.set_screen_on_and_unlock(ad)
+        ad.adb.shell("settings put secure location_mode 3")
 
     def setup_test(self):
         self.dut.wifi.wifiToggleState(True)
