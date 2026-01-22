@@ -1186,18 +1186,6 @@ public class WifiConfigManager {
             return true;
         }
 
-        // The configuration is disallowed to be updated by other user.
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-        if (mFeatureFlags.multiUserWifiEnhancement()
-                && requireUserCheck && !config.isAllowedToUpdateByOtherUsers()
-                && !mWifiPermissionsUtil.areTwoAppsFromSameUser(config.creatorUid, uid)) {
-            return false;
-        }
-
-        // TODO: ideally package should not be null here (and hence we wouldn't need the
-        // isDeviceOwner(uid) method), but it would require changing  many methods to pass the
-        // package name around (for example, all methods called by
-        // WifiServiceImpl.triggerConnectAndReturnStatus(netId, callingUid)
         final boolean isOrganizationOwnedDeviceAdmin =
                 mWifiPermissionsUtil.isOrganizationOwnedDeviceAdmin(uid, packageName);
 
@@ -1205,6 +1193,14 @@ public class WifiConfigManager {
         // device, allow all modifications.
         if (isOrganizationOwnedDeviceAdmin) {
             return true;
+        }
+
+        // The configuration is disallowed to be updated by other user.
+        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (mFeatureFlags.multiUserWifiEnhancement()
+                && requireUserCheck && !config.isAllowedToUpdateByOtherUsers()
+                && !mWifiPermissionsUtil.areTwoAppsFromSameUser(config.creatorUid, uid)) {
+            return false;
         }
 
         final boolean isCreator = (config.creatorUid == uid);
