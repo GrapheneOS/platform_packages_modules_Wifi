@@ -359,5 +359,141 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
         verify(mAwareIfaceAidlSupplicantImplMock).deleteAwareNetworkInterface(eq((short) 1),
                 eq(interfaceName));
     }
+
+    @Test
+    public void testInitiateDataPath() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        byte[] peer = new byte[]{1, 2, 3, 4, 5, 6};
+        mDut.initiateDataPath((short) 1, 12, 0, 2437, peer, "aware0", true, null, null, null,
+                (byte) 1, false);
+        verify(mWifiNanIfaceMock).initiateDataPath(eq((short) 1), eq(12), eq(0), eq(2437),
+                eq(MacAddress.fromBytes(peer)), eq("aware0"), eq(true), eq(null), eq(null),
+                eq(null), eq((byte) 1), eq(false));
+    }
+
+    @Test
+    public void testInitiateDataPathWithSupplicant() {
+        byte[] peer = new byte[]{1, 2, 3, 4, 5, 6};
+        mDut.initiateDataPath((short) 1, 12, 0, 2437, peer, "aware0", true, null, null, null,
+                (byte) 1, false);
+        verify(mAwareIfaceAidlSupplicantImplMock).initiateDataPath(eq((short) 1), eq(12), eq(0),
+                eq(2437), eq(MacAddress.fromBytes(peer)), eq("aware0"), eq(true), eq(null),
+                eq(null), eq((byte) 1), eq(false));
+    }
+
+    @Test
+    public void testRespondToDataPathRequest() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        mDut.respondToDataPathRequest((short) 1, true, 123, "aware0", null, true, null, null,
+                (byte) 1, false);
+        verify(mWifiNanIfaceMock).respondToDataPathRequest(eq((short) 1), eq(true), eq(123),
+                eq("aware0"), eq(null), eq(true), eq(null), eq(null), eq((byte) 1), eq(false));
+    }
+
+    @Test
+    public void testRespondToDataPathRequestWithSupplicant() {
+        mDut.respondToDataPathRequest((short) 1, true, 123, "aware0", null, true, null, null,
+                (byte) 1, false);
+        verify(mAwareIfaceAidlSupplicantImplMock).respondToDataPathRequest(eq((short) 1), eq(true),
+                eq(123), eq("aware0"), eq(null), eq(true), eq(null), eq((byte) 1), eq(false));
+    }
+
+    @Test
+    public void testEndDataPath() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        mDut.endDataPath((short) 1, 123);
+        verify(mWifiNanIfaceMock).endDataPath(eq((short) 1), eq(123));
+    }
+
+    @Test
+    public void testEndDataPathWithSupplicant() {
+        mDut.endDataPath((short) 1, 123);
+        verify(mAwareIfaceAidlSupplicantImplMock).endDataPath(eq((short) 1), eq(123));
+    }
+
+    @Test
+    public void testEndPairing() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        mDut.endPairing((short) 1, 123);
+        verify(mWifiNanIfaceMock).endPairing(eq((short) 1), eq(123));
+    }
+
+    @Test
+    public void testEndPairingWithSupplicant() {
+        mDut.endPairing((short) 1, 123);
+        verify(mAwareIfaceAidlSupplicantImplMock).endPairing(eq((short) 1), eq(123));
+    }
+
+    @Test
+    public void testInitiatePairing() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        byte[] peer = new byte[]{1, 2, 3, 4, 5, 6};
+        mDut.initiatePairing((short) 1, 123, peer, null, true, 1, null, null, 1, 1);
+        verify(mWifiNanIfaceMock).initiatePairing(eq((short) 1), eq(123),
+                eq(MacAddress.fromBytes(peer)), eq(null), eq(true), eq(1), eq(null), eq(null),
+                eq(1), eq(1));
+    }
+
+    @Test
+    public void testInitiatePairingWithSupplicant() {
+        byte[] peer = new byte[]{1, 2, 3, 4, 5, 6};
+        mDut.initiatePairing((short) 1, 123, peer, null, true, 1, null, null, 1, 1);
+        verify(mAwareIfaceAidlSupplicantImplMock).initiateNanPairingRequest(eq((short) 1), eq(123),
+                eq(MacAddress.fromBytes(peer)), eq(null), eq(true), eq(1), eq(null), eq(null),
+                eq(1), eq(1));
+    }
+
+    @Test
+    public void testRespondToPairingRequest() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        mDut.respondToPairingRequest((short) 1, 123, true, null, true, 1, null, null, 1, 1);
+        verify(mWifiNanIfaceMock).respondToPairingRequest(eq((short) 1), eq(123), eq(true),
+                eq(null), eq(true), eq(1), eq(null), eq(null), eq(1), eq(1));
+    }
+
+    @Test
+    public void testRespondToPairingRequestWithSupplicant() {
+        mDut.respondToPairingRequest((short) 1, 123, true, null, true, 1, null, null, 1, 1);
+        verify(mAwareIfaceAidlSupplicantImplMock).respondToPairingRequest(eq((short) 1), eq(123),
+                eq(true), eq(null), eq(true), eq(1), eq(null), eq(null), eq(1), eq(1));
+    }
+
+    @Test
+    public void testInitiateBootstrappingWithSupplicant() {
+        byte[] peer = new byte[]{1, 2, 3, 4, 5, 6};
+        mDut.initiateBootstrapping((short) 1, 123, peer, 1, null, (byte) 1, true, null);
+        verify(mAwareIfaceAidlSupplicantImplMock).initiateNanBootstrappingRequest(eq((short) 1),
+                eq(123), eq(MacAddress.fromBytes(peer)), eq(1), eq(null), eq((byte) 1), eq(true),
+                eq(null));
+    }
+
+    @Test
+    public void testRespondToBootstrappingRequest() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        mDut.respondToBootstrappingRequest((short) 1, 123, true, (byte) 1, 1);
+        verify(mWifiNanIfaceMock).respondToBootstrappingRequest(eq((short) 1), eq(123), eq(true),
+                eq((byte) 1), eq(1));
+    }
+
+    @Test
+    public void testRespondToBootstrappingRequestWithSupplicant() {
+        mDut.respondToBootstrappingRequest((short) 1, 123, true, (byte) 1, 1);
+        verify(mAwareIfaceAidlSupplicantImplMock).respondToNanBootstrappingRequest(eq((short) 1),
+                eq(123), eq(true), eq((byte) 1), eq(1));
+    }
+
+    @Test
+    public void testSuspendRequest() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        mDut.suspendRequest((short) 1, (byte) 1);
+        verify(mWifiNanIfaceMock).suspendRequest(eq((short) 1), eq((byte) 1));
+    }
+
+    @Test
+    public void testResumeRequest() {
+        when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
+        mDut.resumeRequest((short) 1, (byte) 1);
+        verify(mWifiNanIfaceMock).resumeRequest(eq((short) 1), eq((byte) 1));
+    }
 }
 
