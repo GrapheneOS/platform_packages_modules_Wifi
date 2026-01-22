@@ -820,11 +820,11 @@ public class WifiManagerTest {
         expectedSsids.add(WifiSsid.fromString("\"TEST_SSID\""));
         mWifiManager.setSsidsAllowlist(new ArraySet<>(expectedSsids));
         verify(mWifiService).setSsidsAllowlist(any(),
-                argThat(a -> a.getList().equals(expectedSsids)));
+                argThat(a -> a.equals(expectedSsids)));
 
         // test empty set
         mWifiManager.setSsidsAllowlist(Collections.emptySet());
-        verify(mWifiService).setSsidsAllowlist(any(), argThat(a -> a.getList().isEmpty()));
+        verify(mWifiService).setSsidsAllowlist(any(), argThat(List::isEmpty));
     }
 
     /**
