@@ -62,16 +62,16 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
     def setup_test(self):
         for ad in self.ads:
             ad.wifi.wifiToggleState(True)
-            ad.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
-            ad.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
+            ad.adb.shell(f"pm revoke --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+            ad.adb.shell(f"pm revoke --user current {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
             ad.unload_snippet("wifi")
             ad.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
             ad.wifi.utilityBringToBackground()
 
     def teardown_test(self):
         for ad in self.ads:
-            ad.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
-            ad.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
+            ad.adb.shell(f"pm revoke --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+            ad.adb.shell(f"pm revoke --user current {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
             ad.unload_snippet("wifi")
             ad.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
 
@@ -102,8 +102,8 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
         Expected Result:
             The Wi-Fi scan is successfully initiated, and the RPC call returns True.
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
         logging.info("Granted FINE and BACKGROUND location permissions.")
         time.sleep(2) # Allow permissions to settle
         # The wifiStartScanAndGetStatus RPC should return True, indicating success.
@@ -127,7 +127,7 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
             call should return False.
         """
         self.dut.adb.shell(
-            f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}"
+            f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}"
         )
         logging.info("Granted FINE location permissions.")
         time.sleep(2) # Allow permissions to settle
@@ -146,8 +146,8 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
         Expected Result:
             The scan results retrieval should succeed and return a list of results.
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
         logging.info("Granted FINE and BACKGROUND location permissions.")
         time.sleep(2) # Allow permissions to settle
         asserts.assert_true(
@@ -163,7 +163,7 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
         Expected Result:
             The scan results retrieval should fail and return an empty list.
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         logging.info("Granted FINE location permissions.")
         time.sleep(2) # Allow permissions to settle
         asserts.assert_false(
@@ -179,8 +179,8 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
         Expected Result:
             The connection info retrieval should succeed and return a valid WifiInfo object.
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
         logging.info("Granted FINE and BACKGROUND location permissions.")
         time.sleep(2) # Allow permissions to settle
         try:
@@ -209,7 +209,7 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
             The call should succeed, but the returned WifiInfo object should contain
             redacted, location-identifying information.
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         logging.info("Granted FINE location permissions.")
         time.sleep(2) # Allow permissions to settle
         try:
@@ -233,8 +233,8 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
         Expected Result:
             The transport info retrieval should succeed and return a valid object.
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
         logging.info("Granted FINE and BACKGROUND location permissions.")
         time.sleep(2) # Allow permissions to settle
         try:
@@ -259,7 +259,7 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
         Expected Result:
             The transport info retrieval should fail and return None.
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         logging.info("Granted FINE location permissions.")
         time.sleep(2) # Allow permissions to settle
         try:
