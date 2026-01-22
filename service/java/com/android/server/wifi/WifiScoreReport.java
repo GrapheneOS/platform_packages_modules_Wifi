@@ -406,6 +406,10 @@ public class WifiScoreReport {
                 }
                 return;
             }
+            if (mCurrentWifiConfiguration == null) {
+                Log.w(TAG, "Wifi is not connected - Cannot set preEvaluationEnabled");
+                return;
+            }
             mNetworkPreEvaluationManager
                     .setPreEvaluationEnabled(mCurrentWifiConfiguration.getProfileKey(), enabled);
         }
