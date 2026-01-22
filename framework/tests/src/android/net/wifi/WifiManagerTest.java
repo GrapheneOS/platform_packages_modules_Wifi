@@ -4851,6 +4851,7 @@ public class WifiManagerTest {
     @RequiresFlagsEnabled(android.security.Flags.FLAG_AAPM_FEATURE_DISABLE_INSECURE_WIFI_AUTOJOIN)
     public void testGetAvailableAdvancedProtectionFeaturesWhenFlagIsEnabled() {
         assumeTrue(Environment.isSdkAtLeastB());
+        assumeTrue(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin());
         List<AdvancedProtectionFeature> features =
                 mWifiManager.getAvailableAdvancedProtectionFeatures();
         assertNotNull(features);
