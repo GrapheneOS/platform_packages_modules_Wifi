@@ -126,6 +126,20 @@ public class GenericNetlinkMsg {
     }
 
     /**
+     * Retrieve the value of a long attribute, if it exists.
+     *
+     * @param attributeId of the attribute to retrieve
+     * @return value if it exists, or null if an error was encountered
+     */
+    @Nullable
+    public Long getAttributeValueAsLong(short attributeId) {
+        StructNlAttr attribute = getAttribute(attributeId);
+        if (attribute == null) return null;
+
+        return attribute.getValueAsLong();
+    }
+
+    /**
      * Retrieve the value of a byte attribute, if it exists.
      *
      * @param attributeId of the attribute to retrieve

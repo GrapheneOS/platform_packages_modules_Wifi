@@ -218,16 +218,11 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> je niskog kvaliteta. Prebaciti na mrežu <xliff:g id="SSID_1">%2$s</xliff:g>?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"Prebaci"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"Nemoj prebaciti"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (7541989406466882747) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (5116841532118842227) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (1193888906224230855) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="7541989406466882747">"Prekinuti vezu s aplikacijom <xliff:g id="APP_NAME">%1$s</xliff:g>?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="5116841532118842227">"Prekid veze s ovom mrežom će prekinuti vezu s aplikacijom <xliff:g id="APP_NAME">%1$s</xliff:g>."</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="1193888906224230855">"Prekini povezanost"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"Otkaži"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (6276398076311281426) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (2830348590173029295) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="6276398076311281426">"Povezati se s drugom WiFi mrežom?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="2830348590173029295">"Povezivanje s mrežom <xliff:g id="SSID">%2$s</xliff:g> će prekinuti vezu s aplikacijom <xliff:g id="APP_NAME">%1$s</xliff:g>."</string>
     <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"Poveži"</string>
 </resources>

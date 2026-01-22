@@ -23,8 +23,10 @@ import static android.system.OsConstants.ENOENT;
 
 import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_ACK;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_BSS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_COOKIE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_EXT_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_FEATURE_FLAGS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_FRAME;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFNAME;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
@@ -69,6 +71,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATU
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_STATUS_AUTHENTICATED;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_TSF;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_ABORT_SCAN;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_FRAME;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_INTERFACE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_PROTOCOL_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_GET_REG;
@@ -1693,6 +1696,38 @@ public class Nl80211Utils {
         }
 
         return countryCode;
+    }
+
+    /**
+     * Sends a management frame on the given interface and returns a cookie upon success.
+     * @param ifaceIndex Index of interface to send the frame on.
+     * @param frame The raw byte array of the management frame to transmit.
+     * @param mcs The MCS (modulation and coding scheme), i.e. rate, at which to transmit the
+     *            frame. Specified per IEEE 802.11.
+     * @return Cookie upon success, or null on failure.
+     */
+    public Long sendMgmtFrame(int ifaceIndex, @NonNull byte[] frame, int mcs) {
+        GenericNetlinkMsg request = mNl80211Proxy.createNl80211Request(NL80211_CMD_FRAME);
+        request.addAttribute(new StructNlAttr(NL80211_ATTR_IFINDEX, ifaceIndex));
+        request.addAttribute(new StructNlAttr(NL80211_ATTR_FRAME, frame));
+        if (mcs >= 0) {
+            // Left unimplemented to match wificond. Note that the only user of sendMgmtFrame comes
+            // from WifiShellCommand, which passes a hardcoded value of -1.
+        }
+
+        Nl80211Response response = mNl80211Proxy.sendMessageAndReceiveResponse(request);
+        if (response == null || response.isError() || response.getMessage() == null) {
+            Log.e(TAG, "Failed to send NL80211_CMD_FRAME");
+            return null;
+        }
+
+        Long cookie = response.getMessage().getAttributeValueAsLong(NL80211_ATTR_COOKIE);
+        if (cookie == null) {
+            Log.e(TAG, "Failed to get cookie from NL80211_CMD_FRAME");
+            return null;
+        }
+
+        return cookie;
     }
 
     /**

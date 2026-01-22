@@ -218,16 +218,11 @@
     <string name="wifi_network_switch_dialog_title_bad_internet" msgid="6013385270249705547">"<xliff:g id="SSID_0">%1$s</xliff:g> की क्वालिटी हल्की है. क्या आपको <xliff:g id="SSID_1">%2$s</xliff:g> पर स्विच करना है?"</string>
     <string name="wifi_network_switch_dialog_positive_button" msgid="7845507995422722454">"स्विच करें"</string>
     <string name="wifi_network_switch_dialog_negative_button" msgid="1496665895689498806">"स्विच न करें"</string>
-    <!-- no translation found for wifi_disconnect_dialog_title (7541989406466882747) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_message (5116841532118842227) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_positive_button (1193888906224230855) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_title" msgid="7541989406466882747">"क्या <xliff:g id="APP_NAME">%1$s</xliff:g> से डिसकनेक्ट करना है?"</string>
+    <string name="wifi_disconnect_dialog_message" msgid="5116841532118842227">"इस नेटवर्क से डिसकनेक्ट करने पर <xliff:g id="APP_NAME">%1$s</xliff:g> डिसकनेक्ट हो जाएगा."</string>
+    <string name="wifi_disconnect_dialog_positive_button" msgid="1193888906224230855">"डिसकनेक्ट करें"</string>
     <string name="wifi_disconnect_dialog_negative_button" msgid="5075682597077355859">"अभी नहीं"</string>
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_title (6276398076311281426) -->
-    <skip />
-    <!-- no translation found for wifi_disconnect_dialog_new_connection_message (2830348590173029295) -->
-    <skip />
+    <string name="wifi_disconnect_dialog_new_connection_title" msgid="6276398076311281426">"क्या किसी दूसरे वाई-फ़ाई नेटवर्क से कनेक्ट करना है?"</string>
+    <string name="wifi_disconnect_dialog_new_connection_message" msgid="2830348590173029295">"<xliff:g id="SSID">%2$s</xliff:g> से कनेक्ट करने पर <xliff:g id="APP_NAME">%1$s</xliff:g> डिसकनेक्ट हो जाएगा."</string>
     <string name="wifi_disconnect_dialog_new_connection_positive_button" msgid="4891994857934666730">"कनेक्ट करें"</string>
 </resources>
