@@ -29,7 +29,6 @@ import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
 import android.net.wifi.rtt.RangingResult;
 import android.util.Log;
 
-import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.aware.Capabilities;
 import com.android.server.wifi.aware.PairingConfigManager;
 
@@ -46,8 +45,7 @@ public class WifiNanIface implements WifiHal.WifiInterface {
     private String mName;
     private boolean mIsSupplicantManaged;
 
-    @VisibleForTesting
-    static final String SERVICE_NAME_FOR_OOB_DATA_PATH = "Wi-Fi Aware Data Path";
+    public static final String SERVICE_NAME_FOR_OOB_DATA_PATH = "Wi-Fi Aware Data Path";
 
     public WifiNanIface(@NonNull String name) {
         mName = name;

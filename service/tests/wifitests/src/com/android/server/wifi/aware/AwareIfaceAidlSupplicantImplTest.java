@@ -28,6 +28,7 @@ import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyByte;
 import static org.mockito.ArgumentMatchers.anyChar;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -35,19 +36,30 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.net.MacAddress;
+import android.net.wifi.aware.TlvBufferUtils;
+import java.util.Arrays;
 import android.net.wifi.aware.AwarePairingConfig;
+import android.net.wifi.aware.Characteristics;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
+import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
 import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 import android.system.wifi.mainline_supplicant.ISupplicantNanIface;
 import android.system.wifi.mainline_supplicant.NanBootstrappingMethod;
+import android.system.wifi.mainline_supplicant.NanBootstrappingRequest;
+import android.system.wifi.mainline_supplicant.NanBootstrappingResponse;
 import android.system.wifi.mainline_supplicant.NanCipherSuiteType;
 import android.system.wifi.mainline_supplicant.NanConfigRequest;
 import android.system.wifi.mainline_supplicant.NanDataPathSecurityConfig;
 import android.system.wifi.mainline_supplicant.NanEnableRequest;
+import android.system.wifi.mainline_supplicant.NanInitiateDataPathRequest;
+import android.system.wifi.mainline_supplicant.NanPairingRequest;
 import android.system.wifi.mainline_supplicant.NanPublishRequest;
+import android.system.wifi.mainline_supplicant.NanRespondToDataPathIndicationRequest;
+import android.system.wifi.mainline_supplicant.NanRangingIndication;
+import android.system.wifi.mainline_supplicant.NanRespondToPairingIndicationRequest;
 import android.system.wifi.mainline_supplicant.NanSubscribeRequest;
 import android.system.wifi.mainline_supplicant.NanTransmitFollowupRequest;
 
@@ -252,6 +264,28 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
     }
 
     @Test
+    public void testDisableRequest() throws Exception {
+        short transactionId = 65;
+        assertTrue(mDut.disableRequest(transactionId));
+        verify(mMockSupplicantNanIface).disableRequest((char) transactionId);
+    }
+
+    @Test
+    public void testDisableRequest_remoteException() throws Exception {
+        short transactionId = 66;
+        doThrow(new RemoteException()).when(mMockSupplicantNanIface).disableRequest(anyChar());
+        assertFalse(mDut.disableRequest(transactionId));
+    }
+
+    @Test
+    public void testDisableRequest_serviceSpecificException() throws Exception {
+        short transactionId = 67;
+        doThrow(new ServiceSpecificException(0, "error"))
+                .when(mMockSupplicantNanIface).disableRequest(anyChar());
+        assertFalse(mDut.disableRequest(transactionId));
+    }
+
+    @Test
     public void testPublish() throws Exception {
         short transactionId = 40;
         byte publishId = 1;
@@ -414,6 +448,391 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
     }
 
     @Test
+    public void testInitiateDataPath() throws Exception {
+        short transactionId = 90;
+        int peerId = 100;
+        int channelRequestType = 0;
+        int channel = 2437;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
+        String interfaceName = "aware_data0";
+        boolean isOutOfBand = true;
+        byte[] appInfo = "appInfo".getBytes();
+        WifiAwareDataPathSecurityConfig securityConfig = null;
+        byte pubSubId = 1;
+        boolean frameProtectionEnabled = false;
+
+        assertTrue(mDut.initiateDataPath(transactionId, peerId, channelRequestType, channel, peer,
+                interfaceName, isOutOfBand, appInfo, securityConfig, pubSubId,
+                frameProtectionEnabled));
+        verify(mMockSupplicantNanIface).initiateDataPathRequest(eq((char) transactionId),
+                any(NanInitiateDataPathRequest.class));
+    }
+
+    @Test
+    public void testInitiateDataPath_remoteException() throws Exception {
+        short transactionId = 91;
+        int peerId = 100;
+        int channelRequestType = 0;
+        int channel = 2437;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
+        String interfaceName = "aware_data0";
+        boolean isOutOfBand = true;
+        byte[] appInfo = "appInfo".getBytes();
+        WifiAwareDataPathSecurityConfig securityConfig = null;
+        byte pubSubId = 1;
+        boolean frameProtectionEnabled = false;
+
+        doThrow(new RemoteException()).when(mMockSupplicantNanIface)
+                .initiateDataPathRequest(anyChar(), any());
+        assertFalse(mDut.initiateDataPath(transactionId, peerId, channelRequestType, channel, peer,
+                interfaceName, isOutOfBand, appInfo, securityConfig, pubSubId,
+                frameProtectionEnabled));
+    }
+
+    @Test
+    public void testInitiateDataPath_serviceSpecificException() throws Exception {
+        short transactionId = 92;
+        int peerId = 100;
+        int channelRequestType = 0;
+        int channel = 2437;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
+        String interfaceName = "aware_data0";
+        boolean isOutOfBand = true;
+        byte[] appInfo = "appInfo".getBytes();
+        WifiAwareDataPathSecurityConfig securityConfig = null;
+        byte pubSubId = 1;
+        boolean frameProtectionEnabled = false;
+
+        doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
+                .initiateDataPathRequest(anyChar(), any());
+        assertFalse(mDut.initiateDataPath(transactionId, peerId, channelRequestType, channel, peer,
+                interfaceName, isOutOfBand, appInfo, securityConfig, pubSubId,
+                frameProtectionEnabled));
+    }
+
+    @Test
+    public void testRespondToDataPathRequest() throws Exception {
+        short transactionId = 100;
+        boolean accept = true;
+        int ndpId = 200;
+        String interfaceName = "aware_data0";
+        byte[] appInfo = "appInfo".getBytes();
+        boolean isOutOfBand = true;
+        WifiAwareDataPathSecurityConfig securityConfig = null;
+        byte pubSubId = 1;
+        boolean frameProtectionEnabled = false;
+
+        assertTrue(mDut.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
+                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled));
+        verify(mMockSupplicantNanIface).respondToDataPathIndicationRequest(
+                eq((char) transactionId), any(NanRespondToDataPathIndicationRequest.class));
+    }
+
+    @Test
+    public void testRespondToDataPathRequest_remoteException() throws Exception {
+        short transactionId = 101;
+        boolean accept = true;
+        int ndpId = 200;
+        String interfaceName = "aware_data0";
+        byte[] appInfo = "appInfo".getBytes();
+        boolean isOutOfBand = true;
+        WifiAwareDataPathSecurityConfig securityConfig = null;
+        byte pubSubId = 1;
+        boolean frameProtectionEnabled = false;
+
+        doThrow(new RemoteException()).when(mMockSupplicantNanIface)
+                .respondToDataPathIndicationRequest(anyChar(), any());
+        assertFalse(mDut.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
+                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled));
+    }
+
+    @Test
+    public void testRespondToDataPathRequest_serviceSpecificException() throws Exception {
+        short transactionId = 102;
+        boolean accept = true;
+        int ndpId = 200;
+        String interfaceName = "aware_data0";
+        byte[] appInfo = "appInfo".getBytes();
+        boolean isOutOfBand = true;
+        WifiAwareDataPathSecurityConfig securityConfig = null;
+        byte pubSubId = 1;
+        boolean frameProtectionEnabled = false;
+
+        doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
+                .respondToDataPathIndicationRequest(anyChar(), any());
+        assertFalse(mDut.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
+                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled));
+    }
+
+    @Test
+    public void testEndDataPath() throws Exception {
+        short transactionId = 110;
+        int ndpId = 200;
+
+        assertTrue(mDut.endDataPath(transactionId, ndpId));
+        verify(mMockSupplicantNanIface).terminateDataPathRequest((char) transactionId, ndpId);
+    }
+
+    @Test
+    public void testEndDataPath_remoteException() throws Exception {
+        short transactionId = 111;
+        int ndpId = 200;
+
+        doThrow(new RemoteException()).when(mMockSupplicantNanIface)
+                .terminateDataPathRequest(anyChar(), anyInt());
+        assertFalse(mDut.endDataPath(transactionId, ndpId));
+    }
+
+    @Test
+    public void testEndDataPath_serviceSpecificException() throws Exception {
+        short transactionId = 112;
+        int ndpId = 200;
+
+        doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
+                .terminateDataPathRequest(anyChar(), anyInt());
+        assertFalse(mDut.endDataPath(transactionId, ndpId));
+    }
+
+    @Test
+    public void testRespondToPairingRequest() throws Exception {
+        short transactionId = 120;
+        int pairingId = 300;
+        boolean accept = true;
+        byte[] pairingIdentityKey = new byte[16];
+        boolean enablePairingCache = true;
+        int requestType = 0;
+        byte[] pmk = new byte[32];
+        String password = "password";
+        int akm = 0;
+        int cipherSuite = 0;
+
+        assertTrue(mDut.respondToPairingRequest(transactionId, pairingId, accept,
+                pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
+                cipherSuite));
+        verify(mMockSupplicantNanIface).respondToPairingIndicationRequest(
+                eq((char) transactionId), any(NanRespondToPairingIndicationRequest.class));
+    }
+
+    @Test
+    public void testRespondToPairingRequest_remoteException() throws Exception {
+        short transactionId = 121;
+        int pairingId = 300;
+        boolean accept = true;
+        byte[] pairingIdentityKey = new byte[16];
+        boolean enablePairingCache = true;
+        int requestType = 0;
+        byte[] pmk = new byte[32];
+        String password = "password";
+        int akm = 0;
+        int cipherSuite = 0;
+
+        doThrow(new RemoteException()).when(mMockSupplicantNanIface)
+                .respondToPairingIndicationRequest(anyChar(), any());
+        assertFalse(mDut.respondToPairingRequest(transactionId, pairingId, accept,
+                pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
+                cipherSuite));
+    }
+
+    @Test
+    public void testRespondToPairingRequest_serviceSpecificException() throws Exception {
+        short transactionId = 122;
+        int pairingId = 300;
+        boolean accept = true;
+        byte[] pairingIdentityKey = new byte[16];
+        boolean enablePairingCache = true;
+        int requestType = 0;
+        byte[] pmk = new byte[32];
+        String password = "password";
+        int akm = 0;
+        int cipherSuite = 0;
+
+        doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
+                .respondToPairingIndicationRequest(anyChar(), any());
+        assertFalse(mDut.respondToPairingRequest(transactionId, pairingId, accept,
+                pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
+                cipherSuite));
+    }
+
+    @Test
+    public void testInitiateNanPairingRequest() throws Exception {
+        short transactionId = 130;
+        int peerId = 100;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
+        byte[] pairingIdentityKey = new byte[16];
+        boolean enablePairingCache = true;
+        int requestType = 0;
+        byte[] pmk = new byte[32];
+        String password = "password";
+        int akm = 0;
+        int cipherSuite = 0;
+
+        assertTrue(mDut.initiateNanPairingRequest(transactionId, peerId, peer, pairingIdentityKey,
+                enablePairingCache, requestType, pmk, password, akm, cipherSuite));
+        verify(mMockSupplicantNanIface).initiatePairingRequest(eq((char) transactionId),
+                any(NanPairingRequest.class));
+    }
+
+    @Test
+    public void testInitiateNanPairingRequest_remoteException() throws Exception {
+        short transactionId = 131;
+        int peerId = 100;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
+        byte[] pairingIdentityKey = new byte[16];
+        boolean enablePairingCache = true;
+        int requestType = 0;
+        byte[] pmk = new byte[32];
+        String password = "password";
+        int akm = 0;
+        int cipherSuite = 0;
+
+        doThrow(new RemoteException()).when(mMockSupplicantNanIface)
+                .initiatePairingRequest(anyChar(), any());
+        assertFalse(mDut.initiateNanPairingRequest(transactionId, peerId, peer, pairingIdentityKey,
+                enablePairingCache, requestType, pmk, password, akm, cipherSuite));
+    }
+
+    @Test
+    public void testInitiateNanPairingRequest_serviceSpecificException() throws Exception {
+        short transactionId = 132;
+        int peerId = 100;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
+        byte[] pairingIdentityKey = new byte[16];
+        boolean enablePairingCache = true;
+        int requestType = 0;
+        byte[] pmk = new byte[32];
+        String password = "password";
+        int akm = 0;
+        int cipherSuite = 0;
+
+        doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
+                .initiatePairingRequest(anyChar(), any());
+        assertFalse(mDut.initiateNanPairingRequest(transactionId, peerId, peer, pairingIdentityKey,
+                enablePairingCache, requestType, pmk, password, akm, cipherSuite));
+    }
+
+    @Test
+    public void testEndPairing() throws Exception {
+        short transactionId = 140;
+        int pairingId = 300;
+
+        assertTrue(mDut.endPairing(transactionId, pairingId));
+        verify(mMockSupplicantNanIface).terminatePairingRequest((char) transactionId, pairingId);
+    }
+
+    @Test
+    public void testEndPairing_remoteException() throws Exception {
+        short transactionId = 141;
+        int pairingId = 300;
+
+        doThrow(new RemoteException()).when(mMockSupplicantNanIface)
+                .terminatePairingRequest(anyChar(), anyInt());
+        assertFalse(mDut.endPairing(transactionId, pairingId));
+    }
+
+    @Test
+    public void testEndPairing_serviceSpecificException() throws Exception {
+        short transactionId = 142;
+        int pairingId = 300;
+
+        doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
+                .terminatePairingRequest(anyChar(), anyInt());
+        assertFalse(mDut.endPairing(transactionId, pairingId));
+    }
+
+    @Test
+    public void testInitiateNanBootstrappingRequest() throws Exception {
+        short transactionId = 150;
+        int peerId = 100;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
+        int method = 0;
+        byte[] cookie = new byte[0];
+        byte pubSubId = 1;
+        boolean isComeBack = false;
+        byte[] ssi = new byte[0];
+
+        assertTrue(mDut.initiateNanBootstrappingRequest(transactionId, peerId, peer, method,
+                cookie, pubSubId, isComeBack, ssi));
+        verify(mMockSupplicantNanIface).initiateBootstrappingRequest(eq((char) transactionId),
+                any(NanBootstrappingRequest.class));
+    }
+
+    @Test
+    public void testInitiateNanBootstrappingRequest_remoteException() throws Exception {
+        short transactionId = 151;
+        int peerId = 100;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
+        int method = 0;
+        byte[] cookie = new byte[0];
+        byte pubSubId = 1;
+        boolean isComeBack = false;
+        byte[] ssi = new byte[0];
+
+        doThrow(new RemoteException()).when(mMockSupplicantNanIface)
+                .initiateBootstrappingRequest(anyChar(), any());
+        assertFalse(mDut.initiateNanBootstrappingRequest(transactionId, peerId, peer, method,
+                cookie, pubSubId, isComeBack, ssi));
+    }
+
+    @Test
+    public void testInitiateNanBootstrappingRequest_serviceSpecificException() throws Exception {
+        short transactionId = 152;
+        int peerId = 100;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
+        int method = 0;
+        byte[] cookie = new byte[0];
+        byte pubSubId = 1;
+        boolean isComeBack = false;
+        byte[] ssi = new byte[0];
+
+        doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
+                .initiateBootstrappingRequest(anyChar(), any());
+        assertFalse(mDut.initiateNanBootstrappingRequest(transactionId, peerId, peer, method,
+                cookie, pubSubId, isComeBack, ssi));
+    }
+
+    @Test
+    public void testRespondToNanBootstrappingRequest() throws Exception {
+        short transactionId = 160;
+        int bootstrappingId = 400;
+        boolean accept = true;
+        byte pubSubId = 1;
+        int method = 0;
+
+        assertTrue(mDut.respondToNanBootstrappingRequest(transactionId, bootstrappingId, accept,
+                pubSubId, method));
+        verify(mMockSupplicantNanIface).respondToBootstrappingIndicationRequest(
+                eq((char) transactionId), any(NanBootstrappingResponse.class));
+    }
+
+    @Test
+    public void testRespondToNanBootstrappingRequest_remoteException() throws Exception {
+        short transactionId = 161;
+        int bootstrappingId = 400;
+        boolean accept = true;
+        byte pubSubId = 1;
+        int method = 0;
+
+        doThrow(new RemoteException()).when(mMockSupplicantNanIface)
+                .respondToBootstrappingIndicationRequest(anyChar(), any());
+        assertFalse(mDut.respondToNanBootstrappingRequest(transactionId, bootstrappingId, accept,
+                pubSubId, method));
+    }
+
+    @Test
+    public void testRespondToNanBootstrappingRequest_serviceSpecificException() throws Exception {
+        short transactionId = 162;
+        int bootstrappingId = 400;
+        boolean accept = true;
+        byte pubSubId = 1;
+        int method = 0;
+
+        doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
+                .respondToBootstrappingIndicationRequest(anyChar(), any());
+        assertFalse(mDut.respondToNanBootstrappingRequest(transactionId, bootstrappingId, accept,
+                pubSubId, method));
+    }
+
+    @Test
     public void testPublishWithPairingSettings() throws RemoteException {
         assumeTrue(SdkLevel.isAtLeastU());
         short tid = 250;
@@ -491,5 +910,152 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         assertTrue(halSubReq.baseConfig.securityConfig.supportBigtksa);
         assertTrue(halSubReq.baseConfig.securityConfig.supportGtkAndIgtk);
         assertArrayEquals(ssi, halSubReq.baseConfig.extendedServiceSpecificInfo);
+    }
+
+    @Test
+    public void testPublish_Unsolicited() throws Exception {
+        short transactionId = 43;
+        byte publishId = 1;
+        final byte[] matchFilter = { 1, 16, 1, 22 };
+        PublishConfig publishConfig = new PublishConfig.Builder()
+                .setServiceName("test-service")
+                .setPublishType(PublishConfig.PUBLISH_TYPE_UNSOLICITED)
+                .setMatchFilter(new TlvBufferUtils.TlvIterable(0, 1, matchFilter).toList())
+                .build();
+        assertTrue(mDut.publish(transactionId, publishId, publishConfig, null));
+        ArgumentCaptor<NanPublishRequest> captor = ArgumentCaptor.forClass(NanPublishRequest.class);
+        verify(mMockSupplicantNanIface).startPublishRequest(eq((char) transactionId),
+                captor.capture());
+        NanPublishRequest req = captor.getValue();
+        assertEquals(PublishConfig.PUBLISH_TYPE_UNSOLICITED, req.publishType);
+        // Verify match filters set correctly for unsolicited
+        assertTrue(req.baseConfig.txMatchFilter.length > 0);
+        assertEquals(0, req.baseConfig.rxMatchFilter.length);
+    }
+
+    @Test
+    public void testPublish_WithSecurity_Passphrase() throws Exception {
+        short transactionId = 44;
+        byte publishId = 1;
+        WifiAwareDataPathSecurityConfig securityConfig = new WifiAwareDataPathSecurityConfig
+                .Builder(Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128)
+                .setPskPassphrase("12345678")
+                .build();
+        PublishConfig publishConfig = new PublishConfig.Builder()
+                .setServiceName("test-service")
+                .setDataPathSecurityConfig(securityConfig)
+                .build();
+        assertTrue(mDut.publish(transactionId, publishId, publishConfig, null));
+        ArgumentCaptor<NanPublishRequest> captor = ArgumentCaptor.forClass(NanPublishRequest.class);
+        verify(mMockSupplicantNanIface).startPublishRequest(eq((char) transactionId),
+                captor.capture());
+        NanPublishRequest req = captor.getValue();
+        assertEquals(NanDataPathSecurityConfig.NanDataPathSecurityType.PASSPHRASE,
+                req.baseConfig.securityConfig.securityType);
+        assertArrayEquals("12345678".getBytes(), req.baseConfig.securityConfig.passphrase);
+        assertEquals(NanCipherSuiteType.SHARED_KEY_128_MASK,
+                req.baseConfig.securityConfig.cipherType);
+    }
+
+    @Test
+    public void testSubscribe_Active() throws Exception {
+        short transactionId = 53;
+        byte subscribeId = 2;
+        final byte[] matchFilter = { 1, 16, 1, 22 };
+        SubscribeConfig subscribeConfig = new SubscribeConfig.Builder()
+                .setServiceName("test-service")
+                .setSubscribeType(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE)
+                .setMatchFilter(new TlvBufferUtils.TlvIterable(0, 1, matchFilter).toList())
+                .build();
+        assertTrue(mDut.subscribe(transactionId, subscribeId, subscribeConfig, null));
+        ArgumentCaptor<NanSubscribeRequest> captor =
+                ArgumentCaptor.forClass(NanSubscribeRequest.class);
+        verify(mMockSupplicantNanIface).startSubscribeRequest(eq((char) transactionId),
+                captor.capture());
+        NanSubscribeRequest req = captor.getValue();
+        assertEquals(SubscribeConfig.SUBSCRIBE_TYPE_ACTIVE, req.subscribeType);
+        assertTrue(req.baseConfig.txMatchFilter.length > 0);
+        assertEquals(0, req.baseConfig.rxMatchFilter.length);
+    }
+
+    @Test
+    public void testSubscribe_WithRanging() throws Exception {
+        short transactionId = 54;
+        byte subscribeId = 2;
+        SubscribeConfig subscribeConfig = new SubscribeConfig.Builder()
+                .setServiceName("test-service")
+                .setMaxDistanceMm(1000)
+                .setMinDistanceMm(100)
+                .build();
+        assertTrue(mDut.subscribe(transactionId, subscribeId, subscribeConfig, null));
+        ArgumentCaptor<NanSubscribeRequest> captor =
+                ArgumentCaptor.forClass(NanSubscribeRequest.class);
+        verify(mMockSupplicantNanIface).startSubscribeRequest(eq((char) transactionId),
+                captor.capture());
+        NanSubscribeRequest req = captor.getValue();
+        assertTrue(req.baseConfig.rangingRequired);
+        assertEquals(100, req.baseConfig.distanceIngressCm); // 1000mm = 100cm
+        assertEquals(10, req.baseConfig.distanceEgressCm); // 100mm = 10cm
+        assertEquals(NanRangingIndication.INGRESS_MET_MASK | NanRangingIndication.EGRESS_MET_MASK,
+                req.baseConfig.configRangingIndications);
+    }
+
+    @Test
+    public void testInitiateDataPath_WithPassphrase() throws Exception {
+        short transactionId = 93;
+        int peerId = 100;
+        int channelRequestType = 0;
+        int channel = 2437;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
+        String interfaceName = "aware_data0";
+        boolean isOutOfBand = true;
+        byte[] appInfo = "appInfo".getBytes();
+        WifiAwareDataPathSecurityConfig securityConfig = new WifiAwareDataPathSecurityConfig
+                .Builder(Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128)
+                .setPskPassphrase("12345678")
+                .build();
+        byte pubSubId = 1;
+        boolean frameProtectionEnabled = false;
+
+        assertTrue(mDut.initiateDataPath(transactionId, peerId, channelRequestType, channel, peer,
+                interfaceName, isOutOfBand, appInfo, securityConfig, pubSubId,
+                frameProtectionEnabled));
+        ArgumentCaptor<NanInitiateDataPathRequest> captor =
+                ArgumentCaptor.forClass(NanInitiateDataPathRequest.class);
+        verify(mMockSupplicantNanIface).initiateDataPathRequest(eq((char) transactionId),
+                captor.capture());
+        NanInitiateDataPathRequest req = captor.getValue();
+        assertEquals(NanDataPathSecurityConfig.NanDataPathSecurityType.PASSPHRASE,
+                req.securityConfig.securityType);
+        assertArrayEquals("12345678".getBytes(), req.securityConfig.passphrase);
+        assertEquals(NanCipherSuiteType.SHARED_KEY_128_MASK, req.securityConfig.cipherType);
+    }
+
+    @Test
+    public void testRespondToDataPathRequest_WithSecurity() throws Exception {
+        short transactionId = 103;
+        boolean accept = true;
+        int ndpId = 200;
+        String interfaceName = "aware_data0";
+        byte[] appInfo = "appInfo".getBytes();
+        boolean isOutOfBand = true;
+        WifiAwareDataPathSecurityConfig securityConfig = new WifiAwareDataPathSecurityConfig
+                .Builder(Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128)
+                .setPskPassphrase("12345678")
+                .build();
+        byte pubSubId = 1;
+        boolean frameProtectionEnabled = false;
+
+        assertTrue(mDut.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
+                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled));
+        ArgumentCaptor<NanRespondToDataPathIndicationRequest> captor =
+                ArgumentCaptor.forClass(NanRespondToDataPathIndicationRequest.class);
+        verify(mMockSupplicantNanIface).respondToDataPathIndicationRequest(
+                eq((char) transactionId), captor.capture());
+        NanRespondToDataPathIndicationRequest req = captor.getValue();
+        assertEquals(NanDataPathSecurityConfig.NanDataPathSecurityType.PASSPHRASE,
+                req.securityConfig.securityType);
+        assertArrayEquals("12345678".getBytes(), req.securityConfig.passphrase);
+        assertEquals(NanCipherSuiteType.SHARED_KEY_128_MASK, req.securityConfig.cipherType);
     }
 }
