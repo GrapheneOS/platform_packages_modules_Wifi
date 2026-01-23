@@ -2,7 +2,7 @@ TestBeds:
 - Name: WifiConnectionTestbed
   Controllers:
     AndroidDevice: '*'
-    # Specify settings for the AP.
-    OpenWrtDevice:
-    - hostname: <AP-IP>
-      skip_init_reboot: True
+  TestParams:
+    use_programmable_ap: False
+    wifi_ssid: <wifi-ssid>
+    wifi_password: <wifi-password>

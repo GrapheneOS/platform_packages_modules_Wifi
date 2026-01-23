@@ -23,6 +23,16 @@ CAPABILITIES_CHANGED_FOR_METERED_TIMEOUT = datetime.timedelta(seconds=80)
 CAPABILITIES_CHANGED_TIMEOUT = datetime.timedelta(seconds=15)
 CALLBACK_TIMEOUT = datetime.timedelta(seconds=40)
 
+USE_PROGRAMMABLE_AP_DEFAULT = False
+
+
+@dataclasses.dataclass
+class WifiInfo:
+  """The information of an Wi-Fi network."""
+  ssid: str
+  password: str | None = None
+  bssid: str | None = None
+
 
 @enum.unique
 class PatternType(enum.IntEnum):
