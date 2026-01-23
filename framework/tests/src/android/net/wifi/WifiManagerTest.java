@@ -820,11 +820,11 @@ public class WifiManagerTest {
         expectedSsids.add(WifiSsid.fromString("\"TEST_SSID\""));
         mWifiManager.setSsidsAllowlist(new ArraySet<>(expectedSsids));
         verify(mWifiService).setSsidsAllowlist(any(),
-                argThat(a -> a.getList().equals(expectedSsids)));
+                argThat(a -> a.equals(expectedSsids)));
 
         // test empty set
         mWifiManager.setSsidsAllowlist(Collections.emptySet());
-        verify(mWifiService).setSsidsAllowlist(any(), argThat(a -> a.getList().isEmpty()));
+        verify(mWifiService).setSsidsAllowlist(any(), argThat(List::isEmpty));
     }
 
     /**
@@ -4851,6 +4851,7 @@ public class WifiManagerTest {
     @RequiresFlagsEnabled(android.security.Flags.FLAG_AAPM_FEATURE_DISABLE_INSECURE_WIFI_AUTOJOIN)
     public void testGetAvailableAdvancedProtectionFeaturesWhenFlagIsEnabled() {
         assumeTrue(Environment.isSdkAtLeastB());
+        assumeTrue(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin());
         List<AdvancedProtectionFeature> features =
                 mWifiManager.getAvailableAdvancedProtectionFeatures();
         assertNotNull(features);

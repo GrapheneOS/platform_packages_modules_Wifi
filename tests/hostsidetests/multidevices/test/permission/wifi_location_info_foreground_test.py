@@ -17,7 +17,9 @@
 from android.platform.test.annotations import ApiTest
 from mobly import asserts
 from mobly import base_test
+from mobly import utils
 from mobly.controllers import android_device
+import wifi_test_utils
 
 
 @ApiTest(
@@ -36,20 +38,26 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
             asserts.skip("This test requires at least two Android devices.")
         self.dut = self.android_devices[0]
         self.hotspot_device = self.android_devices[1]
-        self.dut.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
-        self.hotspot_device.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
-        # Ensure system-wide location services are enabled for consistent test results.
-        self.dut.adb.shell("settings put secure location_mode 3")
-        self.hotspot_device.adb.shell("settings put secure location_mode 3")
+        utils.concurrent_exec(
+            self._setup_device,
+            param_list=[[ad] for ad in self.android_devices],
+            raise_on_exception=True,
+        )
+
+    def _setup_device(self, ad: android_device.AndroidDevice) -> None:
+        ad.load_snippet('wifi',  self._WIFI_SNIPPET_PACKAGE)
+        wifi_test_utils.enable_wifi_verbose_logging(ad)
+        wifi_test_utils.set_screen_on_and_unlock(ad)
+        ad.adb.shell("settings put secure location_mode 3")
 
     def setup_test(self):
         self.dut.wifi.wifiToggleState(True)
-        self.dut.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm revoke --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         self.dut.unload_snippet("wifi")
         self.dut.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
 
     def teardown_test(self):
-        self.dut.adb.shell(f"pm revoke {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm revoke --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         self.dut.unload_snippet("wifi")
         self.dut.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
         self.hotspot_device.unload_snippet("wifi")
@@ -89,7 +97,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
         Expected Result:
             The Wi-Fi scan attempt should succeed (return True).
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         asserts.assert_true(
             self.dut.wifi.wifiStartScanAndGetStatus(),
             "Scan trigger should succeed with location permission.")
@@ -118,7 +126,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
         Expected Result:
             The scan results retrieval should succeed (return True).
         """
-        self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+        self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         asserts.assert_true(
             self.dut.wifi.wifiGetScanResults(),
             "Scan results retrieval should succeed with location permission.")
@@ -157,7 +165,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
             The connection info retrieval should succeed (return not None).
         """
         try:
-            self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+            self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
             wifi_config = self._start_local_only_hotspot_and_get_config()
             self.dut.wifi.wifiConnecting(wifi_config)
             asserts.assert_is_not_none(
@@ -199,7 +207,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
             The transport info retrieval should succeed (return not None).
         """
         try:
-            self.dut.adb.shell(f"pm grant {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
+            self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
             wifi_config = self._start_local_only_hotspot_and_get_config()
             self.dut.wifi.wifiConnecting(wifi_config)
             asserts.assert_is_not_none(

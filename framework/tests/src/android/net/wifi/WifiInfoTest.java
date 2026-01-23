@@ -60,6 +60,8 @@ public class WifiInfoTest {
     private static final int TEST_WIFI_STANDARD = ScanResult.WIFI_STANDARD_11AC;
     private static final int TEST_MAX_SUPPORTED_TX_LINK_SPEED_MBPS = 866;
     private static final int TEST_MAX_SUPPORTED_RX_LINK_SPEED_MBPS = 1200;
+    private static final int TEST_CALCULATED_TX_KBPS = 1500;
+    private static final int TEST_CALCULATED_RX_KBPS = 2500;
     private static final String TEST_SSID = "Test123";
     private static final String TEST_BSSID = "12:12:12:12:12:12";
     private static final int TEST_RSSI = -60;
@@ -169,6 +171,8 @@ public class WifiInfoTest {
         info.setInformationElements(informationElements);
         info.setIsPrimary(true);
         info.setMacAddress(TEST_BSSID);
+        info.setCalculatedTxKbps(TEST_CALCULATED_TX_KBPS);
+        info.setCalculatedRxKbps(TEST_CALCULATED_RX_KBPS);
         if (SdkLevel.isAtLeastT()) {
             addMloInfo(info);
         }
@@ -199,6 +203,8 @@ public class WifiInfoTest {
         assertEquals(TEST_MAX_SUPPORTED_TX_LINK_SPEED_MBPS, info.getMaxSupportedTxLinkSpeedMbps());
         assertEquals(TEST_MAX_SUPPORTED_RX_LINK_SPEED_MBPS, info.getMaxSupportedRxLinkSpeedMbps());
         assertEquals(TEST_BSSID, info.getMacAddress());
+        assertEquals(TEST_CALCULATED_TX_KBPS, info.getCalculatedTxKbps());
+        assertEquals(TEST_CALCULATED_RX_KBPS, info.getCalculatedRxKbps());
         assertEquals(2, info.getInformationElements().size());
         assertEquals(informationElements.get(0).id,
                 info.getInformationElements().get(0).id);
@@ -535,6 +541,8 @@ public class WifiInfoTest {
         writeWifiInfo.setIsPrimary(true);
         writeWifiInfo.setRestricted(true);
         writeWifiInfo.enableApTidToLinkMappingNegotiationSupport(true);
+        writeWifiInfo.setCalculatedTxKbps(TEST_CALCULATED_TX_KBPS);
+        writeWifiInfo.setCalculatedRxKbps(TEST_CALCULATED_RX_KBPS);
         if (SdkLevel.isAtLeastV()) {
             writeWifiInfo.setVendorData(TEST_VENDOR_DATA);
         }
@@ -557,6 +565,8 @@ public class WifiInfoTest {
         assertEquals(TEST_MAX_SUPPORTED_RX_LINK_SPEED_MBPS,
                 readWifiInfo.getMaxSupportedRxLinkSpeedMbps());
         assertTrue(readWifiInfo.isRestricted());
+        assertEquals(TEST_CALCULATED_TX_KBPS, readWifiInfo.getCalculatedTxKbps());
+        assertEquals(TEST_CALCULATED_RX_KBPS, readWifiInfo.getCalculatedRxKbps());
         if (SdkLevel.isAtLeastS()) {
             assertTrue(readWifiInfo.isOemPaid());
             assertTrue(readWifiInfo.isOemPrivate());
@@ -693,6 +703,20 @@ public class WifiInfoTest {
             assertNotEquals(info1, info2);
         }
 
+        info1.setCalculatedTxKbps(TEST_CALCULATED_TX_KBPS);
+        assertNotEquals(info1, info2);
+        info2.setCalculatedTxKbps(TEST_CALCULATED_TX_KBPS);
+        if (SdkLevel.isAtLeastS()) {
+            assertEquals(info1, info2);
+        }
+
+        info1.setCalculatedRxKbps(TEST_CALCULATED_RX_KBPS);
+        assertNotEquals(info1, info2);
+        info2.setCalculatedRxKbps(TEST_CALCULATED_RX_KBPS);
+        if (SdkLevel.isAtLeastS()) {
+            assertEquals(info1, info2);
+        }
+
         info1.setSSID(WifiSsid.fromBytes(null));
         assertNotEquals(info1, info2);
 
@@ -759,6 +783,20 @@ public class WifiInfoTest {
         } else {
             // On R devices, system generated hashcode.
             assertNotEquals(info1.hashCode(), info2.hashCode());
+        }
+
+        info1.setCalculatedTxKbps(TEST_CALCULATED_TX_KBPS);
+        assertNotEquals(info1.hashCode(), info2.hashCode());
+        info2.setCalculatedTxKbps(TEST_CALCULATED_TX_KBPS);
+        if (SdkLevel.isAtLeastS()) {
+            assertEquals(info1.hashCode(), info2.hashCode());
+        }
+
+        info1.setCalculatedRxKbps(TEST_CALCULATED_RX_KBPS);
+        assertNotEquals(info1.hashCode(), info2.hashCode());
+        info2.setCalculatedRxKbps(TEST_CALCULATED_RX_KBPS);
+        if (SdkLevel.isAtLeastS()) {
+            assertEquals(info1.hashCode(), info2.hashCode());
         }
 
         info1.setSSID(WifiSsid.fromBytes(null));

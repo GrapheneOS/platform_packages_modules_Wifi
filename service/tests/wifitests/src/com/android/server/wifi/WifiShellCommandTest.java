@@ -686,9 +686,9 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"add-suggestion", "ssid1234", "open", "-u"});
         verify(mWifiService).addNetworkSuggestions(argThat(sL -> {
-            return (sL.getList().size() == 1)
-                    && (sL.getList().get(0).getSsid().equals("ssid1234"))
-                    && (sL.getList().get(0).isUntrusted());
+            return (sL.size() == 1)
+                    && (sL.get(0).getSsid().equals("ssid1234"))
+                    && (sL.get(0).isUntrusted());
         }), eq(SHELL_PACKAGE_NAME), any());
         verify(mConnectivityManager).requestNetwork(argThat(nR -> {
             return (nR.hasTransport(TRANSPORT_WIFI))
@@ -705,9 +705,9 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"remove-suggestion", "ssid1234"});
         verify(mWifiService).removeNetworkSuggestions(argThat(sL -> {
-            return (sL.getList().size() == 1)
-                    && (sL.getList().get(0).getSsid().equals("ssid1234"))
-                    && (sL.getList().get(0).isUntrusted());
+            return (sL.size() == 1)
+                    && (sL.get(0).getSsid().equals("ssid1234"))
+                    && (sL.get(0).isUntrusted());
         }), eq(SHELL_PACKAGE_NAME), eq(ACTION_REMOVE_SUGGESTION_DISCONNECT));
         verify(mConnectivityManager).unregisterNetworkCallback(
                 any(ConnectivityManager.NetworkCallback.class));
@@ -721,9 +721,9 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"add-suggestion", "ssid1234", "open", "-o"});
         verify(mWifiService).addNetworkSuggestions(argThat(sL -> {
-            return (sL.getList().size() == 1)
-                    && (sL.getList().get(0).getSsid().equals("ssid1234"))
-                    && (sL.getList().get(0).isOemPaid());
+            return (sL.size() == 1)
+                    && (sL.get(0).getSsid().equals("ssid1234"))
+                    && (sL.get(0).isOemPaid());
         }), eq(SHELL_PACKAGE_NAME), any());
         verify(mConnectivityManager).requestNetwork(argThat(nR -> {
             return (nR.hasTransport(TRANSPORT_WIFI))
@@ -740,9 +740,9 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"remove-suggestion", "ssid1234"});
         verify(mWifiService).removeNetworkSuggestions(argThat(sL -> {
-            return (sL.getList().size() == 1)
-                    && (sL.getList().get(0).getSsid().equals("ssid1234"))
-                    && (sL.getList().get(0).isOemPaid());
+            return (sL.size() == 1)
+                    && (sL.get(0).getSsid().equals("ssid1234"))
+                    && (sL.get(0).isOemPaid());
         }), eq(SHELL_PACKAGE_NAME), eq(ACTION_REMOVE_SUGGESTION_DISCONNECT));
         verify(mConnectivityManager).unregisterNetworkCallback(
                 any(ConnectivityManager.NetworkCallback.class));
@@ -756,9 +756,9 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"add-suggestion", "ssid1234", "open", "-p"});
         verify(mWifiService).addNetworkSuggestions(argThat(sL -> {
-            return (sL.getList().size() == 1)
-                    && (sL.getList().get(0).getSsid().equals("ssid1234"))
-                    && (sL.getList().get(0).isOemPrivate());
+            return (sL.size() == 1)
+                    && (sL.get(0).getSsid().equals("ssid1234"))
+                    && (sL.get(0).isOemPrivate());
         }), eq(SHELL_PACKAGE_NAME), any());
         verify(mConnectivityManager).requestNetwork(argThat(nR -> {
             return (nR.hasTransport(TRANSPORT_WIFI))
@@ -775,9 +775,9 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"remove-suggestion", "ssid1234"});
         verify(mWifiService).removeNetworkSuggestions(argThat(sL -> {
-            return (sL.getList().size() == 1)
-                    && (sL.getList().get(0).getSsid().equals("ssid1234"))
-                    && (sL.getList().get(0).isOemPrivate());
+            return (sL.size() == 1)
+                    && (sL.get(0).getSsid().equals("ssid1234"))
+                    && (sL.get(0).isOemPrivate());
         }), eq(SHELL_PACKAGE_NAME), eq(ACTION_REMOVE_SUGGESTION_DISCONNECT));
         verify(mConnectivityManager).unregisterNetworkCallback(
                 any(ConnectivityManager.NetworkCallback.class));
@@ -790,9 +790,9 @@ public class WifiShellCommandTest extends WifiBaseTest {
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"add-suggestion", "ssid1234", "open"});
         verify(mWifiService).addNetworkSuggestions(argThat(sL -> {
-            return (sL.getList().size() == 1)
-                    && (sL.getList().get(0).getSsid().equals("ssid1234"))
-                    && (sL.getList().get(0).getWifiConfiguration().macRandomizationSetting
+            return (sL.size() == 1)
+                    && (sL.get(0).getSsid().equals("ssid1234"))
+                    && (sL.get(0).getWifiConfiguration().macRandomizationSetting
                     == WifiConfiguration.RANDOMIZATION_PERSISTENT);
         }), eq(SHELL_PACKAGE_NAME), any());
 
@@ -802,9 +802,9 @@ public class WifiShellCommandTest extends WifiBaseTest {
                     new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                     new String[]{"add-suggestion", "ssid1234", "open", "-r"});
             verify(mWifiService).addNetworkSuggestions(argThat(sL -> {
-                return (sL.getList().size() == 1)
-                        && (sL.getList().get(0).getSsid().equals("ssid1234"))
-                        && (sL.getList().get(0).getWifiConfiguration().macRandomizationSetting
+                return (sL.size() == 1)
+                        && (sL.get(0).getSsid().equals("ssid1234"))
+                        && (sL.get(0).getWifiConfiguration().macRandomizationSetting
                         == WifiConfiguration.RANDOMIZATION_NON_PERSISTENT);
             }), eq(SHELL_PACKAGE_NAME), any());
         }
