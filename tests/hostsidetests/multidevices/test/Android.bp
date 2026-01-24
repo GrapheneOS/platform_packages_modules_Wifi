@@ -107,13 +107,17 @@ genrule {
     srcs: [
         // Declare all test files here
         "connection/*",
+        // Include the python files in the parent folder
+        "*.py",
     ],
     tools: [
         "soong_zip",
     ],
     cmd: "mkdir -p $(genDir)/dist &&" + // Create temp directory
-        // Copy all connection/ test files
+        // Copy all test/connection/ test files
         "cp -rv packages/modules/Wifi/tests/hostsidetests/multidevices/test/connection/ $(genDir)/dist/ &&" +
+        // Copy all `test/*.py` test files
+        "cp packages/modules/Wifi/tests/hostsidetests/multidevices/test/*.py $(genDir)/dist/ &&" +
         // Copy the entry point to package root as __main__.py
         "cp $(genDir)/dist/connection/wifi_connection_test_suite.py $(genDir)/dist/__main__.py &&" +
         // Copy requirements file to package root

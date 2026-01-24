@@ -665,6 +665,19 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                     + frameProtectionEnabled);
         }
         recordTransactionId(transactionId);
+        MacAddress peerMac = null;
+        try {
+            peerMac = MacAddress.fromBytes(peer);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
+            return false;
+        }
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.initiateDataPath(transactionId, peerId, channelRequestType, channel,
+                    peerMac, interfaceName, isOutOfBand, appInfo, securityConfig, pubSubId,
+                    frameProtectionEnabled);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -672,15 +685,9 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             return false;
         }
 
-        try {
-            MacAddress peerMac = MacAddress.fromBytes(peer);
-            return iface.initiateDataPath(transactionId, peerId, channelRequestType, channel,
-                    peerMac, interfaceName, isOutOfBand, appInfo, capabilities, securityConfig,
-                    pubSubId, frameProtectionEnabled);
-        } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
-            return false;
-        }
+        return iface.initiateDataPath(transactionId, peerId, channelRequestType, channel,
+                peerMac, interfaceName, isOutOfBand, appInfo, capabilities, securityConfig,
+                pubSubId, frameProtectionEnabled);
     }
 
     /**
@@ -716,6 +723,11 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                     + ", frameProtectionEnabled=" + frameProtectionEnabled);
         }
         recordTransactionId(transactionId);
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
+                    appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -738,6 +750,10 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.v(TAG, "endDataPath: transactionId=" + transactionId + ", ndpId=" + ndpId);
         }
         recordTransactionId(transactionId);
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.endDataPath(transactionId, ndpId);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -759,6 +775,10 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             Log.v(TAG, "endPairing: transactionId=" + transactionId + ", ndpId=" + pairId);
         }
         recordTransactionId(transactionId);
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.endPairing(transactionId, pairId);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -791,6 +811,19 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                     + ", peer=" + String.valueOf(HexEncoding.encode(peer)));
         }
         recordTransactionId(transactionId);
+        MacAddress peerMac = null;
+        try {
+            peerMac = MacAddress.fromBytes(peer);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
+            return false;
+        }
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.initiateNanPairingRequest(transactionId, peerId, peerMac,
+                    pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
+                    cipherSuite);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -798,14 +831,9 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             return false;
         }
 
-        try {
-            MacAddress peerMac = MacAddress.fromBytes(peer);
-            return iface.initiatePairing(transactionId, peerId, peerMac, pairingIdentityKey,
-                    enablePairingCache, requestType, pmk, password, akm, cipherSuite);
-        } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
-            return false;
-        }
+
+        return iface.initiatePairing(transactionId, peerId, peerMac, pairingIdentityKey,
+                enablePairingCache, requestType, pmk, password, akm, cipherSuite);
     }
 
     /**
@@ -840,6 +868,12 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                             + requestType);
         }
         recordTransactionId(transactionId);
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.respondToPairingRequest(transactionId, pairingId, accept,
+                    pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
+                    cipherSuite);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -872,6 +906,18 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                     + ", peer=" + String.valueOf(HexEncoding.encode(peer)));
         }
         recordTransactionId(transactionId);
+        MacAddress peerMac = null;
+        try {
+            peerMac = MacAddress.fromBytes(peer);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
+            return false;
+        }
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.initiateNanBootstrappingRequest(transactionId, peerId, peerMac,
+                    method, cookie, pubSubId, isComeBack, ssi);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {
@@ -879,14 +925,8 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             return false;
         }
 
-        try {
-            MacAddress peerMac = MacAddress.fromBytes(peer);
-            return iface.initiateBootstrapping(transactionId, peerId, peerMac, method, cookie,
-                    pubSubId, isComeBack, ssi, isSdeaHeaderNeeded() ? SDEA_HEADER : null);
-        } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Invalid peer mac received: " + Arrays.toString(peer));
-            return false;
-        }
+        return iface.initiateBootstrapping(transactionId, peerId, peerMac, method, cookie,
+                pubSubId, isComeBack, ssi, isSdeaHeaderNeeded() ? SDEA_HEADER : null);
     }
 
     /**
@@ -908,6 +948,11 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                     + ", bootstrappingId=" + bootstrappingId + ", pubsubId=" + pubSubId);
         }
         recordTransactionId(transactionId);
+        AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
+        if (supplicant != null) {
+            return supplicant.respondToNanBootstrappingRequest(transactionId, bootstrappingId,
+                    accept, pubSubId, method);
+        }
 
         WifiNanIface iface = mHal.getWifiNanIface();
         if (iface == null) {

@@ -8721,6 +8721,47 @@ public class WifiConfigManagerTest extends WifiBaseTest {
                 openNetwork.networkId, TEST_UPDATE_UID, TEST_CREATOR_NAME));
     }
 
+    /**
+     * Verifies that a DO/PO can update a network even when
+     * {@link WifiConfiguration#isAllowedToUpdateByOtherUsers()} is false and the creator is from a
+     * different user.
+     */
+    @Test
+    public void testCanModifyNetwork_DeviceOwnerCanUpdateDisallowedByOtherUsersNetwork() {
+        assumeTrue(Environment.isSdkNewerThanB());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        when(mWifiPermissionsUtil.areTwoAppsFromSameUser(anyInt(), anyInt())).thenReturn(false);
+        mockIsOrganizationOwnedDeviceAdmin(false);
+
+        // Adding a network which disallow other user to edit it.
+        WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
+        openNetwork.setAllowedToUpdateByOtherUsers(false);
+        assertFalse(openNetwork.isAllowedToUpdateByOtherUsers());
+        verifyAddNetworkToWifiConfigManager(openNetwork);
+
+        // A non-DO/PO user from a different user cannot update the network.
+        assertAndSetNetworkBSSID(openNetwork, TEST_BSSID);
+        assertFalse(mWifiConfigManager.addOrUpdateNetwork(
+                openNetwork, TEST_UPDATE_UID).isSuccess());
+        assertFalse(mWifiConfigManager.enableNetwork(
+                openNetwork.networkId, false, TEST_UPDATE_UID, TEST_UPDATE_NAME));
+        assertFalse(mWifiConfigManager.disableNetwork(
+                openNetwork.networkId, TEST_UPDATE_UID, TEST_UPDATE_NAME));
+        assertFalse(mWifiConfigManager.removeNetwork(
+                openNetwork.networkId, TEST_UPDATE_UID, TEST_UPDATE_NAME));
+
+        // A DO/PO user from a different user can update the network.
+        mockIsOrganizationOwnedDeviceAdmin(true);
+        assertTrue(mWifiConfigManager.addOrUpdateNetwork(
+                openNetwork, TEST_UPDATE_UID).isSuccess());
+        assertTrue(mWifiConfigManager.enableNetwork(
+                openNetwork.networkId, false, TEST_UPDATE_UID, TEST_UPDATE_NAME));
+        assertTrue(mWifiConfigManager.disableNetwork(
+                openNetwork.networkId, TEST_UPDATE_UID, TEST_UPDATE_NAME));
+        assertTrue(mWifiConfigManager.removeNetwork(
+                openNetwork.networkId, TEST_UPDATE_UID, TEST_UPDATE_NAME));
+    }
+
 
     /**
      * Verifies that getSavedNetworksForScanDetail returns null when the ScanDetail has no

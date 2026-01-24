@@ -78,7 +78,6 @@ public class WifiScoreReport {
 
     private static final int WIFI_CONNECTED_NETWORK_SCORER_IDENTIFIER = 0;
     private static final int INVALID_SESSION_ID = -1;
-    private static final long MIN_TIME_TO_WAIT_BEFORE_BLOCKLIST_BSSID_MILLIS = 29000;
     private static final int WIFI_SCORE_TO_TERMINATE_CONNECTION_BLOCKLIST_BSSID = -2;
 
     /**
@@ -122,7 +121,6 @@ public class WifiScoreReport {
     private final WifiBlocklistMonitor mWifiBlocklistMonitor;
     private final WifiScoreCard mWifiScoreCard;
     private final Context mContext;
-    private long mLastScoreBreachLowTimeMillis = INVALID_TIMESTAMP_MS;
 
     @VisibleForTesting
     VelocityBasedConnectedScorer mVelocityBasedConnectedScorer;
@@ -664,7 +662,6 @@ public class WifiScoreReport {
         if (mMlConnectedScorer != null) {
             mMlConnectedScorer.reset();
         }
-        mLastScoreBreachLowTimeMillis = INVALID_TIMESTAMP_MS;
         mLastLowScoreScanTimestampMs = INVALID_TIMESTAMP_MS;
         mLastNudCheckTimeMs = INVALID_TIMESTAMP_MS;
         if (mVerboseLoggingEnabled) Log.d(TAG, "reset");
@@ -740,6 +737,15 @@ public class WifiScoreReport {
                     noteNudCheck();
                 }
             }
+
+            // Block current BSSID
+            if (scoreResult.shouldBlockBssid()) {
+                mWifiBlocklistMonitor.handleBssidConnectionFailure(mWifiInfo.getBSSID(),
+                        mWifiConfigManager.getConfiguredNetwork(mWifiInfo.getNetworkId()),
+                        WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE,
+                        mWifiInfo.getRssi());
+            }
+
             // Report to ConnectivityService
             reportNetworkScoreToConnectivityServiceIfNecessary(adjustedScore,
                     scoreResult.isWifiUsable());
@@ -1122,7 +1128,6 @@ public class WifiScoreReport {
         mWifiInfoNoReset.setBSSID(mWifiInfo.getBSSID());
         mWifiInfoNoReset.setSSID(mWifiInfo.getWifiSsid());
         mWifiInfoNoReset.setRssi(mWifiInfo.getRssi());
-        mLastScoreBreachLowTimeMillis = INVALID_TIMESTAMP_MS;
         return isPreEvaluationNeeded;
     }
 
@@ -1135,18 +1140,6 @@ public class WifiScoreReport {
             return;
         }
         mWifiConnectedNetworkScorerHolder.stopSession();
-
-        long millis = mClock.getWallClockMillis();
-        // Blocklist the current BSS
-        if ((mLastScoreBreachLowTimeMillis != INVALID_TIMESTAMP_MS)
-                && ((millis - mLastScoreBreachLowTimeMillis)
-                        >= MIN_TIME_TO_WAIT_BEFORE_BLOCKLIST_BSSID_MILLIS)) {
-            mWifiBlocklistMonitor.handleBssidConnectionFailure(mWifiInfo.getBSSID(),
-                    mCurrentWifiConfiguration,
-                    WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE,
-                    mWifiInfo.getRssi());
-            mLastScoreBreachLowTimeMillis = INVALID_TIMESTAMP_MS;
-        }
     }
 
     /**

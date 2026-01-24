@@ -1,16 +1,15 @@
 """Utility functions for Wi-Fi tests."""
 
+from collections.abc import Mapping
 import contextlib
 import datetime
 import logging
 import time
+from typing import Any
 
 from mobly import asserts
 from mobly.controllers import android_device
 from mobly.controllers.android_device_lib import callback_handler_v2
-from mobly.controllers.wifi import openwrt_device
-from mobly.controllers.wifi.lib import wifi_configs
-from mobly.controllers.wifi.lib.encryption import wpa
 from mobly.snippet import errors
 
 from connection import constants
@@ -19,22 +18,17 @@ from connection import ui_action_utils
 
 
 _NETWORK_CALLBACK = 'NetworkCallback'
-_WIFI_CHANNEL = 11
 
+_ERROR_MSG_WIFI_SSID_NOT_FOUND = (
+    'Android device cannot discover the configured Wi-Fi SSID "{wifi_ssid}".'
+    ' Please check that whether the configured Wi-Fi SSID exists and can'
+    ' be discovered by the Android device.'
+)
 
-def start_wpa2_wifi(
-    openwrt: openwrt_device.OpenWrtDevice, channel: int = _WIFI_CHANNEL
-) -> wifi_configs.WifiInfo:
-  """Starts a WPA2-PSK-CCMP Wi-Fi AP."""
-  config = wifi_configs.WiFiConfig(
-      channel=channel, encryption_config=wpa.gen_config_for_wpa2_ccmp()
-  )
-  wifi_info = openwrt.start_wifi(config=config)
-  openwrt.log.info(
-      f'started a Wi-Fi AP with SSID {wifi_info.ssid}, bssid'
-      f' {wifi_info.bssid} and password {wifi_info.password}.'
-  )
-  return wifi_info
+_ERROR_MSG_CONFIGURED_WIFI_IS_OPEN = (
+    'The configured Wi-Fi network with SSID "{wifi_ssid}" is an open network,'
+    ' while using a secured Wi-Fi network is required.'
+)
 
 
 def wait_for_expected_wifi_discovered(
@@ -234,7 +228,7 @@ def add_network_suggestions(
 
 def assert_connecting_with_expected_connection(
     ad: android_device.AndroidDevice,
-    wifi_info: wifi_configs.WifiInfo,
+    wifi_info: constants.WifiInfo,
 ) -> None:
   """Checks that the connected network matches the expected Wi-Fi."""
   asserts.assert_equal(
@@ -316,4 +310,49 @@ def remove_network_suggestion_and_assert_disconnection(
       predicate=lambda e: e.data['callbackName']
       == constants.NetworkCallback.LOST,
       timeout=constants.WIFI_LOST_TIMEOUT.total_seconds(),
+  )
+
+
+def _is_scan_result_for_wpa2_network(scan_result: Mapping[str, Any]):
+  capabilities = scan_result['capabilities']
+  return 'PSK' in capabilities
+
+
+def _is_scan_result_for_wpa3_network(scan_result: Mapping[str, Any]):
+  capabilities = scan_result['capabilities']
+  return 'SAE' in capabilities
+
+
+def assert_configured_wifi_is_available(
+    ad: android_device.AndroidDevice,
+    wifi_ssid: str,
+    wifi_password: str,
+):
+  """Asserts that the configured Wifi is available to the Android device."""
+  expected_scan_result = None
+  ssid_found = False
+  for scan_result in ad.wifi.wifiScanAndGetResultsWithShellPermission():
+    if wifi_ssid != scan_result['SSID']:
+      continue
+    ssid_found = True
+    if (
+        _is_scan_result_for_wpa2_network(scan_result)
+        or _is_scan_result_for_wpa3_network(scan_result)
+    ):
+      expected_scan_result = scan_result
+      break
+
+  if expected_scan_result is None:
+    if ssid_found:
+      asserts.fail(
+          _ERROR_MSG_CONFIGURED_WIFI_IS_OPEN.format(wifi_ssid=wifi_ssid)
+      )
+    asserts.fail(
+        _ERROR_MSG_WIFI_SSID_NOT_FOUND.format(wifi_ssid=wifi_ssid)
+    )
+
+  return constants.WifiInfo(
+      ssid=expected_scan_result['SSID'],
+      password=wifi_password,
+      bssid=expected_scan_result['BSSID'],
   )
