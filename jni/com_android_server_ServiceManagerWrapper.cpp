@@ -30,7 +30,15 @@ extern "C" JNIEXPORT jobject JNICALL
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wunguarded-availability"
     const char* serviceName = env->GetStringUTFChars(serviceNameJni, nullptr);
-    return AIBinder_toJavaBinder(env, AServiceManager_waitForService(serviceName));
+    AIBinder* binder = AServiceManager_waitForService(serviceName);
+    // Release the C-style string obtained from the Java string to prevent memory leaks.
+    env->ReleaseStringUTFChars(serviceNameJni, serviceName);
+    jobject javaBinder = AIBinder_toJavaBinder(env, binder);
+    // Release the native binder reference. The Java side already took a strong reference.
+    if (binder != nullptr) {
+        AIBinder_decStrong(binder);
+    }
+    return javaBinder;
     #pragma clang diagnostic pop
 }
 
