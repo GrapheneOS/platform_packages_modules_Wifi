@@ -376,7 +376,8 @@ public class WifiInjector {
         mHostapdHal = new HostapdHal(mContext, mWifiHandler);
         Nl80211Proxy nl80211Proxy = new Nl80211Proxy(mWifiHandler, mWifiMetrics);
         boolean isWificondMigrationEnabled = Environment.isSdkAtLeastB()
-                && mFeatureFlags.wificondToNl80211Migration();
+                && mFeatureFlags.wificondToNl80211Migration()
+                && mContext.getResources().getBoolean(R.bool.config_wificondMigrationEnabled);
         // Force enable the wificond migration if wificond is already disabled.
         if (!isWificondMigrationEnabled
                 && SystemProperties.get("init.svc.wificond").isEmpty()) {
