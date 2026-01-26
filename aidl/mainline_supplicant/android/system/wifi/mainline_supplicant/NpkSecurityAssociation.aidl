@@ -24,14 +24,29 @@ import android.system.wifi.mainline_supplicant.NanPairingAkm;
  */
 parcelable NpkSecurityAssociation {
     /**
+     * Index of the identity in the cache database.
+     */
+    int identityId;
+
+    /**
      * The Aware pairing identity from the peer.
      */
     byte[16] peerNanIdentityKey;
 
     /**
+     * The Aware pairing identity lifetime for the peer, in seconds.
+     */
+    int peerNanIdentityKeyLifetimeSec;
+
+    /**
      * The Aware pairing identity for local device.
      */
     byte[16] localNanIdentityKey;
+
+    /**
+     * The Aware pairing identity lifetime for local device, in seconds.
+     */
+    int localNanIdentityKeyLifetimeSec;
 
     /**
      * PMK used in this security association.

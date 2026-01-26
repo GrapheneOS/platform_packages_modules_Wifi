@@ -313,6 +313,16 @@ public class AwareIfaceCallbackSupplicantImpl extends ISupplicantNanIfaceEventCa
 
     @Override
     @RequiresNoPermission
+    public void eventPairingSecurityAssociationReceived(@NonNull NpkSecurityAssociation npksa)
+        throws RemoteException {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "eventPairingSecurityAssociationReceived: ");
+        }
+        // TODO: pass the event information to upper layer
+    }
+
+    @Override
+    @RequiresNoPermission
     public void notifyCapabilitiesResponse(char id, @NonNull NanStatus status,
             @NonNull NanCapabilities capabilities) throws RemoteException {
         if (mVerboseLoggingEnabled) {

@@ -568,18 +568,21 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
     public void testEndDataPath() throws Exception {
         short transactionId = 110;
         int ndpId = 200;
+        byte[] addr = new byte[6];
 
         assertTrue(mDut.endDataPath(transactionId, ndpId));
-        verify(mMockSupplicantNanIface).terminateDataPathRequest((char) transactionId, ndpId);
+        verify(mMockSupplicantNanIface)
+                .terminateDataPathRequest((char) transactionId, ndpId, addr);
     }
 
     @Test
     public void testEndDataPath_remoteException() throws Exception {
         short transactionId = 111;
         int ndpId = 200;
+        byte[] addr = new byte[6];
 
         doThrow(new RemoteException()).when(mMockSupplicantNanIface)
-                .terminateDataPathRequest(anyChar(), anyInt());
+                .terminateDataPathRequest(anyChar(), anyInt(), any());
         assertFalse(mDut.endDataPath(transactionId, ndpId));
     }
 
@@ -587,9 +590,10 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
     public void testEndDataPath_serviceSpecificException() throws Exception {
         short transactionId = 112;
         int ndpId = 200;
+        byte[] addr = new byte[6];
 
         doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
-                .terminateDataPathRequest(anyChar(), anyInt());
+                .terminateDataPathRequest(anyChar(), anyInt(), any());
         assertFalse(mDut.endDataPath(transactionId, ndpId));
     }
 
@@ -714,18 +718,21 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
     public void testEndPairing() throws Exception {
         short transactionId = 140;
         int pairingId = 300;
+        byte[] addr = new byte[6];
 
         assertTrue(mDut.endPairing(transactionId, pairingId));
-        verify(mMockSupplicantNanIface).terminatePairingRequest((char) transactionId, pairingId);
+        verify(mMockSupplicantNanIface).terminatePairingRequest(
+                (char) transactionId, pairingId, addr);
     }
 
     @Test
     public void testEndPairing_remoteException() throws Exception {
         short transactionId = 141;
         int pairingId = 300;
+        byte[] addr = new byte[6];
 
         doThrow(new RemoteException()).when(mMockSupplicantNanIface)
-                .terminatePairingRequest(anyChar(), anyInt());
+                .terminatePairingRequest(anyChar(), anyInt(), any());
         assertFalse(mDut.endPairing(transactionId, pairingId));
     }
 
@@ -733,9 +740,10 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
     public void testEndPairing_serviceSpecificException() throws Exception {
         short transactionId = 142;
         int pairingId = 300;
+        byte[] addr = new byte[6];
 
         doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
-                .terminatePairingRequest(anyChar(), anyInt());
+                .terminatePairingRequest(anyChar(), anyInt(), any());
         assertFalse(mDut.endPairing(transactionId, pairingId));
     }
 
