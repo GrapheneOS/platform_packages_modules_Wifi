@@ -1375,6 +1375,10 @@ public class WifiInjector {
         return mTwtManager;
     }
 
+    public ClientModeImplMonitor getClientModeImplMonitor() {
+        return mCmiMonitor;
+    }
+
     public RttServiceImpl getRttServiceImpl() {
         return mRttServiceImpl;
     }
