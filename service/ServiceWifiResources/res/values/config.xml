@@ -1459,4 +1459,6 @@
     <bool translatable="false" name="config_preEvaluationEnabled">true</bool>
     <!-- Config if supplicant aware should be enabled. -->
     <bool translatable="false" name="config_supplicantAwareEnabled">false</bool>
+    <!-- Boolean indicating whether wificond migration is enabled . -->
+    <bool translatable="false" name="config_wificondMigrationEnabled">true</bool>
 </resources>
