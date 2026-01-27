@@ -5294,7 +5294,9 @@ public class WifiNative {
                 Log.e(TAG, "Failed to set device capabilities, interface not found: " + ifaceName);
                 return;
             }
-            iface.phyCapabilities = new DeviceWiphyCapabilities(capabilities);
+            iface.phyCapabilities =
+                    DeviceWiphyCapabilities.Builder.createFromWificondCapabilities(capabilities)
+                            .build();
         }
     }
 

@@ -2196,7 +2196,8 @@ public class WifiNativeTest extends WifiBaseTest {
         // Verify the internal cap is equivalent to the legacy cap
         DeviceWiphyCapabilities internalCap = mWifiNative.getDeviceWiphyCapabilities(
                 WIFI_IFACE_NAME, /* isBridgedAp */ false);
-        assertEquals(internalCap, new DeviceWiphyCapabilities(legacyCap));
+        assertEquals(internalCap,
+                DeviceWiphyCapabilities.Builder.createFromWificondCapabilities(legacyCap).build());
     }
 
     /**

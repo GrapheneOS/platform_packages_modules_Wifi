@@ -139,6 +139,7 @@ public class Nl80211NativeTest {
     WifiNl80211Manager mWificondManager;
     @Mock
     WifiInjector mWifiInjector;
+    @Mock
     WifiContext mContext;
     @Mock
     Resources mResources;
@@ -2112,7 +2113,8 @@ public class Nl80211NativeTest {
                 new android.net.wifi.nl80211.DeviceWiphyCapabilities();
         when(mWificondManager.getDeviceWiphyCapabilities(CLIENT_IFACE_NAME))
                 .thenReturn(wificondCaps);
-        assertEquals(new DeviceWiphyCapabilities(wificondCaps),
+        assertEquals(DeviceWiphyCapabilities.Builder.createFromWificondCapabilities(wificondCaps)
+                        .build(),
                 mDut.getDeviceWiphyCapabilities(CLIENT_IFACE_NAME));
         verify(mWificondManager).getDeviceWiphyCapabilities(CLIENT_IFACE_NAME);
     }
