@@ -18,9 +18,11 @@ package com.android.server.wifi.util;
 
 import android.annotation.Nullable;
 import android.net.MacAddress;
+import android.net.wifi.SecurityParams;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.util.HexEncoding;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.android.server.wifi.ByteBufferReader;
 import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceReasonCode;
@@ -49,6 +51,7 @@ public class NativeUtil {
     private static final int MAC_OUI_LENGTH = 3;
     private static final int MAC_STR_LENGTH = MAC_LENGTH * 2 + 5;
     private static final int SSID_BYTES_MAX_LEN = 32;
+    private static final String TAG = "WifiNativeUtil";
 
     /**
      * Convert the string to byte array list.
@@ -459,9 +462,17 @@ public class NativeUtil {
      */
     public static boolean isEapol4WayHandshakeFailureDueToWrongPassword(WifiConfiguration config,
             boolean locallyGenerated, int reasonCode) {
-        if (!(WifiConfigurationUtil.isConfigForPskNetwork(config)
-                || WifiConfigurationUtil.isConfigForWapiPskNetwork(
-                config))) {
+        SecurityParams params = config.getNetworkSelectionStatus().getCandidateSecurityParams();
+        boolean isPsk;
+        if (params != null) {
+            isPsk = params.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)
+                    || params.isSecurityType(WifiConfiguration.SECURITY_TYPE_WAPI_PSK);
+        } else {
+            Log.e(TAG, "Candidate security params is null");
+            isPsk = WifiConfigurationUtil.isConfigForPskNetwork(config)
+                    || WifiConfigurationUtil.isConfigForWapiPskNetwork(config);
+        }
+        if (!isPsk) {
             return false;
         }
         // Filter out the disconnect triggered by the supplicant due to WPA/RSN IE mismatch in the

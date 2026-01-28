@@ -26,6 +26,7 @@ import android.net.wifi.WifiConfiguration;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.server.wifi.SupplicantStaIfaceHal.StaIfaceReasonCode;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.WifiConfigurationTestUtil;
 import com.android.server.wifi.WifiGlobals;
@@ -434,5 +435,59 @@ public class NativeUtilTest extends WifiBaseTest {
         } catch (IllegalArgumentException e) {
             assertEquals("Device type array must be non-null and 8 bytes long", e.getMessage());
         }
+    }
+
+    /**
+     * Test isEapol4WayHandshakeFailureDueToWrongPassword.
+     */
+    @Test
+    public void testIsEapol4WayHandshakeFailureDueToWrongPassword() throws Exception {
+        WifiConfiguration config = mock(WifiConfiguration.class);
+        WifiConfiguration.NetworkSelectionStatus networkSelectionStatus =
+                mock(WifiConfiguration.NetworkSelectionStatus.class);
+        SecurityParams securityParams = mock(SecurityParams.class);
+
+        when(config.getNetworkSelectionStatus()).thenReturn(networkSelectionStatus);
+
+        // Case 1: PSK network (via candidate security params), locally generated,
+        // IE_IN_4WAY_DIFFERS -> false
+        when(networkSelectionStatus.getCandidateSecurityParams()).thenReturn(securityParams);
+        when(securityParams.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)).thenReturn(true);
+        assertFalse(NativeUtil.isEapol4WayHandshakeFailureDueToWrongPassword(config, true,
+                StaIfaceReasonCode.IE_IN_4WAY_DIFFERS));
+
+        // Case 2: PSK network, not locally generated, DISASSOC_AP_BUSY -> false
+        assertFalse(NativeUtil.isEapol4WayHandshakeFailureDueToWrongPassword(config, false,
+                StaIfaceReasonCode.DISASSOC_AP_BUSY));
+
+        // Case 3: PSK network, locally generated, some other reason -> true
+        assertTrue(NativeUtil.isEapol4WayHandshakeFailureDueToWrongPassword(config, true,
+                StaIfaceReasonCode.UNSPECIFIED));
+
+        // Case 4: Not PSK network -> false
+        when(securityParams.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)).thenReturn(false);
+        when(securityParams.isSecurityType(WifiConfiguration.SECURITY_TYPE_WAPI_PSK))
+                .thenReturn(false);
+        assertFalse(NativeUtil.isEapol4WayHandshakeFailureDueToWrongPassword(config, true,
+                StaIfaceReasonCode.UNSPECIFIED));
+
+        // Case 5: WAPI_PSK network -> true
+        when(securityParams.isSecurityType(WifiConfiguration.SECURITY_TYPE_WAPI_PSK))
+                .thenReturn(true);
+        assertTrue(NativeUtil.isEapol4WayHandshakeFailureDueToWrongPassword(config, true,
+                StaIfaceReasonCode.UNSPECIFIED));
+
+        // Case 6: candidate security params is null, fallback to config.isSecurityType
+        when(networkSelectionStatus.getCandidateSecurityParams()).thenReturn(null);
+        when(config.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)).thenReturn(true);
+        assertTrue(NativeUtil.isEapol4WayHandshakeFailureDueToWrongPassword(config, true,
+                StaIfaceReasonCode.UNSPECIFIED));
+
+        // Case 7: candidate security params is null, fallback to config.isSecurityType,
+        // not PSK -> false
+        when(config.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)).thenReturn(false);
+        when(config.isSecurityType(WifiConfiguration.SECURITY_TYPE_WAPI_PSK)).thenReturn(false);
+        assertFalse(NativeUtil.isEapol4WayHandshakeFailureDueToWrongPassword(config, true,
+                StaIfaceReasonCode.UNSPECIFIED));
     }
 }
