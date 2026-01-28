@@ -3130,20 +3130,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         network.updateBwMetrics(reportedKbps, l2Kbps);
     }
 
-    // Polling has completed, hence we won't have a score anymore
-    private void cleanWifiScore() {
-        mWifiInfo.setLostTxPacketsPerSecond(0);
-        mWifiInfo.setSuccessfulTxPacketsPerSecond(0);
-        mWifiInfo.setRetriedTxPacketsRate(0);
-        mWifiInfo.setSuccessfulRxPacketsPerSecond(0);
-        mWifiScoreReport.reset();
-        mLastLinkLayerStats = null;
-        if (isPrimary()) {
-            mWifiMetrics.resetWifiUnusableEvent();
-        }
-        updateCurrentConnectionInfo();
-    }
-
     private void updateLinkProperties(LinkProperties newLp) {
         if (mVerboseLoggingEnabled) {
             log("Link configuration changed for netId: " + mLastNetworkId
@@ -7106,7 +7092,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                     break;
                 }
                 case CMD_ENABLE_RSSI_POLL: {
-                    cleanWifiScore();
                     mEnableRssiPolling = (message.arg1 == 1);
                     mRssiPollToken++;
                     if (mEnableRssiPolling) {
