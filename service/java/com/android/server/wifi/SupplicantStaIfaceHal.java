@@ -850,6 +850,16 @@ public class SupplicantStaIfaceHal {
     }
 
     /**
+     * Check whether the supplicant HAL service is using AIDL mainline supplicant implementation.
+     *
+     * @return true if the mainline supplicant service is being used, false otherwise.
+     */
+    public boolean isUsingAidlMainlineSupplicantService() {
+        return mStaIfaceHal != null
+                && mStaIfaceHal instanceof SupplicantStaIfaceHalAidlMainlineImpl;
+    }
+
+    /**
      * Check whether the HAL service is using AIDL.
      *
      * @return true if the AIDL service is being used, false otherwise.
