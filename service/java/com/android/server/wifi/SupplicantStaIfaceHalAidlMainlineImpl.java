@@ -20,7 +20,6 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.net.wifi.util.BuildProperties;
 import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.IBinder;
@@ -146,15 +145,13 @@ public class SupplicantStaIfaceHalAidlMainlineImpl extends SupplicantStaIfaceHal
         // Requires an Android 17+ Selinux policy, a copy of the binary, and device support.
         boolean isEnabledInOverlay = context.getResources().getBoolean(
                         com.android.wifi.resources.R.bool.config_wifiMainlineSupplicantEnabled);
-        // TODO (b/421247744): Remove the user build check once ready to deploy to user devices.
-        BuildProperties buildProperties = BuildProperties.getInstance();
         // TODO (b/477990462): Remove the PC exception after PC moves to Android 17.
         PackageManager packageManager = context.getPackageManager();
         return isEnabledInOverlay && (Environment.isSdkAtLeastC()
                 || packageManager.hasSystemFeature(PackageManager.FEATURE_PC))
                 && Flags.mainlineSupplicant()
                 && Environment.isMainlineSupplicantBinaryInWifiApex()
-                && !isUnsupportedDevice(context) && !buildProperties.isUserBuild();
+                && !isUnsupportedDevice(context);
     }
 
     private static boolean isUnsupportedDevice(Context context) {
