@@ -154,8 +154,8 @@
     <string name="wifi_interface_priority_approve" msgid="7877379614986261096">"允許"</string>
     <string name="wifi_interface_priority_reject" msgid="1378461018835886777">"不允許"</string>
     <string name="wifi_interface_priority_interface_name_sta" msgid="5107477901500010776">"STA"</string>
-    <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"Wi‑Fi 無線基地台"</string>
-    <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"Wi‑Fi 無線基地台"</string>
+    <string name="wifi_interface_priority_interface_name_ap" msgid="161777054136866061">"Wi‑Fi 熱點"</string>
+    <string name="wifi_interface_priority_interface_name_ap_bridge" msgid="1270364818879977821">"Wi‑Fi 熱點"</string>
     <string name="wifi_interface_priority_interface_name_p2p" msgid="1278122698099149708">"Wi-Fi Direct"</string>
     <string name="wifi_interface_priority_interface_name_nan" msgid="8812888073122966870">"Wi‑Fi Aware"</string>
     <string name="wifi_ca_cert_dialog_title" msgid="3872340345882915806">"這是受信任的網路嗎？"</string>
