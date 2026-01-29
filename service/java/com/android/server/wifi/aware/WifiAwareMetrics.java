@@ -21,9 +21,7 @@ import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER
 import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER_TYPE_OOB;
 import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER_TYPE_OOB_ANY_PEER;
 
-import android.content.Context;
 import android.net.wifi.SupplicantState;
-import android.net.wifi.WifiAvailableChannel;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.aware.WifiAwareManager;
@@ -1094,7 +1092,7 @@ public class WifiAwareMetrics {
     }
 
     /**
-     * set timestamp at publish and subscribe start
+     * Initial peer found data at publish and subscribe start
      */
     public void recordPeerFoundStart(int clientId, boolean isPublish) {
         synchronized (mLock) {
@@ -1121,8 +1119,15 @@ public class WifiAwareMetrics {
             Log.e(TAG, "No peer found data for clientId= " + clientId);
             return;
         }
+        if (data.mPeerFoundResult
+                == WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND) {
+            Log.v(TAG, "Peer Found already reported for clientId= " + clientId
+                    + ", sessionId= " +  sessionId);
+            return;
+        }
         Log.v(TAG, "Update peer found for clientId= " + clientId
                 + ", sessionId= " +  sessionId
+                + ", role= " + data.mRole
                 + ", result= " + result
                 + ", rangingIndication= " + rangingIndication);
 
@@ -1156,7 +1161,8 @@ public class WifiAwareMetrics {
                     0, wifiInfo);
         }
         Log.v(TAG, "Report peer found result for clientId= " + clientId
-                + ", sessionId= " + sessionId);
+                + ", sessionId= " + sessionId + "role= " + data.mRole
+                + ", peerFoundResult= " + data.mPeerFoundResult);
         // Log final peer found status
         int[] uid = new int[]{mDiscoveryUidMap.get(sessionId, 0)};
         String[] tag = new String[]{mDiscoveryAttributionTagMap.get(sessionId)};

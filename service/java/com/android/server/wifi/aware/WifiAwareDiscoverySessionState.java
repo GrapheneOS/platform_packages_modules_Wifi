@@ -32,6 +32,7 @@ import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_RE
 import android.annotation.NonNull;
 import android.net.MacAddress;
 import android.net.wifi.OuiKeyedData;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
@@ -51,6 +52,7 @@ import android.util.SparseArray;
 import android.util.SparseIntArray;
 
 import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
+import com.android.server.wifi.proto.WifiStatsLog;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -74,8 +76,10 @@ public class WifiAwareDiscoverySessionState {
     private static int sNextPeerIdToBeAllocated = 100; // used to create a unique peer ID
     public static final int INVALID_INSTANCE_ID = 0;
 
+    private final WifiAwareMetrics mWifiAwareMetrics;
     private final WifiAwareNativeApi mWifiAwareNativeApi;
     private int mSessionId;
+    private int mClientId;
     private byte mPubSubId;
     private IWifiAwareDiscoverySessionCallback mCallback;
     private boolean mIsPublishSession;
@@ -115,7 +119,7 @@ public class WifiAwareDiscoverySessionState {
             byte pubSubId, IWifiAwareDiscoverySessionCallback callback, boolean isPublishSession,
             boolean isRangingEnabled, long creationTime, boolean instantModeEnabled,
             int instantModeBand, boolean isSuspendable,
-            AwarePairingConfig pairingConfig) {
+            AwarePairingConfig pairingConfig, WifiAwareMetrics wifiAwareMetrics, int clientId) {
         mWifiAwareNativeApi = wifiAwareNativeApi;
         mSessionId = sessionId;
         mPubSubId = pubSubId;
@@ -128,6 +132,8 @@ public class WifiAwareDiscoverySessionState {
         mInstantModeBand = instantModeBand;
         mIsSuspendable = isSuspendable;
         mPairingConfig = pairingConfig;
+        mWifiAwareMetrics = wifiAwareMetrics;
+        mClientId = clientId;
     }
 
     /**
@@ -745,8 +751,9 @@ public class WifiAwareDiscoverySessionState {
     public int onMatch(int requestorInstanceId, byte[] peerMac, byte[] serviceSpecificInfo,
             byte[] matchFilter, int rangingIndication, int rangeMm, int peerCipherSuite,
             byte[] scid, String pairingAlias,
-            AwarePairingConfig pairingConfig, @NonNull List<OuiKeyedData> vendorDataList) {
-        int peerId = getPeerIdOrAddIfNew(requestorInstanceId, peerMac);
+            AwarePairingConfig pairingConfig, @NonNull List<OuiKeyedData> vendorDataList,
+            WifiInfo wifiInfo) {
+        int peerId = getPeerIdOrAddIfNew(requestorInstanceId, peerMac, rangingIndication, wifiInfo);
         OuiKeyedData[] vendorDataArray = null;
         if (!vendorDataList.isEmpty()) {
             vendorDataArray = new OuiKeyedData[vendorDataList.size()];
@@ -806,8 +813,9 @@ public class WifiAwareDiscoverySessionState {
      *            concerns.
      * @param message The received message.
      */
-    public void onMessageReceived(int requestorInstanceId, byte[] peerMac, byte[] message) {
-        int peerId = getPeerIdOrAddIfNew(requestorInstanceId, peerMac);
+    public void onMessageReceived(int requestorInstanceId, byte[] peerMac, byte[] message,
+            WifiInfo wifiInfo) {
+        int peerId = getPeerIdOrAddIfNew(requestorInstanceId, peerMac, 0, wifiInfo);
 
         try {
             mCallback.onMessageReceived(peerId, message);
@@ -924,18 +932,22 @@ public class WifiAwareDiscoverySessionState {
     /**
      * Event that receive the data path request from the peer
      */
-    public int onDataPathRequestReceived(byte[] mac, int ndpId, byte[] message) {
+    public int onDataPathRequestReceived(byte[] mac, int ndpId, byte[] message, int clientId,
+            int sessionId, WifiInfo wifiInfo, boolean found) {
         PeerHandle peerHandle = getPeerHandleFromPeerMac(mac);
         int peerId;
         if (peerHandle == null) {
-            peerId = getPeerIdOrAddIfNew(INVALID_INSTANCE_ID, mac);
+            peerId = getPeerIdOrAddIfNew(INVALID_INSTANCE_ID, mac, 0,
+                    wifiInfo);
         } else {
             peerId = peerHandle.peerId;
         }
-        try {
-            mCallback.onDataPathRequestReceived(peerId);
-        } catch (RemoteException e) {
-            Log.w(TAG, "onDataPathRequestReceived: RemoteException (FYI): " + e);
+        if (!found) {
+            try {
+                mCallback.onDataPathRequestReceived(peerId);
+            } catch (RemoteException e) {
+                Log.w(TAG, "onDataPathRequestReceived: RemoteException (FYI): " + e);
+            }
         }
         return peerId;
     }
@@ -1009,7 +1021,13 @@ public class WifiAwareDiscoverySessionState {
     /**
      * Get the ID of the peer assign by the framework
      */
-    public int getPeerIdOrAddIfNew(int requestorInstanceId, byte[] peerMac) {
+    public int getPeerIdOrAddIfNew(int requestorInstanceId, byte[] peerMac, int rangingIndication,
+            WifiInfo wifiInfo) {
+        // Update publish / subscribe peer found result
+        mWifiAwareMetrics.updatePeerFoundResult(mClientId, mSessionId,
+                WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND,
+                rangingIndication, wifiInfo);
+
         for (int i = 0; i < mPeerInfoByRequestorInstanceId.size(); ++i) {
             PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.valueAt(i);
             if (Arrays.equals(peerMac, peerInfo.mMac)) {
