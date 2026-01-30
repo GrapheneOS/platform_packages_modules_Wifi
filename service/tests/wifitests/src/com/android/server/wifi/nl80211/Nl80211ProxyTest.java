@@ -546,4 +546,23 @@ public class Nl80211ProxyTest {
         assertTrue(mDut.registerBroadcastCallback(eventType, mBroadcastCallback));
         assertTrue(mDut.unregisterBroadcastCallback(eventType, mBroadcastCallback));
     }
+
+    /**
+     * Test that a vendor request can be successfully created.
+     */
+    @Test
+    public void testCreateVendorRequest() {
+        final int ifIndex = 3;
+        final int vendorId = 123;
+        final int subcmd = 456;
+        GenericNetlinkMsg msg = mDut.createVendorRequest(ifIndex, vendorId, subcmd);
+        assertNotNull(msg);
+        assertEquals(NetlinkConstants.NL80211_CMD_VENDOR, msg.getCommand());
+        assertEquals(ifIndex,
+                (int) msg.getAttributeValueAsInteger(NetlinkConstants.NL80211_ATTR_IFINDEX));
+        assertEquals(vendorId,
+                (int) msg.getAttributeValueAsInteger(NetlinkConstants.NL80211_ATTR_VENDOR_ID));
+        assertEquals(subcmd,
+                (int) msg.getAttributeValueAsInteger(NetlinkConstants.NL80211_ATTR_VENDOR_SUBCMD));
+    }
 }

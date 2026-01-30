@@ -31,7 +31,11 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.CTRL_CMD_GETFAMIL
 import static com.android.server.wifi.nl80211.NetlinkConstants.CTRL_CMD_NEWFAMILY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.GENL_ID_CTRL;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NETLINK_GENERIC;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_IFINDEX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_GENL_NAME;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_VENDOR_ID;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_VENDOR_SUBCMD;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_VENDOR;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_MULTICAST_GROUP_MLME;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_MULTICAST_GROUP_REG;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_MULTICAST_GROUP_SCAN;
@@ -497,5 +501,50 @@ public class Nl80211Proxy {
         }
         mBroadcastMonitor.unregisterBroadcastCallback(command, callback);
         return true;
+    }
+
+    /**
+     * Creates a vendor-specific Nl80211 request with the given vendor ID and subcommand.
+     *
+     * @param ifIndex The interface index
+     * @param vendorId The vendor-specific ID (NL80211_ATTR_VENDOR_ID).
+     * @param subcmd The vendor-specific subcommand (NL80211_ATTR_VENDOR_SUBCMD).
+     * @param additionalAttributes Optional additional attributes to include in the vendor message.
+     * @return The constructed GenericNetlinkMsg, or null if the proxy is not initialized
+     * or the request creation fails.
+     */
+    public @Nullable GenericNetlinkMsg createVendorRequest(
+            int ifIndex, int vendorId, int subcmd, StructNlAttr... additionalAttributes) {
+        if (!mIsInitialized) {
+            Log.e(TAG, "Instance has not been initialized");
+            return null;
+        }
+
+        ByteBuffer ifIndexBuffer = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN);
+        ifIndexBuffer.putInt(ifIndex);
+        StructNlAttr ifIndexAttr = new StructNlAttr(
+                     NL80211_ATTR_IFINDEX, ifIndexBuffer.array());
+
+        ByteBuffer vendorIdBuffer = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN);
+        vendorIdBuffer.putInt(vendorId);
+        StructNlAttr vendorIdAttr = new StructNlAttr(
+                     NL80211_ATTR_VENDOR_ID, vendorIdBuffer.array());
+
+        ByteBuffer subcmdBuffer = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN);
+        subcmdBuffer.putInt(subcmd);
+        StructNlAttr subcmdAttr = new StructNlAttr(
+                     NL80211_ATTR_VENDOR_SUBCMD, subcmdBuffer.array());
+
+        List<StructNlAttr> attributes = new ArrayList<>();
+        attributes.add(ifIndexAttr);
+        attributes.add(vendorIdAttr);
+        attributes.add(subcmdAttr);
+
+        for (StructNlAttr attr : additionalAttributes) {
+            attributes.add(attr);
+        }
+
+        return createNl80211Request(NL80211_CMD_VENDOR,
+                attributes.toArray(new StructNlAttr[0]));
     }
 }

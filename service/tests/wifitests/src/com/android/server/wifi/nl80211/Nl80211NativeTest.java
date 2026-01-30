@@ -96,6 +96,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -3005,5 +3006,24 @@ public class Nl80211NativeTest {
         assertEquals(txBitrate, result.txBitrateMbps);
         assertEquals(rxBitrate, result.rxBitrateMbps);
         assertEquals(frequency, result.associationFrequencyMHz);
+    }
+
+    @Test
+    public void testGetWifiChipStats_success() {
+        mDut = initNl80211Native(false);
+        ByteBuffer expectedResult = ByteBuffer.allocate(10);
+        when(mNl80211Utils.getWifiChipStats(CLIENT_IFACE_NAME)).thenReturn(expectedResult);
+
+        ByteBuffer result = mDut.getWifiChipStats(CLIENT_IFACE_NAME);
+        assertEquals(expectedResult, result);
+        verify(mNl80211Utils).getWifiChipStats(CLIENT_IFACE_NAME);
+    }
+
+    @Test
+    public void testGetWifiChipStats_notInitialized() {
+        Nl80211Native nl80211Native = new Nl80211Native(mNl80211Proxy, mNl80211Utils, mNetdWrapper,
+                mWificondManager, mWifiInjector, false);
+        assertNull(nl80211Native.getWifiChipStats(CLIENT_IFACE_NAME));
+        verify(mNl80211Utils, never()).getWifiChipStats(anyString());
     }
 }
