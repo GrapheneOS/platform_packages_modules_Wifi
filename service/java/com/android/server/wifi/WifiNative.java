@@ -3519,6 +3519,15 @@ public class WifiNative {
     }
 
     /**
+     * Check whether the supplicant HAL service is using AIDL mainline supplicant implementation.
+     *
+     * @return true if the mainline supplicant service is being used, false otherwise.
+     */
+    public boolean isUsingAidlMainlineSupplicantService() {
+        return mSupplicantStaIfaceHal.isUsingAidlMainlineSupplicantService();
+    }
+
+    /**
      * Check whether Supplicant is using the AIDL HAL service.
      *
      * @return true if the Supplicant is using the AIDL service, false otherwise.
