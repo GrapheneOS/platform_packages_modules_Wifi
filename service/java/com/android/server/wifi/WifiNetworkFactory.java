@@ -1185,7 +1185,8 @@ public class WifiNetworkFactory extends NetworkFactory {
         // TODO(b/188021807): Implement the band request from the specifier on the network to
         // connect.
 
-        // Store the user selected network.
+        // Remove the previous config and store the user selected network.
+        removeNetworkFromWifiConfigManager(mUserSelectedNetwork);
         mUserSelectedNetwork = networkToConnect;
 
         // Request a new CMM for the connection processing.
