@@ -40,7 +40,6 @@ import android.content.res.Resources;
 import android.hardware.wifi.supplicant.ISupplicant;
 import android.hardware.wifi.supplicant.ISupplicantStaIface;
 import android.hardware.wifi.supplicant.ISupplicantStaIfaceCallback;
-import android.net.wifi.util.BuildProperties;
 import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.IBinder;
@@ -81,7 +80,6 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
     @Mock private SsidTranslator mSsidTranslator;
     @Mock private WifiInjector mWifiInjector;
     @Mock private Resources mResources;
-    @Mock private BuildProperties mBuildProperties;
     @Mock private PackageManager mPackageManager;
     @Mock private ISupplicantStaIface mISupplicantStaIfaceMock;
     @Mock private WifiConfigManager mWifiConfigManager;
@@ -119,14 +117,12 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(Flags.class, withSettings().lenient())
                 .mockStatic(Environment.class, withSettings().lenient())
-                .mockStatic(BuildProperties.class, withSettings().lenient())
                 .startMocking();
 
         mHandler = spy(new Handler(mLooper.getLooper()));
 
         when(mContext.getResources()).thenReturn(mResources);
         when(mContext.getPackageManager()).thenReturn(mPackageManager);
-        when(BuildProperties.getInstance()).thenReturn(mBuildProperties);
         when(mResources.getBoolean(anyInt())).thenReturn(true);
         when(mIMainlineSupplicantMock.asBinder()).thenReturn(mServiceBinderMock);
         when(mIMainlineSupplicantMock.getVendorSupplicant()).thenReturn(mISupplicantMock);
@@ -233,7 +229,6 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_EMBEDDED)).thenReturn(false);
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)).thenReturn(false);
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)).thenReturn(false);
-        when(mBuildProperties.isUserBuild()).thenReturn(false);
     }
 
     @Test
@@ -255,13 +250,6 @@ public class SupplicantStaIfaceHalAidlMainlineImplTest extends WifiBaseTest {
     public void testIsServiceAvailable_returnsFalseWhenDeviceIsWatch() {
         setupIsServiceAvailableHappyPath();
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_WATCH)).thenReturn(true);
-        assertFalse(SupplicantStaIfaceHalAidlMainlineImpl.isServiceAvailable(mContext));
-    }
-
-    @Test
-    public void testIsServiceAvailable_returnsFalseWhenBuildIsUser() {
-        setupIsServiceAvailableHappyPath();
-        when(mBuildProperties.isUserBuild()).thenReturn(true);
         assertFalse(SupplicantStaIfaceHalAidlMainlineImpl.isServiceAvailable(mContext));
     }
 
