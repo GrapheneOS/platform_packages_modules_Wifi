@@ -3712,7 +3712,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
      */
     @Override
     public void setScanAlwaysAvailable(boolean isAvailable, String packageName) {
-        enforceNetworkSettingsPermission();
+        enforceAnyPermissionOf(android.Manifest.permission.NETWORK_SETTINGS,
+                android.Manifest.permission.NETWORK_SETUP_WIZARD);
         int callingUid = Binder.getCallingUid();
         mWifiPermissionsUtil.checkPackage(callingUid, packageName);
         mLog.info("setScanAlwaysAvailable uid=% package=% isAvailable=%")
