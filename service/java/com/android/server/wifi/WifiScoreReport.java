@@ -138,7 +138,6 @@ public class WifiScoreReport {
     private final WifiThreadRunner mWifiThreadRunner;
     private final DeviceConfigFacade mDeviceConfigFacade;
     private final ExternalScoreUpdateObserverProxy mExternalScoreUpdateObserverProxy;
-    private final WifiInfo mWifiInfoNoReset;
     private final WifiGlobals mWifiGlobals;
     private final ActiveModeWarden mActiveModeWarden;
     private final WifiConnectivityManager mWifiConnectivityManager;
@@ -149,7 +148,6 @@ public class WifiScoreReport {
     long mLastNudCheckTimeMs = INVALID_TIMESTAMP_MS;
     private int mNudYes = 0;    // Counts when we voted for a NUD
     private int mNudCount = 0;  // Counts when we were told a NUD was sent
-    private WifiConfiguration mCurrentWifiConfiguration;
     private final ConnectedScorerHelper mConnectedScorerHelper;
     private final NetworkPreEvaluationManager mNetworkPreEvaluationManager;
 
@@ -277,6 +275,12 @@ public class WifiScoreReport {
             if (mShouldReduceNetworkScore) {
                 return;
             }
+            WifiConfiguration wifiConfiguration =
+                    mWifiConfigManager.getConfiguredNetwork(mWifiInfo.getNetworkId());
+            if (wifiConfiguration == null) {
+                Log.w(TAG, "Wifi is not connected - Cannot notify status update");
+                return;
+            }
             if (!mIsUsable && isUsable) {
                 // Disable the network switch dialog temporarily if the status changed to usable.
                 int durationMs = mContext.getResources().getInteger(
@@ -302,8 +306,9 @@ public class WifiScoreReport {
                 }
             }
             mWifiInfo.setUsable(mIsUsable);
-            mNetworkPreEvaluationManager.stopPreEvaluation(
-                    mCurrentWifiConfiguration.getProfileKey(), mIsUsable);
+            mNetworkPreEvaluationManager.stopPreEvaluation(wifiConfiguration.getProfileKey(),
+                    mIsUsable);
+
             mWifiMetrics.setScorerPredictedWifiUsabilityState(mInterfaceName,
                     mIsUsable ? WifiMetrics.WifiUsabilityState.USABLE
                             : WifiMetrics.WifiUsabilityState.UNUSABLE);
@@ -356,11 +361,11 @@ public class WifiScoreReport {
                 }
                 return;
             }
-            if (mWifiInfoNoReset.getBSSID() != null) {
-                mWifiBlocklistMonitor.handleBssidConnectionFailure(mWifiInfoNoReset.getBSSID(),
-                        mCurrentWifiConfiguration,
+            if (mWifiInfo.getBSSID() != null) {
+                mWifiBlocklistMonitor.handleBssidConnectionFailure(mWifiInfo.getBSSID(),
+                        mWifiConfigManager.getConfiguredNetwork(mWifiInfo.getNetworkId()),
                         WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE,
-                        mWifiInfoNoReset.getRssi());
+                        mWifiInfo.getRssi());
             }
         }
 
@@ -404,12 +409,14 @@ public class WifiScoreReport {
                 }
                 return;
             }
-            if (mCurrentWifiConfiguration == null) {
+            WifiConfiguration wifiConfiguration =
+                    mWifiConfigManager.getConfiguredNetwork(mWifiInfo.getNetworkId());
+            if (wifiConfiguration == null) {
                 Log.w(TAG, "Wifi is not connected - Cannot set preEvaluationEnabled");
                 return;
             }
             mNetworkPreEvaluationManager
-                    .setPreEvaluationEnabled(mCurrentWifiConfiguration.getProfileKey(), enabled);
+                    .setPreEvaluationEnabled(wifiConfiguration.getProfileKey(), enabled);
         }
     }
 
@@ -628,7 +635,6 @@ public class WifiScoreReport {
         mInterfaceName = interfaceName;
         mExternalScoreUpdateObserverProxy = externalScoreUpdateObserverProxy;
         mWifiSettingsStore = wifiSettingsStore;
-        mWifiInfoNoReset = new WifiInfo(mWifiInfo);
         mWifiGlobals = wifiGlobals;
         mActiveModeWarden = activeModeWarden;
         mWifiConnectivityManager = wifiConnectivityManager;
@@ -1115,19 +1121,16 @@ public class WifiScoreReport {
             Log.w(TAG, sb.toString());
             return false;
         }
-        mCurrentWifiConfiguration = mWifiConfigManager.getConfiguredNetwork(
+        WifiConfiguration wifiConfiguration = mWifiConfigManager.getConfiguredNetwork(
                 mWifiInfo.getNetworkId());
         mWifiInfo.setScore(isPrimary() ? ConnectedScorer.WIFI_MAX_SCORE
                 : ConnectedScorer.WIFI_SECONDARY_MAX_SCORE);
         boolean isPreEvaluationNeeded = mNetworkPreEvaluationManager.isPreEvaluationNeeded(
-                mCurrentWifiConfiguration.getProfileKey(), isUserSelected);
+                wifiConfiguration.getProfileKey(), isUserSelected);
         mWifiConnectedNetworkScorerHolder.startSession(sessionId,
                 mIsUserSelected,
                 isPreEvaluationNeeded,
-                mCurrentWifiConfiguration.carrierId != TelephonyManager.UNKNOWN_CARRIER_ID);
-        mWifiInfoNoReset.setBSSID(mWifiInfo.getBSSID());
-        mWifiInfoNoReset.setSSID(mWifiInfo.getWifiSsid());
-        mWifiInfoNoReset.setRssi(mWifiInfo.getRssi());
+                wifiConfiguration.carrierId != TelephonyManager.UNKNOWN_CARRIER_ID);
         return isPreEvaluationNeeded;
     }
 
