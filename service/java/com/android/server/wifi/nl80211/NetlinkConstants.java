@@ -309,6 +309,10 @@ public class NetlinkConstants {
     public static final short NL80211_CMD_ANDROID_KABI_RESERVED_9 = 161;
     public static final short NL80211_CMD_ANDROID_KABI_RESERVED_10 = 162;
 
+    // Android OUI. See wpa_supplicant/aidl/shared/android-vendor.h
+    public static final int ANDROID_OUI = 0xF4F5E8;
+    public static final int ANDROID_NL80211_SUBCMD_GET_PWRSTATS = 1;
+
     // Nl80211 attributes. See kernel/uapi/linux/nl80211.h
     public static final short NL80211_ATTR_UNSPEC = 0;
 

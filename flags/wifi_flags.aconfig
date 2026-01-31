@@ -541,3 +541,10 @@ flag {
     description: "new API to allow App create as many datapath as the NDP number from capability"
     bug: "454343159"
 }
+
+flag {
+    name: "power_stats_api"
+    namespace: "wifi"
+    description: "API to get power statistics for each wifi core/radio"
+    bug: "444936941"
+}

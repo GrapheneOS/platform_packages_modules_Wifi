@@ -573,6 +573,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     private final TwtManager mTwtManager;
     private final OpenNetworkNotifier mOpenNetworkNotifier;
     private final Nl80211Native mNl80211Native;
+    private final WifiPowerStatsManager mWifiPowerStatsManager;
 
     /**
      * The wrapper of SoftApCallback is used in WifiService internally.
@@ -845,6 +846,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                             "android"));
         }
         mOpenNetworkNotifier = mWifiInjector.getOpenNetworkNotifier();
+        mWifiPowerStatsManager = mWifiInjector.getWifiPowerStatsManager();
     }
 
     /**
@@ -6381,6 +6383,9 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 } else {
                     pw.println("boundToExternalScorer=failure, lastScorerBindingState="
                             + mLastScorerBindingState);
+                }
+                if (mWifiPowerStatsManager != null) {
+                    mWifiPowerStatsManager.dump(fd, pw, args);
                 }
             }
         }, TAG + "#dump");
