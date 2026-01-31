@@ -4845,7 +4845,9 @@ public class WifiManager {
      * @see #isScanAlwaysAvailable()
      */
     @SystemApi
-    @RequiresPermission(android.Manifest.permission.NETWORK_SETTINGS)
+    @RequiresPermission(anyOf = {
+            android.Manifest.permission.NETWORK_SETTINGS,
+            android.Manifest.permission.NETWORK_SETUP_WIZARD})
     public void setScanAlwaysAvailable(boolean isAvailable) {
         try {
             mService.setScanAlwaysAvailable(isAvailable, mContext.getOpPackageName());
