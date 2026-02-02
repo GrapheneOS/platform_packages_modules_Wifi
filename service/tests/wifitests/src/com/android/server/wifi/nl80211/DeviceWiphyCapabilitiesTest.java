@@ -57,7 +57,7 @@ public class DeviceWiphyCapabilitiesTest {
 
     @Test
     public void testDefaultConstructor() {
-        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities();
+        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities.Builder().build();
 
         assertTrue(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_LEGACY));
         assertFalse(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11N));
@@ -80,8 +80,10 @@ public class DeviceWiphyCapabilitiesTest {
     }
 
     @Test
-    public void testCopyConstructor() {
-        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities(mWificondCaps);
+    public void testCreateFromWificondCapabilities() {
+        DeviceWiphyCapabilities caps =
+                DeviceWiphyCapabilities.Builder.createFromWificondCapabilities(mWificondCaps)
+                        .build();
 
         assertTrue(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_LEGACY));
         assertTrue(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11N));
@@ -109,36 +111,49 @@ public class DeviceWiphyCapabilitiesTest {
     }
 
     @Test
-    public void testSetAndGetWifiStandardSupport() {
-        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities();
-
-        // Test 11N
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, true);
+    public void testBuilderWifiStandardSupport() {
+        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities.Builder()
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, true)
+                .build();
         assertTrue(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11N));
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, false);
+
+        caps = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps)
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, false)
+                .build();
         assertFalse(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11N));
 
         // Test 11AC
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC, true);
+        caps = new DeviceWiphyCapabilities.Builder()
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC, true)
+                .build();
         assertTrue(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AC));
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC, false);
+        caps = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps)
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC, false)
+                .build();
         assertFalse(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AC));
 
         // Test 11AX
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX, true);
+        caps = new DeviceWiphyCapabilities.Builder()
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX, true)
+                .build();
         assertTrue(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AX));
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX, false);
+        caps = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps)
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX, false)
+                .build();
         assertFalse(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AX));
 
         // Test 11BE
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE, true);
+        caps = new DeviceWiphyCapabilities.Builder()
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE, true)
+                .build();
         assertTrue(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11BE));
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE, false);
+        caps = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps)
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE, false)
+                .build();
         assertFalse(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11BE));
 
         // Test legacy (always true)
-        assertTrue(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_LEGACY));
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_LEGACY, false);
+        caps = new DeviceWiphyCapabilities.Builder().build();
         assertTrue(caps.isWifiStandardSupported(ScanResult.WIFI_STANDARD_LEGACY));
 
         // Test invalid standard
@@ -146,90 +161,114 @@ public class DeviceWiphyCapabilitiesTest {
     }
 
     @Test
-    public void testSetAndGetChannelWidthSupport() {
-        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities();
+    public void testBuilderChannelWidthSupport() {
+        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities.Builder().build();
 
         // 20MHz is always supported
         assertTrue(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_20MHZ));
 
         // Test 40MHz depends on 11N/AC/AX/BE
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, true);
+        caps = new DeviceWiphyCapabilities.Builder()
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, true)
+                .build();
         assertTrue(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_40MHZ));
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, false);
+        caps = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps)
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, false)
+                .build();
         assertFalse(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_40MHZ));
 
         // Test 80MHz depends on 11AC/AX/BE
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC, true);
+        caps = new DeviceWiphyCapabilities.Builder()
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC, true)
+                .build();
         assertTrue(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ));
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC, false);
+        caps = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps)
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC, false)
+                .build();
         assertFalse(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ));
 
         // Test 160MHz
-        caps.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ, true);
+        caps = new DeviceWiphyCapabilities.Builder()
+                .setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ, true)
+                .build();
         assertTrue(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ));
-        caps.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ, false);
+        caps = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps)
+                .setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ, false)
+                .build();
         assertFalse(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ));
 
         // Test 80+80MHz
-        caps.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ, true);
+        caps = new DeviceWiphyCapabilities.Builder()
+                .setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ, true)
+                .build();
         assertTrue(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ));
-        caps.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ, false);
+        caps = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps)
+                .setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ, false)
+                .build();
         assertFalse(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ));
 
         // Test 320MHz
-        caps.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ, true);
+        caps = new DeviceWiphyCapabilities.Builder()
+                .setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ, true)
+                .build();
         assertTrue(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ));
-        caps.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ, false);
+        caps = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps)
+                .setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ, false)
+                .build();
         assertFalse(caps.isChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ));
 
         // Test invalid channel width
         assertFalse(caps.isChannelWidthSupported(-1));
-        // Setting invalid channel width should not change anything
-        caps.setChannelWidthSupported(-1, true);
-        assertFalse(caps.isChannelWidthSupported(-1));
     }
 
     @Test
-    public void testSetAndGetSpatialStreams() {
-        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities();
+    public void testBuilderSpatialStreams() {
+        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities.Builder()
+                .setMaxNumberTxSpatialStreams(TEST_TX_STREAMS)
+                .setMaxNumberRxSpatialStreams(TEST_RX_STREAMS)
+                .build();
 
-        caps.setMaxNumberTxSpatialStreams(TEST_TX_STREAMS);
         assertEquals(TEST_TX_STREAMS, caps.getMaxNumberTxSpatialStreams());
-
-        caps.setMaxNumberRxSpatialStreams(TEST_RX_STREAMS);
         assertEquals(TEST_RX_STREAMS, caps.getMaxNumberRxSpatialStreams());
     }
 
     @Test
-    public void testSetAndGetAkms() {
+    public void testBuilderAkms() {
         assumeTrue(SdkLevel.isAtLeastV());
-        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities();
+        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities.Builder()
+                .setMaxNumberAkms(TEST_AKMS)
+                .build();
 
-        caps.setMaxNumberAkms(TEST_AKMS);
         assertEquals(TEST_AKMS, caps.getMaxNumberAkms());
     }
 
     @Test
     public void testEqualsAndHashCode() {
-        DeviceWiphyCapabilities caps1 = new DeviceWiphyCapabilities();
-        DeviceWiphyCapabilities caps2 = new DeviceWiphyCapabilities();
+        DeviceWiphyCapabilities caps1 = new DeviceWiphyCapabilities.Builder().build();
+        DeviceWiphyCapabilities caps2 = new DeviceWiphyCapabilities.Builder().build();
 
         // Initially equal
         assertEquals(caps1, caps2);
         assertEquals(caps1.hashCode(), caps2.hashCode());
 
         // Change one field in caps1
-        caps1.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, true);
+        caps1 = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps1)
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, true)
+                .build();
         assertNotEquals(caps1, caps2);
         assertNotEquals(caps1.hashCode(), caps2.hashCode()); // Hash codes should differ
 
         // Make caps2 equal to caps1
-        caps2.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, true);
+        caps2 = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps2)
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N, true)
+                .build();
         assertEquals(caps1, caps2);
         assertEquals(caps1.hashCode(), caps2.hashCode());
 
         // Change another field
-        caps1.setMaxNumberTxSpatialStreams(TEST_TX_STREAMS);
+        caps1 = DeviceWiphyCapabilities.Builder.createFromDeviceWiphyCapabilities(caps1)
+                .setMaxNumberTxSpatialStreams(TEST_TX_STREAMS)
+                .build();
         assertNotEquals(caps1, caps2);
         assertNotEquals(caps1.hashCode(), caps2.hashCode());
 

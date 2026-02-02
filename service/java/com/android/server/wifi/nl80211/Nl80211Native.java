@@ -85,6 +85,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.wifi.SelfRecovery;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.util.NetdWrapper;
+import com.android.wifi.resources.R;
 
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
@@ -1870,11 +1871,27 @@ public class Nl80211Native {
      */
     public @Nullable DeviceWiphyCapabilities getDeviceWiphyCapabilities(
             @NonNull String ifaceName) {
+        // Some devices don't have support of 11ax/be indicated by the chip,
+        // so an override config value is used
+        boolean is11axOverrideEnabled = mWifiInjector.getContext().getResources()
+                .getBoolean(R.bool.config_wifi11axSupportOverride);
+        boolean is11beOverrideEnabled = mWifiInjector.getContext().getResources()
+                .getBoolean(R.bool.config_wifi11beSupportOverride);
+
         if (useWificond()) {
             android.net.wifi.nl80211.DeviceWiphyCapabilities wificondCaps =
                     mWificondManager.getDeviceWiphyCapabilities(ifaceName);
             if (wificondCaps == null) return null;
-            return new DeviceWiphyCapabilities(wificondCaps);
+
+            DeviceWiphyCapabilities.Builder builder =
+                    DeviceWiphyCapabilities.Builder.createFromWificondCapabilities(wificondCaps);
+            if (is11axOverrideEnabled) {
+                builder.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX, true);
+            }
+            if (is11beOverrideEnabled) {
+                builder.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE, true);
+            }
+            return builder.build();
         }
 
         synchronized (this) {
@@ -1902,25 +1919,25 @@ public class Nl80211Native {
                 return null;
             }
 
-            DeviceWiphyCapabilities capabilities = new DeviceWiphyCapabilities();
-            capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N,
-                    wiphyInfo.bandInfo.is80211nSupported);
-            capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC,
-                    wiphyInfo.bandInfo.is80211acSupported);
-            capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX,
-                    wiphyInfo.bandInfo.is80211axSupported);
-            capabilities.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE,
-                    wiphyInfo.bandInfo.is80211beSupported);
-            capabilities.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ,
-                    wiphyInfo.bandInfo.is160MhzSupported);
-            capabilities.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ,
-                    wiphyInfo.bandInfo.is80p80MhzSupported);
-            capabilities.setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ,
-                    wiphyInfo.bandInfo.is320MhzSupported);
-            capabilities.setMaxNumberTxSpatialStreams(wiphyInfo.bandInfo.maxTxStreams);
-            capabilities.setMaxNumberRxSpatialStreams(wiphyInfo.bandInfo.maxRxStreams);
-            capabilities.setMaxNumberAkms(wiphyInfo.driverCapabilities.maxNumAkmSuites);
-            return capabilities;
+            return new DeviceWiphyCapabilities.Builder()
+                    .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11N,
+                            wiphyInfo.bandInfo.is80211nSupported)
+                    .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AC,
+                            wiphyInfo.bandInfo.is80211acSupported)
+                    .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX,
+                            wiphyInfo.bandInfo.is80211axSupported || is11axOverrideEnabled)
+                    .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE,
+                            wiphyInfo.bandInfo.is80211beSupported || is11beOverrideEnabled)
+                    .setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_160MHZ,
+                            wiphyInfo.bandInfo.is160MhzSupported)
+                    .setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ,
+                            wiphyInfo.bandInfo.is80p80MhzSupported)
+                    .setChannelWidthSupported(ScanResult.CHANNEL_WIDTH_320MHZ,
+                            wiphyInfo.bandInfo.is320MhzSupported)
+                    .setMaxNumberTxSpatialStreams(wiphyInfo.bandInfo.maxTxStreams)
+                    .setMaxNumberRxSpatialStreams(wiphyInfo.bandInfo.maxRxStreams)
+                    .setMaxNumberAkms(wiphyInfo.driverCapabilities.maxNumAkmSuites)
+                    .build();
         }
     }
 

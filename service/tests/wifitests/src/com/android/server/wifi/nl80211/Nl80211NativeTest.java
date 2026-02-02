@@ -69,10 +69,12 @@ import static org.mockito.Mockito.when;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.res.Resources;
 import android.net.MacAddress;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApInfo;
 import android.net.wifi.WifiAnnotations;
+import android.net.wifi.WifiContext;
 import android.net.wifi.WifiScanner;
 import android.net.wifi.nl80211.NativeWifiClient;
 import android.net.wifi.nl80211.WifiNl80211Manager;
@@ -89,6 +91,7 @@ import com.android.server.wifi.SelfRecovery;
 import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.util.NetdWrapper;
+import com.android.wifi.resources.R;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -138,6 +141,10 @@ public class Nl80211NativeTest {
     @Mock
     WifiInjector mWifiInjector;
     @Mock
+    WifiContext mContext;
+    @Mock
+    Resources mResources;
+    @Mock
     SelfRecovery mSelfRecovery;
     @Mock
     WifiThreadRunner mWifiThreadRunner;
@@ -178,6 +185,8 @@ public class Nl80211NativeTest {
         when(mWifiInjector.getSelfRecovery()).thenReturn(mSelfRecovery);
         when(mWifiInjector.getWifiThreadRunner()).thenReturn(mWifiThreadRunner);
         when(mWifiInjector.getClock()).thenReturn(mClock);
+        when(mWifiInjector.getContext()).thenReturn(mContext);
+        when(mContext.getResources()).thenReturn(mResources);
         when(mClock.getWallClockMillis()).thenReturn(TEST_START_TIME_MS);
         when(mWifiThreadRunner.getHandler()).thenReturn(mWifiHandler);
     }
@@ -2105,7 +2114,8 @@ public class Nl80211NativeTest {
                 new android.net.wifi.nl80211.DeviceWiphyCapabilities();
         when(mWificondManager.getDeviceWiphyCapabilities(CLIENT_IFACE_NAME))
                 .thenReturn(wificondCaps);
-        assertEquals(new DeviceWiphyCapabilities(wificondCaps),
+        assertEquals(DeviceWiphyCapabilities.Builder.createFromWificondCapabilities(wificondCaps)
+                        .build(),
                 mDut.getDeviceWiphyCapabilities(CLIENT_IFACE_NAME));
         verify(mWificondManager).getDeviceWiphyCapabilities(CLIENT_IFACE_NAME);
     }
@@ -2174,12 +2184,94 @@ public class Nl80211NativeTest {
     }
 
     @Test
+    public void testGetDeviceWiphyCapabilities_nl80211Path_with11axOverride() {
+        mDut = initNl80211Native(false);
+        when(mResources.getBoolean(R.bool.config_wifi11axSupportOverride)).thenReturn(true);
+
+        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo();
+        bandInfo.is80211axSupported = false; // Reported as false by hardware
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
+                bandInfo, mock(Nl80211Utils.ScanCapabilities.class),
+                mock(Nl80211Utils.WiphyFeatures.class),
+                mock(Nl80211Utils.DriverCapabilities.class));
+
+        when(mNl80211Utils.getWiphyIndex(CLIENT_IFACE_NAME)).thenReturn(WIPHY_INDEX_0);
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfo);
+
+        DeviceWiphyCapabilities capabilities = mDut.getDeviceWiphyCapabilities(CLIENT_IFACE_NAME);
+
+        assertNotNull(capabilities);
+        assertTrue("11ax support should be true due to resource override",
+                capabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AX));
+    }
+
+    @Test
+    public void testGetDeviceWiphyCapabilities_nl80211Path_with11beOverride() {
+        mDut = initNl80211Native(false);
+        when(mResources.getBoolean(R.bool.config_wifi11beSupportOverride)).thenReturn(true);
+
+        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo();
+        bandInfo.is80211beSupported = false; // Reported as false by hardware
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
+                bandInfo, mock(Nl80211Utils.ScanCapabilities.class),
+                mock(Nl80211Utils.WiphyFeatures.class),
+                mock(Nl80211Utils.DriverCapabilities.class));
+
+        when(mNl80211Utils.getWiphyIndex(CLIENT_IFACE_NAME)).thenReturn(WIPHY_INDEX_0);
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfo);
+
+        DeviceWiphyCapabilities capabilities = mDut.getDeviceWiphyCapabilities(CLIENT_IFACE_NAME);
+
+        assertNotNull(capabilities);
+        assertTrue("11be support should be true due to resource override",
+                capabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11BE));
+    }
+
+    @Test
     public void testGetChannelsMhzForBand_useWificondEnabled_callsWificond() {
         mDut = initNl80211Native(true);
         int[] channels = {2412, 2417};
         when(mWificondManager.getChannelsMhzForBand(anyInt())).thenReturn(channels);
         assertArrayEquals(channels, mDut.getChannelsMhzForBand(0));
         verify(mWificondManager).getChannelsMhzForBand(0);
+    }
+
+    @Test
+    public void testGetDeviceWiphyCapabilities_useWificondEnabled_with11axOverride() {
+        mDut = initNl80211Native(true);
+        when(mResources.getBoolean(R.bool.config_wifi11axSupportOverride)).thenReturn(true);
+
+        android.net.wifi.nl80211.DeviceWiphyCapabilities wificondCaps =
+                new android.net.wifi.nl80211.DeviceWiphyCapabilities();
+        wificondCaps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX, false);
+
+        when(mWificondManager.getDeviceWiphyCapabilities(CLIENT_IFACE_NAME))
+                .thenReturn(wificondCaps);
+
+        DeviceWiphyCapabilities capabilities = mDut.getDeviceWiphyCapabilities(CLIENT_IFACE_NAME);
+
+        assertNotNull(capabilities);
+        assertTrue("11ax support should be true due to resource override",
+                capabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11AX));
+    }
+
+    @Test
+    public void testGetDeviceWiphyCapabilities_useWificondEnabled_with11beOverride() {
+        mDut = initNl80211Native(true);
+        when(mResources.getBoolean(R.bool.config_wifi11beSupportOverride)).thenReturn(true);
+
+        android.net.wifi.nl80211.DeviceWiphyCapabilities wificondCaps =
+                new android.net.wifi.nl80211.DeviceWiphyCapabilities();
+        wificondCaps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11BE, false);
+
+        when(mWificondManager.getDeviceWiphyCapabilities(CLIENT_IFACE_NAME))
+                .thenReturn(wificondCaps);
+
+        DeviceWiphyCapabilities capabilities = mDut.getDeviceWiphyCapabilities(CLIENT_IFACE_NAME);
+
+        assertNotNull(capabilities);
+        assertTrue("11be support should be true due to resource override",
+                capabilities.isWifiStandardSupported(ScanResult.WIFI_STANDARD_11BE));
     }
 
     @Test
