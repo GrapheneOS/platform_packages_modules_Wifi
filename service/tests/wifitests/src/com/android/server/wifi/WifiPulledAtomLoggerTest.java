@@ -194,7 +194,7 @@ public class WifiPulledAtomLoggerTest extends WifiBaseTest {
         List<StatsEvent> data = new ArrayList<>();
         assertEquals(StatsManager.PULL_SUCCESS, mPullAtomCallbackArgumentCaptor.getValue()
                 .onPullAtom(WifiStatsLog.WIFI_SETTING_INFO, data));
-        assertEquals(12, data.size());
+        assertEquals(13, data.size());
     }
 
     @Test
