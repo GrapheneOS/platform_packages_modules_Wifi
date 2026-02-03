@@ -1510,8 +1510,9 @@ public class WifiShellCommandTest extends WifiBaseTest {
     public void testGetDeviceWiphyCapabilities_success() {
         BinderUtil.setUid(Process.ROOT_UID);
         final String ifaceName = "wlan0";
-        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities();
-        caps.setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX, true);
+        DeviceWiphyCapabilities caps = new DeviceWiphyCapabilities.Builder()
+                .setWifiStandardSupport(ScanResult.WIFI_STANDARD_11AX, true)
+                .build();
         when(mNl80211Native.getDeviceWiphyCapabilities(ifaceName)).thenReturn(caps);
         assertEquals(
                 0,
