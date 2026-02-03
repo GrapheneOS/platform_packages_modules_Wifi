@@ -23,7 +23,7 @@ java_library {
         type: "lite",
     },
     sdk_version: "system_current",
-    min_sdk_version: "30",
+    min_sdk_version: "31",
     srcs: [
         "src/scorecard.proto",
         "src/ml_model_params.proto",
@@ -42,7 +42,7 @@ java_library {
         ":system-messages-proto-src",
     ],
     sdk_version: "system_current",
-    min_sdk_version: "30",
+    min_sdk_version: "31",
     // Pin java_version until jarjar is certified to support later versions. http://b/72703434
     java_version: "1.8",
     target: {

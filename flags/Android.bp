@@ -29,7 +29,7 @@ java_aconfig_library {
     name: "wifi_aconfig_flags_lib",
     aconfig_declarations: "wifi_aconfig_flags",
     preserve_legacy_impl_interface: true,
-    min_sdk_version: "30",
+    min_sdk_version: "31",
     defaults: ["framework-minus-apex-aconfig-java-defaults"],
     apex_available: [
         "//apex_available:platform",
