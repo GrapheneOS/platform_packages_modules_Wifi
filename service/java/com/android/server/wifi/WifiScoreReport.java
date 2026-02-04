@@ -172,12 +172,9 @@ public class WifiScoreReport {
                 return;
             }
             long millis = mClock.getWallClockMillis();
-            if (SdkLevel.isAtLeastS()) {
-                mLegacyIntScore = score;
-                // Only primary network can have external scorer.
-                updateWifiMetrics(millis, SCORER_TYPE_INVALID, -1, -1, "NA", score);
-                return;
-            }
+            mLegacyIntScore = score;
+            // Only primary network can have external scorer.
+            updateWifiMetrics(millis, SCORER_TYPE_INVALID, -1, -1, "NA", score);
         }
 
         @Override
@@ -299,11 +296,9 @@ public class WifiScoreReport {
             // Send `exiting` to NetworkScore, but don't update and send mLegacyIntScore
             // and don't change any other fields. All we want to do is relay to ConnectivityService
             // whether the current network is usable.
-            if (SdkLevel.isAtLeastS()) {
-                mNetworkAgent.sendNetworkScore(getNetworkScore(mLegacyIntScore, mIsUsable));
-                if (!mIsUsable) {
-                    Log.i(TAG, "Wifi is set to exiting by the external scorer");
-                }
+            mNetworkAgent.sendNetworkScore(getNetworkScore(mLegacyIntScore, mIsUsable));
+            if (!mIsUsable) {
+                Log.i(TAG, "Wifi is set to exiting by the external scorer");
             }
             mWifiInfo.setUsable(mIsUsable);
             mNetworkPreEvaluationManager.stopPreEvaluation(wifiConfiguration.getProfileKey(),
@@ -1079,14 +1074,12 @@ public class WifiScoreReport {
     private boolean isLocalOnlyOrRestrictedConnection() {
         final NetworkCapabilities nc = getCurrentNetCapabilities();
         if (nc == null) return false;
-        if (SdkLevel.isAtLeastS()) {
-            // restricted connection support only added in S.
-            if (nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_OEM_PAID)
-                    || nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_OEM_PRIVATE)) {
+        // restricted connection support only added in S.
+        if (nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_OEM_PAID)
+                || nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_OEM_PRIVATE)) {
                 // restricted connection.
-                Log.v(TAG, "Restricted connection, ignore.");
-                return true;
-            }
+            Log.v(TAG, "Restricted connection, ignore.");
+            return true;
         }
         if (!nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
             // local only connection.
@@ -1199,10 +1192,7 @@ public class WifiScoreReport {
         if (mNetworkAgent == null) {
             return;
         }
-        if (SdkLevel.isAtLeastS()) {
-            // NetworkScore was introduced in S
-            mNetworkAgent.sendNetworkScore(getNetworkScore(adjustedScore, isUsable));
-        }
+        mNetworkAgent.sendNetworkScore(getNetworkScore(adjustedScore, isUsable));
     }
 
     private int convertToPredictionStatusForEvaluation(boolean isUsable) {
@@ -1259,8 +1249,7 @@ public class WifiScoreReport {
      * Get whether we are in the lingering state or not.
      */
     public boolean getLingering() {
-        return (SdkLevel.isAtLeastS() && mWifiConnectedNetworkScorerHolder != null
-                && !mIsExternalScorerDryRun)
+        return (mWifiConnectedNetworkScorerHolder != null && !mIsExternalScorerDryRun)
                 ? !mIsUsable : mLegacyIntScore < ConnectedScorer.WIFI_TRANSITION_SCORE;
     }
 }
