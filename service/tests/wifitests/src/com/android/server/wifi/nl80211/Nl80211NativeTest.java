@@ -229,6 +229,30 @@ public class Nl80211NativeTest {
                 CLIENT_IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback);
     }
 
+    @Test
+    public void testGetWiphyInfo_success() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyInfo expectedWiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(new Nl80211Utils.BandInfo.Builder().build())
+                .setScanCapabilities(mock(Nl80211Utils.ScanCapabilities.class))
+                .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(expectedWiphyInfo);
+
+        Nl80211Utils.WiphyInfo result = mDut.getWiphyInfo(WIPHY_INDEX_0);
+
+        assertEquals(expectedWiphyInfo, result);
+        verify(mNl80211Utils).getWiphyInfo(WIPHY_INDEX_0);
+    }
+
+    @Test
+    public void testGetWiphyInfo_useWificondEnabled_returnsNull() {
+        mDut = initNl80211Native(true);
+        assertNull(mDut.getWiphyInfo(WIPHY_INDEX_0));
+        verify(mNl80211Utils, never()).getWiphyInfo(anyInt());
+    }
+
     /** Test that a scan result event invokes the correct callback. */
     @Test
     public void testBroadcastEvent_onNewScanResults_invokesScanCallback() {
