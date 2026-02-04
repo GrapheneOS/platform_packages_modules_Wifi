@@ -51,6 +51,10 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_SPLI
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_STA_INFO;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_VENDOR_DATA;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_ANTENNA_AVAIL_RX;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_ANTENNA_AVAIL_TX;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_ANTENNA_RX;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_ANTENNA_TX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_BANDS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_FREQS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_HT_CAPA;
@@ -557,12 +561,20 @@ public class Nl80211Utils {
         public final WiphyFeatures wiphyFeatures;
         @NonNull
         public final DriverCapabilities driverCapabilities;
+        public final int availableAntennasTx;
+        public final int availableAntennasRx;
+        public final int configuredAntennasTx;
+        public final int configuredAntennasRx;
 
         private WiphyInfo(Builder builder) {
             this.bandInfo = builder.mBandInfo;
             this.scanCapabilities = builder.mScanCapabilities;
             this.wiphyFeatures = builder.mWiphyFeatures;
             this.driverCapabilities = builder.mDriverCapabilities;
+            this.availableAntennasTx = builder.mAvailableAntennasTx;
+            this.availableAntennasRx = builder.mAvailableAntennasRx;
+            this.configuredAntennasTx = builder.mConfiguredAntennasTx;
+            this.configuredAntennasRx = builder.mConfiguredAntennasRx;
         }
 
         @Override
@@ -574,6 +586,10 @@ public class Nl80211Utils {
                     + "\n  wiphyFeatures: " + wiphyFeatures.toString().replace("\n", "\n  ")
                     + "\n  driverCapabilities: "
                     + driverCapabilities.toString().replace("\n", "\n  ")
+                    + "\n  availableAntennasTx: 0x" + Integer.toHexString(availableAntennasTx)
+                    + "\n  availableAntennasRx: 0x" + Integer.toHexString(availableAntennasRx)
+                    + "\n  configuredAntennasTx: 0x" + Integer.toHexString(configuredAntennasTx)
+                    + "\n  configuredAntennasRx: 0x" + Integer.toHexString(configuredAntennasRx)
                     + "\n}";
         }
 
@@ -584,6 +600,10 @@ public class Nl80211Utils {
             @NonNull private WiphyFeatures mWiphyFeatures = new WiphyFeatures.Builder().build();
             @NonNull private DriverCapabilities mDriverCapabilities =
                     new DriverCapabilities.Builder().build();
+            private int mAvailableAntennasTx = 0;
+            private int mAvailableAntennasRx = 0;
+            private int mConfiguredAntennasTx = 0;
+            private int mConfiguredAntennasRx = 0;
 
             /** Sets the BandInfo. */
             public Builder setBandInfo(@NonNull BandInfo val) {
@@ -622,6 +642,30 @@ public class Nl80211Utils {
                     return this;
                 }
                 mDriverCapabilities = val;
+                return this;
+            }
+
+            /** Sets the available TX antennas bitmap. */
+            public Builder setAvailableAntennasTx(int val) {
+                mAvailableAntennasTx = val;
+                return this;
+            }
+
+            /** Sets the available RX antennas bitmap. */
+            public Builder setAvailableAntennasRx(int val) {
+                mAvailableAntennasRx = val;
+                return this;
+            }
+
+            /** Sets the configured TX antennas bitmap. */
+            public Builder setConfiguredAntennasTx(int val) {
+                mConfiguredAntennasTx = val;
+                return this;
+            }
+
+            /** Sets the configured RX antennas bitmap. */
+            public Builder setConfiguredAntennasRx(int val) {
+                mConfiguredAntennasRx = val;
                 return this;
             }
 
@@ -934,6 +978,10 @@ public class Nl80211Utils {
         Integer featureFlags = null;
         byte[] extFeatureFlagsBytes = null;
         Short maxNumAkms = null;
+        Integer availTx = null;
+        Integer availRx = null;
+        Integer confTx = null;
+        Integer confRx = null;
 
         for (GenericNetlinkMsg packet : packets) {
             if (featureFlags == null) {
@@ -945,6 +993,18 @@ public class Nl80211Utils {
             }
             if (maxNumAkms == null) {
                 maxNumAkms = packet.getAttributeValueAsShort(NL80211_ATTR_MAX_NUM_AKM_SUITES);
+            }
+            if (availTx == null) {
+                availTx = packet.getAttributeValueAsInteger(NL80211_ATTR_WIPHY_ANTENNA_AVAIL_TX);
+            }
+            if (availRx == null) {
+                availRx = packet.getAttributeValueAsInteger(NL80211_ATTR_WIPHY_ANTENNA_AVAIL_RX);
+            }
+            if (confTx == null) {
+                confTx = packet.getAttributeValueAsInteger(NL80211_ATTR_WIPHY_ANTENNA_TX);
+            }
+            if (confRx == null) {
+                confRx = packet.getAttributeValueAsInteger(NL80211_ATTR_WIPHY_ANTENNA_RX);
             }
         }
 
@@ -970,6 +1030,10 @@ public class Nl80211Utils {
                 .setScanCapabilities(scanCapabilities)
                 .setWiphyFeatures(wiphyFeatures)
                 .setDriverCapabilities(driverCapabilities)
+                .setAvailableAntennasTx(availTx != null ? availTx : 0)
+                .setAvailableAntennasRx(availRx != null ? availRx : 0)
+                .setConfiguredAntennasTx(confTx != null ? confTx : 0)
+                .setConfiguredAntennasRx(confRx != null ? confRx : 0)
                 .build();
     }
 

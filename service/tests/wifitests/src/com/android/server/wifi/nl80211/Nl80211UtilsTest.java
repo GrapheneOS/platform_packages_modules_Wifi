@@ -565,6 +565,26 @@ public class Nl80211UtilsTest {
     }
 
     @Test
+    public void testParseWiphyInfo_antennas_success() {
+        GenericNetlinkMsg msg = createBasicWiphyInfoMsg();
+        msg.addAttribute(createWiphyBandsAttribute());
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_WIPHY_ANTENNA_AVAIL_TX,
+                0x3));
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_WIPHY_ANTENNA_AVAIL_RX,
+                0x7));
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_WIPHY_ANTENNA_TX, 0x1));
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_WIPHY_ANTENNA_RX, 0x1));
+
+        Nl80211Utils.WiphyInfo info = mNl80211Utils.parseWiphyInfo(List.of(msg));
+
+        assertNotNull(info);
+        assertEquals(0x3, info.availableAntennasTx);
+        assertEquals(0x7, info.availableAntennasRx);
+        assertEquals(0x1, info.configuredAntennasTx);
+        assertEquals(0x1, info.configuredAntennasRx);
+    }
+
+    @Test
     public void testParseWiphyInfo_splitDump_success() {
         // Split the response payload into two different msgs.
         GenericNetlinkMsg msg1 = new GenericNetlinkMsg(NL80211_CMD_NEW_WIPHY, (short) 0,

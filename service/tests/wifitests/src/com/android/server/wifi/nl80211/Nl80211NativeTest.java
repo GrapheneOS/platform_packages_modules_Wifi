@@ -237,12 +237,20 @@ public class Nl80211NativeTest {
                 .setScanCapabilities(mock(Nl80211Utils.ScanCapabilities.class))
                 .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
                 .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .setAvailableAntennasTx(0x3)
+                .setAvailableAntennasRx(0x3)
+                .setConfiguredAntennasTx(0x1)
+                .setConfiguredAntennasRx(0x1)
                 .build();
         when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(expectedWiphyInfo);
 
         Nl80211Utils.WiphyInfo result = mDut.getWiphyInfo(WIPHY_INDEX_0);
 
         assertEquals(expectedWiphyInfo, result);
+        assertEquals(0x3, result.availableAntennasTx);
+        assertEquals(0x3, result.availableAntennasRx);
+        assertEquals(0x1, result.configuredAntennasTx);
+        assertEquals(0x1, result.configuredAntennasRx);
         verify(mNl80211Utils).getWiphyInfo(WIPHY_INDEX_0);
     }
 
