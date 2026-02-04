@@ -167,6 +167,10 @@ public class WifiPulledAtomLogger {
                 WifiStatsLog.WIFI_SETTING_INFO__SETTING_NAME__MOBILITY_STATE_AVAILABLE,
                 mWifiInjector.getActiveModeWarden()
                         .getDeviceMobilityState() != WifiManager.DEVICE_MOBILITY_STATE_UNKNOWN));
+        data.add(WifiStatsLog.buildStatsEvent(atomTag,
+                WifiStatsLog.WIFI_SETTING_INFO__SETTING_NAME__WIFICOND_MIGRATION_ENABLED,
+                mContext.getResources().getBoolean(
+                        R.bool.config_wificondMigrationEnabled)));
         return StatsManager.PULL_SUCCESS;
     }
 
