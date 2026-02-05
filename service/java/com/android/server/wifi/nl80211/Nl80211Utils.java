@@ -183,6 +183,28 @@ public class Nl80211Utils {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            WiphyFeatures that = (WiphyFeatures) o;
+            return supportsRandomMacOneShotScan == that.supportsRandomMacOneShotScan
+                    && supportsRandomMacSchedScan == that.supportsRandomMacSchedScan
+                    && supportsLowSpanOneShotScan == that.supportsLowSpanOneShotScan
+                    && supportsLowPowerOneShotScan == that.supportsLowPowerOneShotScan
+                    && supportsHighAccuracyOneShotScan == that.supportsHighAccuracyOneShotScan
+                    && supportsTxMgmtFrameMcs == that.supportsTxMgmtFrameMcs
+                    && supportsExtSchedScanRelativeRssi == that.supportsExtSchedScanRelativeRssi;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(supportsRandomMacOneShotScan, supportsRandomMacSchedScan,
+                    supportsLowSpanOneShotScan, supportsLowPowerOneShotScan,
+                    supportsHighAccuracyOneShotScan, supportsTxMgmtFrameMcs,
+                    supportsExtSchedScanRelativeRssi);
+        }
+
+        @Override
         public String toString() {
             return "WiphyFeatures {"
                     + "\n  supportsRandomMacOneShotScan: " + supportsRandomMacOneShotScan
@@ -300,6 +322,35 @@ public class Nl80211Utils {
             this.is320MhzSupported = builder.mIs320MhzSupported;
             this.maxTxStreams = builder.mMaxTxStreams;
             this.maxRxStreams = builder.mMaxRxStreams;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            BandInfo bandInfo = (BandInfo) o;
+            return is80211nSupported == bandInfo.is80211nSupported
+                    && is80211acSupported == bandInfo.is80211acSupported
+                    && is80211axSupported == bandInfo.is80211axSupported
+                    && is80211beSupported == bandInfo.is80211beSupported
+                    && is160MhzSupported == bandInfo.is160MhzSupported
+                    && is80p80MhzSupported == bandInfo.is80p80MhzSupported
+                    && is320MhzSupported == bandInfo.is320MhzSupported
+                    && maxTxStreams == bandInfo.maxTxStreams
+                    && maxRxStreams == bandInfo.maxRxStreams
+                    && Objects.equals(band2g, bandInfo.band2g)
+                    && Objects.equals(band5g, bandInfo.band5g)
+                    && Objects.equals(band6g, bandInfo.band6g)
+                    && Objects.equals(band60g, bandInfo.band60g)
+                    && Objects.equals(bandDfs, bandInfo.bandDfs);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(band2g, band5g, band6g, band60g, bandDfs, is80211nSupported,
+                    is80211acSupported, is80211axSupported, is80211beSupported,
+                    is160MhzSupported, is80p80MhzSupported, is320MhzSupported,
+                    maxTxStreams, maxRxStreams);
         }
 
         @Override
@@ -457,6 +508,25 @@ public class Nl80211Utils {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ScanCapabilities that = (ScanCapabilities) o;
+            return maxNumScanSsids == that.maxNumScanSsids
+                    && maxNumSchedScanSsids == that.maxNumSchedScanSsids
+                    && maxMatchSets == that.maxMatchSets
+                    && maxNumScanPlans == that.maxNumScanPlans
+                    && maxScanPlanIntervalSeconds == that.maxScanPlanIntervalSeconds
+                    && maxScanPlanIterations == that.maxScanPlanIterations;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(maxNumScanSsids, maxNumSchedScanSsids, maxMatchSets,
+                    maxNumScanPlans, maxScanPlanIntervalSeconds, maxScanPlanIterations);
+        }
+
+        @Override
         public String toString() {
             return "ScanCapabilities {"
                     + "\n  maxNumScanSsids: " + maxNumScanSsids
@@ -527,6 +597,19 @@ public class Nl80211Utils {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            DriverCapabilities that = (DriverCapabilities) o;
+            return maxNumAkmSuites == that.maxNumAkmSuites;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(maxNumAkmSuites);
+        }
+
+        @Override
         public String toString() {
             return "DriverCapabilities {"
                     + "\n  maxNumAkmSuites: " + maxNumAkmSuites
@@ -575,6 +658,28 @@ public class Nl80211Utils {
             this.availableAntennasRx = builder.mAvailableAntennasRx;
             this.configuredAntennasTx = builder.mConfiguredAntennasTx;
             this.configuredAntennasRx = builder.mConfiguredAntennasRx;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            WiphyInfo wiphyInfo = (WiphyInfo) o;
+            return availableAntennasTx == wiphyInfo.availableAntennasTx
+                    && availableAntennasRx == wiphyInfo.availableAntennasRx
+                    && configuredAntennasTx == wiphyInfo.configuredAntennasTx
+                    && configuredAntennasRx == wiphyInfo.configuredAntennasRx
+                    && Objects.equals(bandInfo, wiphyInfo.bandInfo)
+                    && Objects.equals(scanCapabilities, wiphyInfo.scanCapabilities)
+                    && Objects.equals(wiphyFeatures, wiphyInfo.wiphyFeatures)
+                    && Objects.equals(driverCapabilities, wiphyInfo.driverCapabilities);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(bandInfo, scanCapabilities, wiphyFeatures, driverCapabilities,
+                    availableAntennasTx, availableAntennasRx, configuredAntennasTx,
+                    configuredAntennasRx);
         }
 
         @Override
