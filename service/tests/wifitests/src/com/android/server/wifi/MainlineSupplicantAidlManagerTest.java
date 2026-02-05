@@ -237,7 +237,7 @@ public class MainlineSupplicantAidlManagerTest extends WifiBaseTest {
     @Test
     public void testGetWifiNanIface() throws Exception {
         testStartDaemon();
-        AwareIfaceAidlSupplicantImpl iface = mDut.getWifiNanIface();
+        AwareIfaceAidlSupplicantImpl iface = mDut.getWifiNanIface("aware0");
         verify(mIMainlineSupplicant).addNanInterface("aware0");
         iface.getName();
         verify(mISupplicantNanIface).getName();
