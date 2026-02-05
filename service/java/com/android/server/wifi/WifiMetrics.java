@@ -865,6 +865,7 @@ public class WifiMetrics {
         private boolean mIsPasnSupported = false;
         private boolean mIsSecureHeLtfSupported = false;
         private boolean mIsRangingFrameProtectionRequired = false;
+        private boolean mIsBssColorEnabled = false;
 
         public String toString() {
             StringBuilder sb = new StringBuilder();
@@ -904,6 +905,7 @@ public class WifiMetrics {
                 sb.append("" + mIsPasnSupported);
                 sb.append("" + mIsSecureHeLtfSupported);
                 sb.append("" + mIsRangingFrameProtectionRequired);
+                sb.append("" + mIsBssColorEnabled);
             }
             return sb.toString();
         }
@@ -2929,7 +2931,8 @@ public class WifiMetrics {
                         : WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_SECURE_HE_LTF_SUPPORTED__TRI_STATE_FALSE,
                 r.mIsRangingFrameProtectionRequired
                         ? WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_RANGING_FRAME_PROTECTION_REQUIRED__TRI_STATE_TRUE
-                        : WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_RANGING_FRAME_PROTECTION_REQUIRED__TRI_STATE_FALSE);
+                        : WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_RANGING_FRAME_PROTECTION_REQUIRED__TRI_STATE_FALSE,
+                r.mIsBssColorEnabled);
     }
 
     /**
@@ -3153,6 +3156,8 @@ public class WifiMetrics {
         currentConnectionEvent.mRouterFingerPrint.mHsRelease = networkDetail.getHSRelease();
         currentConnectionEvent.mRouterFingerPrint.mIsSecureHeLtfSupported = networkDetail.isSecureHeLtfSupported();
         currentConnectionEvent.mRouterFingerPrint.mIsRangingFrameProtectionRequired = networkDetail.isRangingFrameProtectionRequired();
+        currentConnectionEvent.mRouterFingerPrint.mIsBssColorEnabled =
+                networkDetail.isBssColorEnabled();
     }
 
     /**

@@ -7185,6 +7185,7 @@ public class WifiMetricsTest extends WifiBaseTest {
         when(networkDetail.getWifiMode()).thenReturn(InformationElementUtil.WifiMode.MODE_11BE);
         when(networkDetail.isRangingFrameProtectionRequired()).thenReturn(true);
         when(networkDetail.isSecureHeLtfSupported()).thenReturn(true);
+        when(networkDetail.isBssColorEnabled()).thenReturn(true);
 
         SecurityParams securityParams = mock(SecurityParams.class);
         when(config.getDefaultSecurityParams()).thenReturn(securityParams);
@@ -7238,13 +7239,15 @@ public class WifiMetricsTest extends WifiBaseTest {
                         eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_160MHZ), // mChannelWidth
                         eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_PASN_SUPPORTED__TRI_STATE_TRUE),
                         eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_SECURE_HE_LTF_SUPPORTED__TRI_STATE_TRUE),
-                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_RANGING_FRAME_PROTECTION_REQUIRED__TRI_STATE_TRUE)));
+                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_RANGING_FRAME_PROTECTION_REQUIRED__TRI_STATE_TRUE),
+                        eq(true)));
 
         // Validate AP capabilities after roaming
         when(networkDetail.getApType6GHz()).thenReturn(
                 InformationElementUtil.ApType6GHz.AP_TYPE_6GHZ_INDOOR);
         when(networkDetail.isSecureHeLtfSupported()).thenReturn(false);
         when(networkDetail.isRangingFrameProtectionRequired()).thenReturn(false);
+        when(networkDetail.isBssColorEnabled()).thenReturn(false);
         mWifiMetrics.setConnectionScanDetail(TEST_IFACE_NAME, scanDetail);
         mWifiMetrics.onRoamComplete(TEST_IFACE_NAME);
 
@@ -7279,7 +7282,8 @@ public class WifiMetricsTest extends WifiBaseTest {
                         eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__CHANNEL_WIDTH_MHZ__CHANNEL_WIDTH_160MHZ), // mChannelWidth
                         eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_PASN_SUPPORTED__TRI_STATE_TRUE),
                         eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_SECURE_HE_LTF_SUPPORTED__TRI_STATE_FALSE),
-                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_RANGING_FRAME_PROTECTION_REQUIRED__TRI_STATE_FALSE)));
+                        eq(WifiStatsLog.WIFI_AP_CAPABILITIES_REPORTED__IS_RANGING_FRAME_PROTECTION_REQUIRED__TRI_STATE_FALSE),
+                        eq(false)));
     }
 
     @Test
