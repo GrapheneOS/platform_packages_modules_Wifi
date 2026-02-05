@@ -1574,17 +1574,78 @@ public class Nl80211UtilsTest {
     public void testDriverCapabilitiesEquals() {
         Nl80211Utils.DriverCapabilities caps1 = new Nl80211Utils.DriverCapabilities.Builder()
                 .setMaxNumAkmSuites(5)
+                .setSupportedCipherSuites(Set.of(1, 2, 3))
                 .build();
         Nl80211Utils.DriverCapabilities caps2 = new Nl80211Utils.DriverCapabilities.Builder()
                 .setMaxNumAkmSuites(5)
+                .setSupportedCipherSuites(Set.of(1, 2, 3))
                 .build();
         Nl80211Utils.DriverCapabilities caps3 = new Nl80211Utils.DriverCapabilities.Builder()
                 .setMaxNumAkmSuites(2)
+                .setSupportedCipherSuites(Set.of(1, 2, 3))
+                .build();
+        Nl80211Utils.DriverCapabilities caps4 = new Nl80211Utils.DriverCapabilities.Builder()
+                .setMaxNumAkmSuites(5)
+                .setSupportedCipherSuites(Set.of(1, 2))
                 .build();
 
         assertEquals(caps1, caps2);
         assertEquals(caps1.hashCode(), caps2.hashCode());
         assertNotEquals(caps1, caps3);
+        assertNotEquals(caps1, caps4);
+    }
+
+    @Test
+    public void testParseCipherSuites_success() {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg((short) 0, (short) 0, (short) 0, 0);
+        List<Integer> expectedCiphers = List.of(0x11223344, 0x55667788);
+        ByteBuffer buffer = ByteBuffer.allocate(expectedCiphers.size() * Integer.BYTES)
+                .order(ByteOrder.nativeOrder());
+        for (int cipher : expectedCiphers) {
+            buffer.putInt(cipher);
+        }
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_CIPHER_SUITES,
+                buffer.array()));
+
+        List<Integer> actualCiphers = mNl80211Utils.parseCipherSuites(msg);
+
+        assertNotNull(actualCiphers);
+        assertEquals(expectedCiphers, actualCiphers);
+    }
+
+    @Test
+    public void testParseCipherSuites_malformedLength() {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg((short) 0, (short) 0, (short) 0, 0);
+        byte[] malformedBytes = new byte[Integer.BYTES - 1];
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_CIPHER_SUITES,
+                malformedBytes));
+
+        assertNull(mNl80211Utils.parseCipherSuites(msg));
+    }
+
+    @Test
+    public void testParseCipherSuites_missingAttribute() {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg((short) 0, (short) 0, (short) 0, 0);
+        assertNull(mNl80211Utils.parseCipherSuites(msg));
+    }
+
+    @Test
+    public void testParseWiphyInfo_withCipherSuites() {
+        GenericNetlinkMsg msg = createBasicWiphyInfoMsg();
+        msg.addAttribute(createWiphyBandsAttribute());
+        Set<Integer> expectedCiphers = Set.of(0x000fac02, 0x000fac04);
+        ByteBuffer buffer = ByteBuffer.allocate(expectedCiphers.size() * Integer.BYTES)
+                .order(ByteOrder.nativeOrder());
+        for (int cipher : expectedCiphers) {
+            buffer.putInt(cipher);
+        }
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_CIPHER_SUITES,
+                buffer.array()));
+
+        Nl80211Utils.WiphyInfo info = mNl80211Utils.parseWiphyInfo(List.of(msg));
+
+        assertNotNull(info);
+        assertEquals(expectedCiphers, info.driverCapabilities.supportedCipherSuites);
     }
 
     @Test
