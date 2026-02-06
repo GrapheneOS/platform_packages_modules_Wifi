@@ -202,7 +202,7 @@ class WifiAwareLatencyTest(base_test.BaseTestClass):
         config = {}
         config[constants.SERVICE_NAME] ="GoogleTestServiceXY"
         if instant_mode is not None:
-            config[constants.INSTANTMODE_ENABLE] = instant_mode
+            config[constants.INSTANT_MODE] = instant_mode
         if is_publish:
             config[constants.PUBLISH_TYPE] = dtype
             disc_id = dut.wifi_aware_snippet.wifiAwarePublish(

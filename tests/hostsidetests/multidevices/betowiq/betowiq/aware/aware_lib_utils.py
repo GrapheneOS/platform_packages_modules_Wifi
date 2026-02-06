@@ -431,7 +431,7 @@ def create_discovery_config(service_name,
     if match_filter_list is not None:
         config[constants.MATCH_FILTER_LIST] = match_filter_list
     if instant_mode is not None:
-        config[constants.INSTANTMODE_ENABLE] = instant_mode
+        config[constants.INSTANT_MODE] = instant_mode
     config[constants.TTL_SEC] = ttl
     config[constants.TERMINATE_NOTIFICATION_ENABLED] = term_cb_enable
     return config
