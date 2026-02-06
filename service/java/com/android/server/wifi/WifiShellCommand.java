@@ -3097,6 +3097,23 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                     pw.println(Arrays.toString(channels));
                     return 0;
                 }
+                case "get-wiphy-info": {
+                    int wiphyIndex;
+                    try {
+                        wiphyIndex = Integer.parseInt(getNextArgRequired());
+                    } catch (NumberFormatException e) {
+                        pw.println("Invalid wiphy index: " + e.getMessage());
+                        return -1;
+                    }
+                    Nl80211Utils.WiphyInfo wiphyInfo = mNl80211Native.getWiphyInfo(wiphyIndex);
+                    if (wiphyInfo == null) {
+                        pw.println("Failed to get wiphy info for index " + wiphyIndex
+                                + ". (Is wificond migration enabled?)");
+                        return -1;
+                    }
+                    pw.println(wiphyInfo);
+                    return 0;
+                }
                 case "start-nl80211-scan": {
                     String ifaceName = getNextArgRequired();
                     int scanType = WifiScanner.SCAN_TYPE_HIGH_ACCURACY;
@@ -4703,6 +4720,9 @@ public class WifiShellCommand extends BasicShellCommandHandler {
         pw.println("  get-nl80211-channels-mhz 2|5|dbs|6|60");
         pw.println("    For debugging. Dumps the result of Nl80211Native.getChannelsMhzForBand");
         pw.println("    -n Use direct nl80211 implementation instead of wificond.");
+        pw.println("  get-wiphy-info <wiphy index>");
+        pw.println("    For debugging. Dumps the result of Nl80211Native.getWiphyInfo.");
+        pw.println("    Note: wificond migration must be enabled for this to work.");
         pw.println("  stop-nl80211-scan <iface>");
         pw.println("    For debugging. Aborts an ongoing scan via Nl80211Native.abortScan.");
         pw.println("    -n Use direct nl80211 implementation instead of wificond.");

@@ -2091,6 +2091,23 @@ public class Nl80211Native {
     }
 
     /**
+     * Get the device phy capabilities for a given wiphy index.
+     *
+     * @param wiphyIndex index of the wiphy.
+     * @return WiphyInfo or null on error.
+     */
+    @Nullable
+    public Nl80211Utils.WiphyInfo getWiphyInfo(int wiphyIndex) {
+        if (useWificond()) {
+            return null;
+        }
+        synchronized (this) {
+            if (!mIsInitialized) return null;
+            return mNl80211Utils.getWiphyInfo(wiphyIndex);
+        }
+    }
+
+    /**
      * Register the provided listener for country code event.
      *
      * @param executor The Executor on which to execute the callbacks.

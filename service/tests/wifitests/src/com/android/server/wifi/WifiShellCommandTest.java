@@ -197,6 +197,29 @@ public class WifiShellCommandTest extends WifiBaseTest {
     }
 
     @Test
+    public void testGetWiphyInfo_success() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        Nl80211Utils.WiphyInfo wiphyInfo = mock(Nl80211Utils.WiphyInfo.class);
+        when(mNl80211Native.getWiphyInfo(0)).thenReturn(wiphyInfo);
+
+        assertEquals(0, mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"get-wiphy-info", "0"}));
+        verify(mNl80211Native).getWiphyInfo(0);
+    }
+
+    @Test
+    public void testGetWiphyInfo_failure() {
+        BinderUtil.setUid(Process.ROOT_UID);
+        when(mNl80211Native.getWiphyInfo(0)).thenReturn(null);
+
+        assertEquals(-1, mWifiShellCommand.exec(
+                new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
+                new String[]{"get-wiphy-info", "0"}));
+        verify(mNl80211Native).getWiphyInfo(0);
+    }
+
+    @Test
     public void testSetIpReachDisconnect() {
         mWifiShellCommand.exec(
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
