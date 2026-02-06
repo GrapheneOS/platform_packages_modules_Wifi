@@ -49,7 +49,21 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_2GHZ
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_5GHZ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_FREQS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_HT_CAPA;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_HT_MCS_SET;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_IFTYPE_DATA;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_VHT_CAPA;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_VHT_MCS_SET;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PPE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_CAP_MAC;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_CAP_PHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_IFTYPES;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_VENDOR_ELEMS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_BSSID;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_CAPABILITY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_CHAIN_SIGNAL;
@@ -113,6 +127,7 @@ import org.mockito.MockitoAnnotations;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1536,16 +1551,28 @@ public class Nl80211UtilsTest {
     @Test
     public void testBandInfoEquals() {
         Nl80211Utils.BandInfo bandInfo1 = new Nl80211Utils.BandInfo.Builder()
-                .addBand2gFrequency(2412)
-                .setIs80211axSupported(true)
+                .addBandCapabilities(NL80211_BAND_2GHZ, new Nl80211Utils.BandCapabilities.Builder()
+                        .setBandIndex(NL80211_BAND_2GHZ)
+                        .addFrequency(new Nl80211Utils.FrequencyInfo.Builder()
+                                .setFrequencyMhz(2412).build())
+                        .setIsHeSupported(true)
+                        .build())
                 .build();
         Nl80211Utils.BandInfo bandInfo2 = new Nl80211Utils.BandInfo.Builder()
-                .addBand2gFrequency(2412)
-                .setIs80211axSupported(true)
+                .addBandCapabilities(NL80211_BAND_2GHZ, new Nl80211Utils.BandCapabilities.Builder()
+                        .setBandIndex(NL80211_BAND_2GHZ)
+                        .addFrequency(new Nl80211Utils.FrequencyInfo.Builder()
+                                .setFrequencyMhz(2412).build())
+                        .setIsHeSupported(true)
+                        .build())
                 .build();
         Nl80211Utils.BandInfo bandInfo3 = new Nl80211Utils.BandInfo.Builder()
-                .addBand2gFrequency(2412)
-                .setIs80211axSupported(false)
+                .addBandCapabilities(NL80211_BAND_2GHZ, new Nl80211Utils.BandCapabilities.Builder()
+                        .setBandIndex(NL80211_BAND_2GHZ)
+                        .addFrequency(new Nl80211Utils.FrequencyInfo.Builder()
+                                .setFrequencyMhz(2412).build())
+                        .setIsHeSupported(false)
+                        .build())
                 .build();
 
         assertEquals(bandInfo1, bandInfo2);
@@ -1649,9 +1676,176 @@ public class Nl80211UtilsTest {
     }
 
     @Test
+    public void testParseWiphyInfo_withDetailedBandCapabilities() {
+        GenericNetlinkMsg msg = createBasicWiphyInfoMsg();
+
+        // Prepare raw attribute values
+        byte[] htMcs = new byte[16]; htMcs[0] = (byte) 0xFF; htMcs[1] = (byte) 0xFF; // 2x2 HT
+        // VHT MCS map: 2 bits per stream. 0=MCS 0-7, 1=MCS 0-8, 2=MCS 0-9, 3=unsupported.
+        // For 2x2 with MCS 0-9: stream1=2 (binary 10), stream2=2 (binary 10), others=3 (binary 11).
+        // hex: 0xFFFA (1111 1111 1111 1010)
+        byte[] vhtMcs = new byte[8]; Arrays.fill(vhtMcs, (byte) 0xFF);
+        vhtMcs[0] = (byte) 0xFA; vhtMcs[1] = (byte) 0xFF; // Rx 2x2
+        vhtMcs[4] = (byte) 0xFA; vhtMcs[5] = (byte) 0xFF; // Tx 2x2
+        byte[] heMcs = new byte[4]; Arrays.fill(heMcs, (byte) 0xFF);
+        heMcs[0] = (byte) 0xFA; heMcs[1] = (byte) 0xFF; // Rx 2x2
+        heMcs[2] = (byte) 0xFA; heMcs[3] = (byte) 0xFF; // Tx 2x2
+        // EHT MCS map: same as VHT/HE.
+        byte[] ehtMcs = new byte[6]; Arrays.fill(ehtMcs, (byte) 0xFF);
+        ehtMcs[0] = (byte) 0xFA; ehtMcs[1] = (byte) 0xFF; // Rx 2x2
+        ehtMcs[2] = (byte) 0xFA; ehtMcs[3] = (byte) 0xFF; // Tx 2x2
+        byte[] capMac = new byte[]{0x1, 0x2, 0x3, 0x4, 0x5, 0x6};
+        byte[] capPhy = new byte[]{0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9};
+        byte[] ppe = new byte[]{0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8};
+        byte[] vendor = new byte[]{0x8, 0x9};
+        byte[] iftypes = new byte[]{0xA, 0xB};
+        byte[] he6ghz = new byte[]{0xC, 0xD};
+
+        // Inner nested: IFTYPE_DATA children
+        ByteBuffer iftypeDataPayload = ByteBuffer.allocate(256).order(ByteOrder.nativeOrder());
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_IFTYPES, iftypes).pack(iftypeDataPayload);
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_HE_CAP_MAC, capMac).pack(iftypeDataPayload);
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_HE_CAP_PHY, capPhy).pack(iftypeDataPayload);
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET, heMcs).pack(iftypeDataPayload);
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE, ppe).pack(iftypeDataPayload);
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA, he6ghz).pack(iftypeDataPayload);
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC, capMac).pack(iftypeDataPayload);
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY, capPhy).pack(iftypeDataPayload);
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET, ehtMcs).pack(iftypeDataPayload);
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PPE, ppe).pack(iftypeDataPayload);
+        new StructNlAttr(NL80211_BAND_IFTYPE_ATTR_VENDOR_ELEMS, vendor).pack(iftypeDataPayload);
+
+        // Nested attribute list for IFTYPE_DATA index '1' (STA)
+        ByteBuffer staIftypePayload = ByteBuffer.allocate(iftypeDataPayload.position())
+                .order(ByteOrder.nativeOrder());
+        staIftypePayload.put(iftypeDataPayload.array(), 0, iftypeDataPayload.position());
+        StructNlAttr staIftype = new StructNlAttr((short) 1, staIftypePayload.array());
+
+        ByteBuffer iftypeDataRootPayload = ByteBuffer.allocate(staIftype.getAlignedLength());
+        staIftype.pack(iftypeDataRootPayload);
+        StructNlAttr iftypeDataRoot = new StructNlAttr(NL80211_BAND_ATTR_IFTYPE_DATA,
+                iftypeDataRootPayload.array());
+
+        // Frequencies (2412 enabled, 2484 disabled with DFS/No-IR)
+        ByteBuffer f2412Payload = ByteBuffer.allocate(64).order(ByteOrder.nativeOrder());
+        new StructNlAttr(NetlinkConstants.NL80211_FREQUENCY_ATTR_FREQ, 2412).pack(f2412Payload);
+        StructNlAttr freq2412 = new StructNlAttr((short) 1,
+                Arrays.copyOf(f2412Payload.array(), f2412Payload.position()));
+
+        ByteBuffer f2484Payload = ByteBuffer.allocate(64).order(ByteOrder.nativeOrder());
+        new StructNlAttr(NetlinkConstants.NL80211_FREQUENCY_ATTR_FREQ, 2484).pack(f2484Payload);
+        new StructNlAttr(NetlinkConstants.NL80211_FREQUENCY_ATTR_DISABLED, new byte[0])
+                .pack(f2484Payload);
+        new StructNlAttr(NetlinkConstants.NL80211_FREQUENCY_ATTR_NO_IR, new byte[0])
+                .pack(f2484Payload);
+        new StructNlAttr(NetlinkConstants.NL80211_FREQUENCY_ATTR_DFS_STATE,
+                (int) NetlinkConstants.NL80211_DFS_AVAILABLE).pack(f2484Payload);
+        StructNlAttr freq2484 = new StructNlAttr((short) 2,
+                Arrays.copyOf(f2484Payload.array(), f2484Payload.position()));
+
+        ByteBuffer freqsPayload = ByteBuffer.allocate(
+                freq2412.getAlignedLength() + freq2484.getAlignedLength());
+        freq2412.pack(freqsPayload);
+        freq2484.pack(freqsPayload);
+        StructNlAttr freqs = new StructNlAttr(NL80211_BAND_ATTR_FREQS, freqsPayload.array());
+
+        // Final Band 2.4GHz Container
+        ByteBuffer band2gPayload = ByteBuffer.allocate(512).order(ByteOrder.nativeOrder());
+        freqs.pack(band2gPayload);
+        new StructNlAttr(NL80211_BAND_ATTR_HT_CAPA, new byte[]{0x10, 0x20}).pack(band2gPayload);
+        new StructNlAttr(NL80211_BAND_ATTR_HT_MCS_SET, htMcs).pack(band2gPayload);
+        new StructNlAttr(NetlinkConstants.NL80211_BAND_ATTR_HT_AMPDU_FACTOR, (byte) 3)
+                .pack(band2gPayload);
+        new StructNlAttr(NetlinkConstants.NL80211_BAND_ATTR_HT_AMPDU_DENSITY, (byte) 7)
+                .pack(band2gPayload);
+        new StructNlAttr(NL80211_BAND_ATTR_VHT_CAPA, 0x12345678).pack(band2gPayload);
+        new StructNlAttr(NL80211_BAND_ATTR_VHT_MCS_SET, vhtMcs).pack(band2gPayload);
+        iftypeDataRoot.pack(band2gPayload);
+
+        StructNlAttr band2g = new StructNlAttr(NL80211_BAND_2GHZ,
+                Arrays.copyOf(band2gPayload.array(), band2gPayload.position()));
+
+        ByteBuffer bandsPayload = ByteBuffer.allocate(band2g.getAlignedLength());
+        band2g.pack(bandsPayload);
+        msg.addAttribute(new StructNlAttr(NL80211_ATTR_WIPHY_BANDS, bandsPayload.array()));
+
+        // Parse
+        Nl80211Utils.WiphyInfo info = mNl80211Utils.parseWiphyInfo(List.of(msg));
+
+        // Assertions
+        assertNotNull(info);
+        Nl80211Utils.BandCapabilities caps = info.bandInfo.perBandCapabilities.get(
+                (int) NL80211_BAND_2GHZ);
+        assertNotNull(caps);
+        assertEquals((int) NL80211_BAND_2GHZ, caps.bandIndex);
+        assertTrue(caps.isHtSupported);
+        assertTrue(caps.isVhtSupported);
+        assertTrue(caps.isHeSupported);
+        assertTrue(caps.isEhtSupported);
+
+        // Verify Spatial Streams
+        assertEquals(2, caps.htMaxTxStreams);
+        assertEquals(2, caps.htMaxRxStreams);
+        assertEquals(2, caps.vhtMaxTxStreams);
+        assertEquals(2, caps.vhtMaxRxStreams);
+        assertEquals(2, caps.heMaxTxStreams);
+        assertEquals(2, caps.heMaxRxStreams);
+        assertEquals(2, caps.ehtMaxTxStreams);
+        assertEquals(2, caps.ehtMaxRxStreams);
+
+        // Verify Standard Caps and MCS Sets
+        assertArrayEquals(iftypes, caps.iftypes);
+        assertArrayEquals(new byte[]{0x10, 0x20}, caps.htCap);
+        assertArrayEquals(htMcs, caps.htMcsSet);
+        assertEquals(Byte.valueOf((byte) 3), caps.htAmpduFactor);
+        assertEquals(Byte.valueOf((byte) 7), caps.htAmpduDensity);
+        assertEquals(Integer.valueOf(0x12345678), caps.vhtCap);
+        assertArrayEquals(vhtMcs, caps.vhtMcsSet);
+        assertArrayEquals(capMac, caps.heCapMac);
+        assertArrayEquals(capPhy, caps.heCapPhy);
+        assertArrayEquals(heMcs, caps.heMcsSet);
+        assertArrayEquals(ppe, caps.heCapPpe);
+        assertArrayEquals(he6ghz, caps.he6ghzCapa);
+        assertArrayEquals(capMac, caps.ehtCapMac);
+        assertArrayEquals(capPhy, caps.ehtCapPhy);
+        assertArrayEquals(ehtMcs, caps.ehtMcsSet);
+        assertArrayEquals(ppe, caps.ehtCapPpe);
+        assertArrayEquals(vendor, caps.vendorElems);
+
+        // Verify Frequencies
+        assertEquals(2, caps.frequencies.size());
+        Nl80211Utils.FrequencyInfo f1 = caps.frequencies.get(0);
+        assertEquals(2412, f1.frequencyMhz);
+        assertFalse(f1.disabled);
+        assertFalse(f1.noIr);
+        assertNull(f1.dfsState);
+
+        Nl80211Utils.FrequencyInfo f2 = caps.frequencies.get(1);
+        assertEquals(2484, f2.frequencyMhz);
+        assertTrue(f2.disabled);
+        assertTrue(f2.noIr);
+        assertEquals(Integer.valueOf((int) NetlinkConstants.NL80211_DFS_AVAILABLE), f2.dfsState);
+
+        // Verify merged fields still work
+        assertTrue(info.bandInfo.is80211nSupported);
+        assertTrue(info.bandInfo.is80211acSupported);
+        assertTrue(info.bandInfo.is80211axSupported);
+        assertTrue(info.bandInfo.is80211beSupported);
+        assertEquals(2, info.bandInfo.maxTxStreams);
+        assertEquals(2, info.bandInfo.maxRxStreams);
+        assertTrue(info.bandInfo.band2g.contains(2412));
+        assertFalse(info.bandInfo.band2g.contains(2484)); // Merged list skips disabled
+    }
+
+    @Test
     public void testWiphyInfoEquals() {
         Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
-                .addBand2gFrequency(2412).build();
+                .addBandCapabilities(NL80211_BAND_2GHZ, new Nl80211Utils.BandCapabilities.Builder()
+                        .setBandIndex(NL80211_BAND_2GHZ)
+                        .addFrequency(new Nl80211Utils.FrequencyInfo.Builder()
+                                .setFrequencyMhz(2412).build())
+                        .build())
+                .build();
         Nl80211Utils.ScanCapabilities scanCaps = new Nl80211Utils.ScanCapabilities.Builder()
                 .setMaxNumScanSsids(16).build();
         Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()

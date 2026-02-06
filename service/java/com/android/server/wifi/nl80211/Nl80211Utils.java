@@ -58,14 +58,24 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPH
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_ANTENNA_TX;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_BANDS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_FREQS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_HT_AMPDU_DENSITY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_HT_AMPDU_FACTOR;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_HT_CAPA;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_HT_MCS_SET;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_IFTYPE_DATA;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_VHT_CAPA;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_ATTR_VHT_MCS_SET;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PPE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_CAP_MAC;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_CAP_PHY;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_IFTYPES;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_IFTYPE_ATTR_VENDOR_ELEMS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_BEACON_TSF;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_BSSID;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BSS_CAPABILITY;
@@ -92,8 +102,6 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_NEW_W
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_START_SCHED_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_STOP_SCHED_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_TRIGGER_SCAN;
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_DFS_AVAILABLE;
-import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_DFS_USABLE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_EXT_FEATURE_HIGH_ACCURACY_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_EXT_FEATURE_LOW_POWER_SCAN;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_EXT_FEATURE_LOW_SPAN_SCAN;
@@ -134,6 +142,7 @@ import com.android.net.module.util.netlink.StructNlMsgHdr;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -294,6 +303,635 @@ public class Nl80211Utils {
         }
     }
 
+    /**
+     * A container class for detailed frequency information.
+     */
+    public static class FrequencyInfo {
+        public final int frequencyMhz;
+        public final boolean disabled;
+        public final boolean noIr;
+        @Nullable public final Integer dfsState;
+
+        private FrequencyInfo(Builder builder) {
+            this.frequencyMhz = builder.mFrequencyMhz;
+            this.disabled = builder.mDisabled;
+            this.noIr = builder.mNoIr;
+            this.dfsState = builder.mDfsState;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FrequencyInfo that = (FrequencyInfo) o;
+            return frequencyMhz == that.frequencyMhz
+                    && disabled == that.disabled
+                    && noIr == that.noIr
+                    && Objects.equals(dfsState, that.dfsState);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(frequencyMhz, disabled, noIr, dfsState);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(frequencyMhz).append(" MHz");
+            if (disabled) sb.append(" [DISABLED]");
+            if (noIr) sb.append(" [NO_IR]");
+            if (dfsState != null) {
+                sb.append(" [DFS: ");
+                switch (dfsState.intValue()) {
+                    case (int) NetlinkConstants.NL80211_DFS_USABLE:
+                        sb.append("USABLE");
+                        break;
+                    case (int) NetlinkConstants.NL80211_DFS_AVAILABLE:
+                        sb.append("AVAILABLE");
+                        break;
+                    case (int) NetlinkConstants.NL80211_DFS_UNAVAILABLE:
+                        sb.append("UNAVAILABLE");
+                        break;
+                    default:
+                        sb.append(dfsState);
+                }
+                sb.append("]");
+            }
+            return sb.toString();
+        }
+
+        public static class Builder {
+            private int mFrequencyMhz;
+            private boolean mDisabled;
+            private boolean mNoIr;
+            private Integer mDfsState;
+
+            /**
+             * Sets the frequency in MHz.
+             * See {@link NetlinkConstants#NL80211_FREQUENCY_ATTR_FREQ}
+             */
+            public Builder setFrequencyMhz(int val) {
+                mFrequencyMhz = val;
+                return this;
+            }
+
+            /**
+             * Sets whether the frequency is disabled.
+             * See {@link NetlinkConstants#NL80211_FREQUENCY_ATTR_DISABLED}
+             */
+            public Builder setDisabled(boolean val) {
+                mDisabled = val;
+                return this;
+            }
+
+            /**
+             * Sets whether the frequency is No-IR (No Initial Radiation).
+             * See {@link NetlinkConstants#NL80211_FREQUENCY_ATTR_NO_IR}
+             */
+            public Builder setNoIr(boolean val) {
+                mNoIr = val;
+                return this;
+            }
+
+            /**
+             * Sets the DFS state.
+             * See {@link NetlinkConstants#NL80211_FREQUENCY_ATTR_DFS_STATE}
+             */
+            public Builder setDfsState(@Nullable Integer val) {
+                mDfsState = val;
+                return this;
+            }
+
+            /** Builds a new FrequencyInfo object. */
+            public FrequencyInfo build() {
+                return new FrequencyInfo(this);
+            }
+        }
+    }
+
+    /**
+     * A container class for per-band capabilities.
+     */
+    public static class BandCapabilities {
+        public final int bandIndex;
+        public final boolean isHtSupported;
+        public final boolean isVhtSupported;
+        public final boolean isHeSupported;
+        public final boolean isEhtSupported;
+
+        @Nullable public final byte[] iftypes;
+        @Nullable public final byte[] htCap;
+        @Nullable public final byte[] htMcsSet;
+        @Nullable public final Byte htAmpduFactor;
+        @Nullable public final Byte htAmpduDensity;
+        @Nullable public final Integer vhtCap;
+        @Nullable public final byte[] vhtMcsSet;
+        @Nullable public final byte[] heCapMac;
+        @Nullable public final byte[] heCapPhy;
+        @Nullable public final byte[] heMcsSet;
+        @Nullable public final byte[] heCapPpe;
+        @Nullable public final byte[] he6ghzCapa;
+        @Nullable public final byte[] vendorElems;
+        @Nullable public final byte[] ehtCapMac;
+        @Nullable public final byte[] ehtCapPhy;
+        @Nullable public final byte[] ehtMcsSet;
+        @Nullable public final byte[] ehtCapPpe;
+
+        public final int htMaxTxStreams;
+        public final int htMaxRxStreams;
+        public final int vhtMaxTxStreams;
+        public final int vhtMaxRxStreams;
+        public final int heMaxTxStreams;
+        public final int heMaxRxStreams;
+        public final int ehtMaxTxStreams;
+        public final int ehtMaxRxStreams;
+
+        @NonNull public final List<FrequencyInfo> frequencies;
+
+        private BandCapabilities(Builder builder) {
+            this.bandIndex = builder.mBandIndex;
+            this.isHtSupported = builder.mIsHtSupported;
+            this.isVhtSupported = builder.mIsVhtSupported;
+            this.isHeSupported = builder.mIsHeSupported;
+            this.isEhtSupported = builder.mIsEhtSupported;
+            this.iftypes = builder.mIftypes;
+            this.htCap = builder.mHtCap;
+            this.htMcsSet = builder.mHtMcsSet;
+            this.htAmpduFactor = builder.mHtAmpduFactor;
+            this.htAmpduDensity = builder.mHtAmpduDensity;
+            this.vhtCap = builder.mVhtCap;
+            this.vhtMcsSet = builder.mVhtMcsSet;
+            this.heCapMac = builder.mHeCapMac;
+            this.heCapPhy = builder.mHeCapPhy;
+            this.heMcsSet = builder.mHeMcsSet;
+            this.heCapPpe = builder.mHeCapPpe;
+            this.he6ghzCapa = builder.mHe6ghzCapa;
+            this.vendorElems = builder.mVendorElems;
+            this.ehtCapMac = builder.mEhtCapMac;
+            this.ehtCapPhy = builder.mEhtCapPhy;
+            this.ehtMcsSet = builder.mEhtMcsSet;
+            this.ehtCapPpe = builder.mEhtCapPpe;
+            this.htMaxTxStreams = builder.mHtMaxTxStreams;
+            this.htMaxRxStreams = builder.mHtMaxRxStreams;
+            this.vhtMaxTxStreams = builder.mVhtMaxTxStreams;
+            this.vhtMaxRxStreams = builder.mVhtMaxRxStreams;
+            this.heMaxTxStreams = builder.mHeMaxTxStreams;
+            this.heMaxRxStreams = builder.mHeMaxRxStreams;
+            this.ehtMaxTxStreams = builder.mEhtMaxTxStreams;
+            this.ehtMaxRxStreams = builder.mEhtMaxRxStreams;
+            this.frequencies = builder.mFrequencies;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            BandCapabilities that = (BandCapabilities) o;
+            return bandIndex == that.bandIndex
+                    && isHtSupported == that.isHtSupported
+                    && isVhtSupported == that.isVhtSupported
+                    && isHeSupported == that.isHeSupported
+                    && isEhtSupported == that.isEhtSupported
+                    && htMaxTxStreams == that.htMaxTxStreams
+                    && htMaxRxStreams == that.htMaxRxStreams
+                    && vhtMaxTxStreams == that.vhtMaxTxStreams
+                    && vhtMaxRxStreams == that.vhtMaxRxStreams
+                    && heMaxTxStreams == that.heMaxTxStreams
+                    && heMaxRxStreams == that.heMaxRxStreams
+                    && ehtMaxTxStreams == that.ehtMaxTxStreams
+                    && ehtMaxRxStreams == that.ehtMaxRxStreams
+                    && Arrays.equals(iftypes, that.iftypes)
+                    && Arrays.equals(htCap, that.htCap)
+                    && Arrays.equals(htMcsSet, that.htMcsSet)
+                    && Objects.equals(htAmpduFactor, that.htAmpduFactor)
+                    && Objects.equals(htAmpduDensity, that.htAmpduDensity)
+                    && Objects.equals(vhtCap, that.vhtCap)
+                    && Arrays.equals(vhtMcsSet, that.vhtMcsSet)
+                    && Arrays.equals(heCapMac, that.heCapMac)
+                    && Arrays.equals(heCapPhy, that.heCapPhy)
+                    && Arrays.equals(heMcsSet, that.heMcsSet)
+                    && Arrays.equals(heCapPpe, that.heCapPpe)
+                    && Arrays.equals(he6ghzCapa, that.he6ghzCapa)
+                    && Arrays.equals(vendorElems, that.vendorElems)
+                    && Arrays.equals(ehtCapMac, that.ehtCapMac)
+                    && Arrays.equals(ehtCapPhy, that.ehtCapPhy)
+                    && Arrays.equals(ehtMcsSet, that.ehtMcsSet)
+                    && Arrays.equals(ehtCapPpe, that.ehtCapPpe)
+                    && Objects.equals(frequencies, that.frequencies);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(bandIndex, isHtSupported, isVhtSupported, isHeSupported,
+                    isEhtSupported, htAmpduFactor, htAmpduDensity, vhtCap, htMaxTxStreams,
+                    htMaxRxStreams, vhtMaxTxStreams, vhtMaxRxStreams, heMaxTxStreams,
+                    heMaxRxStreams, ehtMaxTxStreams, ehtMaxRxStreams, frequencies);
+            result = 31 * result + Arrays.hashCode(iftypes);
+            result = 31 * result + Arrays.hashCode(htCap);
+            result = 31 * result + Arrays.hashCode(htMcsSet);
+            result = 31 * result + Arrays.hashCode(vhtMcsSet);
+            result = 31 * result + Arrays.hashCode(heCapMac);
+            result = 31 * result + Arrays.hashCode(heCapPhy);
+            result = 31 * result + Arrays.hashCode(heMcsSet);
+            result = 31 * result + Arrays.hashCode(heCapPpe);
+            result = 31 * result + Arrays.hashCode(he6ghzCapa);
+            result = 31 * result + Arrays.hashCode(vendorElems);
+            result = 31 * result + Arrays.hashCode(ehtCapMac);
+            result = 31 * result + Arrays.hashCode(ehtCapPhy);
+            result = 31 * result + Arrays.hashCode(ehtMcsSet);
+            result = 31 * result + Arrays.hashCode(ehtCapPpe);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Band ").append(getBandName(bandIndex)).append(" {")
+                    .append("\n    Iftypes: ").append(toHexString(iftypes))
+                    .append("\n    HT: ").append(isHtSupported);
+            if (isHtSupported) {
+                sb.append(" [Cap: ").append(toHexString(htCap))
+                        .append(", MCSSet: ").append(toHexString(htMcsSet))
+                        .append(", AMPDUFactor: ").append(htAmpduFactor)
+                        .append(", AMPDUDensity: ").append(htAmpduDensity)
+                        .append(", TxNSS: ").append(htMaxTxStreams)
+                        .append(", RxNSS: ").append(htMaxRxStreams).append("]");
+            }
+            sb.append("\n    VHT: ").append(isVhtSupported);
+            if (isVhtSupported) {
+                sb.append(" [Cap: 0x").append(Integer.toHexString(vhtCap))
+                        .append(", MCSSet: ").append(toHexString(vhtMcsSet))
+                        .append(", TxNSS: ").append(vhtMaxTxStreams)
+                        .append(", RxNSS: ").append(vhtMaxRxStreams).append("]");
+            }
+            sb.append("\n    HE: ").append(isHeSupported);
+            if (isHeSupported) {
+                sb.append(" [CapMAC: ").append(toHexString(heCapMac))
+                        .append(", CapPHY: ").append(toHexString(heCapPhy))
+                        .append(", MCSSet: ").append(toHexString(heMcsSet))
+                        .append(", CapPPE: ").append(toHexString(heCapPpe))
+                        .append(", 6GHzCapa: ").append(toHexString(he6ghzCapa))
+                        .append(", TxNSS: ").append(heMaxTxStreams)
+                        .append(", RxNSS: ").append(heMaxRxStreams).append("]");
+            }
+            sb.append("\n    EHT: ").append(isEhtSupported);
+            if (isEhtSupported) {
+                sb.append(" [CapMAC: ").append(toHexString(ehtCapMac))
+                        .append(", CapPHY: ").append(toHexString(ehtCapPhy))
+                        .append(", MCSSet: ").append(toHexString(ehtMcsSet))
+                        .append(", CapPPE: ").append(toHexString(ehtCapPpe))
+                        .append(", TxNSS: ").append(ehtMaxTxStreams)
+                        .append(", RxNSS: ").append(ehtMaxRxStreams)
+                        .append("]");
+            }
+            sb.append("\n    VendorElems: ").append(toHexString(vendorElems));
+            sb.append("\n    Frequencies: [");
+            for (FrequencyInfo freq : frequencies) {
+                sb.append("\n      ").append(freq);
+            }
+            sb.append("\n    ]\n  }");
+            return sb.toString();
+        }
+
+        private String getBandName(int index) {
+            switch (index) {
+                case NetlinkConstants.NL80211_BAND_2GHZ:
+                    return "2.4GHz";
+                case NetlinkConstants.NL80211_BAND_5GHZ:
+                    return "5GHz";
+                case NetlinkConstants.NL80211_BAND_6GHZ:
+                    return "6GHz";
+                case NetlinkConstants.NL80211_BAND_60GHZ:
+                    return "60GHz";
+                default:
+                    return String.valueOf(index);
+            }
+        }
+
+        public static class Builder {
+            private int mBandIndex;
+            private boolean mIsHtSupported;
+            private boolean mIsVhtSupported;
+            private boolean mIsHeSupported;
+            private boolean mIsEhtSupported;
+            private byte[] mIftypes;
+            private byte[] mHtCap;
+            private byte[] mHtMcsSet;
+            private Byte mHtAmpduFactor;
+            private Byte mHtAmpduDensity;
+            private Integer mVhtCap;
+            private byte[] mVhtMcsSet;
+            private byte[] mHeCapMac;
+            private byte[] mHeCapPhy;
+            private byte[] mHeMcsSet;
+            private byte[] mHeCapPpe;
+            private byte[] mHe6ghzCapa;
+            private byte[] mVendorElems;
+            private byte[] mEhtCapMac;
+            private byte[] mEhtCapPhy;
+            private byte[] mEhtMcsSet;
+            private byte[] mEhtCapPpe;
+            private int mHtMaxTxStreams;
+            private int mHtMaxRxStreams;
+            private int mVhtMaxTxStreams;
+            private int mVhtMaxRxStreams;
+            private int mHeMaxTxStreams;
+            private int mHeMaxRxStreams;
+            private int mEhtMaxTxStreams;
+            private int mEhtMaxRxStreams;
+            @NonNull private final List<FrequencyInfo> mFrequencies = new ArrayList<>();
+
+            /**
+             * Sets the band index.
+             * See {@link NetlinkConstants#NL80211_ATTR_WIPHY_BANDS}
+             */
+            public Builder setBandIndex(int val) {
+                mBandIndex = val;
+                return this;
+            }
+
+            /**
+             * Sets the interface types.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_IFTYPES}
+             */
+            public Builder setIftypes(@Nullable byte[] val) {
+                mIftypes = val;
+                return this;
+            }
+
+            /**
+             * Sets whether HT is supported.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_HT_CAPA}
+             */
+            public Builder setIsHtSupported(boolean val) {
+                mIsHtSupported = val;
+                return this;
+            }
+
+            /**
+             * Sets whether VHT is supported.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_VHT_CAPA}
+             */
+            public Builder setIsVhtSupported(boolean val) {
+                mIsVhtSupported = val;
+                return this;
+            }
+
+            /**
+             * Sets whether HE is supported.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_IFTYPE_DATA}
+             */
+            public Builder setIsHeSupported(boolean val) {
+                mIsHeSupported = val;
+                return this;
+            }
+
+            /**
+             * Sets whether EHT is supported.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_IFTYPE_DATA}
+             */
+            public Builder setIsEhtSupported(boolean val) {
+                mIsEhtSupported = val;
+                return this;
+            }
+
+            /**
+             * Sets HT capability.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_HT_CAPA}
+             */
+            public Builder setHtCap(@Nullable byte[] val) {
+                mHtCap = val;
+                return this;
+            }
+
+            /**
+             * Sets HT MCS set.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_HT_MCS_SET}
+             */
+            public Builder setHtMcsSet(@Nullable byte[] val) {
+                mHtMcsSet = val;
+                return this;
+            }
+
+            /**
+             * Sets HT A-MPDU factor.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_HT_AMPDU_FACTOR}
+             */
+            public Builder setHtAmpduFactor(@Nullable Byte val) {
+                mHtAmpduFactor = val;
+                return this;
+            }
+
+            /**
+             * Sets HT A-MPDU density.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_HT_AMPDU_DENSITY}
+             */
+            public Builder setHtAmpduDensity(@Nullable Byte val) {
+                mHtAmpduDensity = val;
+                return this;
+            }
+
+            /**
+             * Sets VHT capability.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_VHT_CAPA}
+             */
+            public Builder setVhtCap(@Nullable Integer val) {
+                mVhtCap = val;
+                return this;
+            }
+
+            /**
+             * Sets VHT MCS set.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_VHT_MCS_SET}
+             */
+            public Builder setVhtMcsSet(@Nullable byte[] val) {
+                mVhtMcsSet = val;
+                return this;
+            }
+
+            /**
+             * Sets HE MAC capability.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_HE_CAP_MAC}
+             */
+            public Builder setHeCapMac(@Nullable byte[] val) {
+                mHeCapMac = val;
+                return this;
+            }
+
+            /**
+             * Sets HE PHY capability.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_HE_CAP_PHY}
+             */
+            public Builder setHeCapPhy(@Nullable byte[] val) {
+                mHeCapPhy = val;
+                return this;
+            }
+
+            /**
+             * Sets HE MCS set.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET}
+             */
+            public Builder setHeMcsSet(@Nullable byte[] val) {
+                mHeMcsSet = val;
+                return this;
+            }
+
+            /**
+             * Sets HE PPE capability.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE}
+             */
+            public Builder setHeCapPpe(@Nullable byte[] val) {
+                mHeCapPpe = val;
+                return this;
+            }
+
+            /**
+             * Sets HE 6GHz capability.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA}
+             */
+            public Builder setHe6ghzCapa(@Nullable byte[] val) {
+                mHe6ghzCapa = val;
+                return this;
+            }
+
+            /**
+             * Sets Vendor Elements.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_VENDOR_ELEMS}
+             */
+            public Builder setVendorElems(@Nullable byte[] val) {
+                mVendorElems = val;
+                return this;
+            }
+
+            /**
+             * Sets EHT MAC capability.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC}
+             */
+            public Builder setEhtCapMac(@Nullable byte[] val) {
+                mEhtCapMac = val;
+                return this;
+            }
+
+            /**
+             * Sets EHT PHY capability.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY}
+             */
+            public Builder setEhtCapPhy(@Nullable byte[] val) {
+                mEhtCapPhy = val;
+                return this;
+            }
+
+            /**
+             * Sets EHT MCS set.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET}
+             */
+            public Builder setEhtMcsSet(@Nullable byte[] val) {
+                mEhtMcsSet = val;
+                return this;
+            }
+
+            /**
+             * Sets EHT PPE capability.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PPE}
+             */
+            public Builder setEhtCapPpe(@Nullable byte[] val) {
+                mEhtCapPpe = val;
+                return this;
+            }
+
+            /**
+             * Sets HT max TX streams.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_HT_MCS_SET}
+             */
+            public Builder setHtMaxTxStreams(int val) {
+                mHtMaxTxStreams = val;
+                return this;
+            }
+
+            /**
+             * Sets HT max RX streams.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_HT_MCS_SET}
+             */
+            public Builder setHtMaxRxStreams(int val) {
+                mHtMaxRxStreams = val;
+                return this;
+            }
+
+            /**
+             * Sets VHT max TX streams.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_VHT_MCS_SET}
+             */
+            public Builder setVhtMaxTxStreams(int val) {
+                mVhtMaxTxStreams = val;
+                return this;
+            }
+
+            /**
+             * Sets VHT max RX streams.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_VHT_MCS_SET}
+             */
+            public Builder setVhtMaxRxStreams(int val) {
+                mVhtMaxRxStreams = val;
+                return this;
+            }
+
+            /**
+             * Sets HE max TX streams.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET}
+             */
+            public Builder setHeMaxTxStreams(int val) {
+                mHeMaxTxStreams = val;
+                return this;
+            }
+
+            /**
+             * Sets HE max RX streams.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET}
+             */
+            public Builder setHeMaxRxStreams(int val) {
+                mHeMaxRxStreams = val;
+                return this;
+            }
+
+            /**
+             * Sets EHT max TX streams.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET}
+             */
+            public Builder setEhtMaxTxStreams(int val) {
+                mEhtMaxTxStreams = val;
+                return this;
+            }
+
+            /**
+             * Sets EHT max RX streams.
+             * See {@link NetlinkConstants#NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET}
+             */
+            public Builder setEhtMaxRxStreams(int val) {
+                mEhtMaxRxStreams = val;
+                return this;
+            }
+
+            /**
+             * Adds a frequency to this band.
+             * See {@link NetlinkConstants#NL80211_BAND_ATTR_FREQS}
+             */
+            public Builder addFrequency(@NonNull FrequencyInfo val) {
+                if (val == null) {
+                    Log.e(TAG, "BandCapabilities.Builder.addFrequency: Ignoring null val");
+                    return this;
+                }
+                mFrequencies.add(val);
+                return this;
+            }
+
+            /** Builds a new BandCapabilities object. */
+            public BandCapabilities build() {
+                return new BandCapabilities(this);
+            }
+        }
+    }
+
     public static class BandInfo {
         @NonNull public final List<Integer> band2g;
         @NonNull public final List<Integer> band5g;
@@ -309,22 +947,96 @@ public class Nl80211Utils {
         public final boolean is320MhzSupported;
         public final int maxTxStreams;
         public final int maxRxStreams;
+        @NonNull public final Map<Integer, BandCapabilities> perBandCapabilities;
 
         private BandInfo(Builder builder) {
-            this.band2g = builder.mBand2g;
-            this.band5g = builder.mBand5g;
-            this.band6g = builder.mBand6g;
-            this.band60g = builder.mBand60g;
-            this.bandDfs = builder.mBandDfs;
-            this.is80211nSupported = builder.mIs80211nSupported;
-            this.is80211acSupported = builder.mIs80211acSupported;
-            this.is80211axSupported = builder.mIs80211axSupported;
-            this.is80211beSupported = builder.mIs80211beSupported;
-            this.is160MhzSupported = builder.mIs160MhzSupported;
-            this.is80p80MhzSupported = builder.mIs80p80MhzSupported;
-            this.is320MhzSupported = builder.mIs320MhzSupported;
-            this.maxTxStreams = builder.mMaxTxStreams;
-            this.maxRxStreams = builder.mMaxRxStreams;
+            this.perBandCapabilities = builder.mPerBandCapabilities;
+
+            List<Integer> band2g = new ArrayList<>();
+            List<Integer> band5g = new ArrayList<>();
+            List<Integer> bandDfs = new ArrayList<>();
+            List<Integer> band6g = new ArrayList<>();
+            List<Integer> band60g = new ArrayList<>();
+            boolean is80211nSupported = false;
+            boolean is80211acSupported = false;
+            boolean is80211axSupported = false;
+            boolean is80211beSupported = false;
+            boolean is160MhzSupported = false;
+            boolean is80p80MhzSupported = false;
+            boolean is320MhzSupported = false;
+            int maxTxStreams = 0;
+            int maxRxStreams = 0;
+
+            for (BandCapabilities caps : perBandCapabilities.values()) {
+                if (caps.isHtSupported) is80211nSupported = true;
+                if (caps.isVhtSupported) is80211acSupported = true;
+                if (caps.isHeSupported) is80211axSupported = true;
+                if (caps.isEhtSupported) is80211beSupported = true;
+
+                maxTxStreams = Math.max(maxTxStreams, caps.htMaxTxStreams);
+                maxTxStreams = Math.max(maxTxStreams, caps.vhtMaxTxStreams);
+                maxTxStreams = Math.max(maxTxStreams, caps.heMaxTxStreams);
+                maxTxStreams = Math.max(maxTxStreams, caps.ehtMaxTxStreams);
+
+                maxRxStreams = Math.max(maxRxStreams, caps.htMaxRxStreams);
+                maxRxStreams = Math.max(maxRxStreams, caps.vhtMaxRxStreams);
+                maxRxStreams = Math.max(maxRxStreams, caps.heMaxRxStreams);
+                maxRxStreams = Math.max(maxRxStreams, caps.ehtMaxRxStreams);
+
+                if (caps.vhtCap != null) {
+                    Pair<Boolean, Boolean> vht = parseVhtCapAttribute(caps.vhtCap);
+                    if (vht.first) is160MhzSupported = true;
+                    if (vht.second) is80p80MhzSupported = true;
+                }
+                if (caps.heCapPhy != null) {
+                    Pair<Boolean, Boolean> he = parseHeCapPhyAttribute(caps.heCapPhy);
+                    if (he.first) is160MhzSupported = true;
+                    if (he.second) is80p80MhzSupported = true;
+                }
+                if (caps.ehtCapPhy != null) {
+                    if (parseEhtCapPhyAttribute(caps.ehtCapPhy)) is320MhzSupported = true;
+                }
+
+                for (FrequencyInfo freq : caps.frequencies) {
+                    if (freq.disabled) continue;
+                    int f = freq.frequencyMhz;
+                    if (ScanResult.is24GHz(f)) {
+                        band2g.add(f);
+                    } else if (ScanResult.is5GHz(f)) {
+                        if (isDfs(freq)) {
+                            bandDfs.add(f);
+                        } else {
+                            band5g.add(f);
+                        }
+                    } else if (ScanResult.is6GHz(f)) {
+                        band6g.add(f);
+                    } else if (ScanResult.is60GHz(f)) {
+                        band60g.add(f);
+                    }
+                }
+            }
+
+            this.band2g = band2g;
+            this.band5g = band5g;
+            this.band6g = band6g;
+            this.band60g = band60g;
+            this.bandDfs = bandDfs;
+            this.is80211nSupported = is80211nSupported;
+            this.is80211acSupported = is80211acSupported;
+            this.is80211axSupported = is80211axSupported;
+            this.is80211beSupported = is80211beSupported;
+            this.is160MhzSupported = is160MhzSupported;
+            this.is80p80MhzSupported = is80p80MhzSupported;
+            this.is320MhzSupported = is320MhzSupported;
+            this.maxTxStreams = maxTxStreams;
+            this.maxRxStreams = maxRxStreams;
+        }
+
+        private static boolean isDfs(@NonNull FrequencyInfo freq) {
+            return (freq.dfsState != null
+                    && (freq.dfsState == (int) NetlinkConstants.NL80211_DFS_AVAILABLE
+                        || freq.dfsState == (int) NetlinkConstants.NL80211_DFS_USABLE))
+                    || freq.noIr;
         }
 
         @Override
@@ -332,28 +1044,12 @@ public class Nl80211Utils {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             BandInfo bandInfo = (BandInfo) o;
-            return is80211nSupported == bandInfo.is80211nSupported
-                    && is80211acSupported == bandInfo.is80211acSupported
-                    && is80211axSupported == bandInfo.is80211axSupported
-                    && is80211beSupported == bandInfo.is80211beSupported
-                    && is160MhzSupported == bandInfo.is160MhzSupported
-                    && is80p80MhzSupported == bandInfo.is80p80MhzSupported
-                    && is320MhzSupported == bandInfo.is320MhzSupported
-                    && maxTxStreams == bandInfo.maxTxStreams
-                    && maxRxStreams == bandInfo.maxRxStreams
-                    && Objects.equals(band2g, bandInfo.band2g)
-                    && Objects.equals(band5g, bandInfo.band5g)
-                    && Objects.equals(band6g, bandInfo.band6g)
-                    && Objects.equals(band60g, bandInfo.band60g)
-                    && Objects.equals(bandDfs, bandInfo.bandDfs);
+            return Objects.equals(perBandCapabilities, bandInfo.perBandCapabilities);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(band2g, band5g, band6g, band60g, bandDfs, is80211nSupported,
-                    is80211acSupported, is80211axSupported, is80211beSupported,
-                    is160MhzSupported, is80p80MhzSupported, is320MhzSupported,
-                    maxTxStreams, maxRxStreams);
+            return Objects.hash(perBandCapabilities);
         }
 
         @Override
@@ -373,116 +1069,28 @@ public class Nl80211Utils {
                     + "\n  is320MhzSupported: " + is320MhzSupported
                     + "\n  maxTxStreams: " + maxTxStreams
                     + "\n  maxRxStreams: " + maxRxStreams
+                    + "\n  perBandCapabilities: " + perBandCapabilities
                     + "\n}";
         }
 
         public static class Builder {
-            @NonNull private final List<Integer> mBand2g = new ArrayList<>();
-            @NonNull private final List<Integer> mBand5g = new ArrayList<>();
-            @NonNull private final List<Integer> mBand6g = new ArrayList<>();
-            @NonNull private final List<Integer> mBand60g = new ArrayList<>();
-            @NonNull private final List<Integer> mBandDfs = new ArrayList<>();
-            private boolean mIs80211nSupported = false;
-            private boolean mIs80211acSupported = false;
-            private boolean mIs80211axSupported = false;
-            private boolean mIs80211beSupported = false;
-            private boolean mIs160MhzSupported = false;
-            private boolean mIs80p80MhzSupported = false;
-            private boolean mIs320MhzSupported = false;
-            private int mMaxTxStreams = 0;
-            private int mMaxRxStreams = 0;
+            @NonNull private final Map<Integer, BandCapabilities> mPerBandCapabilities =
+                    new ArrayMap<>();
 
-            /** Adds a 2.4 GHz frequency. */
-            public Builder addBand2gFrequency(int freq) {
-                mBand2g.add(freq);
-                return this;
-            }
-
-            /** Adds a 5 GHz frequency. */
-            public Builder addBand5gFrequency(int freq) {
-                mBand5g.add(freq);
-                return this;
-            }
-
-            /** Adds a 6 GHz frequency. */
-            public Builder addBand6gFrequency(int freq) {
-                mBand6g.add(freq);
-                return this;
-            }
-
-            /** Adds a 60 GHz frequency. */
-            public Builder addBand60gFrequency(int freq) {
-                mBand60g.add(freq);
-                return this;
-            }
-
-            /** Adds a DFS frequency. */
-            public Builder addBandDfsFrequency(int freq) {
-                mBandDfs.add(freq);
-                return this;
-            }
-
-            /** Sets whether 802.11n is supported. */
-            public Builder setIs80211nSupported(boolean val) {
-                mIs80211nSupported = val;
-                return this;
-            }
-
-            /** Sets whether 802.11ac is supported. */
-            public Builder setIs80211acSupported(boolean val) {
-                mIs80211acSupported = val;
-                return this;
-            }
-
-            /** Sets whether 802.11ax is supported. */
-            public Builder setIs80211axSupported(boolean val) {
-                mIs80211axSupported = val;
-                return this;
-            }
-
-            /** Sets whether 802.11be is supported. */
-            public Builder setIs80211beSupported(boolean val) {
-                mIs80211beSupported = val;
-                return this;
-            }
-
-            /** Sets whether 160 MHz is supported. */
-            public Builder setIs160MhzSupported(boolean val) {
-                mIs160MhzSupported = val;
-                return this;
-            }
-
-            /** Sets whether 80+80 MHz is supported. */
-            public Builder setIs80p80MhzSupported(boolean val) {
-                mIs80p80MhzSupported = val;
-                return this;
-            }
-
-            /** Sets whether 320 MHz is supported. */
-            public Builder setIs320MhzSupported(boolean val) {
-                mIs320MhzSupported = val;
-                return this;
-            }
-
-            /** Gets max TX streams. */
-            public int getMaxTxStreams() {
-                return mMaxTxStreams;
-            }
-
-            /** Sets max TX streams. */
-            public Builder setMaxTxStreams(int val) {
-                mMaxTxStreams = val;
-                return this;
-            }
-
-            /** Gets max RX streams. */
-            public int getMaxRxStreams() {
-                return mMaxRxStreams;
-            }
-
-            /** Sets max RX streams. */
-            public Builder setMaxRxStreams(int val) {
-                mMaxRxStreams = val;
+            /**
+             * Adds per-band capabilities.
+             * See {@link NetlinkConstants#NL80211_ATTR_WIPHY_BANDS}
+             * @param bandIndex One of the nl80211_band values (e.g.,
+             *                  {@link NetlinkConstants#NL80211_BAND_2GHZ}).
+             * @param val The capabilities for this band.
+             * @return This builder.
+             */
+            public Builder addBandCapabilities(int bandIndex, @NonNull BandCapabilities val) {
+                if (val == null) {
+                    Log.e(TAG, "BandInfo.Builder.addBandCapabilities: Ignoring null val");
+                    return this;
+                }
+                mPerBandCapabilities.put(bandIndex, val);
                 return this;
             }
 
@@ -637,13 +1245,19 @@ public class Nl80211Utils {
             private int mMaxNumAkmSuites;
             @NonNull private Set<Integer> mSupportedCipherSuites = Collections.emptySet();
 
-            /** Sets the maximum number of AKM suites. */
+            /**
+             * Sets the maximum number of AKM suites.
+             * See {@link NetlinkConstants#NL80211_ATTR_MAX_NUM_AKM_SUITES}
+             */
             public Builder setMaxNumAkmSuites(int val) {
                 mMaxNumAkmSuites = val;
                 return this;
             }
 
-            /** Sets the supported cipher suites. */
+            /**
+             * Sets the supported cipher suites.
+             * See {@link NetlinkConstants#NL80211_ATTR_CIPHER_SUITES}
+             */
             public Builder setSupportedCipherSuites(@NonNull Set<Integer> val) {
                 if (val == null) {
                     Log.e(TAG, "DriverCapabilities.Builder.setSupportedCipherSuites:"
@@ -825,6 +1439,22 @@ public class Nl80211Utils {
             this.name = name;
             this.macAddress = macAddress;
         }
+    }
+
+    private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
+
+    /**
+     * Helper method to convert a byte array to a hex string.
+     */
+    private static String toHexString(@Nullable byte[] bytes) {
+        if (bytes == null) return "null";
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 
     /**
@@ -1080,6 +1710,22 @@ public class Nl80211Utils {
 
     /**
      * Parses a GET_WIPHY response message to create a WiphyInfo object.
+     * This method extracts band information, scanning capabilities, wiphy features,
+     * and driver capabilities including supported cipher suites and AKM suites.
+     *
+     * <p>Attributes utilized:
+     * <ul>
+     *   <li>{@link NetlinkConstants#NL80211_ATTR_WIPHY_BANDS}</li>
+     *   <li>{@link NetlinkConstants#NL80211_ATTR_FEATURE_FLAGS}</li>
+     *   <li>{@link NetlinkConstants#NL80211_ATTR_EXT_FEATURES}</li>
+     *   <li>{@link NetlinkConstants#NL80211_ATTR_MAX_NUM_AKM_SUITES}</li>
+     *   <li>{@link NetlinkConstants#NL80211_ATTR_CIPHER_SUITES}</li>
+     *   <li>{@link NetlinkConstants#NL80211_ATTR_WIPHY_ANTENNA_AVAIL_TX}</li>
+     *   <li>{@link NetlinkConstants#NL80211_ATTR_WIPHY_ANTENNA_AVAIL_RX}</li>
+     *   <li>{@link NetlinkConstants#NL80211_ATTR_WIPHY_ANTENNA_TX}</li>
+     *   <li>{@link NetlinkConstants#NL80211_ATTR_WIPHY_ANTENNA_RX}</li>
+     * </ul>
+     *
      * @param packets The list of NL80211_CMD_NEW_WIPHY messages.
      * @return A populated WiphyInfo object, or null on failure.
      */
@@ -1182,9 +1828,11 @@ public class Nl80211Utils {
      * @return A populated BandInfo object, or null on failure.
      */
     @Nullable
-    private BandInfo parseBandInfo(List<GenericNetlinkMsg> packets) {
+    private BandInfo parseBandInfo(@NonNull List<GenericNetlinkMsg> packets) {
         BandInfo.Builder bandInfoBuilder = new BandInfo.Builder();
+        Map<Short, BandCapabilities.Builder> perBandBuilders = new ArrayMap<>();
         boolean foundBandAttr = false;
+
         for (GenericNetlinkMsg packet : packets) {
             StructNlAttr bandsAttr = packet.getAttribute(NL80211_ATTR_WIPHY_BANDS);
             if (bandsAttr == null) {
@@ -1201,9 +1849,12 @@ public class Nl80211Utils {
             foundBandAttr = true;
 
             for (Map.Entry<Short, StructNlAttr> bandAttrEntry : nestedBandsAttrs.entrySet()) {
+                short bandIndex = bandAttrEntry.getKey();
+                BandCapabilities.Builder bandCapsBuilder = perBandBuilders.computeIfAbsent(
+                        bandIndex, k -> new BandCapabilities.Builder().setBandIndex(k));
                 // Each of the nested attributes of NL80211_ATTR_WIPHY_BANDS contain further nested
                 // attributes indexed by one of NL80211_BAND_ATTR_*.
-                parseNestedBandAttr(bandAttrEntry.getValue(), bandInfoBuilder);
+                parseNestedBandAttr(bandAttrEntry.getValue(), bandCapsBuilder);
             }
         }
 
@@ -1212,14 +1863,19 @@ public class Nl80211Utils {
             return null;
         }
 
+        for (Map.Entry<Short, BandCapabilities.Builder> entry : perBandBuilders.entrySet()) {
+            bandInfoBuilder.addBandCapabilities(entry.getKey().intValue(),
+                    entry.getValue().build());
+        }
+
         return bandInfoBuilder.build();
     }
 
     /**
      * Parse the contents of a nested entry of NL80211_ATTR_WIPHY_BANDS.
      */
-    private void parseNestedBandAttr(
-            StructNlAttr nestedBandAttr, BandInfo.Builder bandInfoBuilder) {
+    private void parseNestedBandAttr(StructNlAttr nestedBandAttr,
+            BandCapabilities.Builder bandCapsBuilder) {
         Map<Short, StructNlAttr> innerBandAttrs =
                 GenericNetlinkMsg.getInnerNestedAttributes(nestedBandAttr);
         if (innerBandAttrs == null) {
@@ -1229,40 +1885,27 @@ public class Nl80211Utils {
         // Frequencies
         StructNlAttr freqsAttr = innerBandAttrs.get(NL80211_BAND_ATTR_FREQS);
         if (freqsAttr != null) {
-            parseFrequencies(freqsAttr, bandInfoBuilder);
+            parseFrequencies(freqsAttr, bandCapsBuilder);
         }
 
-        // PHY Standard Support
-        if (innerBandAttrs.containsKey(NL80211_BAND_ATTR_HT_CAPA)) {
-            bandInfoBuilder.setIs80211nSupported(true);
+        // PHY Standard Support & Caps
+        StructNlAttr htCapaAttr = innerBandAttrs.get(NL80211_BAND_ATTR_HT_CAPA);
+        if (htCapaAttr != null) {
+            bandCapsBuilder.setIsHtSupported(true);
+            bandCapsBuilder.setHtCap(htCapaAttr.nla_value);
         }
-        if (innerBandAttrs.containsKey(NL80211_BAND_ATTR_VHT_CAPA)) {
-            bandInfoBuilder.setIs80211acSupported(true);
+        StructNlAttr vhtCapaAttr = innerBandAttrs.get(NL80211_BAND_ATTR_VHT_CAPA);
+        if (vhtCapaAttr != null) {
+            bandCapsBuilder.setIsVhtSupported(true);
+            bandCapsBuilder.setVhtCap(vhtCapaAttr.getValueAsInteger());
         }
 
         // Detailed PHY Capabilities (MCS, Channel Width, etc.)
-        parseBandCapabilities(innerBandAttrs, bandInfoBuilder);
+        parseBandCapabilities(innerBandAttrs, bandCapsBuilder);
     }
 
-    private void add5gFrequency(int frequency, Map<Short, StructNlAttr> freqProperties,
-            BandInfo.Builder bandInfoBuilder) {
-        StructNlAttr dfsStateAttr =
-                freqProperties.get(NL80211_FREQUENCY_ATTR_DFS_STATE);
-        Integer dfsState = (dfsStateAttr != null) ? dfsStateAttr.getValueAsInteger() : null;
-
-        boolean isDfs =
-                (dfsState != null
-                        && (dfsState == NL80211_DFS_AVAILABLE || dfsState == NL80211_DFS_USABLE))
-                || freqProperties.containsKey(NL80211_FREQUENCY_ATTR_NO_IR);
-
-        if (isDfs) {
-            bandInfoBuilder.addBandDfsFrequency(frequency);
-        } else {
-            bandInfoBuilder.addBand5gFrequency(frequency);
-        }
-    }
-
-    private void parseFrequencies(StructNlAttr freqsAttr, BandInfo.Builder bandInfoBuilder) {
+    private void parseFrequencies(StructNlAttr freqsAttr,
+            BandCapabilities.Builder bandCapsBuilder) {
         // NL80211_BAND_ATTR_FREQS contains a nested array of attributes, where each attribute
         // is sequentially indexed and represents a single frequency.
         Map<Short, StructNlAttr> freqs = GenericNetlinkMsg.getInnerNestedAttributes(freqsAttr);
@@ -1280,48 +1923,52 @@ public class Nl80211Utils {
             Integer frequencyValue = freqValueAttr.getValueAsInteger();
             if (frequencyValue == null) continue;
 
-            if (freqProperties.containsKey(NL80211_FREQUENCY_ATTR_DISABLED)) {
-                continue;
-            }
+            boolean disabled = freqProperties.containsKey(NL80211_FREQUENCY_ATTR_DISABLED);
+            boolean noIr = freqProperties.containsKey(NL80211_FREQUENCY_ATTR_NO_IR);
+            StructNlAttr dfsStateAttr = freqProperties.get(NL80211_FREQUENCY_ATTR_DFS_STATE);
+            Integer dfsState = (dfsStateAttr != null) ? dfsStateAttr.getValueAsInteger() : null;
 
-            if (ScanResult.is24GHz(frequencyValue)) {
-                bandInfoBuilder.addBand2gFrequency(frequencyValue);
-            } else if (ScanResult.is5GHz(frequencyValue)) {
-                add5gFrequency(frequencyValue, freqProperties, bandInfoBuilder);
-            } else if (ScanResult.is6GHz(frequencyValue)) {
-                bandInfoBuilder.addBand6gFrequency(frequencyValue);
-            } else if (ScanResult.is60GHz(frequencyValue)) {
-                bandInfoBuilder.addBand60gFrequency(frequencyValue);
-            }
+            bandCapsBuilder.addFrequency(new FrequencyInfo.Builder()
+                    .setFrequencyMhz(frequencyValue)
+                    .setDisabled(disabled)
+                    .setNoIr(noIr)
+                    .setDfsState(dfsState)
+                    .build());
         }
     }
 
     private void parseBandCapabilities(Map<Short, StructNlAttr> bandProperties,
-            BandInfo.Builder bandInfoBuilder) {
+            BandCapabilities.Builder bandCapsBuilder) {
         // HT/VHT parsing
         StructNlAttr htMcsAttr = bandProperties.get(NL80211_BAND_ATTR_HT_MCS_SET);
         if (htMcsAttr != null) {
+            bandCapsBuilder.setHtMcsSet(htMcsAttr.nla_value);
             Pair<Integer, Integer> htStreams = parseHtMcsSetAttribute(htMcsAttr.nla_value);
-            bandInfoBuilder.setMaxTxStreams(
-                    Math.max(bandInfoBuilder.getMaxTxStreams(), htStreams.first));
-            bandInfoBuilder.setMaxRxStreams(
-                    Math.max(bandInfoBuilder.getMaxRxStreams(), htStreams.second));
+            bandCapsBuilder.setHtMaxTxStreams(htStreams.first);
+            bandCapsBuilder.setHtMaxRxStreams(htStreams.second);
+        }
+
+        StructNlAttr htAmpduFactorAttr = bandProperties.get(NL80211_BAND_ATTR_HT_AMPDU_FACTOR);
+        if (htAmpduFactorAttr != null) {
+            bandCapsBuilder.setHtAmpduFactor(htAmpduFactorAttr.getValueAsByte((byte) 0));
+        }
+
+        StructNlAttr htAmpduDensityAttr = bandProperties.get(NL80211_BAND_ATTR_HT_AMPDU_DENSITY);
+        if (htAmpduDensityAttr != null) {
+            bandCapsBuilder.setHtAmpduDensity(htAmpduDensityAttr.getValueAsByte((byte) 0));
         }
 
         StructNlAttr vhtMcsAttr = bandProperties.get(NL80211_BAND_ATTR_VHT_MCS_SET);
         if (vhtMcsAttr != null) {
+            bandCapsBuilder.setVhtMcsSet(vhtMcsAttr.nla_value);
             Pair<Integer, Integer> vhtStreams = parseVhtMcsSetAttribute(vhtMcsAttr.nla_value);
-            bandInfoBuilder.setMaxTxStreams(
-                    Math.max(bandInfoBuilder.getMaxTxStreams(), vhtStreams.first));
-            bandInfoBuilder.setMaxRxStreams(
-                    Math.max(bandInfoBuilder.getMaxRxStreams(), vhtStreams.second));
+            bandCapsBuilder.setVhtMaxTxStreams(vhtStreams.first);
+            bandCapsBuilder.setVhtMaxRxStreams(vhtStreams.second);
         }
 
         StructNlAttr vhtCapaAttr = bandProperties.get(NL80211_BAND_ATTR_VHT_CAPA);
         if (vhtCapaAttr != null) {
-            Pair<Boolean, Boolean> vhtCaps = parseVhtCapAttribute(vhtCapaAttr.getValueAsInteger());
-            if (vhtCaps.first) bandInfoBuilder.setIs160MhzSupported(true);
-            if (vhtCaps.second) bandInfoBuilder.setIs80p80MhzSupported(true);
+            bandCapsBuilder.setVhtCap(vhtCapaAttr.getValueAsInteger());
         }
 
         // HE/EHT parsing from IFTYPE_DATA
@@ -1338,34 +1985,68 @@ public class Nl80211Utils {
                 GenericNetlinkMsg.getInnerNestedAttributes(iftypeData);
         if (iftypeProperties == null) return;
 
+        StructNlAttr iftypesAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_IFTYPES);
+        if (iftypesAttr != null) {
+            bandCapsBuilder.setIftypes(iftypesAttr.nla_value);
+        }
+
+        StructNlAttr heCapaMacAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_HE_CAP_MAC);
+        if (heCapaMacAttr != null) {
+            bandCapsBuilder.setHeCapMac(heCapaMacAttr.nla_value);
+        }
         StructNlAttr heCapaPhyAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_HE_CAP_PHY);
         if (heCapaPhyAttr != null) {
-            bandInfoBuilder.setIs80211axSupported(true);
-            Pair<Boolean, Boolean> heCaps = parseHeCapPhyAttribute(heCapaPhyAttr.nla_value);
-            if (heCaps.first) bandInfoBuilder.setIs160MhzSupported(true);
-            if (heCaps.second) bandInfoBuilder.setIs80p80MhzSupported(true);
+            bandCapsBuilder.setIsHeSupported(true);
+            bandCapsBuilder.setHeCapPhy(heCapaPhyAttr.nla_value);
         }
 
         StructNlAttr heMcsAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET);
         if (heMcsAttr != null) {
+            bandCapsBuilder.setHeMcsSet(heMcsAttr.nla_value);
             Pair<Integer, Integer> heStreams = parseHeMcsSetAttribute(heMcsAttr.nla_value);
-            bandInfoBuilder.setMaxTxStreams(
-                    Math.max(bandInfoBuilder.getMaxTxStreams(), heStreams.first));
-            bandInfoBuilder.setMaxRxStreams(
-                    Math.max(bandInfoBuilder.getMaxRxStreams(), heStreams.second));
+            bandCapsBuilder.setHeMaxTxStreams(heStreams.first);
+            bandCapsBuilder.setHeMaxRxStreams(heStreams.second);
         }
 
+        StructNlAttr heCapPpeAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE);
+        if (heCapPpeAttr != null) {
+            bandCapsBuilder.setHeCapPpe(heCapPpeAttr.nla_value);
+        }
+
+        StructNlAttr he6ghzCapaAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_HE_6GHZ_CAPA);
+        if (he6ghzCapaAttr != null) {
+            bandCapsBuilder.setHe6ghzCapa(he6ghzCapaAttr.nla_value);
+        }
+
+        StructNlAttr vendorElemsAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_VENDOR_ELEMS);
+        if (vendorElemsAttr != null) {
+            bandCapsBuilder.setVendorElems(vendorElemsAttr.nla_value);
+        }
+
+        StructNlAttr ehtCapaMacAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC);
+        if (ehtCapaMacAttr != null) {
+            bandCapsBuilder.setEhtCapMac(ehtCapaMacAttr.nla_value);
+        }
         StructNlAttr ehtCapaPhyAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY);
         if (ehtCapaPhyAttr != null) {
-            bandInfoBuilder.setIs80211beSupported(true);
-            if (parseEhtCapPhyAttribute(ehtCapaPhyAttr.nla_value)) {
-                bandInfoBuilder.setIs320MhzSupported(true);
-            }
+            bandCapsBuilder.setIsEhtSupported(true);
+            bandCapsBuilder.setEhtCapPhy(ehtCapaPhyAttr.nla_value);
+        }
+        StructNlAttr ehtMcsAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET);
+        if (ehtMcsAttr != null) {
+            bandCapsBuilder.setEhtMcsSet(ehtMcsAttr.nla_value);
+            Pair<Integer, Integer> ehtStreams = parseEhtMcsSetAttribute(ehtMcsAttr.nla_value);
+            bandCapsBuilder.setEhtMaxTxStreams(ehtStreams.first);
+            bandCapsBuilder.setEhtMaxRxStreams(ehtStreams.second);
+        }
+        StructNlAttr ehtCapPpeAttr = iftypeProperties.get(NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PPE);
+        if (ehtCapPpeAttr != null) {
+            bandCapsBuilder.setEhtCapPpe(ehtCapPpeAttr.nla_value);
         }
     }
 
     @NonNull
-    private Pair<Integer, Integer> parseHtMcsSetAttribute(byte[] htMcsSet) {
+    private static Pair<Integer, Integer> parseHtMcsSetAttribute(byte[] htMcsSet) {
         if (htMcsSet == null || htMcsSet.length < HT_MCS_SET_NUM_BYTE) {
             return new Pair<>(0, 0);
         }
@@ -1391,7 +2072,7 @@ public class Nl80211Utils {
     }
 
     @NonNull
-    private Pair<Integer, Integer> parseVhtMcsSetAttribute(byte[] vhtMcsSet) {
+    private static Pair<Integer, Integer> parseVhtMcsSetAttribute(byte[] vhtMcsSet) {
         if (vhtMcsSet == null || vhtMcsSet.length < VHT_MCS_SET_NUM_BYTE) {
             return new Pair<>(0, 0);
         }
@@ -1407,7 +2088,7 @@ public class Nl80211Utils {
     }
 
     @NonNull
-    private Pair<Integer, Integer> parseHeMcsSetAttribute(byte[] heMcsSet) {
+    private static Pair<Integer, Integer> parseHeMcsSetAttribute(byte[] heMcsSet) {
         if (heMcsSet == null || heMcsSet.length < HE_MCS_SET_NUM_BYTE_MIN) {
             return new Pair<>(0, 0);
         }
@@ -1422,7 +2103,7 @@ public class Nl80211Utils {
         return new Pair<>(maxTxStreamsHe, maxRxStreamsHe);
     }
 
-    private int parseMcsMap(int mcsMap) {
+    private static int parseMcsMap(int mcsMap) {
         int maxNss = 1;
         for (int i = MAX_SPACIAL_STREAMS; i >= 1; i--) {
             int streamMap = (mcsMap >> ((i - 1) * 2)) & 0b11;
@@ -1435,7 +2116,7 @@ public class Nl80211Utils {
     }
 
     @NonNull
-    private Pair<Boolean, Boolean> parseVhtCapAttribute(Integer vhtCap) {
+    private static Pair<Boolean, Boolean> parseVhtCapAttribute(Integer vhtCap) {
         if (vhtCap == null) return new Pair<>(false, false);
         boolean is160Mhz = (vhtCap & VHT_160MHZ_BIT_MASK) != 0;
         boolean is80p80Mhz = (vhtCap & VHT_80P80MHZ_BIT_MASK) != 0;
@@ -1443,7 +2124,7 @@ public class Nl80211Utils {
     }
 
     @NonNull
-    private Pair<Boolean, Boolean> parseHeCapPhyAttribute(byte[] heCapPhy) {
+    private static Pair<Boolean, Boolean> parseHeCapPhyAttribute(byte[] heCapPhy) {
         if (heCapPhy == null || heCapPhy.length < HE_CAP_PHY_NUM_BYTE) {
             return new Pair<>(false, false);
         }
@@ -1452,14 +2133,37 @@ public class Nl80211Utils {
         return new Pair<>(is160Mhz, is80p80Mhz);
     }
 
-    private boolean parseEhtCapPhyAttribute(byte[] ehtCapPhy) {
+    private static boolean parseEhtCapPhyAttribute(byte[] ehtCapPhy) {
         if (ehtCapPhy == null || ehtCapPhy.length < EHT_CAP_PHY_NUM_BYTE) return false;
         return (ehtCapPhy[0] & EHT_320MHZ_BIT_MASK) != 0;
     }
 
+    @NonNull
+    private static Pair<Integer, Integer> parseEhtMcsSetAttribute(byte[] ehtMcsSet) {
+        if (ehtMcsSet == null || ehtMcsSet.length < 4) {
+            return new Pair<>(0, 0);
+        }
+        ByteBuffer buffer = ByteBuffer.wrap(ehtMcsSet).order(ByteOrder.LITTLE_ENDIAN);
+
+        int ehtMcsMapRx = buffer.getShort(0) & 0xFFFF;
+        int maxRxStreamsEht = parseMcsMap(ehtMcsMapRx);
+
+        int ehtMcsMapTx = buffer.getShort(2) & 0xFFFF;
+        int maxTxStreamsEht = parseMcsMap(ehtMcsMapTx);
+
+        return new Pair<>(maxTxStreamsEht, maxRxStreamsEht);
+    }
+
+    /**
+     * Parses supported cipher suites from a netlink message.
+     * See {@link NetlinkConstants#NL80211_ATTR_CIPHER_SUITES}
+     *
+     * @param packet The netlink message containing cipher suite attributes.
+     * @return A list of supported cipher suites, or null if the attribute is missing or malformed.
+     */
     @VisibleForTesting
     @Nullable
-    protected List<Integer> parseCipherSuites(GenericNetlinkMsg packet) {
+    protected List<Integer> parseCipherSuites(@NonNull GenericNetlinkMsg packet) {
         StructNlAttr attr = packet.getAttribute(NL80211_ATTR_CIPHER_SUITES);
         if (attr == null || attr.nla_value == null || attr.nla_value.length == 0) {
             return null;
