@@ -210,7 +210,7 @@ public class Nl80211NativeTest {
         when(mNl80211Utils.getInterfaceInfo(CLIENT_IFACE_NAME)).thenReturn(ifaceInfo);
         // Mock a basic WiphyInfo response for setupInterfaceForClientMode to succeed.
         if (bandInfo == null) {
-            bandInfo = new Nl80211Utils.BandInfo();
+            bandInfo = new Nl80211Utils.BandInfo.Builder().build();
         }
         if (scanCapabilities == null) {
             scanCapabilities = mock(Nl80211Utils.ScanCapabilities.class);
@@ -218,14 +218,47 @@ public class Nl80211NativeTest {
         if (wiphyFeatures == null) {
             wiphyFeatures = mock(Nl80211Utils.WiphyFeatures.class);
         }
-        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
-                bandInfo,
-                scanCapabilities,
-                wiphyFeatures,
-                mock(Nl80211Utils.DriverCapabilities.class));
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(bandInfo)
+                .setScanCapabilities(scanCapabilities)
+                .setWiphyFeatures(wiphyFeatures)
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
         when(mNl80211Utils.getWiphyInfo(wiphyIndex)).thenReturn(wiphyInfo);
         mDut.setupInterfaceForClientMode(
                 CLIENT_IFACE_NAME, mExecutor, mScanCallback, mPnoScanCallback);
+    }
+
+    @Test
+    public void testGetWiphyInfo_success() {
+        mDut = initNl80211Native(false);
+        Nl80211Utils.WiphyInfo expectedWiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(new Nl80211Utils.BandInfo.Builder().build())
+                .setScanCapabilities(mock(Nl80211Utils.ScanCapabilities.class))
+                .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .setAvailableAntennasTx(0x3)
+                .setAvailableAntennasRx(0x3)
+                .setConfiguredAntennasTx(0x1)
+                .setConfiguredAntennasRx(0x1)
+                .build();
+        when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(expectedWiphyInfo);
+
+        Nl80211Utils.WiphyInfo result = mDut.getWiphyInfo(WIPHY_INDEX_0);
+
+        assertEquals(expectedWiphyInfo, result);
+        assertEquals(0x3, result.availableAntennasTx);
+        assertEquals(0x3, result.availableAntennasRx);
+        assertEquals(0x1, result.configuredAntennasTx);
+        assertEquals(0x1, result.configuredAntennasRx);
+        verify(mNl80211Utils).getWiphyInfo(WIPHY_INDEX_0);
+    }
+
+    @Test
+    public void testGetWiphyInfo_useWificondEnabled_returnsNull() {
+        mDut = initNl80211Native(true);
+        assertNull(mDut.getWiphyInfo(WIPHY_INDEX_0));
+        verify(mNl80211Utils, never()).getWiphyInfo(anyInt());
     }
 
     /** Test that a scan result event invokes the correct callback. */
@@ -630,11 +663,12 @@ public class Nl80211NativeTest {
         Nl80211Utils.InterfaceInfo ifaceInfo = new Nl80211Utils.InterfaceInfo(
                 CLIENT_IFACE_INDEX, WIPHY_INDEX_0, CLIENT_IFACE_NAME, new byte[6]);
         when(mNl80211Utils.getInterfaceInfo(CLIENT_IFACE_NAME)).thenReturn(ifaceInfo);
-        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
-                new Nl80211Utils.BandInfo(),
-                mock(Nl80211Utils.ScanCapabilities.class),
-                new Nl80211Utils.WiphyFeatures.Builder().build(),
-                mock(Nl80211Utils.DriverCapabilities.class));
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(new Nl80211Utils.BandInfo.Builder().build())
+                .setScanCapabilities(mock(Nl80211Utils.ScanCapabilities.class))
+                .setWiphyFeatures(new Nl80211Utils.WiphyFeatures.Builder().build())
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
         when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfo);
         // Simulate a failure from NetdWrapper.
         doThrow(new IllegalStateException("netd has died"))
@@ -928,11 +962,12 @@ public class Nl80211NativeTest {
                 .thenReturn(new Nl80211Utils.InterfaceInfo(
                         AP_IFACE_INDEX, wiphyIndex, AP_IFACE_NAME, new byte[6]));
         if (wiphyInfo == null) {
-            wiphyInfo = new Nl80211Utils.WiphyInfo(
-                    new Nl80211Utils.BandInfo(),
-                    mock(Nl80211Utils.ScanCapabilities.class),
-                    mock(Nl80211Utils.WiphyFeatures.class),
-                    mock(Nl80211Utils.DriverCapabilities.class));
+            wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                    .setBandInfo(new Nl80211Utils.BandInfo.Builder().build())
+                    .setScanCapabilities(mock(Nl80211Utils.ScanCapabilities.class))
+                    .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
+                    .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                    .build();
         }
         when(mNl80211Utils.getWiphyInfo(wiphyIndex)).thenReturn(wiphyInfo);
         mDut.setupInterfaceForSoftApMode(AP_IFACE_NAME);
@@ -942,8 +977,9 @@ public class Nl80211NativeTest {
     @Test
     public void testStartScan_success() {
         mDut = initNl80211Native(false);
-        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities(
-                2 /* maxNumScanSsids */, 0, 0, 0, 0, 0);
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(2)
+                .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, scanCapabilities, null);
         Set<Integer> freqs = new HashSet<>(List.of(2412, 5180));
         List<byte[]> hiddenSsids = List.of("hidden1".getBytes(), "hidden2".getBytes());
@@ -1018,8 +1054,9 @@ public class Nl80211NativeTest {
     @Test
     public void testStartScan_withHiddenSsids_trimsCorrectly() {
         mDut = initNl80211Native(false);
-        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities(
-                1 /* maxNumScanSsids */, 0, 0, 0, 0, 0);
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(1)
+                .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, scanCapabilities, null);
 
         byte[] ssid1 = "ssid1".getBytes();
@@ -1511,16 +1548,25 @@ public class Nl80211NativeTest {
     @Test
     public void testStartPnoScan_success() {
         mDut = initNl80211Native(false);
-        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities(
-                0, 1 /* maxNumSchedScanSsids */, 1 /* maxMatchSets */, 2, 10, 3);
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(0)
+                .setMaxNumSchedScanSsids(1)
+                .setMaxMatchSets(1)
+                .setMaxNumScanPlans(2)
+                .setMaxScanPlanIntervalSeconds(10)
+                .setMaxScanPlanIterations(3)
+                .build();
         Nl80211Utils.WiphyFeatures wiphyFeatures = new Nl80211Utils.WiphyFeatures.Builder()
                 .setSupportsRandomMacSchedScan(true)
                 .setSupportsLowPowerOneShotScan(true)
                 .setSupportsExtSchedScanRelativeRssi(true)
                 .build();
-        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
-                new Nl80211Utils.BandInfo(), scanCapabilities, wiphyFeatures,
-                mock(Nl80211Utils.DriverCapabilities.class));
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(new Nl80211Utils.BandInfo.Builder().build())
+                .setScanCapabilities(scanCapabilities)
+                .setWiphyFeatures(wiphyFeatures)
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
 
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, wiphyInfo.bandInfo, scanCapabilities,
                 wiphyFeatures);
@@ -1678,12 +1724,16 @@ public class Nl80211NativeTest {
     @Test
     public void testStartPnoScan_withHiddenSsids_trimsCorrectly() {
         mDut = initNl80211Native(false);
-        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities(
-                0, 1 /* maxNumSchedScanSsids */, 0, 0, 0, 0);
-        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
-                new Nl80211Utils.BandInfo(), scanCapabilities,
-                mock(Nl80211Utils.WiphyFeatures.class),
-                mock(Nl80211Utils.DriverCapabilities.class));
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(0)
+                .setMaxNumSchedScanSsids(1)
+                .build();
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(new Nl80211Utils.BandInfo.Builder().build())
+                .setScanCapabilities(scanCapabilities)
+                .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, wiphyInfo.bandInfo, scanCapabilities, null);
 
         byte[] ssid1 = "ssid1".getBytes();
@@ -1721,12 +1771,17 @@ public class Nl80211NativeTest {
     @Test
     public void testStartPnoScan_withMatchSsids_trimsCorrectly() {
         mDut = initNl80211Native(false);
-        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities(
-                0, 0, 1 /* maxMatchSets */, 0, 0, 0);
-        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
-                new Nl80211Utils.BandInfo(), scanCapabilities,
-                mock(Nl80211Utils.WiphyFeatures.class),
-                mock(Nl80211Utils.DriverCapabilities.class));
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(0)
+                .setMaxNumSchedScanSsids(0)
+                .setMaxMatchSets(1)
+                .build();
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(new Nl80211Utils.BandInfo.Builder().build())
+                .setScanCapabilities(scanCapabilities)
+                .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, wiphyInfo.bandInfo, scanCapabilities, null);
 
         byte[] ssid1 = "ssid1".getBytes();
@@ -1762,12 +1817,13 @@ public class Nl80211NativeTest {
     @Test
     public void testStartPnoScan_addsDefaultFreqsIfManyNetworksWithoutFreqs() {
         mDut = initNl80211Native(false);
-        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo();
-        bandInfo.band2g.add(2412);
-        bandInfo.band2g.add(2417);
-        bandInfo.band5g.add(5180);
-        bandInfo.band5g.add(5200);
-        bandInfo.band5g.add(5220);
+        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
+                .addBand2gFrequency(2412)
+                .addBand2gFrequency(2417)
+                .addBand5gFrequency(5180)
+                .addBand5gFrequency(5200)
+                .addBand5gFrequency(5220)
+                .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, bandInfo, null, null);
 
         List<PnoNetwork> pnoNetworks = new ArrayList<>();
@@ -1814,9 +1870,11 @@ public class Nl80211NativeTest {
     public void testStartPnoScan_numScanPlansNotSupported() {
         mDut = initNl80211Native(false);
         // Set scan capabilities to not support multiple plans
-        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities(
-                0, 0, 0, /* maxNumScanPlans */ 1, /* maxScanPlanInterval */ 20,
-                /* maxScanPlanIterations */ 10);
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanPlans(1)
+                .setMaxScanPlanIntervalSeconds(20)
+                .setMaxScanPlanIterations(10)
+                .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, scanCapabilities, null);
 
         when(mPnoSettings.getIntervalMillis()).thenReturn(15000L);
@@ -1843,9 +1901,11 @@ public class Nl80211NativeTest {
     public void testStartPnoScan_maxRequestedScanIntervalNotSupported() {
         mDut = initNl80211Native(false);
         // Set a supported scan interval of 11 seconds but a max requested interval of 12 seconds.
-        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities(
-                0, 0, 0,  /* maxNumScanPlans */ 2, /* maxScanPlanIntervalSeconds */ 11,
-                /* maxScanPlanIterations */ 10);
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanPlans(2)
+                .setMaxScanPlanIntervalSeconds(11)
+                .setMaxScanPlanIterations(10)
+                .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, scanCapabilities, null);
 
         when(mPnoSettings.getIntervalMillis()).thenReturn(4000L);
@@ -1872,9 +1932,11 @@ public class Nl80211NativeTest {
     public void testStartPnoScan_numScanIterationsNotSupported() {
         mDut = initNl80211Native(false);
         // Set scan capabilities to not support the requested number of scan iterations.
-        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities(
-                0, 0, 0, /* maxNumScanPlans */ 2 , /* maxScanPlanInterval */ 20,
-                /* maxScanPlanIterations */ 4);
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanPlans(2)
+                .setMaxScanPlanIntervalSeconds(20)
+                .setMaxScanPlanIterations(4)
+                .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, scanCapabilities, null);
 
         when(mPnoSettings.getIntervalMillis()).thenReturn(15000L);
@@ -2123,24 +2185,31 @@ public class Nl80211NativeTest {
     @Test
     public void testGetDeviceWiphyCapabilities_success() {
         mDut = initNl80211Native(false);
-        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo();
-        bandInfo.is80211nSupported = true;
-        bandInfo.is80211acSupported = true;
-        bandInfo.is80211axSupported = true;
-        bandInfo.is80211beSupported = true;
-        bandInfo.is160MhzSupported = true;
-        bandInfo.is80p80MhzSupported = true;
-        bandInfo.is320MhzSupported = true;
-        bandInfo.maxTxStreams = 8;
-        bandInfo.maxRxStreams = 4;
+        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
+                .setIs80211nSupported(true)
+                .setIs80211acSupported(true)
+                .setIs80211axSupported(true)
+                .setIs80211beSupported(true)
+                .setIs160MhzSupported(true)
+                .setIs80p80MhzSupported(true)
+                .setIs320MhzSupported(true)
+                .setMaxTxStreams(8)
+                .setMaxRxStreams(4)
+                .build();
         Nl80211Utils.ScanCapabilities scanCapabilities =
-                new Nl80211Utils.ScanCapabilities(0, 0, 0, 0, 0, 0);
+                new Nl80211Utils.ScanCapabilities.Builder().build();
         Nl80211Utils.WiphyFeatures wiphyFeatures =
                 new Nl80211Utils.WiphyFeatures.Builder().build();
         Nl80211Utils.DriverCapabilities driverCapabilities =
-                new Nl80211Utils.DriverCapabilities(5);
-        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
-                bandInfo, scanCapabilities, wiphyFeatures, driverCapabilities);
+                new Nl80211Utils.DriverCapabilities.Builder()
+                        .setMaxNumAkmSuites(5)
+                        .build();
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(bandInfo)
+                .setScanCapabilities(scanCapabilities)
+                .setWiphyFeatures(wiphyFeatures)
+                .setDriverCapabilities(driverCapabilities)
+                .build();
 
         when(mNl80211Utils.getWiphyIndex(CLIENT_IFACE_NAME)).thenReturn(0);
         when(mNl80211Utils.getWiphyInfo(0)).thenReturn(wiphyInfo);
@@ -2188,12 +2257,15 @@ public class Nl80211NativeTest {
         mDut = initNl80211Native(false);
         when(mResources.getBoolean(R.bool.config_wifi11axSupportOverride)).thenReturn(true);
 
-        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo();
-        bandInfo.is80211axSupported = false; // Reported as false by hardware
-        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
-                bandInfo, mock(Nl80211Utils.ScanCapabilities.class),
-                mock(Nl80211Utils.WiphyFeatures.class),
-                mock(Nl80211Utils.DriverCapabilities.class));
+        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
+                .setIs80211axSupported(false) // Reported as false by hardware
+                .build();
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(bandInfo)
+                .setScanCapabilities(mock(Nl80211Utils.ScanCapabilities.class))
+                .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
 
         when(mNl80211Utils.getWiphyIndex(CLIENT_IFACE_NAME)).thenReturn(WIPHY_INDEX_0);
         when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfo);
@@ -2210,12 +2282,15 @@ public class Nl80211NativeTest {
         mDut = initNl80211Native(false);
         when(mResources.getBoolean(R.bool.config_wifi11beSupportOverride)).thenReturn(true);
 
-        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo();
-        bandInfo.is80211beSupported = false; // Reported as false by hardware
-        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
-                bandInfo, mock(Nl80211Utils.ScanCapabilities.class),
-                mock(Nl80211Utils.WiphyFeatures.class),
-                mock(Nl80211Utils.DriverCapabilities.class));
+        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
+                .setIs80211beSupported(false) // Reported as false by hardware
+                .build();
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(bandInfo)
+                .setScanCapabilities(mock(Nl80211Utils.ScanCapabilities.class))
+                .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
 
         when(mNl80211Utils.getWiphyIndex(CLIENT_IFACE_NAME)).thenReturn(WIPHY_INDEX_0);
         when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfo);
@@ -2294,12 +2369,13 @@ public class Nl80211NativeTest {
     @Test
     public void testGetChannelsMhzForBand_success() {
         mDut = initNl80211Native(false);
-        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo();
-        bandInfo.band2g.add(2412);
-        bandInfo.band5g.add(5180);
-        bandInfo.bandDfs.add(5260);
-        bandInfo.band6g.add(5955);
-        bandInfo.band60g.add(60480);
+        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
+                .addBand2gFrequency(2412)
+                .addBand5gFrequency(5180)
+                .addBandDfsFrequency(5260)
+                .addBand6gFrequency(5955)
+                .addBand60gFrequency(60480)
+                .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, bandInfo, null, null);
 
         // 2.4 GHz
@@ -2336,13 +2412,15 @@ public class Nl80211NativeTest {
     public void testGetMaxSsidsPerScan_success() {
         mDut = initNl80211Native(false);
         final int maxSsids = 16;
-        Nl80211Utils.ScanCapabilities scanCaps = new Nl80211Utils.ScanCapabilities(
-                maxSsids, 0, 0, 0, 0, 0);
-        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo(
-                new Nl80211Utils.BandInfo(),
-                scanCaps,
-                mock(Nl80211Utils.WiphyFeatures.class),
-                mock(Nl80211Utils.DriverCapabilities.class));
+        Nl80211Utils.ScanCapabilities scanCaps = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(maxSsids)
+                .build();
+        Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(new Nl80211Utils.BandInfo.Builder().build())
+                .setScanCapabilities(scanCaps)
+                .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
 
         when(mNl80211Utils.getWiphyIndex(CLIENT_IFACE_NAME)).thenReturn(WIPHY_INDEX_0);
         when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfo);
@@ -2893,21 +2971,22 @@ public class Nl80211NativeTest {
     public void testCountryCodeChange_updatesWiphyInfo() {
         mDut = initNl80211Native(false);
         // Initial setup with no 6GHz support
-        Nl80211Utils.BandInfo bandInfoNo6g = new Nl80211Utils.BandInfo();
-        bandInfoNo6g.band6g.clear();
+        Nl80211Utils.BandInfo bandInfoNo6g = new Nl80211Utils.BandInfo.Builder().build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, bandInfoNo6g, null, null);
         mDut.registerCountryCodeChangedListener(mExecutor, mCountryCodeChangedListener);
         assertEquals(bandInfoNo6g,
                 mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME).wiphyInfo.bandInfo);
 
         // Mock a new WiphyInfo with 6GHz support after the country code change
-        Nl80211Utils.BandInfo bandInfoWith6g = new Nl80211Utils.BandInfo();
-        bandInfoWith6g.band6g.add(6150);
-        Nl80211Utils.WiphyInfo wiphyInfoWith6g = new Nl80211Utils.WiphyInfo(
-                bandInfoWith6g,
-                mock(Nl80211Utils.ScanCapabilities.class),
-                mock(Nl80211Utils.WiphyFeatures.class),
-                mock(Nl80211Utils.DriverCapabilities.class));
+        Nl80211Utils.BandInfo bandInfoWith6g = new Nl80211Utils.BandInfo.Builder()
+                .addBand6gFrequency(6150)
+                .build();
+        Nl80211Utils.WiphyInfo wiphyInfoWith6g = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(bandInfoWith6g)
+                .setScanCapabilities(mock(Nl80211Utils.ScanCapabilities.class))
+                .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
         when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfoWith6g);
 
         ArgumentCaptor<Nl80211BroadcastMonitor.Nl80211BroadcastCallback> callbackCaptor =
@@ -2987,8 +3066,7 @@ public class Nl80211NativeTest {
     public void testNotifyCountryCodeChanged_success() {
         mDut = initNl80211Native(false);
         // Initial setup with no 6GHz support
-        Nl80211Utils.BandInfo bandInfoNo6g = new Nl80211Utils.BandInfo();
-        bandInfoNo6g.band6g.clear();
+        Nl80211Utils.BandInfo bandInfoNo6g = new Nl80211Utils.BandInfo.Builder().build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, bandInfoNo6g, null, null);
         assertEquals(bandInfoNo6g,
                 mDut.getClientInterfaceInfos().get(CLIENT_IFACE_NAME).wiphyInfo.bandInfo);
@@ -2997,13 +3075,15 @@ public class Nl80211NativeTest {
         assertEquals(0, mDut.getChannelsMhzForBand(WifiScanner.WIFI_BAND_6_GHZ).length);
 
         // Mock the new WiphyInfo that will be returned after the country code change
-        Nl80211Utils.BandInfo bandInfoWith6g = new Nl80211Utils.BandInfo();
-        bandInfoWith6g.band6g.add(6150); // Add a 6GHz channel
-        Nl80211Utils.WiphyInfo wiphyInfoWith6g = new Nl80211Utils.WiphyInfo(
-                bandInfoWith6g,
-                mock(Nl80211Utils.ScanCapabilities.class),
-                mock(Nl80211Utils.WiphyFeatures.class),
-                mock(Nl80211Utils.DriverCapabilities.class));
+        Nl80211Utils.BandInfo bandInfoWith6g = new Nl80211Utils.BandInfo.Builder()
+                .addBand6gFrequency(6150) // Add a 6GHz channel
+                .build();
+        Nl80211Utils.WiphyInfo wiphyInfoWith6g = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(bandInfoWith6g)
+                .setScanCapabilities(mock(Nl80211Utils.ScanCapabilities.class))
+                .setWiphyFeatures(mock(Nl80211Utils.WiphyFeatures.class))
+                .setDriverCapabilities(mock(Nl80211Utils.DriverCapabilities.class))
+                .build();
         when(mNl80211Utils.getWiphyInfo(WIPHY_INDEX_0)).thenReturn(wiphyInfoWith6g);
 
         mDut.notifyCountryCodeChanged(COUNTRY_CODE);
