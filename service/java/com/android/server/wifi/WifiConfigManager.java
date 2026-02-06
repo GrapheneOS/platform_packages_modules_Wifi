@@ -2507,7 +2507,7 @@ public class WifiConfigManager {
                 networkId, WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE)) {
             return false;
         }
-        mWifiBlocklistMonitor.clearBssidBlocklistForSsid(config.SSID);
+        mWifiBlocklistMonitor.onEnableNetwork(config);
         saveToStore();
         return true;
     }
