@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -79,6 +80,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
     @Rule public ErrorCollector collector = new ErrorCollector();
 
     private WifiStatus mStatusOk;
+    private static final String IFACE_NAME = "aware0";
 
     @Before
     public void setUp() throws Exception {
@@ -90,7 +92,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
         when(mWifiNanIfaceMock.registerFrameworkCallback(any())).thenReturn(true);
         when(mWifiInjector.getMainlineSupplicantAidlManager()).thenReturn(mMainlineSupplicant);
         when(mMainlineSupplicant.isInitializationComplete()).thenReturn(false);
-        when(mMainlineSupplicant.getWifiNanIface()).thenReturn(mSupplicantNanIface);
+        when(mMainlineSupplicant.getWifiNanIface(anyString())).thenReturn(mSupplicantNanIface);
         when(mMainlineSupplicant.startDaemon()).thenReturn(true);
         when(mFeatureFlags.wifiAwareSupplicantSolution()).thenReturn(false);
         when(mSupplicantNanIface.registerFrameworkCallback(any())).thenReturn(true);
@@ -107,6 +109,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
         mInOrder.verify(mHalDeviceManager).registerStatusListener(
                 mManagerStatusListenerCaptor.capture(), any());
         mWifiNativeNanIfaceMock.iface = mWifiNanIfaceMock;
+        mWifiNativeNanIfaceMock.name = IFACE_NAME;
     }
 
     /**
@@ -272,7 +275,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
         mInOrder.verify(mWifiNative).createNanIface(mDestroyedListenerCaptor.capture(),
                 any(), eq(TEST_WS), eq(true));
         mInOrder.verify(mMainlineSupplicant).startDaemon();
-        mInOrder.verify(mMainlineSupplicant).getWifiNanIface();
+        mInOrder.verify(mMainlineSupplicant).getWifiNanIface(IFACE_NAME);
         mInOrder.verify(mSupplicantNanIface).registerFrameworkCallback(any());
         mInOrder.verify(mSupplicantNanIface).enableVerboseLogging(anyBoolean());
         mInOrder.verify(mWifiNanIfaceMock).enableVerboseLogging(anyBoolean());
@@ -294,7 +297,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
         mInOrder.verify(mWifiNative).createNanIface(mDestroyedListenerCaptor.capture(),
                 any(), eq(TEST_WS), eq(true));
         mInOrder.verify(mMainlineSupplicant).startDaemon();
-        mInOrder.verify(mMainlineSupplicant).getWifiNanIface();
+        mInOrder.verify(mMainlineSupplicant).getWifiNanIface(IFACE_NAME);
         mInOrder.verify(mSupplicantNanIface).registerFrameworkCallback(any());
         mInOrder.verify(mSupplicantNanIface).enableVerboseLogging(anyBoolean());
         mInOrder.verify(mWifiNanIfaceMock).enableVerboseLogging(anyBoolean());
