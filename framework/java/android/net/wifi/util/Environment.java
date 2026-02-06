@@ -127,7 +127,7 @@ public class Environment {
      * @return True if the SDK >= 37
      */
     public static boolean isSdkAtLeastC() {
-        return Build.VERSION.CODENAME.equalsIgnoreCase("CINNAMON_BUN")
+        return Build.VERSION.CODENAME.equalsIgnoreCase("CINNAMONBUN")
                 || Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN;
     }
 }
