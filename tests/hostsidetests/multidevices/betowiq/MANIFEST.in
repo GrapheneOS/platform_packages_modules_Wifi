@@ -1,0 +1,3 @@
+recursive-include betowiq/snippets *
+recursive-include betowiq/ *
+include README.md
