@@ -19,6 +19,7 @@ package com.android.server.wifi.aware;
 import static android.Manifest.permission.ACCESS_WIFI_STATE;
 import static android.net.wifi.WifiAvailableChannel.OP_MODE_WIFI_AWARE;
 import static android.net.wifi.aware.AwareDataPathRequest.DATA_PATH_CONNECTION_FAILURE_REASON_INTERNAL_FAILURE;
+import static android.net.wifi.aware.AwareDataPathRequest.DATA_PATH_CONNECTION_FAILURE_REASON_REJECT_BY_PEER;
 import static android.net.wifi.aware.AwareDataPathRequest.DATA_PATH_CONNECTION_FAILURE_REASON_TIME_OUT;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128;
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_RESUME_INTERNAL_ERROR;
@@ -28,8 +29,11 @@ import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_CANNOT_
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_INTERNAL_ERROR;
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_INVALID_SESSION;
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_SUSPEND_REDUNDANT_REQUEST;
+import static android.system.OsConstants.NETLINK_ROUTE;
 
 import static com.android.server.wifi.WifiSettingsConfigStore.D2D_ALLOWED_WHEN_INFRA_STA_DISABLED;
+import static com.android.server.wifi.aware.WifiAwareDataPathStateManager.AGENT_TAG_PREFIX;
+import static com.android.server.wifi.aware.WifiAwareDataPathStateManager.createAddNeighborRtNetlinkNeighborMessage;
 import static com.android.server.wifi.aware.WifiAwareMetrics.convertNanStatusCodeToWifiStatsLogEnum;
 import static com.android.server.wifi.hal.WifiNanIface.NanStatusCode.NOT_SUPPORTED;
 import static com.android.server.wifi.hal.WifiNanIface.NanStatusCode.NO_CONNECTION;
@@ -68,7 +72,15 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.wifi.V1_0.WifiStatusCode;
 import android.location.LocationManager;
+import android.net.LinkProperties;
 import android.net.MacAddress;
+import android.net.NetworkAgent;
+import android.net.NetworkAgentConfig;
+import android.net.NetworkCapabilities;
+import android.net.NetworkScore;
+import android.net.ip.IIpClient;
+import android.net.ip.IpClientCallbacks;
+import android.net.shared.ProvisioningConfiguration;
 import android.net.wifi.IBooleanListener;
 import android.net.wifi.IIntegerListener;
 import android.net.wifi.IListListener;
@@ -95,6 +107,7 @@ import android.net.wifi.aware.SubscribeDiscoverySession;
 import android.net.wifi.aware.WifiAwareChannelInfo;
 import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
 import android.net.wifi.aware.WifiAwareManager;
+import android.net.wifi.aware.WifiAwareNetworkInfo;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.util.HexEncoding;
@@ -123,6 +136,7 @@ import com.android.internal.util.WakeupMessage;
 import com.android.modules.utils.BasicShellCommandHandler;
 import com.android.modules.utils.HandlerExecutor;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.net.module.util.netlink.NetlinkUtils;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.InterfaceConflictManager;
@@ -146,9 +160,14 @@ import org.json.JSONObject;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.net.Inet6Address;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -424,6 +443,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private final SparseArray<WifiAwareDiscoverySessionState> mActiveNdps = new SparseArray<>();
     private final SparseIntArray mPendingRequest = new SparseIntArray();
     private String mNdiName = null;
+    private HashMap<String, IpClientCallbacksImpl> mIpClientPerNdi = new HashMap<>();
 
     private long mStartTime;
     private int mMaxNdpSessionLimit = 0;
@@ -434,6 +454,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      * Current logged in user ID.
      */
     private int mCurrentUserId = UserHandle.SYSTEM.getIdentifier();
+    private WifiAwareLocalNetworkAgent mNetworkAgent;
+    private NetdWrapper mNetdWrapper;
 
     private static class PairingInfo {
         public final int mClientId;
@@ -722,6 +744,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mSm.setDbg(mVdbg);
         mSm.start();
         mHandler = new Handler(looper);
+        mNetdWrapper = netdWrapper;
 
         mDataPathMgr = new WifiAwareDataPathStateManager(this, clock);
         mDataPathMgr.start(mContext, mSm.getHandler().getLooper(), awareMetrics,
@@ -4533,6 +4556,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             if (interfaceName == null) {
                 if (mNdiName == null) {
                     interfaceName = mDataPathMgr.getAvailableNdi();
+                    mNdiName = interfaceName;
+                    mNetdWrapper.setInterfaceUp(mNdiName);
+                    startIpClient(interfaceName);
                 } else {
                     interfaceName = mNdiName;
                 }
@@ -4592,6 +4618,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             if (interfaceName == null) {
                 if (mNdiName == null) {
                     interfaceName = mDataPathMgr.getAvailableNdi();
+                    mNdiName = interfaceName;
+                    mNetdWrapper.setInterfaceUp(mNdiName);
+                    startIpClient(interfaceName);
                 } else {
                     interfaceName = mNdiName;
                 }
@@ -5090,6 +5119,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             String interfaceName = (String) command.obj;
             mDataPathMgr.onInterfaceDeleted(interfaceName);
             if (mNdiName == interfaceName) {
+                mIpClientPerNdi.get(mNdiName).shutdown();
                 mNdiName = null;
             }
         } else {
@@ -5873,12 +5903,91 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             if (!accept) {
                 mActiveNdps.remove(ndpId);
                 cleanupNdi();
+                return session.onDataPathConfirmFailed(ndpId,
+                        DATA_PATH_CONNECTION_FAILURE_REASON_REJECT_BY_PEER);
             }
-            return session.onDataPathConfirm(ndpId, mac, accept, reason, message, channelInfos);
+            mIpClientPerNdi.get(mNdiName).startProvisioning(
+                    new DataPathConfirmHandler(session, ndpId, mac, message,
+                            channelInfos));
+            return true;
         } else {
             return mDataPathMgr.onDataPathConfirm(ndpId, mac, accept, reason, message,
                     channelInfos);
         }
+    }
+
+    private static class DataPathConfirmHandler {
+        private final WifiAwareDiscoverySessionState mSession;
+        private final int mNdpId;
+        private final byte[] mMac;
+        private final byte[] mMessage;
+        private final List<WifiAwareChannelInfo> mChannelInfos;
+
+        DataPathConfirmHandler(WifiAwareDiscoverySessionState session, int npdId,
+                byte[] mac, byte[] message, List<WifiAwareChannelInfo> channelInfos) {
+            mSession = session;
+            mNdpId = npdId;
+            mMac = mac;
+            mMessage = message;
+            mChannelInfos = channelInfos;
+        }
+
+        void handleProvisionSuccess(NetworkInterface ni) {
+            int peerPort = 0;
+            int peerProtocol = -1;
+            byte[] peerAddress = null;
+            if (mMessage != null) {
+                WifiAwareDataPathStateManager.NetworkInformationData.ParsedResults peerServerInfo =
+                        WifiAwareDataPathStateManager.NetworkInformationData.parseTlv(mMessage);
+                if (peerServerInfo != null) {
+                    peerPort = peerServerInfo.port;
+                    peerProtocol = peerServerInfo.transportProtocol;
+                    peerAddress = peerServerInfo.ipv6Override;
+                }
+            }
+            Inet6Address inet6Address = getInet6Address(mMac, peerAddress, ni);
+            try {
+                int index = ni == null ? 0 : ni.getIndex();
+                byte[] msg = createAddNeighborRtNetlinkNeighborMessage(index, inet6Address, mMac);
+                NetlinkUtils.sendOneShotKernelMessage(NETLINK_ROUTE, msg);
+                WifiAwareNetworkInfo info = new WifiAwareNetworkInfo(inet6Address, peerPort,
+                        peerProtocol, mChannelInfos);
+                mSession.onDataPathConfirmSuccess(mNdpId, info);
+            } catch (Exception e) {
+                Log.e(TAG, "Add IPv6 neighbor failed: " + e);
+            }
+            Log.v(TAG, "onDataPathConfirm: handleProvisionSuccess");
+        }
+
+        void handleProvisionFailed() {
+            mSession.onDataPathConfirmFailed(mNdpId,
+                    DATA_PATH_CONNECTION_FAILURE_REASON_INTERNAL_FAILURE);
+        }
+    }
+
+    private static Inet6Address getInet6Address(byte[] mac, byte[] override, NetworkInterface ni) {
+        try {
+            byte[] addr;
+            if (override == null || mac.length != 8) {
+                addr = MacAddress.fromBytes(mac).getLinkLocalIpv6FromEui48Mac().getAddress();
+            } else {
+                addr = new byte[16];
+                addr[0] = (byte) 0xfe;
+                addr[1] = (byte) 0x80;
+                addr[8] = override[0];
+                addr[9] = override[1];
+                addr[10] = override[2];
+                addr[11] = override[3];
+                addr[12] = override[4];
+                addr[13] = override[5];
+                addr[14] = override[6];
+                addr[15] = override[7];
+            }
+            return Inet6Address.getByAddress(null, addr, ni);
+        } catch (UnknownHostException e) {
+            Log.d(TAG, "onDataPathConfirm: error obtaining scoped IPv6 address -- " + e);
+        }
+        return null;
     }
 
     /*
@@ -6319,8 +6428,176 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private void cleanupNdi() {
         if (mActiveNdps.size() == 0) {
+            if (mNetworkAgent == null) {
+                Log.e(TAG, "mNetworkAgent is null");
+            } else {
+                mNetworkAgent.reconfigureAgentAsDisconnected();
+            }
+            mNetworkAgent = null;
             mDataPathMgr.releaseNdi(mNdiName);
+            IpClientCallbacksImpl ipClient = mIpClientPerNdi.get(mNdiName);
+            if (ipClient != null) {
+                mIpClientPerNdi.get(mNdiName).shutdown();
+            }
             mNdiName = null;
+        }
+    }
+
+    private void startIpClient(String ifname) {
+        stopIpClient(ifname);
+        mWifiInjector.getFrameworkFacade()
+                .makeIpClient(mContext, ifname, new IpClientCallbacksImpl(ifname));
+    }
+
+    private void stopIpClient(String ifname) {
+        IpClientCallbacksImpl callbacks = mIpClientPerNdi.get(ifname);
+        if (callbacks != null) {
+            callbacks.shutdown();
+        }
+    }
+
+    private class IpClientCallbacksImpl extends IpClientCallbacks {
+        private IIpClient mIpClient;
+        private final String mInterfaceName;
+        private boolean mProvisioned = false;
+        private DataPathConfirmHandler mConfirmHandlerHandler;
+
+        IpClientCallbacksImpl(String interfaceName) {
+            mInterfaceName = interfaceName;
+            mIpClientPerNdi.put(interfaceName, this);
+        }
+
+        void shutdown() {
+            try {
+                mIpClient.shutdown();
+            } catch (RemoteException e) {
+                e.rethrowFromSystemServer();
+            }
+            mIpClient = null;
+            mIpClientPerNdi.remove(mInterfaceName);
+        }
+
+        void startProvisioning(DataPathConfirmHandler handler) {
+            if (mIpClient == null) {
+                Log.e(TAG, "IpClient is null, cannot start provisioning");
+                return;
+            }
+            if (mProvisioned) {
+                return;
+            }
+            mConfirmHandlerHandler = handler;
+            mProvisioned = true;
+            ProvisioningConfiguration config = new ProvisioningConfiguration.Builder()
+                    .withoutIPv4()
+                    .withIpv6LinkLocalOnly()
+                    .withRandomMacAddress()
+                    .withUniqueEui64AddressesOnly()
+                    .build();
+            try {
+                mIpClient.startProvisioning(config.toStableParcelable());
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed to start provisioning", e);
+            }
+        }
+
+        @Override
+        public void onIpClientCreated(IIpClient ipClient) {
+            mHandler.post(() -> {
+                if (!this.equals(mIpClientPerNdi.get(mInterfaceName))) {
+                    return;
+                }
+                if (mVerboseLoggingEnabled) {
+                    Log.v(TAG, "onIpClientCreated: " + mInterfaceName);
+                }
+                mIpClient = ipClient;
+            });
+        }
+
+        @Override
+        public void onProvisioningSuccess(LinkProperties newLp) {
+            mHandler.post(() -> {
+                if (!this.equals(mIpClientPerNdi.get(mInterfaceName))) {
+                    return;
+                }
+                if (mConfirmHandlerHandler != null) {
+                    NetworkInterface ni = null;
+                    try {
+                        ni = NetworkInterface.getByName(mInterfaceName);
+                    } catch (SocketException e) {
+                        Log.e(TAG, "onProvisioningSuccess, but no interface found: " + e);
+                        mConfirmHandlerHandler.handleProvisionFailed();
+                        mConfirmHandlerHandler = null;
+                        return;
+                    }
+                    mConfirmHandlerHandler.handleProvisionSuccess(ni);
+                    mConfirmHandlerHandler = null;
+                }
+                if (mNetworkAgent != null) {
+                    mNetworkAgent.sendLinkProperties(newLp);
+                } else {
+                    registerNetworkAgent(newLp);
+                }
+                if (mVerboseLoggingEnabled) {
+                    Log.v(TAG, "onProvisioningSuccess: " + mInterfaceName);
+                }
+            });
+        }
+
+        @Override
+        public void onProvisioningFailure(LinkProperties newLp) {
+            mHandler.post(() -> {
+                if (!this.equals(mIpClientPerNdi.get(mInterfaceName))) {
+                    return;
+                }
+                if (mConfirmHandlerHandler != null) {
+                    mConfirmHandlerHandler.handleProvisionFailed();
+                    mConfirmHandlerHandler = null;
+                }
+                if (mVerboseLoggingEnabled) {
+                    Log.v(TAG, "onProvisioningFailure: " + mInterfaceName);
+                }
+            });
+        }
+    }
+
+    private void registerNetworkAgent(LinkProperties lp) {
+        NetworkCapabilities.Builder ncb = new NetworkCapabilities.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI_AWARE)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_LOCAL_NETWORK)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_TRUSTED);
+
+        // This will make it so that only the requester UIDs can match this network in
+        // ConnectivityService, while other users can still access the network via the
+        // interface in the intent.
+        Set<android.util.Range<Integer>> uidRanges = new HashSet<>();
+        for (int i = 0; i < mClients.size(); i++) {
+            WifiAwareClientState clientState = mClients.valueAt(i);
+            uidRanges.add(new android.util.Range<>(clientState.getUid(), clientState.getUid()));
+        }
+        ncb.setUids(uidRanges);
+
+        NetworkAgentConfig nac = new NetworkAgentConfig.Builder().build();
+        mNetworkAgent = new WifiAwareLocalNetworkAgent(ncb.build(), lp, nac);
+        mNetworkAgent.sendNetworkScore(new NetworkScore.Builder()
+                .setKeepConnectedReason(3).build());
+        mNetworkAgent.markConnected();
+    }
+
+    private class WifiAwareLocalNetworkAgent extends NetworkAgent {
+        WifiAwareLocalNetworkAgent(NetworkCapabilities nc, LinkProperties lp,
+                NetworkAgentConfig config) {
+            super(mContext, mHandler.getLooper(), AGENT_TAG_PREFIX + mNdiName, nc, lp,
+                    3, config, null);
+            register();
+        }
+        void reconfigureAgentAsDisconnected() {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "WifiAwareLocalNetworkAgent.reconfigureAgentAsDisconnected: NDI="
+                        + mNdiName);
+            }
+            unregister();
         }
     }
 }
