@@ -281,11 +281,12 @@ public class MainlineSupplicantAidlManager {
 
     /**
      * Get the WifiNanIface interface implementation.
-     *
+     * @param ifaceName The name of the Aware interface to be retrieved
      * @return The WifiNanIface interface, or null if an error occurred.
      */
-    public AwareIfaceAidlSupplicantImpl getWifiNanIface() {
+    public AwareIfaceAidlSupplicantImpl getWifiNanIface(String ifaceName) {
         String methodStr = "addNanInterface";
+        final String interfaceName = ifaceName == null ? AWARE_IFACE_NAME : ifaceName;
         synchronized (mLock) {
             if (mWifiNanIface == null) {
                 try {
@@ -293,7 +294,7 @@ public class MainlineSupplicantAidlManager {
                         return null;
                     }
                     mWifiNanIface = new AwareIfaceAidlSupplicantImpl(mIMainlineSupplicant
-                            .addNanInterface(AWARE_IFACE_NAME));
+                            .addNanInterface(interfaceName));
                 } catch (RemoteException e) {
                     handleRemoteException(e, methodStr);
                 } catch (ServiceSpecificException e) {

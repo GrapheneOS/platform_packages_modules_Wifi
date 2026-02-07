@@ -168,7 +168,7 @@ public class WifiAwareNativeManager {
                     return;
                 }
             }
-            mSupplicantNanIface = mMainlineSupplicant.getWifiNanIface();
+            mSupplicantNanIface = mMainlineSupplicant.getWifiNanIface(mWifiNativeNanIface.name);
             if (mSupplicantNanIface == null) {
                 Log.e(TAG, "Unable to get WifiNanIface from the supplicant daemon");
                 mHalDeviceManager.removeIface(mVendorHalNanIface);
