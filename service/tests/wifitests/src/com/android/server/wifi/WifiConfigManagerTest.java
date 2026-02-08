@@ -1735,7 +1735,8 @@ public class WifiConfigManagerTest extends WifiBaseTest {
         mAlarmManager.dispatch(BUFFERED_WRITE_ALARM_TAG);
         mLooper.dispatchAll();
         mContextConfigStoreMockOrder.verify(mWifiConfigStore).write();
-        verify(mWifiBlocklistMonitor, times(2)).clearBssidBlocklistForSsid(openNetwork.SSID);
+        verify(mWifiBlocklistMonitor).clearBssidBlocklistForSsid(openNetwork.SSID);
+        verify(mWifiBlocklistMonitor).onEnableNetwork(any());
 
         // Now set it disabled.
         assertTrue(mWifiConfigManager.disableNetwork(
