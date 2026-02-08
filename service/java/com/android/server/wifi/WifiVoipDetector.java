@@ -168,7 +168,7 @@ public class WifiVoipDetector {
         }
     }
 
-    private boolean isWifiVoipOn() {
+    public boolean isWifiVoipOn() {
         return (mIsWifiConnected && mIsOTTCallOn) || mIsVoWifiOn;
     }
 
