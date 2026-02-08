@@ -1833,4 +1833,41 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
         assertEquals(Set.of(WifiBlocklistMonitor.REASON_ASSOCIATION_REJECTION),
                 mWifiBlocklistMonitor.getFailureReasonsForSsid(TEST_SSID_1));
     }
+
+    /**
+     * Verify that onEnableNetwork clears blocked BSSIDs for the given SSID except for certain
+     * reasons.
+     */
+    @Test
+    public void testOnEnableNetwork() {
+        WifiConfiguration config1 = WifiConfigurationTestUtil.createPskNetwork(TEST_SSID_1);
+        WifiConfiguration config2 = WifiConfigurationTestUtil.createPskNetwork(TEST_SSID_2);
+        long testDuration = 5500L;
+
+        // Block TEST_BSSID_1 with REASON_AP_UNABLE_TO_HANDLE_NEW_STA (should be cleared)
+        mWifiBlocklistMonitor.blockBssidForDurationMs(TEST_BSSID_1, config1, testDuration,
+                WifiBlocklistMonitor.REASON_AP_UNABLE_TO_HANDLE_NEW_STA, TEST_GOOD_RSSI);
+        // Block TEST_BSSID_2 with REASON_APP_DISALLOW (should NOT be cleared)
+        mWifiBlocklistMonitor.blockBssidForDurationMs(TEST_BSSID_2, config1, testDuration,
+                WifiBlocklistMonitor.REASON_APP_DISALLOW, TEST_GOOD_RSSI);
+        // Block TEST_BSSID_3 with REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE
+        // (should NOT be cleared)
+        mWifiBlocklistMonitor.blockBssidForDurationMs(TEST_BSSID_3, config1, testDuration,
+                WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE, TEST_GOOD_RSSI);
+        // Block a BSSID for config2 (should NOT be affected)
+        String bssid4 = "0a:08:5c:67:89:04";
+        mWifiBlocklistMonitor.blockBssidForDurationMs(bssid4, config2, testDuration,
+                WifiBlocklistMonitor.REASON_AP_UNABLE_TO_HANDLE_NEW_STA, TEST_GOOD_RSSI);
+
+        assertEquals(4, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
+
+        mWifiBlocklistMonitor.onEnableNetwork(config1);
+
+        Set<String> blocklist = mWifiBlocklistMonitor.updateAndGetBssidBlocklist();
+        assertFalse(blocklist.contains(TEST_BSSID_1));
+        assertTrue(blocklist.contains(TEST_BSSID_2));
+        assertTrue(blocklist.contains(TEST_BSSID_3));
+        assertTrue(blocklist.contains(bssid4));
+        assertEquals(3, blocklist.size());
+    }
 }

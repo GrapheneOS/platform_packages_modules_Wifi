@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -740,6 +741,30 @@ public class WifiBlocklistMonitor {
     public void handleNetworkRemoved(@NonNull String ssid) {
         clearBssidBlocklistForSsid(ssid);
         mWifiScoreCard.resetBssidBlocklistStreakForSsid(ssid);
+    }
+
+    /**
+     * Handle network being enabled but not explicitly connected by user.
+     * Clear blocked BSSIDs except for certain reasons.
+     */
+    public void onEnableNetwork(WifiConfiguration config) {
+        if (config == null || config.SSID == null) {
+            Log.e(TAG, "Invalid input: config=" + config);
+            return;
+        }
+        Iterator<Map.Entry<String, BssidStatus>> iterator = mBssidStatusMap.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, BssidStatus> entry = iterator.next();
+            BssidStatus status = entry.getValue();
+            if (status == null || !config.SSID.equals(status.ssid) || !status.isInBlocklist) {
+                continue;
+            }
+            if (status.blockReason != REASON_APP_DISALLOW
+                    && status.blockReason != REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE
+                    && status.blockReason != REASON_FRAMEWORK_DISCONNECT_MBO_OCE) {
+                iterator.remove();
+            }
+        }
     }
 
     /**

@@ -16,6 +16,11 @@
 
 package com.android.server.wifi;
 
+import static android.media.AudioManager.MODE_IN_COMMUNICATION;
+import static android.media.AudioManager.MODE_NORMAL;
+
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
@@ -202,5 +207,55 @@ public class WifiVoipDetectorTest extends WifiBaseTest {
         // Verify unregister
         verify(mTelephonyManager).unregisterTelephonyCallback(any());
         verify(mAudioManager).removeOnModeChangedListener(any());
+    }
+
+    @Test
+    public void testIsWifiVoipOn() {
+        assumeTrue(SdkLevel.isAtLeastV());
+        // Initially all false
+        assertThat(mWifiVoipDetector.isWifiVoipOn()).isFalse();
+
+        // 1. mIsWifiConnected = true, others false
+        mWifiVoipDetector.notifyWifiConnected(true, true, TEST_PRIMARY_INTERFACE_NAME);
+        verify(mTelephonyManager).registerTelephonyCallback(any(),
+                mTelephonyCallbackCaptor.capture());
+        verify(mAudioManager).addOnModeChangedListener(any(),
+                mAudioModeChangedListeneCaptor.capture());
+        assertThat(mWifiVoipDetector.isWifiVoipOn()).isFalse();
+
+        // 2. mIsWifiConnected = true, mIsOTTCallOn = true, mIsVoWifiOn = false
+        mAudioModeChangedListeneCaptor.getValue().onModeChanged(MODE_IN_COMMUNICATION);
+        assertThat(mWifiVoipDetector.isWifiVoipOn()).isTrue();
+
+        // 3. mIsWifiConnected = true, mIsOTTCallOn = false, mIsVoWifiOn = false
+        mAudioModeChangedListeneCaptor.getValue().onModeChanged(MODE_NORMAL);
+        assertThat(mWifiVoipDetector.isWifiVoipOn()).isFalse();
+
+        // 4. mIsWifiConnected = true, mIsOTTCallOn = false, mIsVoWifiOn = true
+        mTelephonyCallbackCaptor.getValue().onCallAttributesChanged(TEST_VOWIFI_CALL_ATT);
+        assertThat(mWifiVoipDetector.isWifiVoipOn()).isTrue();
+
+        // 5. mIsWifiConnected = true, mIsOTTCallOn = true, mIsVoWifiOn = true
+        mAudioModeChangedListeneCaptor.getValue().onModeChanged(MODE_IN_COMMUNICATION);
+        assertThat(mWifiVoipDetector.isWifiVoipOn()).isTrue();
+
+        // 6. mIsWifiConnected = false (via disconnect), mIsOTTCallOn = true, mIsVoWifiOn = true
+        // Note: notifyWifiConnected(false) calls stopMonitoring() which resets mIsOTTCallOn and
+        // mIsVoWifiOn
+        mWifiVoipDetector.notifyWifiConnected(false, true, TEST_PRIMARY_INTERFACE_NAME);
+        assertThat(mWifiVoipDetector.isWifiVoipOn()).isFalse();
+
+        // 7. Test VoWifi independently of wifi connection (mIsVoWifiOn = true)
+        // Need to re-connect to capture listeners if they were reset, or just use the captured ones
+        // Actually stopMonitoring sets mIsVoWifiOn to false.
+        // startMonitoring sets mIsVoWifiOn = mWifiCarrierInfoManager.isWifiCallingAvailable()
+        when(mWifiCarrierInfoManager.isWifiCallingAvailable()).thenReturn(true);
+        mWifiVoipDetector.notifyWifiConnected(true, true, TEST_PRIMARY_INTERFACE_NAME);
+        assertThat(mWifiVoipDetector.isWifiVoipOn()).isTrue();
+
+        // 8. mIsWifiConnected = false, mIsOTTCallOn = true, mIsVoWifiOn = false
+        // This state is actually hard to reach via public APIs because stopMonitoring resets them.
+        // But if mIsVoWifiOn is set via callback it might be different.
+        // Leave it as is since the above covers the main logic.
     }
 }

@@ -210,6 +210,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     @Mock DeviceConfigFacade mDeviceConfigFacade;
     @Mock WifiNetworkFactory mWifiNetworkFactory;
     @Mock FeatureFlags mFeatureFlags;
+    @Mock WifiVoipDetector mWifiVoipDetector;
 
     Listener<ConcreteClientModeManager> mClientListener;
     Listener<SoftApManager> mSoftApListener;
@@ -251,6 +252,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         when(mWifiInjector.getWifiConfigManager()).thenReturn(mWifiConfigManager);
         when(mWifiInjector.getWakeupController()).thenReturn(mWakeupController);
         when(mWifiInjector.getWifiNetworkFactory()).thenReturn(mWifiNetworkFactory);
+        when(mWifiInjector.getWifiVoipDetector()).thenReturn(mWifiVoipDetector);
         when(mClientModeManager.getRole()).thenReturn(ROLE_CLIENT_PRIMARY);
         when(mClientModeManager.getInterfaceName()).thenReturn(WIFI_IFACE_NAME);
         when(mContext.getResourceCache()).thenReturn(mWifiResourceCache);
@@ -6130,6 +6132,57 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         mClientListener.onStopped(mClientModeManager);
         mLooper.dispatchAll();
         assertInEnabledState();
+    }
+
+    /**
+     * Verify canRequestSecondaryTransientClientModeManager returns false when native support is
+     * false.
+     */
+    @Test
+    public void testCanRequestSecondaryTransientClientModeManager_NativeSupportFalse() {
+        when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(false);
+        assertFalse(mActiveModeWarden.canRequestSecondaryTransientClientModeManager());
+    }
+
+    /**
+     * Verify canRequestSecondaryTransientClientModeManager returns false when voip is on.
+     */
+    @Test
+    public void testCanRequestSecondaryTransientClientModeManager_VoipOn() {
+        assumeTrue(SdkLevel.isAtLeastV());
+        when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
+        when(mWifiVoipDetector.isWifiVoipOn()).thenReturn(true);
+        assertFalse(mActiveModeWarden.canRequestSecondaryTransientClientModeManager());
+    }
+
+    /**
+     * Verify canRequestSecondaryTransientClientModeManager returns false when voip is off but MBB
+     * is disabled.
+     */
+    @Test
+    public void testCanRequestSecondaryTransientClientModeManager_VoipOff_MbbDisabled() {
+        assumeTrue(SdkLevel.isAtLeastV());
+        when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
+        when(mWifiVoipDetector.isWifiVoipOn()).thenReturn(false);
+        when(mWifiResourceCache.getBoolean(
+                R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
+                .thenReturn(false);
+        assertFalse(mActiveModeWarden.canRequestSecondaryTransientClientModeManager());
+    }
+
+    /**
+     * Verify canRequestSecondaryTransientClientModeManager returns true when voip is off and MBB
+     * is enabled.
+     */
+    @Test
+    public void testCanRequestSecondaryTransientClientModeManager_VoipOff_MbbEnabled() {
+        assumeTrue(SdkLevel.isAtLeastV());
+        when(mWifiNative.isItPossibleToCreateStaIface(any())).thenReturn(true);
+        when(mWifiVoipDetector.isWifiVoipOn()).thenReturn(false);
+        when(mWifiResourceCache.getBoolean(
+                R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled))
+                .thenReturn(true);
+        assertTrue(mActiveModeWarden.canRequestSecondaryTransientClientModeManager());
     }
 }
 

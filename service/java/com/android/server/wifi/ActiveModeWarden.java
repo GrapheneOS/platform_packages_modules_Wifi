@@ -673,7 +673,14 @@ public class ActiveModeWarden {
                             packageName, Build.VERSION_CODES.S, uid);
         }
         if (clientRole == ROLE_CLIENT_SECONDARY_TRANSIENT) {
-            return mResourceCache.getBoolean(
+            // When Voip is in progress, do not use MBB since since will result in
+            // call drop if the carrier does not support MBB transition.
+            boolean isWifiVoipOn = false;
+            WifiVoipDetector wifiVoipDetector = mWifiInjector.getWifiVoipDetector();
+            if (wifiVoipDetector != null && SdkLevel.isAtLeastV()) {
+                isWifiVoipOn = wifiVoipDetector.isWifiVoipOn();
+            }
+            return !isWifiVoipOn && mResourceCache.getBoolean(
                     R.bool.config_wifiMultiStaNetworkSwitchingMakeBeforeBreakEnabled);
         }
         if (clientRole == ROLE_CLIENT_SECONDARY_LONG_LIVED) {
