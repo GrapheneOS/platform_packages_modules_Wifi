@@ -35,6 +35,7 @@ import com.android.server.wifi.SsidTranslator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * AIDL implementation of the IWifiHal interface.
@@ -278,6 +279,8 @@ public class WifiHalAidlImpl implements IWifiHal {
      */
     public void invalidate() {
         synchronized (mLock) {
+            Log.i(TAG, "Invalidating the current binder");
+            unlinkDeathRecipient();
             mWifi = null;
         }
     }
@@ -297,9 +300,7 @@ public class WifiHalAidlImpl implements IWifiHal {
 
         @Override
         public void onFailure(int statusCode) throws RemoteException {
-            synchronized (mLock) {
-                mWifi = null;
-            }
+            invalidate();
             if (mFrameworkCallback == null) return;
             mFrameworkCallback.onFailure(halToFrameworkWifiStatusCode(statusCode));
         }
@@ -326,7 +327,7 @@ public class WifiHalAidlImpl implements IWifiHal {
         public void binderDied() {
             synchronized (mLock) {
                 Log.w(TAG, "IWifi binder died.");
-                mWifi = null;
+                invalidate();
                 if (mFrameworkDeathRecipient != null) {
                     mFrameworkDeathRecipient.onDeath();
                 }
@@ -387,6 +388,22 @@ public class WifiHalAidlImpl implements IWifiHal {
     }
 
     /**
+     * Unlink the death recipient safely.
+     */
+    private void unlinkDeathRecipient() {
+        IBinder serviceBinder = getServiceBinderMockable();
+        if (serviceBinder == null) return;
+        try {
+            boolean unlinked = serviceBinder.unlinkToDeath(mServiceDeathRecipient, 0 /* flags */);
+            if (!unlinked) {
+                Log.e(TAG, "Death recipient was not registered with the expired binder");
+            }
+        } catch (NoSuchElementException e) {
+            Log.e(TAG, "Death recipient was not registered with the active binder");
+        }
+    }
+
+    /**
      * Check that the service is running at least the expected version. Method is protected
      * in order to allow calls from the WifiXxxIface classes.
      */
@@ -403,7 +420,7 @@ public class WifiHalAidlImpl implements IWifiHal {
     }
 
     private void handleRemoteException(RemoteException e, String methodStr) {
-        mWifi = null;
+        invalidate();
         Log.e(TAG, methodStr + " failed with remote exception: " + e);
     }
 
