@@ -57,4 +57,5 @@ android_test {
         "snippet-uiautomator-lib",
     ],
     min_sdk_version: "31",
+    target_sdk_version: "37",
 }
