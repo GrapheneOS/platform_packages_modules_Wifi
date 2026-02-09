@@ -88,6 +88,7 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_SCHED_SCA
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -1513,5 +1514,183 @@ public class Nl80211UtilsTest {
 
         assertNotNull(result);
         assertEquals(ByteBuffer.wrap(payload), result);
+    }
+
+    @Test
+    public void testWiphyFeaturesEquals() {
+        Nl80211Utils.WiphyFeatures features1 = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsRandomMacOneShotScan(true)
+                .build();
+        Nl80211Utils.WiphyFeatures features2 = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsRandomMacOneShotScan(true)
+                .build();
+        Nl80211Utils.WiphyFeatures features3 = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsRandomMacOneShotScan(false)
+                .build();
+
+        assertEquals(features1, features2);
+        assertEquals(features1.hashCode(), features2.hashCode());
+        assertNotEquals(features1, features3);
+    }
+
+    @Test
+    public void testBandInfoEquals() {
+        Nl80211Utils.BandInfo bandInfo1 = new Nl80211Utils.BandInfo.Builder()
+                .addBand2gFrequency(2412)
+                .setIs80211axSupported(true)
+                .build();
+        Nl80211Utils.BandInfo bandInfo2 = new Nl80211Utils.BandInfo.Builder()
+                .addBand2gFrequency(2412)
+                .setIs80211axSupported(true)
+                .build();
+        Nl80211Utils.BandInfo bandInfo3 = new Nl80211Utils.BandInfo.Builder()
+                .addBand2gFrequency(2412)
+                .setIs80211axSupported(false)
+                .build();
+
+        assertEquals(bandInfo1, bandInfo2);
+        assertEquals(bandInfo1.hashCode(), bandInfo2.hashCode());
+        assertNotEquals(bandInfo1, bandInfo3);
+    }
+
+    @Test
+    public void testScanCapabilitiesEquals() {
+        Nl80211Utils.ScanCapabilities caps1 = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(16)
+                .build();
+        Nl80211Utils.ScanCapabilities caps2 = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(16)
+                .build();
+        Nl80211Utils.ScanCapabilities caps3 = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(8)
+                .build();
+
+        assertEquals(caps1, caps2);
+        assertEquals(caps1.hashCode(), caps2.hashCode());
+        assertNotEquals(caps1, caps3);
+    }
+
+    @Test
+    public void testDriverCapabilitiesEquals() {
+        Nl80211Utils.DriverCapabilities caps1 = new Nl80211Utils.DriverCapabilities.Builder()
+                .setMaxNumAkmSuites(5)
+                .setSupportedCipherSuites(Set.of(1, 2, 3))
+                .build();
+        Nl80211Utils.DriverCapabilities caps2 = new Nl80211Utils.DriverCapabilities.Builder()
+                .setMaxNumAkmSuites(5)
+                .setSupportedCipherSuites(Set.of(1, 2, 3))
+                .build();
+        Nl80211Utils.DriverCapabilities caps3 = new Nl80211Utils.DriverCapabilities.Builder()
+                .setMaxNumAkmSuites(2)
+                .setSupportedCipherSuites(Set.of(1, 2, 3))
+                .build();
+        Nl80211Utils.DriverCapabilities caps4 = new Nl80211Utils.DriverCapabilities.Builder()
+                .setMaxNumAkmSuites(5)
+                .setSupportedCipherSuites(Set.of(1, 2))
+                .build();
+
+        assertEquals(caps1, caps2);
+        assertEquals(caps1.hashCode(), caps2.hashCode());
+        assertNotEquals(caps1, caps3);
+        assertNotEquals(caps1, caps4);
+    }
+
+    @Test
+    public void testParseCipherSuites_success() {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg((short) 0, (short) 0, (short) 0, 0);
+        List<Integer> expectedCiphers = List.of(0x11223344, 0x55667788);
+        ByteBuffer buffer = ByteBuffer.allocate(expectedCiphers.size() * Integer.BYTES)
+                .order(ByteOrder.nativeOrder());
+        for (int cipher : expectedCiphers) {
+            buffer.putInt(cipher);
+        }
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_CIPHER_SUITES,
+                buffer.array()));
+
+        List<Integer> actualCiphers = mNl80211Utils.parseCipherSuites(msg);
+
+        assertNotNull(actualCiphers);
+        assertEquals(expectedCiphers, actualCiphers);
+    }
+
+    @Test
+    public void testParseCipherSuites_malformedLength() {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg((short) 0, (short) 0, (short) 0, 0);
+        byte[] malformedBytes = new byte[Integer.BYTES - 1];
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_CIPHER_SUITES,
+                malformedBytes));
+
+        assertNull(mNl80211Utils.parseCipherSuites(msg));
+    }
+
+    @Test
+    public void testParseCipherSuites_missingAttribute() {
+        GenericNetlinkMsg msg = new GenericNetlinkMsg((short) 0, (short) 0, (short) 0, 0);
+        assertNull(mNl80211Utils.parseCipherSuites(msg));
+    }
+
+    @Test
+    public void testParseWiphyInfo_withCipherSuites() {
+        GenericNetlinkMsg msg = createBasicWiphyInfoMsg();
+        msg.addAttribute(createWiphyBandsAttribute());
+        Set<Integer> expectedCiphers = Set.of(0x000fac02, 0x000fac04);
+        ByteBuffer buffer = ByteBuffer.allocate(expectedCiphers.size() * Integer.BYTES)
+                .order(ByteOrder.nativeOrder());
+        for (int cipher : expectedCiphers) {
+            buffer.putInt(cipher);
+        }
+        msg.addAttribute(new StructNlAttr(NetlinkConstants.NL80211_ATTR_CIPHER_SUITES,
+                buffer.array()));
+
+        Nl80211Utils.WiphyInfo info = mNl80211Utils.parseWiphyInfo(List.of(msg));
+
+        assertNotNull(info);
+        assertEquals(expectedCiphers, info.driverCapabilities.supportedCipherSuites);
+    }
+
+    @Test
+    public void testWiphyInfoEquals() {
+        Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
+                .addBand2gFrequency(2412).build();
+        Nl80211Utils.ScanCapabilities scanCaps = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(16).build();
+        Nl80211Utils.WiphyFeatures features = new Nl80211Utils.WiphyFeatures.Builder()
+                .setSupportsRandomMacOneShotScan(true).build();
+        Nl80211Utils.DriverCapabilities driverCaps = new Nl80211Utils.DriverCapabilities.Builder()
+                .setMaxNumAkmSuites(1).build();
+
+        Nl80211Utils.WiphyInfo info1 = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(bandInfo)
+                .setScanCapabilities(scanCaps)
+                .setWiphyFeatures(features)
+                .setDriverCapabilities(driverCaps)
+                .build();
+
+        Nl80211Utils.WiphyInfo info2 = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(bandInfo)
+                .setScanCapabilities(scanCaps)
+                .setWiphyFeatures(features)
+                .setDriverCapabilities(driverCaps)
+                .build();
+
+        Nl80211Utils.WiphyInfo info3 = new Nl80211Utils.WiphyInfo.Builder()
+                .setBandInfo(bandInfo)
+                .setScanCapabilities(scanCaps)
+                .setWiphyFeatures(new Nl80211Utils.WiphyFeatures.Builder().build())
+                .setDriverCapabilities(driverCaps)
+                .build();
+
+        assertEquals(info1, info2);
+        assertEquals(info1.hashCode(), info2.hashCode());
+        assertNotEquals(info1, info3);
+    }
+
+    @Test
+    public void testWiphyInfoEmptyDefaultEquals() {
+        Nl80211Utils.WiphyInfo info1 = new Nl80211Utils.WiphyInfo.Builder().build();
+        Nl80211Utils.WiphyInfo info2 = new Nl80211Utils.WiphyInfo.Builder().build();
+
+        assertEquals(info1, info2);
+        assertEquals(info1.hashCode(), info2.hashCode());
     }
 }

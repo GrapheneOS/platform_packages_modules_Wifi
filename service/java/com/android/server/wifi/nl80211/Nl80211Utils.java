@@ -25,6 +25,7 @@ import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_ACK;
 import static com.android.server.wifi.nl80211.NetlinkConstants.ANDROID_NL80211_SUBCMD_GET_PWRSTATS;
 import static com.android.server.wifi.nl80211.NetlinkConstants.ANDROID_OUI;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_BSS;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_CIPHER_SUITES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_COOKIE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_EXT_FEATURES;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_FEATURE_FLAGS;
@@ -121,6 +122,7 @@ import android.annotation.Nullable;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiScanner;
 import android.util.ArrayMap;
+import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
@@ -132,6 +134,7 @@ import com.android.net.module.util.netlink.StructNlMsgHdr;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -180,6 +183,28 @@ public class Nl80211Utils {
             this.supportsHighAccuracyOneShotScan = builder.mSupportsHighAccuracyOneShotScan;
             this.supportsTxMgmtFrameMcs = builder.mSupportsTxMgmtFrameMcs;
             this.supportsExtSchedScanRelativeRssi = builder.mSupportsExtSchedScanRelativeRssi;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            WiphyFeatures that = (WiphyFeatures) o;
+            return supportsRandomMacOneShotScan == that.supportsRandomMacOneShotScan
+                    && supportsRandomMacSchedScan == that.supportsRandomMacSchedScan
+                    && supportsLowSpanOneShotScan == that.supportsLowSpanOneShotScan
+                    && supportsLowPowerOneShotScan == that.supportsLowPowerOneShotScan
+                    && supportsHighAccuracyOneShotScan == that.supportsHighAccuracyOneShotScan
+                    && supportsTxMgmtFrameMcs == that.supportsTxMgmtFrameMcs
+                    && supportsExtSchedScanRelativeRssi == that.supportsExtSchedScanRelativeRssi;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(supportsRandomMacOneShotScan, supportsRandomMacSchedScan,
+                    supportsLowSpanOneShotScan, supportsLowPowerOneShotScan,
+                    supportsHighAccuracyOneShotScan, supportsTxMgmtFrameMcs,
+                    supportsExtSchedScanRelativeRssi);
         }
 
         @Override
@@ -300,6 +325,35 @@ public class Nl80211Utils {
             this.is320MhzSupported = builder.mIs320MhzSupported;
             this.maxTxStreams = builder.mMaxTxStreams;
             this.maxRxStreams = builder.mMaxRxStreams;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            BandInfo bandInfo = (BandInfo) o;
+            return is80211nSupported == bandInfo.is80211nSupported
+                    && is80211acSupported == bandInfo.is80211acSupported
+                    && is80211axSupported == bandInfo.is80211axSupported
+                    && is80211beSupported == bandInfo.is80211beSupported
+                    && is160MhzSupported == bandInfo.is160MhzSupported
+                    && is80p80MhzSupported == bandInfo.is80p80MhzSupported
+                    && is320MhzSupported == bandInfo.is320MhzSupported
+                    && maxTxStreams == bandInfo.maxTxStreams
+                    && maxRxStreams == bandInfo.maxRxStreams
+                    && Objects.equals(band2g, bandInfo.band2g)
+                    && Objects.equals(band5g, bandInfo.band5g)
+                    && Objects.equals(band6g, bandInfo.band6g)
+                    && Objects.equals(band60g, bandInfo.band60g)
+                    && Objects.equals(bandDfs, bandInfo.bandDfs);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(band2g, band5g, band6g, band60g, bandDfs, is80211nSupported,
+                    is80211acSupported, is80211axSupported, is80211beSupported,
+                    is160MhzSupported, is80p80MhzSupported, is320MhzSupported,
+                    maxTxStreams, maxRxStreams);
         }
 
         @Override
@@ -457,6 +511,25 @@ public class Nl80211Utils {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ScanCapabilities that = (ScanCapabilities) o;
+            return maxNumScanSsids == that.maxNumScanSsids
+                    && maxNumSchedScanSsids == that.maxNumSchedScanSsids
+                    && maxMatchSets == that.maxMatchSets
+                    && maxNumScanPlans == that.maxNumScanPlans
+                    && maxScanPlanIntervalSeconds == that.maxScanPlanIntervalSeconds
+                    && maxScanPlanIterations == that.maxScanPlanIterations;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(maxNumScanSsids, maxNumSchedScanSsids, maxMatchSets,
+                    maxNumScanPlans, maxScanPlanIntervalSeconds, maxScanPlanIterations);
+        }
+
+        @Override
         public String toString() {
             return "ScanCapabilities {"
                     + "\n  maxNumScanSsids: " + maxNumScanSsids
@@ -521,24 +594,63 @@ public class Nl80211Utils {
 
     public static class DriverCapabilities {
         public final int maxNumAkmSuites;
+        @NonNull public final Set<Integer> supportedCipherSuites;
 
         private DriverCapabilities(Builder builder) {
             this.maxNumAkmSuites = builder.mMaxNumAkmSuites;
+            this.supportedCipherSuites = builder.mSupportedCipherSuites;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            DriverCapabilities that = (DriverCapabilities) o;
+            return maxNumAkmSuites == that.maxNumAkmSuites
+                    && Objects.equals(supportedCipherSuites, that.supportedCipherSuites);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(maxNumAkmSuites, supportedCipherSuites);
         }
 
         @Override
         public String toString() {
-            return "DriverCapabilities {"
-                    + "\n  maxNumAkmSuites: " + maxNumAkmSuites
-                    + "\n}";
+            StringBuilder sb = new StringBuilder();
+            sb.append("DriverCapabilities {")
+                    .append("\n  maxNumAkmSuites: ").append(maxNumAkmSuites)
+                    .append("\n  supportedCipherSuites: [");
+            boolean first = true;
+            for (Integer c : supportedCipherSuites) {
+                if (!first) {
+                    sb.append(", ");
+                }
+                sb.append("0x").append(Integer.toHexString(c));
+                first = false;
+            }
+            sb.append("]\n}");
+            return sb.toString();
         }
 
         public static class Builder {
             private int mMaxNumAkmSuites;
+            @NonNull private Set<Integer> mSupportedCipherSuites = Collections.emptySet();
 
             /** Sets the maximum number of AKM suites. */
             public Builder setMaxNumAkmSuites(int val) {
                 mMaxNumAkmSuites = val;
+                return this;
+            }
+
+            /** Sets the supported cipher suites. */
+            public Builder setSupportedCipherSuites(@NonNull Set<Integer> val) {
+                if (val == null) {
+                    Log.e(TAG, "DriverCapabilities.Builder.setSupportedCipherSuites:"
+                            + " Ignoring null val");
+                    return this;
+                }
+                mSupportedCipherSuites = val;
                 return this;
             }
 
@@ -575,6 +687,28 @@ public class Nl80211Utils {
             this.availableAntennasRx = builder.mAvailableAntennasRx;
             this.configuredAntennasTx = builder.mConfiguredAntennasTx;
             this.configuredAntennasRx = builder.mConfiguredAntennasRx;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            WiphyInfo wiphyInfo = (WiphyInfo) o;
+            return availableAntennasTx == wiphyInfo.availableAntennasTx
+                    && availableAntennasRx == wiphyInfo.availableAntennasRx
+                    && configuredAntennasTx == wiphyInfo.configuredAntennasTx
+                    && configuredAntennasRx == wiphyInfo.configuredAntennasRx
+                    && Objects.equals(bandInfo, wiphyInfo.bandInfo)
+                    && Objects.equals(scanCapabilities, wiphyInfo.scanCapabilities)
+                    && Objects.equals(wiphyFeatures, wiphyInfo.wiphyFeatures)
+                    && Objects.equals(driverCapabilities, wiphyInfo.driverCapabilities);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(bandInfo, scanCapabilities, wiphyFeatures, driverCapabilities,
+                    availableAntennasTx, availableAntennasRx, configuredAntennasTx,
+                    configuredAntennasRx);
         }
 
         @Override
@@ -978,6 +1112,7 @@ public class Nl80211Utils {
         Integer featureFlags = null;
         byte[] extFeatureFlagsBytes = null;
         Short maxNumAkms = null;
+        Set<Integer> supportedCipherSuites = new ArraySet<>();
         Integer availTx = null;
         Integer availRx = null;
         Integer confTx = null;
@@ -993,6 +1128,10 @@ public class Nl80211Utils {
             }
             if (maxNumAkms == null) {
                 maxNumAkms = packet.getAttributeValueAsShort(NL80211_ATTR_MAX_NUM_AKM_SUITES);
+            }
+            List<Integer> suites = parseCipherSuites(packet);
+            if (suites != null) {
+                supportedCipherSuites.addAll(suites);
             }
             if (availTx == null) {
                 availTx = packet.getAttributeValueAsInteger(NL80211_ATTR_WIPHY_ANTENNA_AVAIL_TX);
@@ -1023,6 +1162,7 @@ public class Nl80211Utils {
         }
         DriverCapabilities driverCapabilities = new DriverCapabilities.Builder()
                 .setMaxNumAkmSuites(maxNumAkms)
+                .setSupportedCipherSuites(supportedCipherSuites)
                 .build();
 
         return new WiphyInfo.Builder()
@@ -1315,6 +1455,25 @@ public class Nl80211Utils {
     private boolean parseEhtCapPhyAttribute(byte[] ehtCapPhy) {
         if (ehtCapPhy == null || ehtCapPhy.length < EHT_CAP_PHY_NUM_BYTE) return false;
         return (ehtCapPhy[0] & EHT_320MHZ_BIT_MASK) != 0;
+    }
+
+    @VisibleForTesting
+    @Nullable
+    protected List<Integer> parseCipherSuites(GenericNetlinkMsg packet) {
+        StructNlAttr attr = packet.getAttribute(NL80211_ATTR_CIPHER_SUITES);
+        if (attr == null || attr.nla_value == null || attr.nla_value.length == 0) {
+            return null;
+        }
+        if (attr.nla_value.length % Integer.BYTES != 0) {
+            Log.e(TAG, "parseCipherSuites: Invalid length: " + attr.nla_value.length);
+            return null;
+        }
+        List<Integer> cipherSuites = new ArrayList<>();
+        ByteBuffer buffer = attr.getValueAsByteBuffer();
+        while (buffer.hasRemaining()) {
+            cipherSuites.add(buffer.getInt());
+        }
+        return cipherSuites;
     }
 
     @Nullable
