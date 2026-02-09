@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "betowiq"
+version = "1.0.0"
+description = "Better Together Wi-Fi Quality test suite."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "mobly==1.13",
+  "snippet_uiautomator==1.1.2",
+  "mobly-android-partner-tools",
+]
+
+[project.scripts]
+betowiq_test_suite = "betowiq.betowiq_test_suite:main"
+
+[tool.setuptools.packages.find]
+include = ["betowiq*"]
