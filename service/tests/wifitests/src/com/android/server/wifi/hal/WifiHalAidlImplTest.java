@@ -141,4 +141,15 @@ public class WifiHalAidlImplTest extends WifiBaseTest {
         // Attempt to register a second framework callback
         assertFalse(mDut.registerEventCallback(mock(WifiHal.Callback.class)));
     }
+
+    @Test
+    public void testLinkAndUnlinkDeathRecipient() throws Exception {
+        // Expect that the death recipient is linked on initialization
+        mDut.initialize(mFrameworkDeathRecipientMock);
+        verify(mServiceBinderMock).linkToDeath(mDeathRecipientCaptor.capture(), anyInt());
+
+        // Expect that the death recipient is unlinked on invalidation
+        mDut.invalidate();
+        verify(mServiceBinderMock).unlinkToDeath(mDeathRecipientCaptor.capture(), anyInt());
+    }
 }
