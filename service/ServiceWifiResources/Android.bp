@@ -36,9 +36,17 @@ android_app {
     ],
     certificate: ":com.android.wifi.resources.certificate",
     updatable: true,
+    preinstall_allowlist: ":preinstalled-packages-com.android.wifi.resources.xml",
 }
 
 android_app_certificate {
     name: "com.android.wifi.resources.certificate",
     certificate: "resources-certs/com.android.wifi.resources",
+}
+
+filegroup {
+    name: "preinstalled-packages-com.android.wifi.resources.xml",
+    srcs: [
+        "preinstalled-packages-com.android.wifi.resources.xml",
+    ],
 }
