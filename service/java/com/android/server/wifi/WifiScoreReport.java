@@ -43,7 +43,6 @@ import android.os.IBinder;
 import android.os.Process;
 import android.os.RemoteException;
 import android.telephony.TelephonyManager;
-import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.RequiresApi;
@@ -168,9 +167,6 @@ public class WifiScoreReport {
                         + " score=" + score);
                 return;
             }
-            if (mIsExternalScorerDryRun) {
-                return;
-            }
             long millis = mClock.getWallClockMillis();
             mLegacyIntScore = score;
             // Only primary network can have external scorer.
@@ -187,9 +183,6 @@ public class WifiScoreReport {
                         + " sessionId=" + sessionId
                         + " currentSessionId=" + getCurrentSessionId()
                         + " interfaceName=" + mInterfaceName);
-                return;
-            }
-            if (mIsExternalScorerDryRun) {
                 return;
             }
             WifiLinkLayerStats stats = mWifiNative.getWifiLinkLayerStats(mInterfaceName);
@@ -263,9 +256,6 @@ public class WifiScoreReport {
                 Log.i(TAG, "notifyStatusUpdate: isUsable changed from " + mIsUsable + " to "
                         + isUsable);
             }
-            if (mIsExternalScorerDryRun) {
-                return;
-            }
             if (mNetworkAgent == null) {
                 return;
             }
@@ -319,9 +309,6 @@ public class WifiScoreReport {
                         + " currentSessionId=" + getCurrentSessionId());
                 return;
             }
-            if (mIsExternalScorerDryRun) {
-                return;
-            }
             if (!mAdaptiveConnectivityEnabledSettingObserver.get()
                     || !mWifiSettingsStore.isWifiScoringEnabled()) {
                 if (mVerboseLoggingEnabled) {
@@ -346,9 +333,6 @@ public class WifiScoreReport {
                         + " mSessionIdNoReset=" + mSessionIdNoReset);
                 return;
             }
-            if (mIsExternalScorerDryRun) {
-                return;
-            }
             if (!mAdaptiveConnectivityEnabledSettingObserver.get()
                     || !mWifiSettingsStore.isWifiScoringEnabled()) {
                 if (mVerboseLoggingEnabled) {
@@ -370,9 +354,6 @@ public class WifiScoreReport {
                 Log.w(TAG, "Ignoring stale/invalid external input for unblocking all BSSIDs");
                 return;
             }
-            if (mIsExternalScorerDryRun) {
-                return;
-            }
             if (!mAdaptiveConnectivityEnabledSettingObserver.get()
                     || !mWifiSettingsStore.isWifiScoringEnabled()) {
                 if (mVerboseLoggingEnabled) {
@@ -392,9 +373,6 @@ public class WifiScoreReport {
         public void setPreEvaluationEnabled(boolean enabled) {
             if (mWifiConnectedNetworkScorerHolder == null) {
                 Log.w(TAG, "Ignoring stale/invalid external input for setPreEvaluationEnabled");
-                return;
-            }
-            if (mIsExternalScorerDryRun) {
                 return;
             }
             if (!mAdaptiveConnectivityEnabledSettingObserver.get()
@@ -592,7 +570,6 @@ public class WifiScoreReport {
 
     @Nullable
     private WifiConnectedNetworkScorerHolder mWifiConnectedNetworkScorerHolder;
-    private boolean mIsExternalScorerDryRun;
 
     private final AdaptiveConnectivityEnabledSettingObserver
             mAdaptiveConnectivityEnabledSettingObserver;
@@ -717,7 +694,7 @@ public class WifiScoreReport {
                 ? WifiMetrics.WifiUsabilityState.UNUSABLE : WifiMetrics.WifiUsabilityState.USABLE);
 
         // Bypass AOSP scorer if Wifi connected network scorer is set
-        if (mWifiConnectedNetworkScorerHolder != null && !mIsExternalScorerDryRun) {
+        if (mWifiConnectedNetworkScorerHolder != null) {
             return;
         }
 
@@ -987,14 +964,7 @@ public class WifiScoreReport {
             return false;
         }
         mWifiConnectedNetworkScorerHolder = scorerHolder;
-        mDeviceConfigFacade.setDryRunScorerPkgNameChangedListener(dryRunPkgName -> {
-            mIsExternalScorerDryRun =
-                isExternalScorerDryRun(dryRunPkgName, callerUid);
-            mWifiGlobals.setUsingExternalScorer(!mIsExternalScorerDryRun);
-        });
-        mIsExternalScorerDryRun =
-                isExternalScorerDryRun(mDeviceConfigFacade.getDryRunScorerPkgName(), callerUid);
-        mWifiGlobals.setUsingExternalScorer(!mIsExternalScorerDryRun);
+        mWifiGlobals.setUsingExternalScorer(true);
 
         // Register to receive updates from external scorer.
         mExternalScoreUpdateObserverProxy.registerCallback(mScoreUpdateObserverCallback);
@@ -1006,18 +976,6 @@ public class WifiScoreReport {
             startConnectedNetworkScorer(netId, mIsUserSelected);
         }
         return true;
-    }
-
-    private boolean isExternalScorerDryRun(String dryRunPkgName, int uid) {
-        Log.d(TAG, "isExternalScorerDryRun(" + dryRunPkgName + ", " + uid + ")");
-        String[] packageNames = mContext.getPackageManager().getPackagesForUid(uid);
-        for (String packageName : packageNames) {
-            if (!TextUtils.isEmpty(packageName)
-                    && packageName.equalsIgnoreCase(dryRunPkgName)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -1035,7 +993,7 @@ public class WifiScoreReport {
      * Notify the connected network scorer of the user accepting a network switch.
      */
     public void onNetworkSwitchAccepted(int targetNetworkId, String targetBssid) {
-        if (mWifiConnectedNetworkScorerHolder == null || mIsExternalScorerDryRun) {
+        if (mWifiConnectedNetworkScorerHolder == null) {
             return;
         }
         mWifiConnectedNetworkScorerHolder.onNetworkSwitchAccepted(
@@ -1046,7 +1004,7 @@ public class WifiScoreReport {
      * Notify the connected network scorer of the user rejecting a network switch.
      */
     public void onNetworkSwitchRejected(int targetNetworkId, String targetBssid) {
-        if (mWifiConnectedNetworkScorerHolder == null || mIsExternalScorerDryRun) {
+        if (mWifiConnectedNetworkScorerHolder == null) {
             return;
         }
         mWifiConnectedNetworkScorerHolder.onNetworkSwitchRejected(
@@ -1178,7 +1136,6 @@ public class WifiScoreReport {
     private void revertToDefaultConnectedScorer() {
         Log.d(TAG, "Using internal scorer");
         mWifiConnectedNetworkScorerHolder = null;
-        mDeviceConfigFacade.setDryRunScorerPkgNameChangedListener(null);
         mWifiGlobals.setUsingExternalScorer(false);
         mExternalScoreUpdateObserverProxy.unregisterCallback(mScoreUpdateObserverCallback);
         mWifiMetrics.setIsExternalWifiScorerOn(false, Process.WIFI_UID);
@@ -1205,7 +1162,7 @@ public class WifiScoreReport {
      * Get whether an external scorer is active for scoring.
      */
     public boolean isExternalScorerActive() {
-        return mWifiConnectedNetworkScorerHolder != null && !mIsExternalScorerDryRun;
+        return mWifiConnectedNetworkScorerHolder != null;
     }
 
     /**
@@ -1249,7 +1206,7 @@ public class WifiScoreReport {
      * Get whether we are in the lingering state or not.
      */
     public boolean getLingering() {
-        return (mWifiConnectedNetworkScorerHolder != null && !mIsExternalScorerDryRun)
+        return (mWifiConnectedNetworkScorerHolder != null)
                 ? !mIsUsable : mLegacyIntScore < ConnectedScorer.WIFI_TRANSITION_SCORE;
     }
 }

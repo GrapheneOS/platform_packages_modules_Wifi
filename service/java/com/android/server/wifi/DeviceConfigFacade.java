@@ -147,7 +147,6 @@ public class DeviceConfigFacade {
     // Maximum traffic stats threshold for link bandwidth estimator
     static final int DEFAULT_TRAFFIC_STATS_THRESHOLD_MAX_KB = 8000;
     static final int DEFAULT_BANDWIDTH_ESTIMATOR_TIME_CONSTANT_LARGE_SEC = 6;
-    static final String DEFAULT_DRY_RUN_SCORER_PKG_NAME = "";
     // Cached values of fields updated via updateDeviceConfigFlags()
     private boolean mIsAbnormalConnectionBugreportEnabled;
     private int mAbnormalConnectionDurationMs;
@@ -209,8 +208,6 @@ public class DeviceConfigFacade {
     private boolean mHighPerfLockDeprecated;
     private Optional<Boolean> mOobPseudonymEnabled = Optional.empty();
     private Consumer<Boolean> mOobPseudonymFeatureFlagChangedListener = null;
-    private String mDryRunScorerPkgName;
-    private Consumer<String> mDryRunScorerPkgNameChangedListener = null;
     private boolean mApplicationQosPolicyApiEnabled;
     private boolean mAdjustPollRssiIntervalEnabled;
     private boolean mSoftwarePnoEnabled;
@@ -403,16 +400,6 @@ public class DeviceConfigFacade {
                     () -> mOobPseudonymFeatureFlagChangedListener.accept(oobPseudonymEnabled));
         }
         mOobPseudonymEnabled = Optional.of(oobPseudonymEnabled);
-
-        String dryRunScorerPkgName = DeviceConfig.getString(NAMESPACE, "dry_run_scorer_pkg_name",
-                DEFAULT_DRY_RUN_SCORER_PKG_NAME);
-        if (mDryRunScorerPkgNameChangedListener != null
-                && !dryRunScorerPkgName.equalsIgnoreCase(mDryRunScorerPkgName)) {
-            mWifiHandler.post(
-                    () -> mDryRunScorerPkgNameChangedListener.accept(dryRunScorerPkgName));
-        }
-        mDryRunScorerPkgName = dryRunScorerPkgName;
-
         mApplicationQosPolicyApiEnabled = DeviceConfig.getBoolean(NAMESPACE,
                 "application_qos_policy_api_enabled", true);
         mAdjustPollRssiIntervalEnabled =
@@ -921,18 +908,6 @@ public class DeviceConfigFacade {
     public void setOobPseudonymFeatureFlagChangedListener(
             Consumer<Boolean> listener) {
         mOobPseudonymFeatureFlagChangedListener = listener;
-    }
-
-    /*
-     * Sets the listener to be notified when the DryRunScorerPkgName is changed.
-     * Only 1 listener is accepted.
-     */
-    public void setDryRunScorerPkgNameChangedListener(Consumer<String> listener) {
-        mDryRunScorerPkgNameChangedListener = listener;
-    }
-
-    public String getDryRunScorerPkgName() {
-        return mDryRunScorerPkgName;
     }
 
     /**
