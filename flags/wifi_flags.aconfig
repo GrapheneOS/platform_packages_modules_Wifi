@@ -435,12 +435,7 @@ flag {
     bug: "391159870"
 }
 
-flag {
-    name: "ml_scorer_in_wifi_fw"
-    namespace: "wifi"
-    description: "Add ML scorer into Wi-Fi framework"
-    bug: "412641160"
-}
+
 
 flag {
     name: "send_service_specific_info_in_bootstrapping_request"

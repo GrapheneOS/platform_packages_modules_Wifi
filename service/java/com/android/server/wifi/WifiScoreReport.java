@@ -691,8 +691,7 @@ public class WifiScoreReport {
 
         long millis = mClock.getWallClockMillis();
         ConnectedScoreResult scoreResult;
-        int internalScorerType = Flags.mlScorerInWifiFw() ? mWifiGlobals.getInternalScorerType()
-                : SCORER_TYPE_VELOCITY;
+        int internalScorerType = mWifiGlobals.getInternalScorerType();
         final boolean isIntervalMatch =
                 POLLING_INTERVAL_MS == mWifiGlobals.getPollRssiIntervalMillis();
         if (internalScorerType == SCORER_TYPE_VELOCITY
