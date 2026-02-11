@@ -4803,7 +4803,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 isNull(),
                 isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
-                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
+                eq(peerMac1));
 
         // (6) Notify response succeed
         mDut.onRespondToPairingIndicationResponseSuccess(transactionId.getValue());
@@ -4956,7 +4957,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(mPmk),
                 isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_SAE),
-                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
+                eq(peerMac1));
 
         // (5) Notify response succeed
         mDut.onRespondToPairingIndicationResponseSuccess(transactionId.getValue());
@@ -6492,7 +6494,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 isNull(),
                 isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
-                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
+                eq(peerMac1));
 
         // (6) Notify response succeed
         mDut.onRespondToPairingIndicationResponseSuccess(transactionId.getValue());

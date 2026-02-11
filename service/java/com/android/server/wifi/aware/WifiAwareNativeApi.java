@@ -852,7 +852,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
      */
     public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
             byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-            String password, int akm, int cipherSuite) {
+            String password, int akm, int cipherSuite, byte[] peerMac) {
         if (mVerboseLoggingEnabled) {
             Log.v(
                     TAG,
@@ -872,7 +872,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         if (supplicant != null) {
             return supplicant.respondToPairingRequest(transactionId, pairingId, accept,
                     pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
-                    cipherSuite);
+                    cipherSuite, peerMac);
         }
 
         WifiNanIface iface = mHal.getWifiNanIface();

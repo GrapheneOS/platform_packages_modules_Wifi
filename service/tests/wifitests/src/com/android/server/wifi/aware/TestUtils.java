@@ -129,7 +129,7 @@ public class TestUtils {
 
         public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
                 byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-                String password, int akm, int cipherSuite) {
+                String password, int akm, int cipherSuite, byte[] peerMac) {
             addTransactionId(transactionId);
             return true;
         }
