@@ -1,6 +1,4 @@
-
-
-#  Copyright (C) 2024 The Android Open Source Project
+#  Copyright (C) 2026 The Android Open Source Project
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -13,7 +11,9 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
 """Util for aware test."""
+
 import base64
 import datetime
 import json
@@ -25,7 +25,7 @@ from typing import Any, Callable, Dict, List, Optional
 from queue import Empty
 
 
-from aware import constants
+from betowiq.aware import constants
 
 from mobly import asserts
 from mobly.controllers import android_device

@@ -7831,7 +7831,7 @@ public class WifiManager {
     /**
      * Callback proxy for ActionListener objects.
      */
-    private class ActionListenerProxy extends IActionListener.Stub {
+    private static class ActionListenerProxy extends IActionListener.Stub {
         private final String mActionTag;
         private final Handler mHandler;
         private final ActionListener mCallback;
@@ -7844,9 +7844,7 @@ public class WifiManager {
 
         @Override
         public void onSuccess() {
-            if (mVerboseLoggingEnabled) {
-                Log.v(TAG, "ActionListenerProxy:" + mActionTag + ": onSuccess");
-            }
+            Log.d(TAG, "ActionListenerProxy:" + mActionTag + ": onSuccess");
             mHandler.post(() -> {
                 mCallback.onSuccess();
             });
@@ -7854,9 +7852,7 @@ public class WifiManager {
 
         @Override
         public void onFailure(@ActionListenerFailureReason int reason) {
-            if (mVerboseLoggingEnabled) {
-                Log.v(TAG, "ActionListenerProxy:" + mActionTag + ": onFailure=" + reason);
-            }
+            Log.d(TAG, "ActionListenerProxy:" + mActionTag + ": onFailure=" + reason);
             mHandler.post(() -> {
                 mCallback.onFailure(reason);
             });

@@ -11732,6 +11732,44 @@ public class ClientModeImplTest extends WifiBaseTest {
                 eq(StaEvent.DISCONNECT_NETWORK_REMOVED));
     }
 
+    /**
+     * Verify that we do not disconnect when the SSID changes for a Passpoint network.
+     */
+    @Test
+    public void verifyNoDisconnectOnSsidChangeForPasspoint() throws Exception {
+        mConnectedNetwork = spy(WifiConfigurationTestUtil.createPasspointNetwork());
+        connect();
+
+        WifiConfiguration oldConfig = new WifiConfiguration(mConnectedNetwork);
+        mConnectedNetwork.SSID = "\"Some other SSID\"";
+
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig, false);
+        }
+        mLooper.dispatchAll();
+        verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
+    }
+
+    /**
+     * Verify that we do not disconnect when the SSID changes for a different network ID.
+     */
+    @Test
+    public void verifyNoDisconnectOnSsidChangeForDifferentNetworkId() throws Exception {
+        connect();
+
+        WifiConfiguration oldConfig = new WifiConfiguration(mConnectedNetwork);
+        oldConfig.networkId = mConnectedNetwork.networkId + 1;
+        mConnectedNetwork.SSID = "\"Some other SSID\"";
+
+        for (WifiConfigManager.OnNetworkUpdateListener listener : mConfigUpdateListenerCaptor
+                .getAllValues()) {
+            listener.onNetworkUpdated(mConnectedNetwork, oldConfig, false);
+        }
+        mLooper.dispatchAll();
+        verify(mWifiNative, never()).disconnect(WIFI_IFACE_NAME);
+    }
+
     private void testDhcpHostnameSetting(
             boolean configEnabled,
             @WifiManager.SendDhcpHostnameRestriction int restriction,

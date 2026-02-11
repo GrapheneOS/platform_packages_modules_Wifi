@@ -1318,8 +1318,12 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 return;
             }
 
-            // Treat an SSID change as a network removal
-            if (oldConfig != null && !TextUtils.equals(newConfig.SSID, oldConfig.SSID)) {
+            // Sometimes a WifiConfiguration's SSID may be updated in-place (e.g. via DO/PO apps).
+            // If this happens, trigger a network disconnect to connect again with the updated SSID.
+            if (oldConfig != null
+                    && oldConfig.networkId == newConfig.networkId
+                    && !newConfig.isPasspoint()
+                    && !TextUtils.equals(newConfig.SSID, oldConfig.SSID)) {
                 Log.i(getTag(), "SSID changed for active/target network (id=" + newConfig.networkId
                         + "). Old: " + oldConfig.SSID + ", New: " + newConfig.SSID
                         + ". Triggering disconnect.");
