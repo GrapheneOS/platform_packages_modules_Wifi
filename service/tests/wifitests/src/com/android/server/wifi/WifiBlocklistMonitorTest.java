@@ -745,16 +745,17 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
     }
 
     /**
-     * Verify that handleNetworkValidationSuccess resets appropriate blocklist streak counts
-     * and removes the BSSID from blocklist.
+     * Verify that handleNetworkValidationSuccess resets appropriate blocklist streak counts.
      */
     @Test
     public void testNetworkValidationResetsBlocklistStreak() {
+        // This is adding to blockist with reason REASON_AP_UNABLE_TO_HANDLE_NEW_STA
         verifyAddTestBssidToBlocklist();
         mWifiBlocklistMonitor.handleNetworkValidationSuccess(TEST_BSSID_1, TEST_SSID_1);
         verify(mWifiScoreCard).resetBssidBlocklistStreak(TEST_SSID_1, TEST_BSSID_1,
                 WifiBlocklistMonitor.REASON_NETWORK_VALIDATION_FAILURE);
-        assertEquals(0, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
+        // should not clear blocklist since the BSSID was blocked for another reason
+        assertEquals(1, mWifiBlocklistMonitor.updateAndGetBssidBlocklist().size());
     }
 
     /**
@@ -1131,8 +1132,15 @@ public class WifiBlocklistMonitorTest extends WifiBaseTest {
         // Affiliated BSSID mapping: TEST_BSSID_1 -> {TEST_BSSID_2, TEST_BSSID_3}
         mWifiBlocklistMonitor.setAffiliatedBssids(TEST_BSSID_1, bssidList);
 
-        // Add to block list with reason code REASON_AP_UNABLE_TO_HANDLE_NEW_STA
-        verifyAddTestBssidToBlocklist();
+        // Add to block list with reason code REASON_NETWORK_VALIDATION_FAILURE
+        WifiConfiguration config = WifiConfigurationTestUtil.createPskNetwork(TEST_SSID_1);
+        mWifiBlocklistMonitor.handleBssidConnectionFailure(
+                TEST_BSSID_1, config,
+                WifiBlocklistMonitor.REASON_NETWORK_VALIDATION_FAILURE, TEST_GOOD_RSSI);
+        assertTrue(mWifiBlocklistMonitor.updateAndGetBssidBlocklist().contains(TEST_BSSID_1));
+        assertTrue(mWifiBlocklistMonitor.getBssidBlocklistForSsids(
+                new ArraySet<>(Arrays.asList(new String[]{TEST_SSID_1}))).contains(TEST_BSSID_1));
+        assertTrue(mWifiBlocklistMonitor.getBssidBlocklistForSsids(null).contains(TEST_BSSID_1));
 
         // Network validation success resets with resetBssidBlocklistStreak()
         mWifiBlocklistMonitor.handleNetworkValidationSuccess(TEST_BSSID_1, TEST_SSID_1);
