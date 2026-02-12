@@ -22,9 +22,17 @@ android_app {
     lint: {
         baseline_filename: "lint-baseline.xml",
     },
+    preinstall_allowlist: ":preinstalled-packages-com.android.hotspot2.osulogin.xml",
 }
 
 android_app_certificate {
     name: "com.android.hotspot2.osulogin.certificate",
     certificate: "certs/com.android.hotspot2.osulogin",
+}
+
+filegroup {
+    name: "preinstalled-packages-com.android.hotspot2.osulogin.xml",
+    srcs: [
+        "preinstalled-packages-com.android.hotspot2.osulogin.xml",
+    ],
 }

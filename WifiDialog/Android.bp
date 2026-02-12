@@ -40,9 +40,17 @@ android_app {
         shrink_resources: true,
     },
     updatable: true,
+    preinstall_allowlist: ":preinstalled-packages-com.android.wifi.dialog.xml",
 }
 
 android_app_certificate {
     name: "com.android.wifi.dialog.certificate",
     certificate: "certs/com.android.wifi.dialog",
+}
+
+filegroup {
+    name: "preinstalled-packages-com.android.wifi.dialog.xml",
+    srcs: [
+        "preinstalled-packages-com.android.wifi.dialog.xml",
+    ],
 }
