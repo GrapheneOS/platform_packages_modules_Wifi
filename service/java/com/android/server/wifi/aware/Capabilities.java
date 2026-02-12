@@ -112,6 +112,7 @@ public class Capabilities {
         j.put("maxQueuedTransmitMessages", maxQueuedTransmitMessages);
         j.put("maxSubscribeInterfaceAddresses", maxSubscribeInterfaceAddresses);
         j.put("supportedCipherSuites", supportedDataPathCipherSuites);
+        j.put("supportedPairingCipherSuites", supportedPairingCipherSuites);
         j.put("isInstantCommunicationModeSupported", isInstantCommunicationModeSupported);
         j.put("isSetClusterIdSupported", isSetClusterIdSupported);
         j.put("isNanPairingSupported", isNanPairingSupported);
@@ -152,6 +153,8 @@ public class Capabilities {
                 + maxSubscribeInterfaceAddresses
                 + ", supportedCipherSuites="
                 + supportedDataPathCipherSuites
+                + ", supportedPairingCipherSuites="
+                + supportedPairingCipherSuites
                 + ", isInstantCommunicationModeSupport="
                 + isInstantCommunicationModeSupported
                 + ", isNanPairingSupported="
