@@ -94,7 +94,7 @@ public class MainlineSupplicantAidlManagerTest extends WifiBaseTest {
         }
 
         @Override
-        protected boolean isServiceAvailableMockable(WifiContext context) {
+        public boolean isServiceAvailableMockable(WifiContext context) {
             return true;
         }
     }
@@ -142,6 +142,7 @@ public class MainlineSupplicantAidlManagerTest extends WifiBaseTest {
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_EMBEDDED)).thenReturn(false);
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)).thenReturn(false);
         when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)).thenReturn(false);
+        when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_PC)).thenReturn(true);
         assertTrue(MainlineSupplicantAidlManager.isServiceAvailable(mWifiContext));
     }
 

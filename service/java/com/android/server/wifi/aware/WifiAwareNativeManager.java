@@ -17,6 +17,7 @@
 package com.android.server.wifi.aware;
 
 import android.annotation.NonNull;
+import android.net.wifi.WifiContext;
 import android.os.Handler;
 import android.os.WorkSource;
 import android.util.Log;
@@ -49,6 +50,7 @@ public class WifiAwareNativeManager {
     private WifiNanIface mVendorHalNanIface = null;
     private WifiNative.Iface mWifiNativeNanIface;
     private AwareIfaceAidlSupplicantImpl mSupplicantNanIface;
+    private final WifiContext mContext;
     private InterfaceDestroyedListener mInterfaceDestroyedListener;
     private final SupplicantDeathHandler mSupplicantDeathHandler = new SupplicantDeathHandler();
     private int mReferenceCount = 0;
@@ -65,6 +67,7 @@ public class WifiAwareNativeManager {
         mFeatureFlags = featureFlags;
         mWifiAwareNativeCallback = wifiAwareNativeCallback;
         mMainlineSupplicant = wifiInjector.getMainlineSupplicantAidlManager();
+        mContext = wifiInjector.getContext();
     }
 
     /**
@@ -142,13 +145,9 @@ public class WifiAwareNativeManager {
             return;
         }
 
-        //TODO(448421897): check the supplicant capability
-        boolean useSupplicant = mFeatureFlags.wifiAwareSupplicantSolution()
-                && mMainlineSupplicant.isAwareSupported();
-
         mInterfaceDestroyedListener = new InterfaceDestroyedListener();
         mWifiNativeNanIface = mWifiNative.createNanIface(mInterfaceDestroyedListener,
-                mHandler, requestorWs, useSupplicant);
+                mHandler, requestorWs);
         if (mWifiNativeNanIface != null) {
             mVendorHalNanIface = (WifiNanIface) mWifiNativeNanIface.iface;
         }
@@ -158,6 +157,8 @@ public class WifiAwareNativeManager {
             return;
         }
         if (mVerboseLoggingEnabled) Log.v(TAG, "Obtained a WifiNanIface");
+        boolean useSupplicant = mMainlineSupplicant.isServiceAvailableMockable(mContext)
+                && MainlineSupplicantAidlManager.hasPcFeature(mContext);
         if (useSupplicant) {
             mMainlineSupplicant.registerDeathHandler(mSupplicantDeathHandler);
             if (!mMainlineSupplicant.isInitializationComplete()) {
