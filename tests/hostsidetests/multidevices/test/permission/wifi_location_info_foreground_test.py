@@ -58,6 +58,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
         self.dut.adb.shell(f"pm revoke --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         self.dut.unload_snippet("wifi")
         self.dut.load_snippet("wifi", self._WIFI_SNIPPET_PACKAGE)
+        self.dut.wifi.utilityBringToForeground()
 
     def teardown_test(self):
         self.dut.adb.shell(f"pm revoke --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")

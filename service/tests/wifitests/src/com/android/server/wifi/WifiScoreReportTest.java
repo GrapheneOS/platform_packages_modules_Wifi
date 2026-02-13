@@ -51,7 +51,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.net.MacAddress;
 import android.net.Network;
@@ -131,8 +130,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
     public static final boolean TEST_USER_SELECTED = true;
     public static final int TEST_NETWORK_SWITCH_DIALOG_DISABLED_MS = 300_000;
     private static final int TEST_UID = 435546654;
-    private static final String EXTERNAL_SCORER_PKG_NAME = "com.google.android.carrier.carrierwifi";
-    private static final String DRY_RUN_SCORER_PKG_NAME = "com.example.xxx";
     private static final int TEST_RSSI = -67;
     private static final int TEST_SCORE = 55;
     private static final int ADJUSTED_SCORE = 50;
@@ -149,7 +146,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
     @Mock WifiNetworkAgent mMockNetworkAgent;
     WifiThreadRunner mWifiThreadRunner;
     @Mock Context mContext;
-    @Mock PackageManager mMockPackageManager;
     @Mock Resources mResources;
     @Mock WifiMetrics mWifiMetrics;
     @Mock PrintWriter mPrintWriter;
@@ -288,10 +284,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
         when(mResources.getInteger(
                 R.integer.config_wifiNetworkSwitchDialogDisabledMsWhenMarkedUsable))
                 .thenReturn(TEST_NETWORK_SWITCH_DIALOG_DISABLED_MS);
-        when(mContext.getPackageManager()).thenReturn(mMockPackageManager);
-        when(mMockPackageManager.getPackagesForUid(anyInt()))
-                .thenReturn(new String[]{EXTERNAL_SCORER_PKG_NAME});
-        when(mDeviceConfigFacade.getDryRunScorerPkgName()).thenReturn(DRY_RUN_SCORER_PKG_NAME);
         when(mNetwork.getNetId()).thenReturn(0);
         when(mNetworkAgent.getNetwork()).thenReturn(mNetwork);
         when(mNetworkAgent.getCurrentNetworkCapabilities()).thenReturn(
@@ -449,7 +441,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
 
     @Test
     public void calculateAndReportScore_mlInternalScorerAndPrimary() {
-        assumeTrue("Skipping test because feature flag is disabled", Flags.mlScorerInWifiFw());
         assumeTrue(mIsPrimary);
         mWifiInfo.setRssi(-77);
         when(mWifiGlobals.getInternalScorerType()).thenReturn(SCORER_TYPE_ML);
@@ -469,7 +460,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
 
     @Test
     public void calculateAndReportScore_mlInternalScorerAndPrimaryUnmatchedPollingInterval() {
-        assumeTrue("Skipping test because feature flag is disabled", Flags.mlScorerInWifiFw());
         assumeTrue(mIsPrimary);
         mWifiInfo.setRssi(-77);
         when(mWifiGlobals.getInternalScorerType()).thenReturn(SCORER_TYPE_ML);
@@ -492,7 +482,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
 
     @Test
     public void calculateAndReportScore_mlInternalScorerAndSecondary() {
-        assumeTrue("Skipping test because feature flag is disabled", Flags.mlScorerInWifiFw());
         assumeFalse(mIsPrimary);
         mWifiInfo.setRssi(-77);
         when(mWifiGlobals.getInternalScorerType()).thenReturn(SCORER_TYPE_ML);
@@ -510,24 +499,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
         verify(mMockWifiUsabilityStatsEntry, never()).setInternalScorerType(anyInt());
         assertEquals(SCORER_TYPE_INVALID,
                 mWifiScoreReportWithMockHelper.getLastInternalScorerType());
-    }
-
-    @Test
-    public void calculateAndReportScore_mlInternalScorerWithFlagDisabled() {
-        assumeFalse("Skipping test because feature flag is enabled", Flags.mlScorerInWifiFw());
-        mWifiInfo.setRssi(-77);
-        when(mWifiGlobals.getInternalScorerType()).thenReturn(SCORER_TYPE_ML);
-        ConnectedScoreResult scoreResult = ConnectedScoreResult.builder()
-                .setScore(TEST_SCORE)
-                .setAdjustedScore(ADJUSTED_SCORE)
-                .setIsWifiUsable(true)
-                .build();
-        when(mMockVelocityScorer.generateScoreResult(any(), any(), anyLong(), anyBoolean()))
-                .thenReturn(scoreResult);
-
-        mWifiScoreReportWithMockHelper.calculateAndReportScore(mMockWifiUsabilityStatsEntry);
-        verify(mMockWifiUsabilityStatsEntry).setInternalScore(eq(ADJUSTED_SCORE));
-        verify(mMockWifiUsabilityStatsEntry).setInternalScorerType(eq(SCORER_TYPE_VELOCITY));
     }
 
     @Test
@@ -1400,126 +1371,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
                 mAppBinder, scorerImpl, TEST_UID));
     }
 
-    @Test
-    public void frameworkIgnoreTriggerUpdateOfWifiUsabilityStatsForDryRunScorer() throws Exception {
-        when(mMockPackageManager.getPackagesForUid(anyInt()))
-                .thenReturn(new String[]{DRY_RUN_SCORER_PKG_NAME});
-        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
-        // Register Client for verification.
-        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
-        verify(mExternalScoreUpdateObserverProxy).registerCallback(
-                mExternalScoreUpdateObserverCbCaptor.capture());
-        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
-        //mClock.mStepMillis = 0;
-        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
-
-        //mClock.mWallClockMillis = 5001;
-        mExternalScoreUpdateObserverCbCaptor.getValue()
-                .triggerUpdateOfWifiUsabilityStats(scorerImpl.mSessionId);
-        mLooper.dispatchAll();
-        verify(mWifiNative, never()).getWifiLinkLayerStats(TEST_IFACE_NAME);
-        verify(mWifiNative, never()).signalPoll(TEST_IFACE_NAME);
-        assertFalse(mWifiScoreReport.isExternalScorerActive());
-    }
-
-    /**
-     * Verify that WifiScoreReport gets updated score when notifyScoreUpdate() is called by apps.
-     */
-    @Test
-    public void frameworkIgnoreNotifyScoreUpdateFromDryRunScorer() throws Exception {
-        assertEquals(ConnectedScorer.WIFI_INITIAL_SCORE, mWifiScoreReport.mLegacyIntScore);
-        when(mMockPackageManager.getPackagesForUid(anyInt()))
-                .thenReturn(new String[]{DRY_RUN_SCORER_PKG_NAME});
-        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
-        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
-        verify(mExternalScoreUpdateObserverProxy).registerCallback(
-                mExternalScoreUpdateObserverCbCaptor.capture());
-        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
-        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
-        assertEquals(TEST_SESSION_ID, scorerImpl.mSessionId);
-
-        mExternalScoreUpdateObserverCbCaptor.getValue().notifyScoreUpdate(
-                scorerImpl.mSessionId, ConnectedScorer.WIFI_INITIAL_SCORE - 1);
-        mLooper.dispatchAll();
-
-        assertEquals(ConnectedScorer.WIFI_INITIAL_SCORE, mWifiScoreReport.mLegacyIntScore);
-        assertFalse(mWifiScoreReport.isExternalScorerActive());
-    }
-
-    @Test
-    public void frameworkIgnoreNotifyStatusUpdateFromDryRunScorer() throws Exception {
-        assertEquals(ConnectedScorer.WIFI_INITIAL_SCORE, mWifiScoreReport.mLegacyIntScore);
-        when(mMockPackageManager.getPackagesForUid(anyInt()))
-                .thenReturn(new String[]{DRY_RUN_SCORER_PKG_NAME});
-        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
-        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
-        verify(mExternalScoreUpdateObserverProxy).registerCallback(
-                mExternalScoreUpdateObserverCbCaptor.capture());
-        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
-        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
-        assertEquals(TEST_SESSION_ID, scorerImpl.mSessionId);
-
-        mExternalScoreUpdateObserverCbCaptor.getValue().notifyStatusUpdate(
-                scorerImpl.mSessionId, true);
-        mLooper.dispatchAll();
-        assertTrue(mWifiInfo.isUsable());
-        mExternalScoreUpdateObserverCbCaptor.getValue().notifyStatusUpdate(
-                scorerImpl.mSessionId, false);
-        mLooper.dispatchAll();
-        assertTrue(mWifiInfo.isUsable());
-        assertFalse(mWifiScoreReport.isExternalScorerActive());
-    }
-
-    /**
-     * Verify that WifiScoreReport gets NUD request only once when requestNudOperation() is called
-     * by apps.
-     */
-    @Test
-    public void frameworkIgnoreRequestNudOperationForDryRunScorer() throws Exception {
-        when(mMockPackageManager.getPackagesForUid(anyInt()))
-                .thenReturn(new String[]{DRY_RUN_SCORER_PKG_NAME});
-        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
-        // Register Client for verification.
-        mWifiScoreReportWithMockHelper.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl,
-                TEST_UID);
-        verify(mExternalScoreUpdateObserverProxy).registerCallback(
-                mExternalScoreUpdateObserverCbCaptor.capture());
-        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
-        mClock.mStepMillis = 0;
-        mWifiScoreReportWithMockHelper.startConnectedNetworkScorer(TEST_NETWORK_ID,
-                TEST_USER_SELECTED);
-
-        mClock.mWallClockMillis = 5001;
-        mExternalScoreUpdateObserverCbCaptor.getValue().requestNudOperation(scorerImpl.mSessionId);
-        mLooper.dispatchAll();
-
-        verify(mMockConnectedScorerHelper, never())
-                .checkNudIfNeeded(any(IpClientManager.class), anyLong(), anyLong());
-        assertEquals(0, mWifiScoreReportWithMockHelper.getNudYes());
-        assertFalse(mWifiScoreReport.isExternalScorerActive());
-    }
-
-    @Test
-    public void frameworkIgnoreBlocklistCurrentBssidForDryRunScorer() throws Exception {
-        when(mMockPackageManager.getPackagesForUid(anyInt()))
-                .thenReturn(new String[]{DRY_RUN_SCORER_PKG_NAME});
-        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
-        // Register Client for verification.
-        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
-        verify(mExternalScoreUpdateObserverProxy).registerCallback(
-                mExternalScoreUpdateObserverCbCaptor.capture());
-        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
-        mClock.mStepMillis = 0;
-        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
-
-        mClock.mWallClockMillis = 5001;
-        mExternalScoreUpdateObserverCbCaptor.getValue().requestNudOperation(scorerImpl.mSessionId);
-        mLooper.dispatchAll();
-        verify(mWifiBlocklistMonitor, never())
-                .handleBssidConnectionFailure(any(), any(), anyInt(), anyInt());
-        assertFalse(mWifiScoreReport.isExternalScorerActive());
-    }
-
     /**
      * Verify that WifiScoreReport triggers an update of WifiUsabilityStatsEntry.
      */
@@ -1841,26 +1692,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
     }
 
     @Test
-    public void frameworkIgnoresUnblockAllBssidsFromDryRunScorer() throws Exception {
-        assertEquals(ConnectedScorer.WIFI_INITIAL_SCORE, mWifiScoreReport.mLegacyIntScore);
-        when(mMockPackageManager.getPackagesForUid(anyInt()))
-                .thenReturn(new String[]{DRY_RUN_SCORER_PKG_NAME});
-        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
-        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
-        verify(mExternalScoreUpdateObserverProxy).registerCallback(
-                mExternalScoreUpdateObserverCbCaptor.capture());
-        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
-        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
-        assertEquals(TEST_SESSION_ID, scorerImpl.mSessionId);
-
-        mExternalScoreUpdateObserverCbCaptor.getValue().unblockAllBssids();
-        mLooper.dispatchAll();
-
-        verify(mWifiBlocklistMonitor, never()).clearBssidBlocklistForReason(
-                eq(WifiBlocklistMonitor.REASON_FRAMEWORK_DISCONNECT_CONNECTED_SCORE));
-    }
-
-    @Test
     public void testFrameworkSetPreEvaluationRequestOperation() throws Exception {
         WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
         // Register Client for verification.
@@ -1891,27 +1722,6 @@ public class WifiScoreReportTest extends WifiBaseTest {
         mExternalScoreUpdateObserverCbCaptor.getValue()
                 .setPreEvaluationEnabled(true);
         mLooper.dispatchAll();
-        verify(mMockNetworkPreEvaluationManager, never())
-                .setPreEvaluationEnabled(anyString(), anyBoolean());
-    }
-
-    @Test
-    public void frameworkIgnoresSetPreEvaluationRequestFromDryRunScorer() throws Exception {
-        assertEquals(ConnectedScorer.WIFI_INITIAL_SCORE, mWifiScoreReport.mLegacyIntScore);
-        when(mMockPackageManager.getPackagesForUid(anyInt()))
-                .thenReturn(new String[]{DRY_RUN_SCORER_PKG_NAME});
-        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
-        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
-        verify(mExternalScoreUpdateObserverProxy).registerCallback(
-                mExternalScoreUpdateObserverCbCaptor.capture());
-        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
-        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
-        assertEquals(TEST_SESSION_ID, scorerImpl.mSessionId);
-
-        mExternalScoreUpdateObserverCbCaptor.getValue()
-                .setPreEvaluationEnabled(true);
-        mLooper.dispatchAll();
-
         verify(mMockNetworkPreEvaluationManager, never())
                 .setPreEvaluationEnabled(anyString(), anyBoolean());
     }
