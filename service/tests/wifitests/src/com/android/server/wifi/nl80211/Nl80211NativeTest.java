@@ -30,6 +30,9 @@ import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_MAC;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_ALPHA2;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_REG_TYPE;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_ATTR_WIPHY_FREQ;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_2GHZ;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_5GHZ;
+import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_BAND_6GHZ;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_CH_SWITCH_NOTIFY;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_DEL_STATION;
 import static com.android.server.wifi.nl80211.NetlinkConstants.NL80211_CMD_FRAME_TX_STATUS;
@@ -1818,11 +1821,10 @@ public class Nl80211NativeTest {
     public void testStartPnoScan_addsDefaultFreqsIfManyNetworksWithoutFreqs() {
         mDut = initNl80211Native(false);
         Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
-                .addBand2gFrequency(2412)
-                .addBand2gFrequency(2417)
-                .addBand5gFrequency(5180)
-                .addBand5gFrequency(5200)
-                .addBand5gFrequency(5220)
+                .addBandCapabilities(NL80211_BAND_2GHZ, createBandCapabilities(NL80211_BAND_2GHZ,
+                        2412, 2417))
+                .addBandCapabilities(NL80211_BAND_5GHZ, createBandCapabilities(NL80211_BAND_5GHZ,
+                        5180, 5200, 5220))
                 .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, bandInfo, null, null);
 
@@ -2186,15 +2188,22 @@ public class Nl80211NativeTest {
     public void testGetDeviceWiphyCapabilities_success() {
         mDut = initNl80211Native(false);
         Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
-                .setIs80211nSupported(true)
-                .setIs80211acSupported(true)
-                .setIs80211axSupported(true)
-                .setIs80211beSupported(true)
-                .setIs160MhzSupported(true)
-                .setIs80p80MhzSupported(true)
-                .setIs320MhzSupported(true)
-                .setMaxTxStreams(8)
-                .setMaxRxStreams(4)
+                .addBandCapabilities(NL80211_BAND_5GHZ, new Nl80211Utils.BandCapabilities.Builder()
+                        .setBandIndex(NL80211_BAND_5GHZ)
+                        .setIsHtSupported(true)
+                        .setIsVhtSupported(true)
+                        .setIsHeSupported(true)
+                        .setIsEhtSupported(true)
+                        .setVhtCap(0x0C) // 160MHz and 80+80 supported in VHT
+                        .setHeCapPhy(new byte[]{0x18, 0, 0, 0, 0, 0, 0, 0, 0}) // 160/80+80 in HE
+                        .setEhtCapPhy(new byte[]{0x02, 0, 0, 0, 0, 0, 0, 0}) // 320MHz in EHT
+                        .setHtMaxTxStreams(8)
+                        .setHtMaxRxStreams(4)
+                        .setVhtMaxTxStreams(8)
+                        .setVhtMaxRxStreams(4)
+                        .setHeMaxTxStreams(8)
+                        .setHeMaxRxStreams(4)
+                        .build())
                 .build();
         Nl80211Utils.ScanCapabilities scanCapabilities =
                 new Nl80211Utils.ScanCapabilities.Builder().build();
@@ -2258,7 +2267,10 @@ public class Nl80211NativeTest {
         when(mResources.getBoolean(R.bool.config_wifi11axSupportOverride)).thenReturn(true);
 
         Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
-                .setIs80211axSupported(false) // Reported as false by hardware
+                .addBandCapabilities(NL80211_BAND_2GHZ, new Nl80211Utils.BandCapabilities.Builder()
+                        .setBandIndex(NL80211_BAND_2GHZ)
+                        .setIsHeSupported(false)
+                        .build())
                 .build();
         Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
                 .setBandInfo(bandInfo)
@@ -2283,7 +2295,10 @@ public class Nl80211NativeTest {
         when(mResources.getBoolean(R.bool.config_wifi11beSupportOverride)).thenReturn(true);
 
         Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
-                .setIs80211beSupported(false) // Reported as false by hardware
+                .addBandCapabilities(NL80211_BAND_2GHZ, new Nl80211Utils.BandCapabilities.Builder()
+                        .setBandIndex(NL80211_BAND_2GHZ)
+                        .setIsEhtSupported(false)
+                        .build())
                 .build();
         Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
                 .setBandInfo(bandInfo)
@@ -2370,11 +2385,21 @@ public class Nl80211NativeTest {
     public void testGetChannelsMhzForBand_success() {
         mDut = initNl80211Native(false);
         Nl80211Utils.BandInfo bandInfo = new Nl80211Utils.BandInfo.Builder()
-                .addBand2gFrequency(2412)
-                .addBand5gFrequency(5180)
-                .addBandDfsFrequency(5260)
-                .addBand6gFrequency(5955)
-                .addBand60gFrequency(60480)
+                .addBandCapabilities(NL80211_BAND_2GHZ, createBandCapabilities(NL80211_BAND_2GHZ,
+                        2412))
+                .addBandCapabilities(NL80211_BAND_5GHZ, new Nl80211Utils.BandCapabilities.Builder()
+                        .setBandIndex(NL80211_BAND_5GHZ)
+                        .addFrequency(new Nl80211Utils.FrequencyInfo.Builder()
+                                .setFrequencyMhz(5180).build())
+                        .addFrequency(new Nl80211Utils.FrequencyInfo.Builder()
+                                .setFrequencyMhz(5260)
+                                .setNoIr(true) // Marks it as DFS in aggregation
+                                .build())
+                        .build())
+                .addBandCapabilities(NL80211_BAND_6GHZ, createBandCapabilities(NL80211_BAND_6GHZ,
+                        5955))
+                .addBandCapabilities(NetlinkConstants.NL80211_BAND_60GHZ,
+                        createBandCapabilities(NetlinkConstants.NL80211_BAND_60GHZ, 60480))
                 .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, bandInfo, null, null);
 
@@ -2979,7 +3004,8 @@ public class Nl80211NativeTest {
 
         // Mock a new WiphyInfo with 6GHz support after the country code change
         Nl80211Utils.BandInfo bandInfoWith6g = new Nl80211Utils.BandInfo.Builder()
-                .addBand6gFrequency(6150)
+                .addBandCapabilities(NL80211_BAND_6GHZ, createBandCapabilities(NL80211_BAND_6GHZ,
+                        6150))
                 .build();
         Nl80211Utils.WiphyInfo wiphyInfoWith6g = new Nl80211Utils.WiphyInfo.Builder()
                 .setBandInfo(bandInfoWith6g)
@@ -3076,7 +3102,8 @@ public class Nl80211NativeTest {
 
         // Mock the new WiphyInfo that will be returned after the country code change
         Nl80211Utils.BandInfo bandInfoWith6g = new Nl80211Utils.BandInfo.Builder()
-                .addBand6gFrequency(6150) // Add a 6GHz channel
+                .addBandCapabilities(NL80211_BAND_6GHZ, createBandCapabilities(NL80211_BAND_6GHZ,
+                        6150))
                 .build();
         Nl80211Utils.WiphyInfo wiphyInfoWith6g = new Nl80211Utils.WiphyInfo.Builder()
                 .setBandInfo(bandInfoWith6g)
@@ -3197,5 +3224,15 @@ public class Nl80211NativeTest {
                 mWificondManager, mWifiInjector, false);
         assertNull(nl80211Native.getWifiChipStats(CLIENT_IFACE_NAME));
         verify(mNl80211Utils, never()).getWifiChipStats(anyString());
+    }
+
+    private Nl80211Utils.BandCapabilities createBandCapabilities(int bandIndex, int... freqs) {
+        Nl80211Utils.BandCapabilities.Builder builder = new Nl80211Utils.BandCapabilities.Builder()
+                .setBandIndex(bandIndex);
+        for (int freq : freqs) {
+            builder.addFrequency(new Nl80211Utils.FrequencyInfo.Builder()
+                    .setFrequencyMhz(freq).build());
+        }
+        return builder.build();
     }
 }
