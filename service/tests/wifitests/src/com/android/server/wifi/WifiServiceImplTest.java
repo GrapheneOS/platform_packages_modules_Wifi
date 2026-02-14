@@ -9147,6 +9147,32 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiConfigManager).handleUserUnlock(5);
     }
 
+    @Test
+    public void testHandleUserUnlockWhenScanAlwaysAvailableChanged() throws Exception {
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        when(mSettingsStore.isScanAlwaysAvailableToggleEnabled()).thenReturn(false);
+        mWifiServiceImpl.checkAndStartWifi();
+        mLooper.dispatchAll();
+
+        // Scan always available setting changed.
+        when(mSettingsStore.isScanAlwaysAvailableToggleEnabled()).thenReturn(true);
+
+        // First user unlock
+        mWifiServiceImpl.handleUserUnlock(5);
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).handleUserUnlock(5);
+        verify(mActiveModeWarden).handleUserUnlock(5);
+        verify(mActiveModeWarden).scanAlwaysModeChanged();
+
+        // Second user unlock
+        mWifiServiceImpl.handleUserUnlock(6);
+        mLooper.dispatchAll();
+        verify(mWifiConfigManager).handleUserUnlock(6);
+        verify(mActiveModeWarden).handleUserUnlock(6);
+        // scanAlwaysModeChanged should not be triggered for the second time.
+        verify(mActiveModeWarden, times(1)).scanAlwaysModeChanged();
+    }
+
     /**
      * Test handle user stop sequence.
      */
