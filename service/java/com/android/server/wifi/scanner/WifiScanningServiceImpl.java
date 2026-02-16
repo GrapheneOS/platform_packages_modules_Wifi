@@ -1481,7 +1481,9 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                             + " does not have permission to set hidden networks");
                     return false;
                 }
-                if (settings.type != WifiScanner.SCAN_TYPE_LOW_LATENCY) {
+                if (settings.type != WifiScanner.SCAN_TYPE_LOW_LATENCY
+                        && !mWifiPermissionsUtil.checkInstallLocationProviderPermission(
+                        ci.getUid())) {
                     Log.e(TAG, "Failing single scan because app " + ci.getUid()
                             + " does not have permission to set type");
                     return false;
