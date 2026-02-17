@@ -84,9 +84,9 @@
     <string name="wifi_p2p_dialog2_received_message_display_password_countdown" msgid="3823408588191020986">"{countdown,plural, =1{“{device}”想要使用以下密码连接到您的设备。请在 {countdown} 秒内接受。}other{“{device}”想要使用以下密码连接到您的设备。请在 {countdown} 秒内接受。}}"</string>
     <string name="wifi_p2p_dialog2_received_positive_button" msgid="6358592617824573781">"连接"</string>
     <string name="wifi_p2p_dialog2_received_negative_button" msgid="4762549789911681138">"取消"</string>
-    <string name="wifi_p2p_dialog2_enter_pin_label" msgid="7410100924400114335">"PIN 码"</string>
+    <string name="wifi_p2p_dialog2_enter_pin_label" msgid="7410100924400114335">"数字密码"</string>
     <string name="wifi_p2p_dialog2_enter_password_label" msgid="7858587460348537230">"密码"</string>
-    <string name="wifi_p2p_dialog2_display_pin_label" msgid="3929561425167093538">"PIN 码"</string>
+    <string name="wifi_p2p_dialog2_display_pin_label" msgid="3929561425167093538">"数字密码"</string>
     <string name="wifi_p2p_dialog2_display_password_label" msgid="6091997937026945119">"密码"</string>
     <string name="wifi_p2p_frequency_conflict_message" msgid="8535404941723941766">"当设备连接到<xliff:g id="DEVICE_NAME">%1$s</xliff:g>时，它会暂时断开 WLAN 连接"</string>
     <string name="dlg_ok" msgid="254496739491689405">"确定"</string>
