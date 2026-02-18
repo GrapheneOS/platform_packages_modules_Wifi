@@ -867,24 +867,13 @@ public class WifiScoreReport {
             StringJoiner mloStats = new StringJoiner(",", "{", "}");
             mloStats.add(Integer.toString(link.getLinkId()));
             mloStats.add(Integer.toString(link.getRssi()));
-            final int band;
-            switch (link.getBand()) {
-                case WifiScanner.WIFI_BAND_24_GHZ:
-                    band = ScanResult.WIFI_BAND_24_GHZ;
-                    break;
-                case WifiScanner.WIFI_BAND_5_GHZ:
-                    band = ScanResult.WIFI_BAND_5_GHZ;
-                    break;
-                case WifiScanner.WIFI_BAND_6_GHZ:
-                    band = ScanResult.WIFI_BAND_6_GHZ;
-                    break;
-                case WifiScanner.WIFI_BAND_60_GHZ:
-                    band = ScanResult.WIFI_BAND_60_GHZ;
-                    break;
-                default:
-                    band = ScanResult.UNSPECIFIED;
-                    break;
-            }
+            final int band = switch (link.getBand()) {
+                case WifiScanner.WIFI_BAND_24_GHZ -> ScanResult.WIFI_BAND_24_GHZ;
+                case WifiScanner.WIFI_BAND_5_GHZ -> ScanResult.WIFI_BAND_5_GHZ;
+                case WifiScanner.WIFI_BAND_6_GHZ -> ScanResult.WIFI_BAND_6_GHZ;
+                case WifiScanner.WIFI_BAND_60_GHZ -> ScanResult.WIFI_BAND_60_GHZ;
+                default -> ScanResult.UNSPECIFIED;
+            };
             int linkFreq =
                     ScanResult.convertChannelToFrequencyMhzIfSupported(link.getChannel(), band);
             mloStats.add(Integer.toString(linkFreq));

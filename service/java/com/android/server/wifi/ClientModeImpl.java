@@ -2346,12 +2346,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     @Override
     protected boolean recordLogRec(Message msg) {
-        switch (msg.what) {
-            case CMD_RSSI_POLL:
-                return mVerboseLoggingEnabled;
-            default:
-                return true;
-        }
+        return switch (msg.what) {
+            case CMD_RSSI_POLL -> mVerboseLoggingEnabled;
+            default -> true;
+        };
     }
 
     /**
@@ -2655,152 +2653,83 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     @Override
     protected String getWhatToString(int what) {
-        switch (what) {
-            case CMD_ACCEPT_UNVALIDATED:
-                return "CMD_ACCEPT_UNVALIDATED";
-            case CMD_ADD_KEEPALIVE_PACKET_FILTER_TO_APF:
-                return "CMD_ADD_KEEPALIVE_PACKET_FILTER_TO_APF";
-            case CMD_BLUETOOTH_CONNECTION_STATE_CHANGE:
-                return "CMD_BLUETOOTH_CONNECTION_STATE_CHANGE";
-            case CMD_CONFIG_ND_OFFLOAD:
-                return "CMD_CONFIG_ND_OFFLOAD";
-            case CMD_CONNECTING_WATCHDOG_TIMER:
-                return "CMD_CONNECTING_WATCHDOG_TIMER";
-            case CMD_CONNECT_NETWORK:
-                return "CMD_CONNECT_NETWORK";
-            case CMD_DISCONNECT:
-                return "CMD_DISCONNECT";
-            case CMD_ENABLE_RSSI_POLL:
-                return "CMD_ENABLE_RSSI_POLL";
-            case CMD_INSTALL_PACKET_FILTER:
-                return "CMD_INSTALL_PACKET_FILTER";
-            case CMD_IP_CONFIGURATION_LOST:
-                return "CMD_IP_CONFIGURATION_LOST";
-            case CMD_IP_CONFIGURATION_SUCCESSFUL:
-                return "CMD_IP_CONFIGURATION_SUCCESSFUL";
-            case CMD_IP_REACHABILITY_LOST:
-                return "CMD_IP_REACHABILITY_LOST";
-            case CMD_IP_REACHABILITY_FAILURE:
-                return "CMD_IP_REACHABILITY_FAILURE";
-            case CMD_IPCLIENT_STARTUP_TIMEOUT:
-                return "CMD_IPCLIENT_STARTUP_TIMEOUT";
-            case CMD_IPV4_PROVISIONING_FAILURE:
-                return "CMD_IPV4_PROVISIONING_FAILURE";
-            case CMD_IPV4_PROVISIONING_SUCCESS:
-                return "CMD_IPV4_PROVISIONING_SUCCESS";
-            case CMD_NETWORK_STATUS:
-                return "CMD_NETWORK_STATUS";
-            case CMD_ONESHOT_RSSI_POLL:
-                return "CMD_ONESHOT_RSSI_POLL";
-            case CMD_POST_DHCP_ACTION:
-                return "CMD_POST_DHCP_ACTION";
-            case CMD_PRE_DHCP_ACTION:
-                return "CMD_PRE_DHCP_ACTION";
-            case CMD_PRE_DHCP_ACTION_COMPLETE:
-                return "CMD_PRE_DHCP_ACTION_COMPLETE";
-            case CMD_READ_PACKET_FILTER:
-                return "CMD_READ_PACKET_FILTER";
-            case CMD_REASSOCIATE:
-                return "CMD_REASSOCIATE";
-            case CMD_RECONNECT:
-                return "CMD_RECONNECT";
-            case CMD_REMOVE_KEEPALIVE_PACKET_FILTER_FROM_APF:
-                return "CMD_REMOVE_KEEPALIVE_PACKET_FILTER_FROM_APF";
-            case CMD_RESET_SIM_NETWORKS:
-                return "CMD_RESET_SIM_NETWORKS";
-            case CMD_ROAM_WATCHDOG_TIMER:
-                return "CMD_ROAM_WATCHDOG_TIMER";
-            case CMD_RSSI_POLL:
-                return "CMD_RSSI_POLL";
-            case CMD_SAVE_NETWORK:
-                return "CMD_SAVE_NETWORK";
-            case CMD_SCREEN_STATE_CHANGED:
-                return "CMD_SCREEN_STATE_CHANGED";
-            case CMD_SET_FALLBACK_PACKET_FILTERING:
-                return "CMD_SET_FALLBACK_PACKET_FILTERING";
-            case CMD_SET_MAX_DTIM_MULTIPLIER:
-                return "CMD_SET_MAX_DTIM_MULTIPLIER";
-            case CMD_SET_SUSPEND_OPT_ENABLED:
-                return "CMD_SET_SUSPEND_OPT_ENABLED";
-            case CMD_START_CONNECT:
-                return "CMD_START_CONNECT";
-            case CMD_START_FILS_CONNECTION:
-                return "CMD_START_FILS_CONNECTION";
-            case CMD_START_IP_PACKET_OFFLOAD:
-                return "CMD_START_IP_PACKET_OFFLOAD";
-            case CMD_START_ROAM:
-                return "CMD_START_ROAM";
-            case CMD_STOP_IP_PACKET_OFFLOAD:
-                return "CMD_STOP_IP_PACKET_OFFLOAD";
-            case CMD_UNWANTED_NETWORK:
-                return "CMD_UNWANTED_NETWORK";
-            case CMD_UPDATE_LINKPROPERTIES:
-                return "CMD_UPDATE_LINKPROPERTIES";
-            case CMD_IPCLIENT_CREATED:
-                return "CMD_IPCLIENT_CREATED";
-            case CMD_ACCEPT_EAP_SERVER_CERTIFICATE:
-                return "CMD_ACCEPT_EAP_SERVER_CERTIFICATE";
-            case CMD_REJECT_EAP_INSECURE_CONNECTION:
-                return "CMD_REJECT_EAP_SERVER_CERTIFICATE";
-            case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT:
-                return "SUPPLICANT_STATE_CHANGE_EVENT";
-            case WifiMonitor.AUTHENTICATION_FAILURE_EVENT:
-                return "AUTHENTICATION_FAILURE_EVENT";
-            case WifiMonitor.SUP_REQUEST_IDENTITY:
-                return "SUP_REQUEST_IDENTITY";
-            case WifiMonitor.NETWORK_CONNECTION_EVENT:
-                return "NETWORK_CONNECTION_EVENT";
-            case WifiMonitor.NETWORK_DISCONNECTION_EVENT:
-                return "NETWORK_DISCONNECTION_EVENT";
-            case WifiMonitor.ASSOCIATED_BSSID_EVENT:
-                return "ASSOCIATED_BSSID_EVENT";
-            case WifiMonitor.TARGET_BSSID_EVENT:
-                return "TARGET_BSSID_EVENT";
-            case WifiMonitor.ASSOCIATION_REJECTION_EVENT:
-                return "ASSOCIATION_REJECTION_EVENT";
-            case WifiMonitor.ANQP_DONE_EVENT:
-                return "ANQP_DONE_EVENT";
-            case WifiMonitor.RX_HS20_ANQP_ICON_EVENT:
-                return "RX_HS20_ANQP_ICON_EVENT";
-            case WifiMonitor.GAS_QUERY_DONE_EVENT:
-                return "GAS_QUERY_DONE_EVENT";
-            case WifiMonitor.HS20_REMEDIATION_EVENT:
-                return "HS20_REMEDIATION_EVENT";
-            case WifiMonitor.HS20_DEAUTH_IMMINENT_EVENT:
-                return "HS20_DEAUTH_IMMINENT_EVENT";
-            case WifiMonitor.HS20_TERMS_AND_CONDITIONS_ACCEPTANCE_REQUIRED_EVENT:
-                return "HS20_TERMS_AND_CONDITIONS_ACCEPTANCE_REQUIRED_EVENT";
-            case WifiMonitor.GAS_QUERY_START_EVENT:
-                return "GAS_QUERY_START_EVENT";
-            case WifiMonitor.MBO_OCE_BSS_TM_HANDLING_DONE:
-                return "MBO_OCE_BSS_TM_HANDLING_DONE";
-            case WifiMonitor.TRANSITION_DISABLE_INDICATION:
-                return "TRANSITION_DISABLE_INDICATION";
-            case WifiP2pServiceImpl.GROUP_CREATING_TIMED_OUT:
-                return "GROUP_CREATING_TIMED_OUT";
-            case WifiP2pServiceImpl.P2P_CONNECTION_CHANGED:
-                return "P2P_CONNECTION_CHANGED";
-            case WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST:
-                return "DISCONNECT_WIFI_REQUEST";
-            case WifiP2pServiceImpl.DISCONNECT_WIFI_RESPONSE:
-                return "DISCONNECT_WIFI_RESPONSE";
-            case WifiP2pServiceImpl.SET_MIRACAST_MODE:
-                return "SET_MIRACAST_MODE";
-            case WifiP2pServiceImpl.BLOCK_DISCOVERY:
-                return "BLOCK_DISCOVERY";
-            case WifiMonitor.NETWORK_NOT_FOUND_EVENT:
-                return "NETWORK_NOT_FOUND_EVENT";
-            case WifiMonitor.TOFU_CERTIFICATE_EVENT:
-                return "TOFU_CERTIFICATE_EVENT";
-            case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT:
-                return "BSS_FREQUENCY_CHANGED_EVENT";
-            case RunnerState.STATE_ENTER_CMD:
-                return "Enter";
-            case RunnerState.STATE_EXIT_CMD:
-                return "Exit";
-            default:
-                return "what:" + what;
-        }
+        return switch (what) {
+            case CMD_ACCEPT_UNVALIDATED -> "CMD_ACCEPT_UNVALIDATED";
+            case CMD_ADD_KEEPALIVE_PACKET_FILTER_TO_APF ->
+                "CMD_ADD_KEEPALIVE_PACKET_FILTER_TO_APF";
+            case CMD_BLUETOOTH_CONNECTION_STATE_CHANGE -> "CMD_BLUETOOTH_CONNECTION_STATE_CHANGE";
+            case CMD_CONFIG_ND_OFFLOAD -> "CMD_CONFIG_ND_OFFLOAD";
+            case CMD_CONNECTING_WATCHDOG_TIMER -> "CMD_CONNECTING_WATCHDOG_TIMER";
+            case CMD_CONNECT_NETWORK -> "CMD_CONNECT_NETWORK";
+            case CMD_DISCONNECT -> "CMD_DISCONNECT";
+            case CMD_ENABLE_RSSI_POLL -> "CMD_ENABLE_RSSI_POLL";
+            case CMD_INSTALL_PACKET_FILTER -> "CMD_INSTALL_PACKET_FILTER";
+            case CMD_IP_CONFIGURATION_LOST -> "CMD_IP_CONFIGURATION_LOST";
+            case CMD_IP_CONFIGURATION_SUCCESSFUL -> "CMD_IP_CONFIGURATION_SUCCESSFUL";
+            case CMD_IP_REACHABILITY_LOST -> "CMD_IP_REACHABILITY_LOST";
+            case CMD_IP_REACHABILITY_FAILURE -> "CMD_IP_REACHABILITY_FAILURE";
+            case CMD_IPCLIENT_STARTUP_TIMEOUT -> "CMD_IPCLIENT_STARTUP_TIMEOUT";
+            case CMD_IPV4_PROVISIONING_FAILURE -> "CMD_IPV4_PROVISIONING_FAILURE";
+            case CMD_IPV4_PROVISIONING_SUCCESS -> "CMD_IPV4_PROVISIONING_SUCCESS";
+            case CMD_NETWORK_STATUS -> "CMD_NETWORK_STATUS";
+            case CMD_ONESHOT_RSSI_POLL -> "CMD_ONESHOT_RSSI_POLL";
+            case CMD_POST_DHCP_ACTION -> "CMD_POST_DHCP_ACTION";
+            case CMD_PRE_DHCP_ACTION -> "CMD_PRE_DHCP_ACTION";
+            case CMD_PRE_DHCP_ACTION_COMPLETE -> "CMD_PRE_DHCP_ACTION_COMPLETE";
+            case CMD_READ_PACKET_FILTER -> "CMD_READ_PACKET_FILTER";
+            case CMD_REASSOCIATE -> "CMD_REASSOCIATE";
+            case CMD_RECONNECT -> "CMD_RECONNECT";
+            case CMD_REMOVE_KEEPALIVE_PACKET_FILTER_FROM_APF ->
+                "CMD_REMOVE_KEEPALIVE_PACKET_FILTER_FROM_APF";
+            case CMD_RESET_SIM_NETWORKS -> "CMD_RESET_SIM_NETWORKS";
+            case CMD_ROAM_WATCHDOG_TIMER -> "CMD_ROAM_WATCHDOG_TIMER";
+            case CMD_RSSI_POLL -> "CMD_RSSI_POLL";
+            case CMD_SAVE_NETWORK -> "CMD_SAVE_NETWORK";
+            case CMD_SCREEN_STATE_CHANGED -> "CMD_SCREEN_STATE_CHANGED";
+            case CMD_SET_FALLBACK_PACKET_FILTERING -> "CMD_SET_FALLBACK_PACKET_FILTERING";
+            case CMD_SET_MAX_DTIM_MULTIPLIER -> "CMD_SET_MAX_DTIM_MULTIPLIER";
+            case CMD_SET_SUSPEND_OPT_ENABLED -> "CMD_SET_SUSPEND_OPT_ENABLED";
+            case CMD_START_CONNECT -> "CMD_START_CONNECT";
+            case CMD_START_FILS_CONNECTION -> "CMD_START_FILS_CONNECTION";
+            case CMD_START_IP_PACKET_OFFLOAD -> "CMD_START_IP_PACKET_OFFLOAD";
+            case CMD_START_ROAM -> "CMD_START_ROAM";
+            case CMD_STOP_IP_PACKET_OFFLOAD -> "CMD_STOP_IP_PACKET_OFFLOAD";
+            case CMD_UNWANTED_NETWORK -> "CMD_UNWANTED_NETWORK";
+            case CMD_UPDATE_LINKPROPERTIES -> "CMD_UPDATE_LINKPROPERTIES";
+            case CMD_IPCLIENT_CREATED -> "CMD_IPCLIENT_CREATED";
+            case CMD_ACCEPT_EAP_SERVER_CERTIFICATE -> "CMD_ACCEPT_EAP_SERVER_CERTIFICATE";
+            case CMD_REJECT_EAP_INSECURE_CONNECTION -> "CMD_REJECT_EAP_SERVER_CERTIFICATE";
+            case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT -> "SUPPLICANT_STATE_CHANGE_EVENT";
+            case WifiMonitor.AUTHENTICATION_FAILURE_EVENT -> "AUTHENTICATION_FAILURE_EVENT";
+            case WifiMonitor.SUP_REQUEST_IDENTITY -> "SUP_REQUEST_IDENTITY";
+            case WifiMonitor.NETWORK_CONNECTION_EVENT -> "NETWORK_CONNECTION_EVENT";
+            case WifiMonitor.NETWORK_DISCONNECTION_EVENT -> "NETWORK_DISCONNECTION_EVENT";
+            case WifiMonitor.ASSOCIATED_BSSID_EVENT -> "ASSOCIATED_BSSID_EVENT";
+            case WifiMonitor.TARGET_BSSID_EVENT -> "TARGET_BSSID_EVENT";
+            case WifiMonitor.ASSOCIATION_REJECTION_EVENT -> "ASSOCIATION_REJECTION_EVENT";
+            case WifiMonitor.ANQP_DONE_EVENT -> "ANQP_DONE_EVENT";
+            case WifiMonitor.RX_HS20_ANQP_ICON_EVENT -> "RX_HS20_ANQP_ICON_EVENT";
+            case WifiMonitor.GAS_QUERY_DONE_EVENT -> "GAS_QUERY_DONE_EVENT";
+            case WifiMonitor.HS20_REMEDIATION_EVENT -> "HS20_REMEDIATION_EVENT";
+            case WifiMonitor.HS20_DEAUTH_IMMINENT_EVENT -> "HS20_DEAUTH_IMMINENT_EVENT";
+            case WifiMonitor.HS20_TERMS_AND_CONDITIONS_ACCEPTANCE_REQUIRED_EVENT ->
+                "HS20_TERMS_AND_CONDITIONS_ACCEPTANCE_REQUIRED_EVENT";
+            case WifiMonitor.GAS_QUERY_START_EVENT -> "GAS_QUERY_START_EVENT";
+            case WifiMonitor.MBO_OCE_BSS_TM_HANDLING_DONE -> "MBO_OCE_BSS_TM_HANDLING_DONE";
+            case WifiMonitor.TRANSITION_DISABLE_INDICATION -> "TRANSITION_DISABLE_INDICATION";
+            case WifiP2pServiceImpl.GROUP_CREATING_TIMED_OUT -> "GROUP_CREATING_TIMED_OUT";
+            case WifiP2pServiceImpl.P2P_CONNECTION_CHANGED -> "P2P_CONNECTION_CHANGED";
+            case WifiP2pServiceImpl.DISCONNECT_WIFI_REQUEST -> "DISCONNECT_WIFI_REQUEST";
+            case WifiP2pServiceImpl.DISCONNECT_WIFI_RESPONSE -> "DISCONNECT_WIFI_RESPONSE";
+            case WifiP2pServiceImpl.SET_MIRACAST_MODE -> "SET_MIRACAST_MODE";
+            case WifiP2pServiceImpl.BLOCK_DISCOVERY -> "BLOCK_DISCOVERY";
+            case WifiMonitor.NETWORK_NOT_FOUND_EVENT -> "NETWORK_NOT_FOUND_EVENT";
+            case WifiMonitor.TOFU_CERTIFICATE_EVENT -> "TOFU_CERTIFICATE_EVENT";
+            case WifiMonitor.BSS_FREQUENCY_CHANGED_EVENT -> "BSS_FREQUENCY_CHANGED_EVENT";
+            case RunnerState.STATE_ENTER_CMD -> "Enter";
+            case RunnerState.STATE_EXIT_CMD -> "Exit";
+            default -> "what:" + what;
+        };
     }
 
     /** Check whether this connection is the primary connection on the device. */
