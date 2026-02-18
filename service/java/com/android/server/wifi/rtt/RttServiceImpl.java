@@ -17,6 +17,7 @@
 package com.android.server.wifi.rtt;
 
 import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE;
+import static android.net.wifi.WifiInfo.DEFAULT_MAC_ADDRESS;
 import static android.net.wifi.rtt.ResponderConfig.RESPONDER_STA;
 import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_LCI;
 import static android.net.wifi.rtt.WifiRttManager.CHARACTERISTICS_KEY_BOOLEAN_LCR;
@@ -42,6 +43,7 @@ import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.MacAddress;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
@@ -84,7 +86,10 @@ import com.android.modules.utils.BasicShellCommandHandler;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.ActiveModeWarden;
 import com.android.server.wifi.BuildProperties;
+import com.android.server.wifi.ClientModeImplListener;
+import com.android.server.wifi.ClientModeImplMonitor;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.ConcreteClientModeManager;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.SsidTranslator;
@@ -145,6 +150,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private ActiveModeWarden mActiveModeWarden;
     private String mSupplicantWifiRttControllerInterfaceName = null;
     private int mCurrentWifiState = WifiManager.WIFI_STATE_UNKNOWN;
+    private ClientModeImplMonitor mClientModeImplMonitor;
+    private String mProximityRangingIfaceName = null;
     @VisibleForTesting
     SupplicantWifiRttController mSupplicantWifiRttController;
     private SupplicantWifiRttController.ProximityRangingCapabilities mProximityRangingCapabilities;
@@ -168,8 +175,56 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     String mProximityRangingDeviceName = null;
     @VisibleForTesting
     MacAddress mProximityRangingRandomizedMacAddress = null;
+    @VisibleForTesting
+    MacAddress mConnectedIfaceMacAddress = null;
     private final RemoteCallbackList<IProximityDetectionMacAddressCallback>
             mProximityDetectionMacAddressCallbacks = new RemoteCallbackList<>();
+
+    @VisibleForTesting
+    class ClientModeImplListenerInternal implements ClientModeImplListener {
+        @Override
+        public void onL2Connected(@NonNull ConcreteClientModeManager clientModeManager) {
+            if (mVerboseLoggingEnabled) {
+                Log.d(TAG, "onL2Connected: clientModeManager=" + clientModeManager);
+            }
+            if (mProximityRangingCapabilities == null
+                    || mProximityRangingCapabilities.isConnectedMacRandomizationSupported) {
+                return;
+            }
+            if (clientModeManager.getInterfaceName() != null
+                    && clientModeManager.getInterfaceName().equals(mProximityRangingIfaceName)) {
+                WifiInfo wifiInfo = clientModeManager.getConnectionInfo();
+                final String wifiInfoMac = wifiInfo.getMacAddress();
+                if (!TextUtils.isEmpty(wifiInfoMac)
+                        && !TextUtils.equals(wifiInfoMac, DEFAULT_MAC_ADDRESS)) {
+                    mConnectedIfaceMacAddress =  MacAddress.fromString(wifiInfoMac);
+                    // Don't set the MAC Address when there is an ongoing continuous ranging
+                    // session. Let the HAL handle it(Abort or continue using the same MAC).
+                    if (mRttServiceSynchronized.mContinuousRangingSessions.isEmpty()) {
+                        updateProximityRangingMacAddressAndNotify();
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void onConnectionEnd(@NonNull ConcreteClientModeManager clientModeManager) {
+            if (mVerboseLoggingEnabled) {
+                Log.d(TAG, "onConnectionEnd: clientModeManager=" + clientModeManager);
+            }
+            if (mProximityRangingCapabilities == null
+                    || mProximityRangingCapabilities.isConnectedMacRandomizationSupported) {
+                return;
+            }
+            // TODO In the case where the interface is teared down, it's possible that the
+            //  interface name is already be null by the time this onConnectionEnd happens.
+            //  Add additional check like primary role to handle this case.
+            if (clientModeManager.getInterfaceName() != null
+                    && clientModeManager.getInterfaceName().equals(mProximityRangingIfaceName)) {
+                mConnectedIfaceMacAddress = null;
+            }
+        }
+    }
 
     /**
      * Callback for handling ranging results and status updates from the supplicant HAL.
@@ -406,7 +461,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             RttMetrics rttMetrics, WifiPermissionsUtil wifiPermissionsUtil,
             WifiSettingsConfigStore settingsConfigStore, HalDeviceManager halDeviceManager,
             WifiConfigManager wifiConfigManager, SsidTranslator ssidTranslator,
-            WifiNative wifiNative, ActiveModeWarden activeModeWarden) {
+            WifiNative wifiNative, ActiveModeWarden activeModeWarden,
+            ClientModeImplMonitor clientModeImplMonitor) {
         mClock = clock;
         mAwareManager = awareManager;
         mHalDeviceManager = halDeviceManager;
@@ -419,9 +475,13 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         mWifiSsidTranslator = ssidTranslator;
         mWifiNative = wifiNative;
         mActiveModeWarden = activeModeWarden;
-        if (Flags.proximityRanging() && Environment.isSdkNewerThanB()) {
+        mClientModeImplMonitor = clientModeImplMonitor;
+        if (isProximityRangingFeatureSupported()) {
             setProximityRangingDeviceName(generateProximityRangingRandomizedDeviceName());
             mProximityRangingRandomizedMacAddress = generateProximityRangingRandomizedMacAddress();
+            if (mClientModeImplMonitor != null) {
+                mClientModeImplMonitor.registerListener(new ClientModeImplListenerInternal());
+            }
         }
 
         mRttServiceSynchronized.mHandler.post(() -> {
@@ -509,6 +569,11 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         return Environment.isSdkNewerThanB() && Flags.proximityRanging();
     }
 
+    private boolean isSupplicantHalProximityRangingFeatureSupported() {
+        return mWifiNative.isSupplicantAidlServiceVersionAtLeast(5)
+                || mWifiNative.isUsingAidlMainlineSupplicantService();
+    }
+
     /**
      * Set the current Wi-Fi state.
      * @param newState The new Wi-Fi state.
@@ -523,7 +588,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         }
 
         if (!(isProximityRangingFeatureSupported()
-                && mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))) {
+                && isSupplicantHalProximityRangingFeatureSupported())) {
             return;
         }
         if (newState != WifiManager.WIFI_STATE_ENABLED
@@ -533,10 +598,13 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         boolean isEnabled = newState == WifiManager.WIFI_STATE_ENABLED;
         if (isEnabled) {
             Log.i(TAG, "Wi-Fi Turned ON - Try to create SupplicantWifiRttController");
+            if (mProximityRangingIfaceName != null) {
+                Log.e(TAG, "Wi-Fi Turned ON - Already have interface name set for PD!!!");
+            }
+            mProximityRangingIfaceName =
+                    mActiveModeWarden.getPrimaryClientModeManager().getInterfaceName();
             mSupplicantWifiRttController = mWifiNative
-                    .createSupplicantWifiRttController(
-                            mActiveModeWarden
-                                    .getPrimaryClientModeManager().getInterfaceName());
+                    .createSupplicantWifiRttController(mProximityRangingIfaceName);
             if (mSupplicantWifiRttController != null) {
                 Log.i(TAG, "Successfully created SupplicantWifiRttController");
                 mSupplicantWifiRttController.registerRttEventCallback(
@@ -554,6 +622,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 mRttServiceSynchronized.cleanUpContinuousRangingSessions(0, null,
                         ContinuousRangingResultCallback.TERMINATE_REASON_UNKNOWN);
                 mSupplicantWifiRttController = null;
+                mProximityRangingIfaceName = null;
             }
         }
         mCurrentWifiState = newState;
@@ -884,18 +953,18 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             Log.e(TAG, "Failed to get supplicant RTT controller interface name");
             return false;
         }
-        // Set the device name
-        mSupplicantWifiRttController.setProximityRangingDeviceName(mProximityRangingDeviceName);
-        // Set the device randomized MAC address
-        if (!setProximityRangingRandomizedMacAddressToHalAndNotifyApps()) {
-            Log.e(TAG, "Failed to set randomized MAC address");
-            return false;
-        }
         // Cache the capabilities
         mProximityRangingCapabilities = mSupplicantWifiRttController
                 .getProximityRangingCapabilities();
         if (mProximityRangingCapabilities == null) {
             Log.e(TAG, "Failed to get proximity ranging capabilities");
+            return false;
+        }
+        // Set the device name
+        mSupplicantWifiRttController.setProximityRangingDeviceName(mProximityRangingDeviceName);
+        // Set the device randomized MAC address
+        if (!updateProximityRangingMacAddressAndNotify()) {
+            Log.e(TAG, "Failed to set randomized MAC address");
             return false;
         }
         Log.d(TAG, "initializeSupplicantWifiRttController success");
@@ -1269,16 +1338,32 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     /**
      * Sets the Proximity Ranging MAC Address.
      */
-    private boolean setProximityRangingRandomizedMacAddressToHalAndNotifyApps() {
+    private boolean updateProximityRangingMacAddressAndNotify() {
         if (VDBG) {
-            Log.v(TAG, "setProximityRangingRandomizedMacAddressToHalAndNotifyApps");
+            Log.v(TAG, "updateProximityRangingMacAddressAndNotify");
         }
         if (mSupplicantWifiRttController == null) {
-            Log.e(TAG, "setProximityRangingRandomizedMacAddressToHalAndNotifyApps failed:"
+            Log.e(TAG, "updateProximityRangingMacAddressAndNotify failed:"
                     + " SupplicantWifiRttController is null");
             return false;
         }
-        MacAddress macAddress = generateProximityRangingRandomizedMacAddress();
+        if (mProximityRangingCapabilities == null) {
+            Log.e(TAG, "Failed to get proximity ranging capabilities");
+            return false;
+        }
+        boolean useConnectedMac =
+                !mProximityRangingCapabilities.isConnectedMacRandomizationSupported
+                        && mConnectedIfaceMacAddress != null;
+        if (useConnectedMac
+                && mConnectedIfaceMacAddress.equals(mProximityRangingRandomizedMacAddress)) {
+            return true;
+        }
+        MacAddress macAddress;
+        if (useConnectedMac) {
+            macAddress = mConnectedIfaceMacAddress;
+        } else {
+            macAddress = generateProximityRangingRandomizedMacAddress();
+        }
         mSupplicantWifiRttController.setProximityRangingMacAddress(macAddress.toByteArray());
         byte[] retrievedMacAddressBytes = mSupplicantWifiRttController
                 .getProximityRangingMacAddress();
@@ -2204,6 +2289,14 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 session.mBinder.unlinkToDeath(session.mDr, 0);
             } catch (NoSuchElementException e) {
                 Log.e(TAG, "removeContinuousRangingSession: unlinkToDeath failed -- " + e);
+            }
+            if (mContinuousRangingSessions.isEmpty()) {
+                updateProximityRangingMacAddressAndNotify();
+                setProximityRangingDeviceName(generateProximityRangingRandomizedDeviceName());
+                if (mSupplicantWifiRttController != null) {
+                    mSupplicantWifiRttController.setProximityRangingDeviceName(
+                            mProximityRangingDeviceName);
+                }
             }
         }
 
