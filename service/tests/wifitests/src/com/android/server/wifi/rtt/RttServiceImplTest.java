@@ -67,6 +67,7 @@ import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.MacAddress;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.aware.IWifiAwareMacAddressProvider;
@@ -95,6 +96,7 @@ import android.os.UserHandle;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.Pair;
 
 import androidx.test.filters.SmallTest;
@@ -102,8 +104,10 @@ import androidx.test.filters.SmallTest;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.ActiveModeWarden;
+import com.android.server.wifi.ClientModeImplMonitor;
 import com.android.server.wifi.ClientModeManager;
 import com.android.server.wifi.Clock;
+import com.android.server.wifi.ConcreteClientModeManager;
 import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.MockResources;
@@ -147,6 +151,9 @@ public class RttServiceImplTest extends WifiBaseTest {
     private static final int BACKGROUND_PROCESS_EXEC_GAP_MS = 10 * 60 * 1000;  // 10 minutes.
     private static final int MEASUREMENT_DURATION = 1000;
     private static final String TEST_ANDROID_ID = "314Deadbeef";
+    private static final String TEST_PD_INTERFACE_NAME = "wlan0";
+    private static final MacAddress TEST_STA_MAC_ADDRESS =
+            MacAddress.fromString("2a:ab:88:48:00:1A");
 
     private RttServiceImplSpy mDut;
     private TestLooper mMockLooper;
@@ -228,6 +235,16 @@ public class RttServiceImplTest extends WifiBaseTest {
     SupplicantWifiRttController mMockSupplicantRttController;
     private SupplicantWifiRttController.ProximityRangingCapabilities mProximityRangingCapabilities;
     private byte[] mMockHalMacAddress;
+    @Mock
+    IContinuousRangingResultCallback mMockContinuousRangingResultCallback;
+    @Mock
+    ClientModeManager mMockClientModeManager;
+    @Mock
+    WifiInfo mMockWifiInfo;
+    @Mock
+    ConcreteClientModeManager mMockConcreteClientModeManager;
+    @Mock
+    ClientModeImplMonitor mMockClientModeImplMonitor;
 
     /**
      * Using instead of spy to avoid native crash failures - possibly due to
@@ -257,6 +274,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         android.hardware.wifi.supplicant.ProximityRangingDeviceInfo prHalCapabilities =
                 new android.hardware.wifi.supplicant.ProximityRangingDeviceInfo();
         prHalCapabilities.maxNumContinuousRangingSeekerSessions = 1;
+        prHalCapabilities.isConnectedMacRandomizationSupported = false;
         prHalCapabilities.protocolInfo =
                 new android.hardware.wifi.supplicant.ProximityRangingProtocolInfo();
         prHalCapabilities.protocolInfo.deviceName = mDut.mProximityRangingDeviceName;
@@ -335,7 +353,8 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         mDut.start(mMockLooper.getLooper(), mockClock, mockAwareManager, mockMetrics,
                 mockPermissionUtil, mWifiSettingsConfigStore, mockHalDeviceManager,
-                mWifiConfigManager, mSsidTranslator, mWifiNative, mActiveModeWarden);
+                mWifiConfigManager, mSsidTranslator, mWifiNative, mActiveModeWarden,
+                mMockClientModeImplMonitor);
         mMockLooper.dispatchAll();
         ArgumentCaptor<BroadcastReceiver> bcastRxCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
@@ -365,6 +384,15 @@ public class RttServiceImplTest extends WifiBaseTest {
         when(mockRttControllerHal.getRttCapabilities()).thenReturn(cap);
         mDut.getRttCharacteristics();
         verify(mockRttControllerHal).getRttCapabilities();
+        if (Environment.isSdkNewerThanB()) {
+            verify(mMockClientModeImplMonitor).registerListener(any());
+            assertNotNull(mDut.mProximityRangingRandomizedMacAddress);
+            assertNotNull(mDut.mProximityRangingDeviceName);
+        } else {
+            verify(mMockClientModeImplMonitor, never()).registerListener(any());
+            assertNull(mDut.mProximityRangingRandomizedMacAddress);
+            assertNull(mDut.mProximityRangingDeviceName);
+        }
     }
 
     @After
@@ -385,7 +413,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         when(Flags.monitorIntentForAllUsers()).thenReturn(true);
         mDut.start(mMockLooper.getLooper(), mockClock, mockAwareManager, mockMetrics,
                 mockPermissionUtil, mWifiSettingsConfigStore, mockHalDeviceManager,
-                mWifiConfigManager, mSsidTranslator, mWifiNative, mActiveModeWarden);
+                mWifiConfigManager, mSsidTranslator, mWifiNative, mActiveModeWarden,
+                mMockClientModeImplMonitor);
         mMockLooper.dispatchAll();
         verify(mockContext).registerReceiverForAllUsers(any(BroadcastReceiver.class),
                 argThat(filter -> filter.hasAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)),
@@ -2225,7 +2254,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         assumeFalse(Environment.isSdkNewerThanB());
         ClientModeManager clientModeManager = mock(ClientModeManager.class);
         when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(clientModeManager);
-        when(clientModeManager.getInterfaceName()).thenReturn("wlan0");
+        when(clientModeManager.getInterfaceName()).thenReturn(TEST_PD_INTERFACE_NAME);
 
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5)).thenReturn(true);
 
@@ -2238,13 +2267,16 @@ public class RttServiceImplTest extends WifiBaseTest {
     private void setupRttServiceForProximityRanging() throws Exception {
         assumeTrue(Environment.isSdkNewerThanB());
         mDut.mSupplicantWifiRttController = mMockSupplicantRttController;
-        ClientModeManager clientModeManager = mock(ClientModeManager.class);
-        when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(clientModeManager);
-        when(clientModeManager.getInterfaceName()).thenReturn("wlan0");
+        when(mActiveModeWarden.getPrimaryClientModeManager()).thenReturn(mMockClientModeManager);
+        when(mMockClientModeManager.getInterfaceName()).thenReturn(TEST_PD_INTERFACE_NAME);
+        when(mMockConcreteClientModeManager.getInterfaceName()).thenReturn(TEST_PD_INTERFACE_NAME);
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
                 .thenReturn(true);
-        when(mWifiNative.createSupplicantWifiRttController("wlan0"))
+        when(mWifiNative.createSupplicantWifiRttController(TEST_PD_INTERFACE_NAME))
                 .thenReturn(mMockSupplicantRttController);
+
+        when(mMockConcreteClientModeManager.getConnectionInfo()).thenReturn(mMockWifiInfo);
+        when(mMockWifiInfo.getMacAddress()).thenReturn(TEST_STA_MAC_ADDRESS.toString());
 
         // Mock HAL MAC address interaction
         doAnswer(new MockAnswerUtil.AnswerWithArguments() {
@@ -2262,13 +2294,17 @@ public class RttServiceImplTest extends WifiBaseTest {
 
         doNothing().when(mMockSupplicantRttController).setProximityRangingDeviceName(anyString());
 
-        when(mMockSupplicantRttController.getName()).thenReturn("wlan0");
+        when(mMockSupplicantRttController.getName()).thenReturn(TEST_PD_INTERFACE_NAME);
         mProximityRangingCapabilities = getMockPdCapabilities();
         when(mMockSupplicantRttController.getProximityRangingCapabilities()).thenReturn(
                 mProximityRangingCapabilities);
 
         // Simulate Wi-Fi enabled state to trigger RTT controller initialization
         mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+        verify(mMockSupplicantRttController).setProximityRangingDeviceName(
+                eq(mDut.mProximityRangingDeviceName));
+        verify(mMockSupplicantRttController).setProximityRangingMacAddress(
+                eq(mDut.mProximityRangingRandomizedMacAddress.toByteArray()));
     }
 
     @Test
@@ -2288,7 +2324,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         mDut.mSupplicantWifiRttController = mMockSupplicantRttController;
         assertFalse(mDut.initializeSupplicantWifiRttController());
 
-        when(mMockSupplicantRttController.getName()).thenReturn("wlan0");
+        when(mMockSupplicantRttController.getName()).thenReturn(TEST_PD_INTERFACE_NAME);
         when(mMockSupplicantRttController.getProximityRangingCapabilities()).thenReturn(null);
         mDut.mSupplicantWifiRttController = mMockSupplicantRttController;
         assertFalse(mDut.initializeSupplicantWifiRttController());
@@ -2299,7 +2335,7 @@ public class RttServiceImplTest extends WifiBaseTest {
         setupRttServiceForProximityRanging();
 
         assertNotNull(mDut.mSupplicantWifiRttController);
-        verify(mWifiNative).createSupplicantWifiRttController(eq("wlan0"));
+        verify(mWifiNative).createSupplicantWifiRttController(eq(TEST_PD_INTERFACE_NAME));
         verify(mMockSupplicantRttController).registerRttEventCallback(
                 mDut.mSupplicantRttEventCallback);
         // We already have a test for initializeSupplicantWifiRttController, so no explicit verify
@@ -2343,12 +2379,12 @@ public class RttServiceImplTest extends WifiBaseTest {
         // Scenario 4: Wi-Fi ENABLED - createSupplicantWifiRttController returns null
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
                 .thenReturn(true);
-        when(mWifiNative.createSupplicantWifiRttController("wlan0"))
+        when(mWifiNative.createSupplicantWifiRttController(TEST_PD_INTERFACE_NAME))
                 .thenReturn(null);
 
         mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
         assertNull(mDut.mSupplicantWifiRttController);
-        verify(mWifiNative).createSupplicantWifiRttController(eq("wlan0"));
+        verify(mWifiNative).createSupplicantWifiRttController(eq(TEST_PD_INTERFACE_NAME));
         verify(mMockSupplicantRttController, never()).registerRttEventCallback(any());
 
         // Reset mocks
@@ -2359,25 +2395,19 @@ public class RttServiceImplTest extends WifiBaseTest {
         // Scenario 5: Wi-Fi ENABLED - initializeSupplicantWifiRttController returns false
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
                 .thenReturn(true);
-        when(mWifiNative.createSupplicantWifiRttController("wlan0"))
+        when(mWifiNative.createSupplicantWifiRttController(TEST_PD_INTERFACE_NAME))
                 .thenReturn(mMockSupplicantRttController);
-        when(mMockSupplicantRttController.getName()).thenReturn("wlan0");
+        when(mMockSupplicantRttController.getName()).thenReturn(TEST_PD_INTERFACE_NAME);
         when(mMockSupplicantRttController.getProximityRangingCapabilities()).thenReturn(null);
         // mDut.initializeSupplicantWifiRttController() will return false due to null capabilities
 
         mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
         assertNull(mDut.mSupplicantWifiRttController);
-        verify(mWifiNative).createSupplicantWifiRttController(eq("wlan0"));
+        verify(mWifiNative).createSupplicantWifiRttController(eq(TEST_PD_INTERFACE_NAME));
         verify(mMockSupplicantRttController).registerRttEventCallback(
                 mDut.mSupplicantRttEventCallback);
 
         // Scenario 6: Wi-Fi DISABLED
-        // First, setup mSupplicantWifiRttController
-        // initializeSupplicantWifiRttController will be called internally by
-        // setupRttServiceForProximityRanging
-        setupRttServiceForProximityRanging();
-        assertNotNull(mDut.mSupplicantWifiRttController);
-
         mDut.setWifiState(WifiManager.WIFI_STATE_DISABLED);
         assertNull(mDut.mSupplicantWifiRttController);
     }
@@ -2643,5 +2673,151 @@ public class RttServiceImplTest extends WifiBaseTest {
         assertEquals(capabilities.isAuthenticatedPasnModeSupported,
                 characteristics.getBoolean(ProximityDetectionCharacteristics
                         .KEY_BOOLEAN_AUTHENTICATED_PASN));
+    }
+
+    @Test
+    public void testProximityRangingMacAddress_withOutRandomizationSupport_OnL2ConnectionEvents()
+            throws Exception {
+        // Setup
+        setupRttServiceForProximityRanging();
+
+        // Trigger L2 connected event
+        mDut.new ClientModeImplListenerInternal().onL2Connected(mMockConcreteClientModeManager);
+
+        // Connected MAC randomization is disabled by default from getMockPdCapabilities()
+        // Expect to use STA MAC address for ranging
+        verify(mMockSupplicantRttController).setProximityRangingMacAddress(
+                eq(TEST_STA_MAC_ADDRESS.toByteArray()));
+        assertEquals(TEST_STA_MAC_ADDRESS, mDut.mConnectedIfaceMacAddress);
+        assertEquals(TEST_STA_MAC_ADDRESS, mDut.mProximityRangingRandomizedMacAddress);
+
+        // Trigger connection end
+        mDut.new ClientModeImplListenerInternal().onConnectionEnd(mMockConcreteClientModeManager);
+
+        assertNull(mDut.mConnectedIfaceMacAddress);
+    }
+
+    @Test
+    public void testProximityRangingMacAddress_withRandomizationSupport()
+            throws Exception {
+        setupRttServiceForProximityRanging();
+        mProximityRangingCapabilities.isConnectedMacRandomizationSupported = true;
+
+        // Trigger L2 connected event
+        mDut.new ClientModeImplListenerInternal().onL2Connected(mMockConcreteClientModeManager);
+
+        // Expect not to use STA MAC address for ranging
+        verify(mMockSupplicantRttController, times(1)).setProximityRangingMacAddress(any());
+        assertNull(mDut.mConnectedIfaceMacAddress);
+        assertNotEquals(TEST_STA_MAC_ADDRESS, mDut.mProximityRangingRandomizedMacAddress);
+
+        // Trigger connection end
+        mDut.new ClientModeImplListenerInternal().onConnectionEnd(mMockConcreteClientModeManager);
+
+        assertNull(mDut.mConnectedIfaceMacAddress);
+    }
+
+    @Test
+    public void testProximityRangingMacAddress_onL2ConnectionEvents_NonMatchingIface()
+            throws Exception {
+        setupRttServiceForProximityRanging();
+        ConcreteClientModeManager nonMatchingCmm = mock(ConcreteClientModeManager.class);
+        when(nonMatchingCmm.getInterfaceName()).thenReturn("otherIface");
+
+        // Trigger L2 connected event for other interface
+        mDut.new ClientModeImplListenerInternal().onL2Connected(nonMatchingCmm);
+
+        // Verify nothing changed
+        assertNull(mDut.mConnectedIfaceMacAddress);
+        verify(nonMatchingCmm, never()).getConnectionInfo();
+
+        // Trigger connection end for other interface
+        mDut.mConnectedIfaceMacAddress = TEST_STA_MAC_ADDRESS;
+        mDut.new ClientModeImplListenerInternal().onConnectionEnd(nonMatchingCmm);
+
+        // Verify it wasn't cleared
+        assertEquals(TEST_STA_MAC_ADDRESS, mDut.mConnectedIfaceMacAddress);
+    }
+
+    @Test
+    public void testProximityRangingMacAddress_onL2Connected_OngoingRanging()
+            throws Exception {
+        setupRttServiceForProximityRanging();
+        IContinuousRangingResultCallback callback = mock(IContinuousRangingResultCallback.class);
+        IBinder binder = mock(IBinder.class);
+        when(callback.asBinder()).thenReturn(binder);
+        when(mMockSupplicantRttController.rangeRequest(anyInt(), any(RangingRequest.class)))
+                .thenReturn(true);
+
+        // Start ranging
+        RangingRequest request = RttTestUtils.getDummyContinuousRangingRequest();
+        mDut.startContinuousRanging(binder, mPackageName, mFeatureId, mDefaultWs, request,
+                callback);
+        mMockLooper.dispatchAll();
+
+        // Capture MAC address updates before connection
+        verify(mMockSupplicantRttController, times(1)).setProximityRangingMacAddress(any());
+
+        // Trigger L2 connected event
+        mDut.new ClientModeImplListenerInternal().onL2Connected(mMockConcreteClientModeManager);
+
+        // Verify mConnectedIfaceMacAddress is updated but setProximityRangingMacAddress NOT called
+        assertEquals(TEST_STA_MAC_ADDRESS, mDut.mConnectedIfaceMacAddress);
+        verify(mMockSupplicantRttController, times(1)).setProximityRangingMacAddress(any());
+    }
+
+    @Test
+    public void testProximityRangingMacAddress_onL2Connected_InvalidMac()
+            throws Exception {
+        setupRttServiceForProximityRanging();
+
+        // Scenario 1: Default MAC address
+        when(mMockWifiInfo.getMacAddress()).thenReturn(WifiInfo.DEFAULT_MAC_ADDRESS);
+        mDut.new ClientModeImplListenerInternal().onL2Connected(mMockConcreteClientModeManager);
+        assertNull(mDut.mConnectedIfaceMacAddress);
+
+        // Scenario 2: Empty MAC address
+        when(mMockWifiInfo.getMacAddress()).thenReturn("");
+        mDut.new ClientModeImplListenerInternal().onL2Connected(mMockConcreteClientModeManager);
+        assertNull(mDut.mConnectedIfaceMacAddress);
+
+        // Scenario 3: Null MAC address
+        when(mMockWifiInfo.getMacAddress()).thenReturn(null);
+        mDut.new ClientModeImplListenerInternal().onL2Connected(mMockConcreteClientModeManager);
+        assertNull(mDut.mConnectedIfaceMacAddress);
+    }
+
+    @Test
+    public void testIdentifierRandomizationOnSessionEnd() throws Exception {
+        setupRttServiceForProximityRanging();
+        IContinuousRangingResultCallback callback = mock(IContinuousRangingResultCallback.class);
+        IBinder binder = mock(IBinder.class);
+        when(callback.asBinder()).thenReturn(binder);
+        when(mMockSupplicantRttController.rangeRequest(anyInt(), any(RangingRequest.class)))
+                .thenReturn(true);
+
+        final String initialDeviceName = mDut.mProximityRangingDeviceName;
+        final MacAddress initialMacAddress = mDut.mProximityRangingRandomizedMacAddress;
+        assertFalse(TextUtils.isEmpty(initialDeviceName));
+        assertNotNull(initialMacAddress);
+
+        // Trigger
+        RangingRequest request = RttTestUtils.getDummyContinuousRangingRequest();
+        mDut.startContinuousRanging(binder, mPackageName, mFeatureId, mDefaultWs, request,
+                callback);
+        mMockLooper.dispatchAll();
+
+        // Stop the ranging
+        mDut.stopContinuousRanging(mDefaultWs);
+        mMockLooper.dispatchAll();
+
+        // Verify
+        assertFalse(TextUtils.isEmpty(mDut.mProximityRangingDeviceName));
+        assertNotEquals(initialDeviceName, mDut.mProximityRangingDeviceName);
+        assertNotEquals(initialMacAddress, mDut.mProximityRangingRandomizedMacAddress);
+        verify(mMockSupplicantRttController).setProximityRangingDeviceName(
+                eq(mDut.mProximityRangingDeviceName));
+        verify(mMockSupplicantRttController).setProximityRangingMacAddress(
+                eq(mDut.mProximityRangingRandomizedMacAddress.toByteArray()));
     }
 }

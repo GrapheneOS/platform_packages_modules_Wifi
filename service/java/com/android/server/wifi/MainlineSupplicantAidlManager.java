@@ -20,7 +20,6 @@ import android.annotation.NonNull;
 import android.content.pm.PackageManager;
 import android.hardware.wifi.supplicant.ISupplicant;
 import android.net.wifi.WifiContext;
-import android.net.wifi.util.BuildProperties;
 import android.net.wifi.util.Environment;
 import android.os.IBinder;
 import android.os.IBinder.DeathRecipient;
@@ -239,7 +238,10 @@ public class MainlineSupplicantAidlManager {
         }
     }
 
-    protected boolean isServiceAvailableMockable(WifiContext context) {
+    /**
+     * Check if the mainline supplicant daemon is available.
+     */
+    public boolean isServiceAvailableMockable(WifiContext context) {
         return isServiceAvailable(context);
     }
 
@@ -262,12 +264,20 @@ public class MainlineSupplicantAidlManager {
         // Requires an Android 17+ Selinux policy, a copy of the binary, and device support.
         boolean isEnabledInOverlay = context.getResourceCache().getBoolean(
                 com.android.wifi.resources.R.bool.config_wifiMainlineSupplicantEnabled);
-        // TODO (b/421247744): Remove the user build check once ready to deploy to user devices.
-        BuildProperties buildProperties = BuildProperties.getInstance();
-        // TODO (b/421247744): Change the SDK check so that this only runs on Android 17+.
-        return isEnabledInOverlay && Environment.isSdkAtLeastB() && Flags.mainlineSupplicant()
+        // TODO (b/477990462): Remove the PC exception after PC moves to Android 17.
+        return isEnabledInOverlay && (Environment.isSdkAtLeastC()
+                || hasPcFeature(context))
+                && Flags.mainlineSupplicant()
                 && Environment.isMainlineSupplicantBinaryInWifiApex()
-                && !isUnsupportedDevice(context) && !buildProperties.isUserBuild();
+                && !isUnsupportedDevice(context);
+    }
+
+    /**
+     * Check if device is PC
+     */
+    public static boolean hasPcFeature(WifiContext context) {
+        PackageManager packageManager = context.getPackageManager();
+        return packageManager.hasSystemFeature(PackageManager.FEATURE_PC);
     }
 
     private static boolean isUnsupportedDevice(WifiContext context) {

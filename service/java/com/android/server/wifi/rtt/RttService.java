@@ -66,7 +66,8 @@ public class RttService extends SystemService {
                     wifiInjector.getHalDeviceManager(), wifiInjector.getWifiConfigManager(),
                     wifiInjector.getSsidTranslator(),
                     wifiInjector.getWifiNative(),
-                    wifiInjector.getActiveModeWarden());
+                    wifiInjector.getActiveModeWarden(),
+                    wifiInjector.getClientModeImplMonitor());
         } else if (phase == SystemService.PHASE_BOOT_COMPLETED) {
             mImpl.handleBootCompleted();
         }
