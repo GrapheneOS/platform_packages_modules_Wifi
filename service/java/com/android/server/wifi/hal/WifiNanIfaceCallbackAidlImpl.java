@@ -717,7 +717,7 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
                 event.bootstrappingInstanceId,
                 convertAidlBootstrappingResponseCodeToFramework(event.responseCode),
                 WifiNanIface.NanStatusCode.fromAidl(event.reasonCode.status), event.comeBackDelay,
-                event.cookie);
+                event.cookie, null);
     }
 
     private int convertAidlBootstrappingResponseCodeToFramework(int aidlCode) {

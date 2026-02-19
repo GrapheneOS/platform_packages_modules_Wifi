@@ -5143,7 +5143,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(subscribeId), eq(false), eq(ssi));
         mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId);
         mDut.onBootstrappingConfirmNotification(bootstrappingId,
-                WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT, NanStatusCode.SUCCESS, 0, null);
+                WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT, NanStatusCode.SUCCESS, 0,
+                null, peerMac);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
                 peerIdCaptor.getValue(), true, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,
@@ -5467,7 +5468,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // (4) Receive comeback respond, will send the request again with delay
         mDut.onBootstrappingConfirmNotification(bootstrappingId,
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK, NanStatusCode.SUCCESS, 1000,
-                null);
+                null, peerMac);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback, never()).onBootstrappingVerificationConfirmed(
                 anyInt(), anyBoolean(), anyInt(), any());
@@ -5483,7 +5484,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // app
         mDut.onBootstrappingConfirmNotification(bootstrappingId + 1,
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK, NanStatusCode.SUCCESS, 1000,
-                null);
+                null, peerMac);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
                 peerIdCaptor.getValue(), false, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,
@@ -6723,7 +6724,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(subscribeId), eq(false), eq(ssi));
         mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId);
         mDut.onBootstrappingConfirmNotification(bootstrappingId,
-                WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT, NanStatusCode.SUCCESS, 0, null);
+                WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT, NanStatusCode.SUCCESS, 0,
+                null, peerMac);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
                 peerIdCaptor.getValue(), true, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,

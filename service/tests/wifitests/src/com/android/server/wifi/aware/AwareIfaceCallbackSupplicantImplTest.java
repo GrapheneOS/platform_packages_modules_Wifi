@@ -718,6 +718,7 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         event.failureReasonCode = failureReasonCode;
         event.comeBackDelaySec = comeBackDelaySec;
         event.cookie = cookie;
+        event.peerDiscMacAddr = MAC_ADDRESS;
 
         mDut.eventBootstrappingConfirm(event);
 
@@ -726,7 +727,8 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT,
                 WifiNanIface.NanStatusCode.SUCCESS,
                 comeBackDelaySec,
-                cookie);
+                cookie,
+                MAC_ADDRESS);
     }
 
     @Test
@@ -745,6 +747,7 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         event.failureReasonCode = failureReasonCode;
         event.comeBackDelaySec = comeBackDelaySec;
         event.cookie = cookie;
+        event.peerDiscMacAddr = MAC_ADDRESS;
 
         mDut.eventBootstrappingConfirm(event);
 
@@ -753,7 +756,8 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_REJECT,
                 WifiNanIface.NanStatusCode.SUCCESS,
                 comeBackDelaySec,
-                cookie);
+                cookie,
+                MAC_ADDRESS);
     }
 
     @Test
@@ -772,6 +776,7 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         event.failureReasonCode = failureReasonCode;
         event.comeBackDelaySec = comeBackDelaySec;
         event.cookie = cookie;
+        event.peerDiscMacAddr = MAC_ADDRESS;
 
         mDut.eventBootstrappingConfirm(event);
 
@@ -780,7 +785,8 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK,
                 WifiNanIface.NanStatusCode.SUCCESS,
                 comeBackDelaySec,
-                cookie);
+                cookie,
+                MAC_ADDRESS);
     }
 
     @Test

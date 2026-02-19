@@ -2316,7 +2316,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      * Place a callback request on the state machine queue: bootstrapping confirm received.
      */
     public void onBootstrappingConfirmNotification(int bootstrappingId, int responseCode,
-            int reason, int comebackDelay, byte[] cookie) {
+            int reason, int comebackDelay, byte[] cookie, byte[] peerDiscMacAddr) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_NOTIFICATION);
         msg.arg1 = NOTIFICATION_TYPE_ON_BOOTSTRAPPING_CONFIRM;
         msg.arg2 = reason;
@@ -2324,6 +2324,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_RESPONSE_CODE, responseCode);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_COME_BACK_DELAY, comebackDelay);
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_COME_BACK_COOKIE, cookie);
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS, peerDiscMacAddr);
         mSm.sendMessage(msg);
     }
 
@@ -2597,7 +2598,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     case MESSAGE_TYPE_BOOTSTRAPPING_TIMEOUT: {
                         int bootstrappingId = msg.arg1;
                         onBootstrappingConfirmNotification(bootstrappingId,
-                                NAN_BOOTSTRAPPING_REJECT, NanStatusCode.INTERNAL_FAILURE, 0, null);
+                                NAN_BOOTSTRAPPING_REJECT, NanStatusCode.INTERNAL_FAILURE,
+				0, null, null);
                         mBootstrappingConfirmTimeoutMessages.remove(bootstrappingId);
                         return HANDLED;
                     }
@@ -2979,8 +2981,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_COME_BACK_DELAY);
                     byte[] cookie = data.getByteArray(
                             MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_COME_BACK_COOKIE);
+                    byte[] peerDiscMacAddr = data.getByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS);
                     boolean success = onBootStrappingConfirmReceivedLocal(bootstrappingId,
-                            reason, responseCode, comBackDelay, cookie);
+                            reason, responseCode, comBackDelay, cookie, peerDiscMacAddr);
                     if (success) {
                         WakeupMessage timeout = mBootstrappingConfirmTimeoutMessages
                                 .get(bootstrappingId);
@@ -5839,7 +5842,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private boolean onBootStrappingConfirmReceivedLocal(int id, int reason, int responseCode,
-            int comeBackDelay, byte[] cookie) {
+            int comeBackDelay, byte[] cookie, byte[] peerDiscMacAddr) {
         BootStrppingInfo info = mBootstrappingRequest.get(id);
         mBootstrappingRequest.remove(id);
         if (info == null) {
@@ -5860,6 +5863,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (session == null) {
             return false;
         }
+
+        PeerHandle peerHandle = session.getPeerHandleFromPeerMac(peerDiscMacAddr);
+        if (peerHandle == null) {
+            session.getPeerIdOrAddIfNew(info.mPeerId, peerDiscMacAddr, 0, mWifiManager.getConnectionInfo());
+        }
+
         boolean accept = responseCode == NAN_BOOTSTRAPPING_ACCEPT;
         session.onBootStrappingConfirmReceived(info.mPeerId, accept, info.mMethod);
 
