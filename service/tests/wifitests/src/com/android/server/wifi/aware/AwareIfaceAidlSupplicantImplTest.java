@@ -610,10 +610,11 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         int akm = 0;
         int cipherSuite = 0;
         byte[] mac = new byte[6];
+        byte pubSubId = 1;
 
         assertTrue(mDut.respondToPairingRequest(transactionId, pairingId, accept,
                 pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
-                cipherSuite, mac));
+                cipherSuite, pubSubId, mac));
         verify(mMockSupplicantNanIface).respondToPairingIndicationRequest(
                 eq((char) transactionId), any(NanRespondToPairingIndicationRequest.class));
     }
@@ -631,12 +632,13 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         int akm = 0;
         int cipherSuite = 0;
         byte[] mac = new byte[6];
+        byte pubSubId = 1;
 
         doThrow(new RemoteException()).when(mMockSupplicantNanIface)
                 .respondToPairingIndicationRequest(anyChar(), any());
         assertFalse(mDut.respondToPairingRequest(transactionId, pairingId, accept,
                 pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
-                cipherSuite, mac));
+                cipherSuite, pubSubId, mac));
     }
 
     @Test
@@ -652,12 +654,13 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         int akm = 0;
         int cipherSuite = 0;
         byte[] mac = new byte[6];
+        byte pubSubId = 1;
 
         doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
                 .respondToPairingIndicationRequest(anyChar(), any());
         assertFalse(mDut.respondToPairingRequest(transactionId, pairingId, accept,
                 pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
-                cipherSuite, mac));
+                cipherSuite, pubSubId, mac));
     }
 
     @Test
@@ -672,9 +675,10 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         String password = "password";
         int akm = 0;
         int cipherSuite = 0;
+        byte pubSubId = 1;
 
         assertTrue(mDut.initiateNanPairingRequest(transactionId, peerId, peer, pairingIdentityKey,
-                enablePairingCache, requestType, pmk, password, akm, cipherSuite));
+                enablePairingCache, requestType, pmk, password, akm, cipherSuite, pubSubId));
         verify(mMockSupplicantNanIface).initiatePairingRequest(eq((char) transactionId),
                 any(NanPairingRequest.class));
     }
@@ -691,11 +695,12 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         String password = "password";
         int akm = 0;
         int cipherSuite = 0;
+        byte pubSubId = 1;
 
         doThrow(new RemoteException()).when(mMockSupplicantNanIface)
                 .initiatePairingRequest(anyChar(), any());
         assertFalse(mDut.initiateNanPairingRequest(transactionId, peerId, peer, pairingIdentityKey,
-                enablePairingCache, requestType, pmk, password, akm, cipherSuite));
+                enablePairingCache, requestType, pmk, password, akm, cipherSuite, pubSubId));
     }
 
     @Test
@@ -710,11 +715,12 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         String password = "password";
         int akm = 0;
         int cipherSuite = 0;
+        byte pubSubId = 1;
 
         doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
                 .initiatePairingRequest(anyChar(), any());
         assertFalse(mDut.initiateNanPairingRequest(transactionId, peerId, peer, pairingIdentityKey,
-                enablePairingCache, requestType, pmk, password, akm, cipherSuite));
+                enablePairingCache, requestType, pmk, password, akm, cipherSuite, pubSubId));
     }
 
     @Test

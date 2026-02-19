@@ -428,7 +428,7 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
     public void testInitiatePairing() {
         when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
         byte[] peer = new byte[]{1, 2, 3, 4, 5, 6};
-        mDut.initiatePairing((short) 1, 123, peer, null, true, 1, null, null, 1, 1);
+        mDut.initiatePairing((short) 1, 123, peer, null, true, 1, null, null, 1, 1, (byte)1);
         verify(mWifiNanIfaceMock).initiatePairing(eq((short) 1), eq(123),
                 eq(MacAddress.fromBytes(peer)), eq(null), eq(true), eq(1), eq(null), eq(null),
                 eq(1), eq(1));
@@ -437,25 +437,28 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
     @Test
     public void testInitiatePairingWithSupplicant() {
         byte[] peer = new byte[]{1, 2, 3, 4, 5, 6};
-        mDut.initiatePairing((short) 1, 123, peer, null, true, 1, null, null, 1, 1);
+        mDut.initiatePairing((short) 1, 123, peer, null, true, 1, null, null, 1, 1, (byte)1);
         verify(mAwareIfaceAidlSupplicantImplMock).initiateNanPairingRequest(eq((short) 1), eq(123),
                 eq(MacAddress.fromBytes(peer)), eq(null), eq(true), eq(1), eq(null), eq(null),
-                eq(1), eq(1));
+                eq(1), eq(1), eq((byte)1));
     }
 
     @Test
     public void testRespondToPairingRequest() {
         when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
-        mDut.respondToPairingRequest((short) 1, 123, true, null, true, 1, null, null, 1, 1, null);
+        mDut.respondToPairingRequest((short) 1, 123, true, null, true, 1, null, null, 1, 1,
+		(byte)1, null);
         verify(mWifiNanIfaceMock).respondToPairingRequest(eq((short) 1), eq(123), eq(true),
                 eq(null), eq(true), eq(1), eq(null), eq(null), eq(1), eq(1));
     }
 
     @Test
     public void testRespondToPairingRequestWithSupplicant() {
-        mDut.respondToPairingRequest((short) 1, 123, true, null, true, 1, null, null, 1, 1, null);
+        mDut.respondToPairingRequest((short) 1, 123, true, null, true, 1, null, null, 1, 1,
+		(byte)1, null);
         verify(mAwareIfaceAidlSupplicantImplMock).respondToPairingRequest(eq((short) 1), eq(123),
-                eq(true), eq(null), eq(true), eq(1), eq(null), eq(null), eq(1), eq(1), eq(null));
+                eq(true), eq(null), eq(true), eq(1), eq(null), eq(null), eq(1), eq(1),
+		eq((byte)1), eq(null));
     }
 
     @Test

@@ -83,6 +83,7 @@ import android.net.ConnectivityManager;
 import android.net.LinkProperties;
 import android.net.ip.IIpClient;
 import android.net.ip.IpClientCallbacks;
+import android.net.MacAddress;
 import android.net.wifi.IBooleanListener;
 import android.net.wifi.OuiKeyedData;
 import android.net.wifi.WifiAvailableChannel;
@@ -4837,6 +4838,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
                 eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
+                eq(publishId),
                 eq(peerMac1));
 
         // (6) Notify response succeed
@@ -4991,6 +4993,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_SAE),
                 eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
+                eq(publishId),
                 eq(peerMac1));
 
         // (5) Notify response succeed
@@ -5154,7 +5157,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(peerMac), eq(mNik), eq(true),
                 eq(WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP), isNull(), isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
-                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
+                eq(subscribeId));
 
         // (6) request send success and receive confirm
         mDut.onInitiatePairingResponseSuccess(transactionId.getValue(), pairId);
@@ -5300,7 +5304,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(peerMac1), eq(mNik), eq(true),
                 eq(WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_VERIFICATION), eq(mPmk), isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_SAE),
-                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
+                eq(subscribeId));
 
         // (5) request send success and receive confirm
         mDut.onInitiatePairingResponseSuccess(transactionId.getValue(), pairId);
@@ -5343,8 +5348,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(),
                 isNull(), anyInt(), isNull(), eq(alias), any(), isNull());
         mMockLooper.dispatchAll();
-        inOrder.verify(mMockNative, never()).initiatePairing(anyByte(), anyInt(), any(), any(),
-                anyBoolean(), anyInt(), any(), isNull(), anyInt(), anyInt());
+        inOrder.verify(mMockNative, never()).initiatePairing(anyShort(), anyInt(), any(), any(),
+                anyBoolean(), anyInt(), any(), isNull(), anyInt(), anyInt(),anyByte());
 
         // (8) subscribe termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
@@ -6542,6 +6547,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
                 eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
+                eq(publishId),
                 eq(peerMac1));
 
         // (6) Notify response succeed
@@ -6731,7 +6737,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(peerMac), eq(mNik), eq(true),
                 eq(WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP), isNull(), isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
-                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
+                eq((byte)subscribeId));
 
         // (6) request send success and receive confirm
         mDut.onInitiatePairingResponseSuccess(transactionId.getValue(), pairId);
@@ -6798,4 +6805,3 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         verifyNoMoreInteractions(mockSessionCallback, mMockNative, mAwareMetricsMock);
     }
 }
-
