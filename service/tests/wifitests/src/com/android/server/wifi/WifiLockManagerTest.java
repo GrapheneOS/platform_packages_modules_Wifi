@@ -159,7 +159,6 @@ public class WifiLockManagerTest extends WifiBaseTest {
         when(mContext.getResources()).thenReturn(mResources);
         when(mResources.getBoolean(
                 R.bool.config_wifiLowLatencyLockDisableChipPowerSave)).thenReturn(true);
-        when(Flags.wifiLockActivatedByP2pOrAware()).thenReturn(true);
 
         mWifiLockManager =
                 new WifiLockManager(

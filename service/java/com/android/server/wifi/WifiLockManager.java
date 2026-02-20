@@ -37,7 +37,6 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.server.wifi.util.WorkSourceUtil;
-import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import java.io.PrintWriter;
@@ -586,9 +585,6 @@ public class WifiLockManager {
     }
 
     private boolean doesD2dSatisfyConnectionRequirementForApp(int uid) {
-        if (!Flags.wifiLockActivatedByP2pOrAware()) {
-            return false;
-        }
         if (mWifiPermissionsUtil.checkRequestCompanionProfileNearbyDeviceStreamingPermission(uid)) {
             return true;
         }
@@ -596,7 +592,6 @@ public class WifiLockManager {
     }
 
     private boolean doesD2dSatisfyConnectionRequirementForAnyApp() {
-        if (!Flags.wifiLockActivatedByP2pOrAware()) return false;
         for (int i = 0; i < mLowLatencyUidWatchList.size(); i++) {
             UidRec uidRec = mLowLatencyUidWatchList.valueAt(i);
             if (uidRec.mD2dSatisfiesConnectionRequirement) {
