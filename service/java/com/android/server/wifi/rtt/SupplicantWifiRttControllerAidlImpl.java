@@ -705,13 +705,15 @@ public class SupplicantWifiRttControllerAidlImpl implements ISupplicantWifiRttCo
             halRttConfig.secureConfig.pasnConfig.passphrase = passphrase.getBytes(
                     StandardCharsets.UTF_8);
         }
-        halRttConfig.secureConfig.pasnConfig.pmk = pasnConfig.getPmk() != null
-                ? pasnConfig.getPmk() : new byte[0];
-        halRttConfig.secureConfig.pasnConfig.devIk =
-                new android.hardware.wifi.supplicant.DeviceIdentityKey();
-        halRttConfig.secureConfig.pasnConfig.devIk.data =
-                pasnConfig.getProximityDetectionSeekerDeviceIdentityKey() != null
-                        ? pasnConfig.getProximityDetectionSeekerDeviceIdentityKey() : new byte[0];
+        halRttConfig.secureConfig.pasnConfig.pmk = pasnConfig.getPmk();
+        if (pasnConfig.getProximityDetectionSeekerDeviceIdentityKey() != null) {
+            halRttConfig.secureConfig.pasnConfig.devIk =
+                    new android.hardware.wifi.supplicant.DeviceIdentityKey();
+            halRttConfig.secureConfig.pasnConfig.devIk.data =
+                    pasnConfig.getProximityDetectionSeekerDeviceIdentityKey();
+        } else {
+            halRttConfig.secureConfig.pasnConfig.devIk = null;
+        }
         return true;
     }
 
