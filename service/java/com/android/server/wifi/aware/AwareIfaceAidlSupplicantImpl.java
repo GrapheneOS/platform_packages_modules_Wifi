@@ -457,7 +457,8 @@ public class AwareIfaceAidlSupplicantImpl {
         final String methodStr = "endDataPath";
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
-            mWifiNanIface.terminateDataPathRequest((char) transactionId, ndpId);
+            // TODO: Add correct peer MAC address passed from the upper framework layer
+            mWifiNanIface.terminateDataPathRequest((char) transactionId, ndpId, new byte[6]);
             return true;
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
@@ -519,7 +520,7 @@ public class AwareIfaceAidlSupplicantImpl {
         String methodStr = "endPairing";
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
-            mWifiNanIface.terminatePairingRequest((char) transactionId, pairingId);
+            mWifiNanIface.terminatePairingRequest((char) transactionId, pairingId, new byte[6]);
             return true;
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);

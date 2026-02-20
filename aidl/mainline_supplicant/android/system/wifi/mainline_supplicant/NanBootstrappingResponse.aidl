@@ -23,6 +23,14 @@ import android.system.wifi.mainline_supplicant.NanBootstrappingMethod;
  */
 parcelable NanBootstrappingResponse {
     /**
+     * NAN management interface MAC address of the peer. Obtained as part of an earlier
+     * |ISupplicantNanIfaceEventCallback.eventMatch| or
+     * |ISupplicantNanIfaceEventCallback.eventFollowupReceived|. Used to identify the peer
+     * information.
+     */
+    byte[6] peerDiscMacAddr;
+
+    /**
      * ID of bootstrapping session. Used to identify the bootstrapping further negotiation/APIs.
      */
     int bootstrappingInstanceId;

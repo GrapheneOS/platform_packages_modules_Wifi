@@ -32,6 +32,26 @@ parcelable NanRespondToPairingIndicationRequest {
     boolean acceptRequest;
 
     /**
+     * ID of the peer. Obtained as part of an earlier |ISupplicantNanIfaceEventCallback.eventMatch|
+     * or |ISupplicantNanIfaceEventCallback.eventFollowupReceived|.
+     */
+    int peerId;
+
+    /**
+     * ID of an active publish or subscribe discovery session. Follow-up message is transmitted in
+     * the context of the discovery session. NAN Spec: Service Descriptor Attribute (SDA) /
+     * Instance ID.
+     */
+    byte discoverySessionId;
+
+    /**
+     * NAN management interface MAC address of the peer. Obtained as part of an earlier
+     * |ISupplicantNanIfaceEventCallback.eventMatch| or
+     * |ISupplicantNanIfaceEventCallback.eventFollowupReceived|.
+     */
+    byte[6] peerDiscMacAddr;
+
+    /**
      * ID of the NAN pairing for which we're responding. Obtained as part of the request in
      * |ISupplicantNanIfaceEventCallback.eventPairingRequest|.
      */
