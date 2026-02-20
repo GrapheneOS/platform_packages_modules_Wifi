@@ -710,7 +710,7 @@ public class WifiAwareDiscoverySessionState {
         }
         boolean success = mWifiAwareNativeApi.respondToDataPathRequest(transactionId, accept, ndpId,
                 interfaceName, appInfo, false, capabilities, securityConfig, mPubSubId,
-                isPeerPaired(peer));
+                isPeerPaired(peer), peer);
         if (!success && !isLegacyApi) {
             onDataPathRequestFailure(peerId, DATA_PATH_CONNECTION_FAILURE_REASON_INTERNAL_FAILURE);
         }

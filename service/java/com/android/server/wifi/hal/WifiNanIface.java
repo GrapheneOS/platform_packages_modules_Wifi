@@ -471,11 +471,11 @@ public class WifiNanIface implements WifiHal.WifiInterface {
             String interfaceName, byte[] appInfo,
             boolean isOutOfBand, Capabilities capabilities,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-            boolean frameProtectionEnabled) {
+            boolean frameProtectionEnabled, byte[] peerMac) {
         return validateAndCall("respondToDataPathRequest", false,
                 () -> mWifiNanIface.respondToDataPathRequest(transactionId, accept, ndpId,
                         interfaceName, appInfo, isOutOfBand, capabilities, securityConfig,
-                        pubSubId, frameProtectionEnabled));
+                        pubSubId, frameProtectionEnabled, peerMac));
     }
 
     /**

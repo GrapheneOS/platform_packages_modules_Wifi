@@ -4640,7 +4640,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         } else {
             success = mWifiAwareNativeApi.respondToDataPathRequest(transactionId, accept, ndpId,
                     interfaceName, appInfo, true, mCapabilities, securityConfig, (byte) 0,
-                    false);
+                    false, peerDiscoveryMac);
         }
         if (!success && isLegacyApi) {
             mDataPathMgr.onRespondToDataPathRequest(ndpId, false, NanStatusCode.INTERNAL_FAILURE);

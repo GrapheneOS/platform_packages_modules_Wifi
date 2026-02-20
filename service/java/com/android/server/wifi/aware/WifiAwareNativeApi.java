@@ -713,20 +713,23 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             String interfaceName, byte[] appInfo,
             boolean isOutOfBand, Capabilities capabilities,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-        boolean frameProtectionEnabled) {
+        boolean frameProtectionEnabled, byte[] peerMac) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "respondToDataPathRequest: transactionId=" + transactionId + ", accept="
                     + accept + ", int ndpId=" + ndpId + ", interfaceName=" + interfaceName
                     + ", appInfo.length=" + ((appInfo == null) ? 0 : appInfo.length)
                     + ", securityConfig" + securityConfig + ", isOutOfBand=" + isOutOfBand
                     + ", capabilities=" + capabilities + ", pubSubId=" + pubSubId
-                    + ", frameProtectionEnabled=" + frameProtectionEnabled);
+                    + ", frameProtectionEnabled=" + frameProtectionEnabled
+                    + ", peerMac="
+                    + (peerMac == null ? "null" : HexEncoding.encodeToString(peerMac)));
         }
         recordTransactionId(transactionId);
         AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
         if (supplicant != null) {
             return supplicant.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
-                    appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled);
+                    appInfo, isOutOfBand, securityConfig, pubSubId,
+                    frameProtectionEnabled, peerMac);
         }
 
         WifiNanIface iface = mHal.getWifiNanIface();
@@ -735,7 +738,8 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             return false;
         }
         return iface.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName, appInfo,
-                isOutOfBand, capabilities, securityConfig, pubSubId, frameProtectionEnabled);
+                isOutOfBand, capabilities, securityConfig, pubSubId,
+                frameProtectionEnabled, peerMac);
     }
 
     /**

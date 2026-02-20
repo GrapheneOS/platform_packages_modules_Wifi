@@ -1099,7 +1099,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
 
         assertTrue(mDut.respondToDataPathRequest(tid, accept, ndpId, interfaceName,
                 appInfo, isOutOfBand, TEST_CAPABILITIES, securityConfig, pubSubId,
-                frameProtectionEnabled));
+                frameProtectionEnabled, null));
 
         verify(mIWifiNanIfaceMock)
                 .respondToDataPathIndicationRequest(eq((char) tid), captor.capture());

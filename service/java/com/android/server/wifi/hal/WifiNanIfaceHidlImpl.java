@@ -223,7 +223,7 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
     public boolean respondToDataPathRequest(short transactionId, boolean accept, int ndpId,
             String interfaceName, byte[] appInfo, boolean isOutOfBand, Capabilities capabilities,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-        boolean frameProtectionEnabled) {
+        boolean frameProtectionEnabled, byte[] peerMac) {
         final String methodStr = "respondToDataPathRequest";
         return validateAndCall(methodStr, false,
                 () -> respondToDataPathRequestInternal(methodStr, transactionId, accept, ndpId,

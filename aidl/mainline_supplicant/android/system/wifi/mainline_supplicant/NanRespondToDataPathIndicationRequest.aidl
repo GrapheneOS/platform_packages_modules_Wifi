@@ -35,6 +35,12 @@ parcelable NanRespondToDataPathIndicationRequest {
     int ndpInstanceId;
 
     /**
+     * MAC address of the Initiator peer. This is the MAC address of the peer's
+     * management/discovery NAN interface.
+     */
+    byte[6] peerDiscMacAddr;
+
+    /**
      * NAN data interface name on which this data-path session is to be started.
      * This must be an interface created using |ISupplicantNanIface.createDataInterfaceRequest|.
      */

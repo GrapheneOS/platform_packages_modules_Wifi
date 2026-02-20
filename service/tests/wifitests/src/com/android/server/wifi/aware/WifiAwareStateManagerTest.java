@@ -4869,7 +4869,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // Verify the enhanced framework protection is enabled.
         inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
                 eq(1), eq("aware_data0"), eq(new byte[0]), eq(false),
-                any(), any(), anyByte(), eq(true));
+                any(), any(), anyByte(), eq(true), any());
         mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
         mMockLooper.dispatchAll();
         verify(mMockAwareDataPathStatemanager)
@@ -5025,7 +5025,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // Verify the enhanced framework protection is enabled.
         inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
                 eq(1), eq("aware_data0"), eq(new byte[0]), eq(false),
-                any(), any(), anyByte(), eq(true));
+                any(), any(), anyByte(), eq(true), any());
         mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
         mMockLooper.dispatchAll();
         verify(mMockAwareDataPathStatemanager)
@@ -6579,7 +6579,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // Verify the enhanced framework protection is enabled.
         inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
                 eq(ndpId), eq("aware_data0"), eq(new byte[0]), eq(false),
-                any(), any(), anyByte(), eq(true));
+                any(), any(), anyByte(), eq(true), any());
         mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
         mMockLooper.dispatchAll();
         verify(mMockAwareDataPathStatemanager, never())

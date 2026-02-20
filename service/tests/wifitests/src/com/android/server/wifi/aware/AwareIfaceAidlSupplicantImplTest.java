@@ -523,7 +523,7 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         boolean frameProtectionEnabled = false;
 
         assertTrue(mDut.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
-                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled));
+                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled, null));
         verify(mMockSupplicantNanIface).respondToDataPathIndicationRequest(
                 eq((char) transactionId), any(NanRespondToDataPathIndicationRequest.class));
     }
@@ -543,7 +543,7 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         doThrow(new RemoteException()).when(mMockSupplicantNanIface)
                 .respondToDataPathIndicationRequest(anyChar(), any());
         assertFalse(mDut.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
-                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled));
+                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled, null));
     }
 
     @Test
@@ -561,7 +561,7 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
                 .respondToDataPathIndicationRequest(anyChar(), any());
         assertFalse(mDut.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
-                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled));
+                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled, null));
     }
 
     @Test
@@ -1064,7 +1064,7 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         boolean frameProtectionEnabled = false;
 
         assertTrue(mDut.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
-                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled));
+                appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled, null));
         ArgumentCaptor<NanRespondToDataPathIndicationRequest> captor =
                 ArgumentCaptor.forClass(NanRespondToDataPathIndicationRequest.class);
         verify(mMockSupplicantNanIface).respondToDataPathIndicationRequest(

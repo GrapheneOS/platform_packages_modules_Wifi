@@ -414,7 +414,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
     public boolean respondToDataPathRequest(short transactionId, boolean accept, int ndpId,
             String interfaceName, byte[] appInfo, boolean isOutOfBand, Capabilities capabilities,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-        boolean frameProtectionEnabled) {
+        boolean frameProtectionEnabled, byte[] peerMac) {
         final String methodStr = "respondToDataPathRequest";
         synchronized (mLock) {
             try {
@@ -422,7 +422,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
                 NanRespondToDataPathIndicationRequest req =
                         createNanRespondToDataPathIndicationRequest(
                                 accept, ndpId, interfaceName, appInfo, isOutOfBand,
-                                securityConfig, pubSubId, frameProtectionEnabled);
+                                securityConfig, pubSubId, frameProtectionEnabled, peerMac);
                 mWifiNanIface.respondToDataPathIndicationRequest((char) transactionId, req);
                 return true;
             } catch (RemoteException e) {
@@ -1140,7 +1140,7 @@ public class WifiNanIfaceAidlImpl implements IWifiNanIface {
             createNanRespondToDataPathIndicationRequest(boolean accept, int ndpId,
             String interfaceName, byte[] appInfo, boolean isOutOfBand,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-            boolean frameProtectionEnabled) {
+            boolean frameProtectionEnabled, byte[] peerMac) {
         NanRespondToDataPathIndicationRequest req = new NanRespondToDataPathIndicationRequest();
         req.acceptRequest = accept;
         req.ndpInstanceId = ndpId;
