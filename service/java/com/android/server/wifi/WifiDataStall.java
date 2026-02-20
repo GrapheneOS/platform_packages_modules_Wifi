@@ -375,6 +375,37 @@ public class WifiDataStall {
      * Note: This is only collected for primary STA currently because RSSI polling is disabled for
      * non-primary STAs.
      */
+    private static class LinkLayerStatsDeltas {
+        long txSuccessDelta;
+        long txRetriesDelta;
+        long txBadDelta;
+        long rxSuccessDelta;
+        int timeStampDeltaMs; // The time stamp difference between the last two polled stats
+    }
+
+    private LinkLayerStatsDeltas getLinkLayerStatsDeltas(WifiLinkLayerStats oldStats,
+            WifiLinkLayerStats newStats) {
+        LinkLayerStatsDeltas deltas = new LinkLayerStatsDeltas();
+        deltas.txSuccessDelta = (newStats.txmpdu_be + newStats.txmpdu_bk
+                + newStats.txmpdu_vi + newStats.txmpdu_vo)
+                - (oldStats.txmpdu_be + oldStats.txmpdu_bk
+                + oldStats.txmpdu_vi + oldStats.txmpdu_vo);
+        deltas.txRetriesDelta = (newStats.retries_be + newStats.retries_bk
+                + newStats.retries_vi + newStats.retries_vo)
+                - (oldStats.retries_be + oldStats.retries_bk
+                + oldStats.retries_vi + oldStats.retries_vo);
+        deltas.txBadDelta = (newStats.lostmpdu_be + newStats.lostmpdu_bk
+                + newStats.lostmpdu_vi + newStats.lostmpdu_vo)
+                - (oldStats.lostmpdu_be + oldStats.lostmpdu_bk
+                + oldStats.lostmpdu_vi + oldStats.lostmpdu_vo);
+        deltas.rxSuccessDelta = (newStats.rxmpdu_be + newStats.rxmpdu_bk
+                + newStats.rxmpdu_vi + newStats.rxmpdu_vo)
+                - (oldStats.rxmpdu_be + oldStats.rxmpdu_bk
+                + oldStats.rxmpdu_vi + oldStats.rxmpdu_vo);
+        deltas.timeStampDeltaMs = (int) (newStats.timeStampInMs - oldStats.timeStampInMs);
+        return deltas;
+    }
+
     public int checkDataStallAndThroughputSufficiency(
             @NonNull String ifaceName,
             @NonNull ConnectionCapabilities connectionCapabilities,
@@ -405,42 +436,27 @@ public class WifiDataStall {
             return WifiIsUnusableEvent.TYPE_UNKNOWN;
         }
 
-        long txSuccessDelta = (newStats.txmpdu_be + newStats.txmpdu_bk
-                + newStats.txmpdu_vi + newStats.txmpdu_vo)
-                - (oldStats.txmpdu_be + oldStats.txmpdu_bk
-                + oldStats.txmpdu_vi + oldStats.txmpdu_vo);
-        long txRetriesDelta = (newStats.retries_be + newStats.retries_bk
-                + newStats.retries_vi + newStats.retries_vo)
-                - (oldStats.retries_be + oldStats.retries_bk
-                + oldStats.retries_vi + oldStats.retries_vo);
-        long txBadDelta = (newStats.lostmpdu_be + newStats.lostmpdu_bk
-                + newStats.lostmpdu_vi + newStats.lostmpdu_vo)
-                - (oldStats.lostmpdu_be + oldStats.lostmpdu_bk
-                + oldStats.lostmpdu_vi + oldStats.lostmpdu_vo);
-        long rxSuccessDelta = (newStats.rxmpdu_be + newStats.rxmpdu_bk
-                + newStats.rxmpdu_vi + newStats.rxmpdu_vo)
-                - (oldStats.rxmpdu_be + oldStats.rxmpdu_bk
-                + oldStats.rxmpdu_vi + oldStats.rxmpdu_vo);
-        int timeDeltaLastTwoPollsMs = (int) (newStats.timeStampInMs - oldStats.timeStampInMs);
+        LinkLayerStatsDeltas deltas = getLinkLayerStatsDeltas(oldStats, newStats);
 
-        long totalTxDelta = txSuccessDelta + txRetriesDelta;
+        long totalTxDelta = deltas.txSuccessDelta + deltas.txRetriesDelta;
         boolean isTxTrafficHigh = (totalTxDelta * 1000)
-                > (mDeviceConfigFacade.getTxPktPerSecondThr() * timeDeltaLastTwoPollsMs);
-        boolean isRxTrafficHigh = (rxSuccessDelta * 1000)
-                > (mDeviceConfigFacade.getRxPktPerSecondThr() * timeDeltaLastTwoPollsMs);
-        if (timeDeltaLastTwoPollsMs < 0
-                || txSuccessDelta < 0
-                || txRetriesDelta < 0
-                || txBadDelta < 0
-                || rxSuccessDelta < 0) {
+                > (mDeviceConfigFacade.getTxPktPerSecondThr() * ((long) deltas.timeStampDeltaMs));
+        boolean isRxTrafficHigh = (deltas.rxSuccessDelta * 1000)
+                > (mDeviceConfigFacade.getRxPktPerSecondThr() * ((long) deltas.timeStampDeltaMs));
+        if (deltas.timeStampDeltaMs < 0
+                || deltas.txSuccessDelta < 0
+                || deltas.txRetriesDelta < 0
+                || deltas.txBadDelta < 0
+                || deltas.rxSuccessDelta < 0) {
             mIsThroughputSufficient = true;
             // There was a reset in WifiLinkLayerStats
             mWifiMetrics.resetWifiIsUnusableLinkLayerStats();
             return WifiIsUnusableEvent.TYPE_UNKNOWN;
         }
 
-        mWifiMetrics.updateWifiIsUnusableLinkLayerStats(txSuccessDelta, txRetriesDelta,
-                txBadDelta, rxSuccessDelta, timeDeltaLastTwoPollsMs);
+        mWifiMetrics.updateWifiIsUnusableLinkLayerStats(deltas.txSuccessDelta,
+                deltas.txRetriesDelta,
+                deltas.txBadDelta, deltas.rxSuccessDelta, deltas.timeStampDeltaMs);
 
         int txLinkSpeedMbps = wifiInfo.getLinkSpeed();
         int rxLinkSpeedMbps = wifiInfo.getRxLinkSpeedMbps();
@@ -456,7 +472,7 @@ public class WifiDataStall {
         }
         logd(" ccaLevel = " + ccaLevel);
 
-        int txPer = updateTxPer(txSuccessDelta, txRetriesDelta, isSameBssidAndFreq,
+        int txPer = updateTxPer(deltas.txSuccessDelta, deltas.txRetriesDelta, isSameBssidAndFreq,
                 isTxTrafficHigh);
 
         boolean isTxTputLow = false;
@@ -490,7 +506,7 @@ public class WifiDataStall {
         wifiInfo.setCalculatedRxKbps(mRxTputKbps);
 
         mIsThroughputSufficient = isThroughputSufficientInternal(mTxTputKbps, mRxTputKbps,
-                isTxTrafficHigh, isRxTrafficHigh, timeDeltaLastTwoPollsMs, txBytes, rxBytes);
+                isTxTrafficHigh, isRxTrafficHigh, deltas.timeStampDeltaMs, txBytes, rxBytes);
 
         mChannelBandwidth = connectionCapabilities != null
                 ? mChannelBandwidth = connectionCapabilities.channelBandwidth
@@ -498,8 +514,9 @@ public class WifiDataStall {
 
         int maxTimeDeltaMs = mWifiGlobals.getPollRssiIntervalMillis()
                 + MAX_TIME_MARGIN_LAST_TWO_POLLS_MS;
-        if (timeDeltaLastTwoPollsMs > 0 && timeDeltaLastTwoPollsMs <= maxTimeDeltaMs) {
-            mWifiMetrics.incrementConnectionDuration(ifaceName, timeDeltaLastTwoPollsMs,
+        if (deltas.timeStampDeltaMs > 0 && deltas.timeStampDeltaMs <= maxTimeDeltaMs)
+        {
+            mWifiMetrics.incrementConnectionDuration(ifaceName, deltas.timeStampDeltaMs,
                     mIsThroughputSufficient, mIsCellularDataAvailable, wifiInfo.getRssi(),
                     mTxTputKbps, mRxTputKbps, txLinkSpeedMbps, rxLinkSpeedMbps, mChannelBandwidth);
         }
@@ -513,16 +530,16 @@ public class WifiDataStall {
         boolean dataStallTx = isTxTrafficHigh ? possibleDataStallTx : mDataStallTx;
         boolean dataStallRx = isRxTrafficHigh ? possibleDataStallRx : mDataStallRx;
 
-        return detectConsecutiveTwoDataStalls(ifaceName, timeDeltaLastTwoPollsMs, dataStallTx,
-                dataStallRx);
+        return detectConsecutiveTwoDataStalls(ifaceName, deltas.timeStampDeltaMs,
+                dataStallTx, dataStallRx);
     }
 
     // Data stall event is triggered if there are consecutive Tx and/or Rx data stalls
     // 1st data stall should be preceded by no data stall
     // Reset mDataStallStartTimeMs to -1 if currently there is no Tx or Rx data stall
-    private int detectConsecutiveTwoDataStalls(String ifaceName, int timeDeltaLastTwoPollsMs,
+    private int detectConsecutiveTwoDataStalls(String ifaceName, int timeStampDeltaMs,
             boolean dataStallTx, boolean dataStallRx) {
-        if (timeDeltaLastTwoPollsMs >= MAX_MS_DELTA_FOR_DATA_STALL) {
+        if (timeStampDeltaMs >= MAX_MS_DELTA_FOR_DATA_STALL) {
             return WifiIsUnusableEvent.TYPE_UNKNOWN;
         }
 
@@ -591,17 +608,17 @@ public class WifiDataStall {
     }
 
     private boolean isThroughputSufficientInternal(int l2TxTputKbps, int l2RxTputKbps,
-            boolean isTxTrafficHigh, boolean isRxTrafficHigh, int timeDeltaLastTwoPollsMs,
+            boolean isTxTrafficHigh, boolean isRxTrafficHigh, int timeStampDeltaMs,
             long txBytes, long rxBytes) {
-        if (timeDeltaLastTwoPollsMs > MAX_MS_DELTA_FOR_DATA_STALL
+        if (timeStampDeltaMs > MAX_MS_DELTA_FOR_DATA_STALL
                 || mLastTxBytes == 0 || mLastRxBytes == 0) {
             mLastTxBytes = txBytes;
             mLastRxBytes = rxBytes;
             return true;
         }
 
-        int l3TxTputKbps = (int) ((txBytes - mLastTxBytes) * 8 / timeDeltaLastTwoPollsMs);
-        int l3RxTputKbps = (int) ((rxBytes - mLastRxBytes) * 8 / timeDeltaLastTwoPollsMs);
+        int l3TxTputKbps = (int) ((txBytes - mLastTxBytes) * 8 / timeStampDeltaMs);
+        int l3RxTputKbps = (int) ((rxBytes - mLastRxBytes) * 8 / timeStampDeltaMs);
 
         mLastTxBytes = txBytes;
         mLastRxBytes = rxBytes;
