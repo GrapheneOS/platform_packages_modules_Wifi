@@ -28,6 +28,7 @@ import android.system.wifi.mainline_supplicant.NanMatchInd;
 import android.system.wifi.mainline_supplicant.NanPairingConfirmInd;
 import android.system.wifi.mainline_supplicant.NanPairingRequestInd;
 import android.system.wifi.mainline_supplicant.NanStatus;
+import android.system.wifi.mainline_supplicant.NpkSecurityAssociation;
 
 /**
  * NAN Response and Asynchronous Event Callbacks.
@@ -130,6 +131,14 @@ oneway interface ISupplicantNanIfaceEventCallback {
      * @param event NanPairingConfirmInd containing event details.
      */
     void eventPairingConfirm(in NanPairingConfirmInd event);
+
+    /**
+     * Callback indicating that a NAN identity key has been received after a pairing setup is
+     * completed. Received by both Initiator and Responder.
+     *
+     * @param npksa NpkSecurityAssociation containing NPKSA details.
+     */
+     void eventPairingSecurityAssociationReceived(in NpkSecurityAssociation npksa);
 
     /**
      * Callback indicating that a data-path (NDP) setup has been completed.

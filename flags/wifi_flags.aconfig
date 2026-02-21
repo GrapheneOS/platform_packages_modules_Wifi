@@ -271,13 +271,6 @@ flag {
 }
 
 flag {
-    name: "wifi_lock_activated_by_p2p_or_aware"
-    namespace: "wifi"
-    description: "Allow some apps to activate a WifiLock if a P2P or Aware connection is active"
-    bug: "404950833"
-}
-
-flag {
     name: "un_deprecated_wificonfiguration"
     is_exported: true
     namespace: "wifi"

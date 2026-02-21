@@ -23,4 +23,5 @@ package android.system.wifi.mainline_supplicant;
 enum NanPairingRequestType {
     NAN_PAIRING_SETUP = 0,
     NAN_PAIRING_VERIFICATION,
+    NAN_PAIRING_UNSPECIFIED_REQUEST_TYPE,
 }

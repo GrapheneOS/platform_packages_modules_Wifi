@@ -39,6 +39,11 @@ parcelable NanBootstrappingConfirmInd {
     int bootstrappingInstanceId;
 
     /**
+     * NAN management interface MAC address of the peer.
+     */
+    byte[6] peerDiscMacAddr;
+
+    /**
      * Indicates whether the bootstrapping method negotiation was accepted.
      */
     NanBootstrappingResponseCode responseCode;

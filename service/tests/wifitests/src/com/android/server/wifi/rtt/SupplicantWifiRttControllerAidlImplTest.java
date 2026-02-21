@@ -255,6 +255,44 @@ public class SupplicantWifiRttControllerAidlImplTest {
     }
 
     @Test
+    public void testRangeRequest_nullPmkAndDevIk() throws RemoteException {
+        assumeTrue(Environment.isSdkNewerThanB());
+        setupDut();
+        ProximityDetectionConfig pdConfig = new ProximityDetectionConfig
+                .Builder(TEST_RANGING_SERVICE_ROLE)
+                .setDiscoveryChannelFrequencyMhz(TEST_DISCOVERY_CHANNEL_FREQUENCY_MHZ)
+                .build();
+        PasnConfig pasnConfig = new PasnConfig
+                .Builder(PasnConfig.AKM_SAE, PasnConfig.CIPHER_GCMP_256)
+                .build();
+        SecureRangingConfig secureRangingConfig = new SecureRangingConfig
+                .Builder(pasnConfig)
+                .build();
+        ResponderConfig responder = new ResponderConfig.Builder()
+                .setMacAddress(TEST_MAC_ADDRESS)
+                .setResponderType(RESPONDER_STA)
+                .setChannelWidth(ScanResult.CHANNEL_WIDTH_80MHZ)
+                .setPreamble(ScanResult.PREAMBLE_VHT)
+                .setSecureRangingConfig(secureRangingConfig)
+                .setProximityDetectionConfig(pdConfig)
+                .build();
+        RangingRequest request = new RangingRequest.Builder()
+                .addResponder(responder)
+                .build();
+
+        mDut.rangeRequest(1, request);
+
+        ArgumentCaptor<RttConfig[]> rttConfigCaptor = ArgumentCaptor.forClass(RttConfig[].class);
+        verify(mMockHalRttController).rangeRequest(eq(1), rttConfigCaptor.capture());
+        RttConfig[] halConfigs = rttConfigCaptor.getValue();
+        assertEquals(1, halConfigs.length);
+        android.hardware.wifi.supplicant.PasnConfig halPasnConfig =
+                halConfigs[0].secureConfig.pasnConfig;
+        assertTrue(halPasnConfig.pmk == null);
+        assertTrue(halPasnConfig.devIk == null);
+    }
+
+    @Test
     public void testRangeCancel() throws RemoteException {
         setupDut();
         ArrayList<MacAddress> macAddresses = new ArrayList<>();
