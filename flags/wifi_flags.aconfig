@@ -390,13 +390,6 @@ flag {
 }
 
 flag {
-    name: "filter_carrier_networks_while_in_motion"
-    namespace: "wifi"
-    description: "Filters carrier networks from the connection candidate list while the device is in motion"
-    bug: "409851656"
-}
-
-flag {
     name: "get_supported_interface_names"
     is_exported: true
     namespace: "wifi"

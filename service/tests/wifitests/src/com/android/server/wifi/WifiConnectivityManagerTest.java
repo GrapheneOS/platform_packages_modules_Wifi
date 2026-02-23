@@ -236,7 +236,6 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         when(mDialogBuilder.setMessageUrl(any(), anyInt(), anyInt())).thenReturn(mDialogBuilder);
         when(mDialogBuilder.setCallback(any(), any())).thenReturn(mDialogBuilder);
         when(mDialogBuilder.build()).thenReturn(mDialogHandle);
-        when(Flags.filterCarrierNetworksWhileInMotion()).thenReturn(true);
         when(mWifiNative.getSupportedBandCombinations(any()))
                 .thenReturn(Set.of(
                         List.of(1),

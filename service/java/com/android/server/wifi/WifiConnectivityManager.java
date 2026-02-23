@@ -970,7 +970,7 @@ public class WifiConnectivityManager {
             List<WifiCandidates.Candidate> candidates) {
         boolean deviceIsMoving = mDeviceMobilityState == WifiManager.DEVICE_MOBILITY_STATE_LOW_MVMT
                 || mDeviceMobilityState == WifiManager.DEVICE_MOBILITY_STATE_HIGH_MVMT;
-        if (!Flags.filterCarrierNetworksWhileInMotion() || !deviceIsMoving) {
+        if (!deviceIsMoving) {
             return candidates;
         }
         if (candidates == null || candidates.isEmpty()) {
