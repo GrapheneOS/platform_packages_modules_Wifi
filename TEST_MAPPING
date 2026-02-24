@@ -41,7 +41,12 @@
   ],
   "automotive-mumd-presubmit": [
     {
-      "name": "CtsNetTestCases"
+      "name": "CtsNetTestCases",
+      "options": [
+        {
+          "exclude-annotation": "androidx.test.filters.RequiresDevice"
+        }
+      ]
     },
     {
       "name": "CtsNetTestCasesUpdateStatsPermission"
