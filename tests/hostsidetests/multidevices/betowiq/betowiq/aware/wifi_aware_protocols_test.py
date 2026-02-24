@@ -59,7 +59,6 @@ class WifiAwareProtocolsTest(base_test.BaseTestClass):
 
   def setup_class(self):
     # Register two Android devices.
-    logging.basicConfig(level=logging.INFO, force=True)
     self.ads = self.register_controller(android_device, min_number=2)
 
     def setup_device(device: android_device.AndroidDevice):
