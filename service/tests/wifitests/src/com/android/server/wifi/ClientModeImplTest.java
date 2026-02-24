@@ -594,6 +594,7 @@ public class ClientModeImplTest extends WifiBaseTest {
     @Mock WifiCarrierInfoManager mWifiCarrierInfoManager;
     @Mock WifiPseudonymManager mWifiPseudonymManager;
     @Mock WifiNotificationManager mWifiNotificationManager;
+    @Mock WifiMulticastLockManager mWifiMulticastLockManager;
 
     @Mock WifiConnectivityHelper mWifiConnectivityHelper;
     @Mock InsecureEapNetworkHandler mInsecureEapNetworkHandler;
@@ -697,6 +698,7 @@ public class ClientModeImplTest extends WifiBaseTest {
         when(mWifiInjector.getWifiCountryCode()).thenReturn(mWifiCountryCode);
         when(mWifiInjector.getApplicationQosPolicyRequestHandler())
                 .thenReturn(mApplicationQosPolicyRequestHandler);
+        when(mWifiInjector.getWifiMulticastLockManager()).thenReturn(mWifiMulticastLockManager);
 
         mFrameworkFacade = getFrameworkFacade();
         mContext = getContext();
@@ -734,6 +736,7 @@ public class ClientModeImplTest extends WifiBaseTest {
             return null;
         }).when(mIpClient).shutdown();
         when(mWifiNetworkAgent.getNetwork()).thenReturn(mNetwork);
+        when(mWifiMulticastLockManager.isMulticastEnabled()).thenReturn(false);
 
         // static mocking
         mSession = ExtendedMockito.mockitoSession().strictness(Strictness.LENIENT)
@@ -4386,6 +4389,24 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mIpClient).setMulticastFilter(eq(true));
         filterController.stopFilteringMulticastPackets();
         verify(mIpClient).setMulticastFilter(eq(false));
+    }
+
+    /**
+     * Verify that the multicast filter state is retrieved from the lock manager.
+     */
+    @Test
+    public void verifyMcastFilterStateIsRetrievedFromLockManager() throws Exception {
+        // If multicast is enabled, then filtering should be disabled
+        when(mWifiMulticastLockManager.isMulticastEnabled()).thenReturn(true);
+        reset(mIpClient);
+        initializeCmi();
+        verify(mIpClient).setMulticastFilter(false);
+
+        // If multicast is disabled, then filtering should be enabled
+        when(mWifiMulticastLockManager.isMulticastEnabled()).thenReturn(false);
+        reset(mIpClient);
+        initializeCmi();
+        verify(mIpClient).setMulticastFilter(true);
     }
 
     /**
