@@ -266,7 +266,7 @@ public class AwareIfaceCallbackSupplicantImpl extends ISupplicantNanIfaceEventCa
                     + ", ndpInstanceId=" + event.ndpInstanceId);
         }
         mFrameworkCallback.eventDataPathRequest(event.discoverySessionId,
-                event.peerDiscMacAddr, event.ndpInstanceId, event.appInfo);
+                event.peerDiscMacAddr, event.ndpInstanceId, event.appInfo, event.ndiInitMac);
     }
 
     @Override

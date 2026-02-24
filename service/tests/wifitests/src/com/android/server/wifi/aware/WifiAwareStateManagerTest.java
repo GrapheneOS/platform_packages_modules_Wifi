@@ -4864,12 +4864,12 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 WIFI_AWARE_DATA_PATH_ROLE_RESPONDER, clientId, sessionId.getValue(), peerId,
                 null, 0, -1, 0, false, config);
         mDut.respondToDataPathRequest(true, 1, "aware_data0", new byte[0], false, ns, peerMac1,
-                peerIdCaptor.getValue(), clientId, sessionId.getValue(), null);
+                peerIdCaptor.getValue(), clientId, sessionId.getValue(), null, null);
         mMockLooper.dispatchAll();
         // Verify the enhanced framework protection is enabled.
         inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
                 eq(1), eq("aware_data0"), eq(new byte[0]), eq(false),
-                any(), any(), anyByte(), eq(true), any());
+                any(), any(), anyByte(), eq(true), any(), any());
         mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
         mMockLooper.dispatchAll();
         verify(mMockAwareDataPathStatemanager)
@@ -5020,12 +5020,12 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 WIFI_AWARE_DATA_PATH_ROLE_RESPONDER, clientId, sessionId.getValue(), peerId,
                 null, 0, -1, 0, false, config);
         mDut.respondToDataPathRequest(true, 1, "aware_data0", new byte[0], false, ns, peerMac1,
-                peerIdCaptor.getValue(), clientId, sessionId.getValue(), null);
+                peerIdCaptor.getValue(), clientId, sessionId.getValue(), null, null);
         mMockLooper.dispatchAll();
         // Verify the enhanced framework protection is enabled.
         inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
                 eq(1), eq("aware_data0"), eq(new byte[0]), eq(false),
-                any(), any(), anyByte(), eq(true), any());
+                any(), any(), anyByte(), eq(true), any(), any());
         mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
         mMockLooper.dispatchAll();
         verify(mMockAwareDataPathStatemanager)
@@ -6452,7 +6452,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         final byte[] peerDataPathMac = HexEncoding.decode("0A0B0C0D0E0F".toCharArray(), false);
         final String alias = "alias";
         final int ndpId = 1;
-        when(mMockAwareDataPathStatemanager.onDataPathRequest(anyInt(), any(), anyInt(), any()))
+        when(mMockAwareDataPathStatemanager.onDataPathRequest(anyInt(), any(), anyInt(), any(), any()))
                 .thenReturn(false);
 
         AwarePairingConfig pairingConfig = new AwarePairingConfig(true, true, true,
@@ -6568,7 +6568,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
         // (8) try to response a data path request.
-        mDut.onDataPathRequestNotification(publishId, peerMac1, ndpId, null);
+        mDut.onDataPathRequestNotification(publishId, peerMac1, ndpId, null, null);
         mMockLooper.dispatchAll();
         verify(mockSessionCallback).onDataPathRequestReceived(peerIdCaptor.capture());
 
@@ -6579,7 +6579,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // Verify the enhanced framework protection is enabled.
         inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
                 eq(ndpId), eq("aware_data0"), eq(new byte[0]), eq(false),
-                any(), any(), anyByte(), eq(true), any());
+                any(), any(), anyByte(), eq(true), any(), any());
         mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
         mMockLooper.dispatchAll();
         verify(mMockAwareDataPathStatemanager, never())

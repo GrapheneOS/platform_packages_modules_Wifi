@@ -388,6 +388,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final String MESSAGE_BUNDLE_KEY_VENDOR_DATA = "vendor_data";
     private static final String MESSAGE_BUNDLE_KEY_DATA_PATH_REQUEST = "data_path_request";
     private static final String MESSAGE_BUNDLE_KEY_IS_LEGACY_API = "is_legacy_api";
+    private static final String MESSAGE_BUNDLE_KEY_NDI_INIT_MAC = "ndi_init_mac";
     private WifiAwareNativeApi mWifiAwareNativeApi;
     private WifiAwareNativeManager mWifiAwareNativeManager;
 
@@ -1260,7 +1261,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         int ndpId = mPendingRequest.get(peerId);
         mPendingRequest.delete(peerId);
         respondToDataPathRequest(accept, ndpId, null,
-                appInfo, false, null, null, peerId, clientId, sessionId, request);
+                appInfo, false, null, null, peerId, clientId, sessionId, request, null);
     }
 
     /**
@@ -1667,7 +1668,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     public void respondToDataPathRequest(boolean accept, int ndpId, String interfaceName,
             byte[] appInfo, boolean isOutOfBand,
             WifiAwareNetworkSpecifier networkSpecifier, byte[] peerMac, int peerId, int clientId,
-            int sessionId, AwareDataPathRequest request) {
+            int sessionId, AwareDataPathRequest request, byte[] ndiInitMac) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_RESPOND_TO_DATA_PATH_SETUP_REQUEST;
         msg.arg2 = clientId;
@@ -1681,6 +1682,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_APP_INFO, appInfo);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_OOB, isOutOfBand);
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS, peerMac);
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_NDI_INIT_MAC, ndiInitMac);
         mSm.sendMessage(msg);
     }
 
@@ -2207,13 +2209,15 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     /**
      * Place a callback request on the state machine queue: data-path request (from peer) received.
      */
-    public void onDataPathRequestNotification(int pubSubId, byte[] mac, int ndpId, byte[] message) {
+    public void onDataPathRequestNotification(int pubSubId, byte[] mac, int ndpId, byte[] message,
+            byte[] ndiInitMac) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_NOTIFICATION);
         msg.arg1 = NOTIFICATION_TYPE_ON_DATA_PATH_REQUEST;
         msg.arg2 = pubSubId;
         msg.obj = ndpId;
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS, mac);
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_MESSAGE, message);
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_NDI_INIT_MAC, ndiInitMac);
         mSm.sendMessage(msg);
     }
 
@@ -2891,7 +2895,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     int pubSubId = msg.arg2;
                     byte[] mac = msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS);
                     byte[] message = msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_MESSAGE);
-                    onDataPathRequestLocal(pubSubId, mac, ndpId, message);
+                    byte[] ndiInitMac = msg.getData().getByteArray(MESSAGE_BUNDLE_KEY_NDI_INIT_MAC);
+                    onDataPathRequestLocal(pubSubId, mac, ndpId, message, ndiInitMac);
                     break;
                 }
                 case NOTIFICATION_TYPE_ON_DATA_PATH_CONFIRM: {
@@ -3355,6 +3360,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     byte[] appInfo = data.getByteArray(MESSAGE_BUNDLE_KEY_APP_INFO);
                     boolean isOutOfBand = data.getBoolean(MESSAGE_BUNDLE_KEY_OOB);
                     byte[] peerMac = data.getByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS);
+                    byte[] ndiInitMac = data.getByteArray(MESSAGE_BUNDLE_KEY_NDI_INIT_MAC);
                     int clientId = msg.arg2;
                     int sessionId = data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID);
                     int peerId = data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID);
@@ -3362,7 +3368,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             data.getParcelable(MESSAGE_BUNDLE_KEY_DATA_PATH_REQUEST);
                     waitForResponse = respondToDataPathRequestLocal(mCurrentTransactionId, accept,
                             ndpId, interfaceName, appInfo, isOutOfBand, specifier, peerMac, peerId,
-                            clientId, sessionId, request);
+                            clientId, sessionId, request, ndiInitMac);
 
                     break;
                 }
@@ -4591,7 +4597,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean respondToDataPathRequestLocal(short transactionId, boolean accept,
             int ndpId, String interfaceName, byte[] appInfo, boolean isOutOfBand,
             WifiAwareNetworkSpecifier networkSpecifier, byte[] peerDiscoveryMac, int peerId,
-            int clientId, int sessionId, AwareDataPathRequest request) {
+            int clientId, int sessionId, AwareDataPathRequest request, byte[] ndiInitMac) {
         WifiAwareDataPathSecurityConfig securityConfig;
         boolean isLegacyApi = request == null;
         if (!accept) {
@@ -4611,6 +4617,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
         boolean success;
         if (!isOutOfBand) {
+            if (ndiInitMac == null && accept) {
+                ndiInitMac = mDataPathMgr.getNdiInitMac(ndpId);
+            }
             WifiAwareClientState client = mClients.get(clientId);
             if (client == null) {
                 Log.e(TAG, "respondToDataPathRequestLocal: no client exists for clientId="
@@ -4635,12 +4644,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 }
             }
             success = session.respondToDataPathRequest(transactionId, peerId, accept, ndpId,
-                interfaceName, mCapabilities, securityConfig, isLegacyApi, appInfo,
-                peerDiscoveryMac);
+                    interfaceName, mCapabilities, securityConfig, isLegacyApi, appInfo,
+                    peerDiscoveryMac, ndiInitMac);
         } else {
             success = mWifiAwareNativeApi.respondToDataPathRequest(transactionId, accept, ndpId,
                     interfaceName, appInfo, true, mCapabilities, securityConfig, (byte) 0,
-                    false, peerDiscoveryMac);
+                    false, peerDiscoveryMac, ndiInitMac);
         }
         if (!success && isLegacyApi) {
             mDataPathMgr.onRespondToDataPathRequest(ndpId, false, NanStatusCode.INTERNAL_FAILURE);
@@ -5916,8 +5925,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
     }
 
-    private void onDataPathRequestLocal(int pubSubId, byte[] mac, int ndpId, byte[] message) {
-        boolean found = mDataPathMgr.onDataPathRequest(pubSubId, mac, ndpId, message);
+    private void onDataPathRequestLocal(int pubSubId, byte[] mac, int ndpId, byte[] message,
+            byte[] ndiInitMac) {
+        boolean found = mDataPathMgr.onDataPathRequest(pubSubId, mac, ndpId, message, ndiInitMac);
         Pair<WifiAwareClientState, WifiAwareDiscoverySessionState> data =
                 getClientSessionForPubSubId(pubSubId);
         if (data == null) {

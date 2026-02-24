@@ -713,7 +713,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
             String interfaceName, byte[] appInfo,
             boolean isOutOfBand, Capabilities capabilities,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-        boolean frameProtectionEnabled, byte[] peerMac) {
+            boolean frameProtectionEnabled, byte[] peerMac, byte[] ndiInitMac) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "respondToDataPathRequest: transactionId=" + transactionId + ", accept="
                     + accept + ", int ndpId=" + ndpId + ", interfaceName=" + interfaceName
@@ -729,7 +729,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         if (supplicant != null) {
             return supplicant.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName,
                     appInfo, isOutOfBand, securityConfig, pubSubId,
-                    frameProtectionEnabled, peerMac);
+                    frameProtectionEnabled, peerMac, ndiInitMac);
         }
 
         WifiNanIface iface = mHal.getWifiNanIface();
@@ -739,7 +739,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         }
         return iface.respondToDataPathRequest(transactionId, accept, ndpId, interfaceName, appInfo,
                 isOutOfBand, capabilities, securityConfig, pubSubId,
-                frameProtectionEnabled, peerMac);
+                frameProtectionEnabled, peerMac, ndiInitMac);
     }
 
     /**

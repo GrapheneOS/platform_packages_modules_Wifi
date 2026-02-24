@@ -471,11 +471,11 @@ public class WifiNanIface implements WifiHal.WifiInterface {
             String interfaceName, byte[] appInfo,
             boolean isOutOfBand, Capabilities capabilities,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-            boolean frameProtectionEnabled, byte[] peerMac) {
+            boolean frameProtectionEnabled, byte[] peerMac, byte[] ndiInitMac) {
         return validateAndCall("respondToDataPathRequest", false,
                 () -> mWifiNanIface.respondToDataPathRequest(transactionId, accept, ndpId,
-                        interfaceName, appInfo, isOutOfBand, capabilities, securityConfig,
-                        pubSubId, frameProtectionEnabled, peerMac));
+                        interfaceName, appInfo, isOutOfBand, capabilities, securityConfig, pubSubId,
+                        frameProtectionEnabled, peerMac, ndiInitMac));
     }
 
     /**
@@ -795,7 +795,7 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          *                They are passed from sender to receiver as-is with no parsing.
          */
         void eventDataPathRequest(byte discoverySessionId, byte[] peerDiscMacAddr,
-                int ndpInstanceId, byte[] appInfo);
+                int ndpInstanceId, byte[] appInfo, byte[] ndiInitMac);
 
         /**
          * Indicates that a data-path (NDP) setup has been completed. Received by both the
