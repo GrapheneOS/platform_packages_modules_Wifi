@@ -219,8 +219,9 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
                 byte[] serviceSpecificInfo) {
         }
         @Override
-        public void eventBootstrappingConfirm(int pairingId, int responseCode, int reason,
-                int comebackDelay, byte[] cookie, byte[] peerMacAddr) {
+        public void eventBootstrappingConfirm(int sessionId, int pairingId, int responseCode,
+		int reason, int comebackDelay, int bootstrappingMethod,
+		byte[] cookie, byte[] peerMacAddr) {
         }
         @Override
         public void eventSuspensionModeChanged(boolean isSuspended) {

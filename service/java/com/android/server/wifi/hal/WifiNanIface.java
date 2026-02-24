@@ -854,8 +854,8 @@ public class WifiNanIface implements WifiHal.WifiInterface {
         /**
          * Indicates that the bootstrapping is finished
          */
-        void eventBootstrappingConfirm(int pairingId, int responseCode, int reason,
-                int comebackDelay, byte[] cookie, byte[] peerMacAddr);
+        void eventBootstrappingConfirm(int sessionId, int pairingId, int responseCode, int reason,
+                int comebackDelay, int bootstrappingMethod, byte[] cookie, byte[] peerMacAddr);
 
         /**
          * Indicates that the suspension mode has changed, i.e., the device has entered or exited

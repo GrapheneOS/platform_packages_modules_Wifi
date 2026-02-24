@@ -714,10 +714,11 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
             Log.v(TAG, "eventBootstrappingConfirm:");
         }
         mWifiNanIface.getFrameworkCallback().eventBootstrappingConfirm(
+                0,
                 event.bootstrappingInstanceId,
                 convertAidlBootstrappingResponseCodeToFramework(event.responseCode),
                 WifiNanIface.NanStatusCode.fromAidl(event.reasonCode.status), event.comeBackDelay,
-                event.cookie, null);
+                0, event.cookie, null);
     }
 
     private int convertAidlBootstrappingResponseCodeToFramework(int aidlCode) {

@@ -439,10 +439,12 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
     }
 
     @Override
-    public void eventBootstrappingConfirm(int bootstrappingId, int responseCode, int reason,
-            int comebackDelay, byte[] cookie, byte[] peerDiscMacAddr) {
-        mWifiAwareStateManager.onBootstrappingConfirmNotification(bootstrappingId, responseCode,
-                reason, comebackDelay, cookie, peerDiscMacAddr);
+    public void eventBootstrappingConfirm(int sessionId, int bootstrappingId, int responseCode,
+	    int reason, int comebackDelay, int bootstrappingMethod,
+	    byte[] cookie, byte[] peerDiscMacAddr) {
+        mWifiAwareStateManager.onBootstrappingConfirmNotification(sessionId, bootstrappingId,
+		responseCode, reason, comebackDelay, bootstrappingMethod,
+		cookie, peerDiscMacAddr);
     }
 
     @Override
