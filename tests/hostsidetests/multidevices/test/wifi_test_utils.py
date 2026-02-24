@@ -140,3 +140,8 @@ def convert_str_to_bool(value: str | bool) -> bool:
   if isinstance(value, str):
     return value.lower() == 'true'
   return value
+
+def check_hotspot_device_supports_hotspot(ad: android_device.AndroidDevice):
+    """Checks if the hotspot device supports hotspot, and skips the test if not."""
+    if not ad.wifi.wifiIsPortableHotspotSupported():
+        asserts.skip("Hotspot device does not support hotspot.")
