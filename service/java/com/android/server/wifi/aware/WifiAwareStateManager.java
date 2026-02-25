@@ -5624,6 +5624,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 matchFilter, rangingIndication, rangeMm, cipherSuite, scid, pairingAlias,
                 pairingConfig, vendorData, mWifiManager.getConnectionInfo());
 
+        if (data.second.isPeerPaired(peerMac)) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "already paired, only update info");
+            }
+            return;
+        }
         if (TextUtils.isEmpty(pairingAlias)) {
             return;
         }
