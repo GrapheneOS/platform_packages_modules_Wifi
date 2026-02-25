@@ -20,14 +20,16 @@ from connection import ui_action_utils
 _NETWORK_CALLBACK = 'NetworkCallback'
 
 _ERROR_MSG_WIFI_SSID_NOT_FOUND = (
-    'Android device cannot discover the configured Wi-Fi SSID "{wifi_ssid}".'
-    ' Please check that whether the configured Wi-Fi SSID exists and can'
-    ' be discovered by the Android device.'
+    'Android device cannot discover the configured Wi-Fi SSID: {wifi_ssid}.'
+    ' Please check that:\n'
+    '1. Whether the configured Wi-Fi SSID "{wifi_ssid}" is correct in'
+    ' `WifiConnectionTestbed.yaml`.\n'
+    '2. Whether the configured Wi-Fi can be discovered by the Android device.'
 )
 
 _ERROR_MSG_CONFIGURED_WIFI_IS_OPEN = (
-    'The configured Wi-Fi network with SSID "{wifi_ssid}" is an open network,'
-    ' while using a secured Wi-Fi network is required.'
+    'This test requires a secured Wi-Fi network. However, the configured Wi-Fi'
+    ' network (SSID: "{wifi_ssid}") is an open network.'
 )
 
 
@@ -98,6 +100,7 @@ def assert_no_network_callback_received_within_timeout(
     callback_handler: callback_handler_v2.CallbackHandlerV2,
     specific_callback: str,
     timeout: datetime.timedelta = constants.WIFI_CONTINUOUSLY_CHECK_TIMEOUT,
+    error_msg: str | None = None,
 ) -> None:
   """Waits for the network to be not specific callback during within timeout."""
   # NetworkCallback class uses different callback names.
@@ -113,11 +116,12 @@ def assert_no_network_callback_received_within_timeout(
         predicate=lambda e: e.data['callbackName'] == specific_callback,
         timeout=timeout.total_seconds(),
     )
-  asserts.assert_is_none(
-      event,
-      f'Network lost event was received within {timeout.total_seconds()}'
-      f' seconds. Event: {event}'
-  )
+  if error_msg is None:
+    error_msg = (
+        f'Network lost event was received within {timeout.total_seconds()}'
+        f' seconds. Event: {event}'
+    )
+  asserts.assert_is_none(event, error_msg)
 
 
 def add_network_suggestions_and_assert_success(

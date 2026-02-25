@@ -5,9 +5,10 @@ import logging
 from typing import override
 
 from mobly import base_test
-from mobly import test_runner
 from mobly import records
+from mobly import test_runner
 from mobly.controllers import android_device
+from mobly.snippet import errors
 
 from connection import ap_helper
 from connection import constants
@@ -15,6 +16,20 @@ from connection import test_utils
 from connection import ui_action_utils
 from connection import wifi_utils
 import wifi_test_utils
+
+_ERROR_MSG_NETWORK_CONNECT_FAILED = (
+    'DUT failed to connect to Wi-Fi via network suggestion. Please check:\n'
+    '1. Verify that SSID "{wifi_ssid}" and password "{wifi_pwd}" are correct'
+    ' in "WifiConnectionTestbed.yaml".\n'
+    '2. Ensure there is no other Wi-Fi network sharing the same SSID but a'
+    ' different password.\n'
+    '3. Review device logs to determine why the DUT failed to connect to the'
+    ' network.'
+)
+
+
+class NetworkSuggestionFailedError(Exception):
+  """Raised when the DUT failed to connect to Wi-Fi via network suggestion."""
 
 
 class NetworkSuggestionTests(base_test.BaseTestClass):
@@ -172,9 +187,17 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
       self.ad.wifi.utilityDropShellPermission()
 
     # Verify the network is connected.
-    wifi_utils.wait_until_network_expected_callback(
-        network_callback, constants.NetworkCallback.ON_AVAILABLE
-    )
+    try:
+      wifi_utils.wait_until_network_expected_callback(
+          network_callback, constants.NetworkCallback.ON_AVAILABLE
+      )
+    except errors.CallbackHandlerTimeoutError as e:
+      raise NetworkSuggestionFailedError(
+          _ERROR_MSG_NETWORK_CONNECT_FAILED.format(
+              wifi_ssid=wifi_info.ssid,
+              wifi_pwd=wifi_info.password,
+          )
+      ) from e
     logging.info('wifi network connected.')
 
     # Verify the connected network is expected Wifi network.
@@ -245,9 +268,17 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
       self.ad.wifi.utilityDropShellPermission()
 
     # Verify the network is connected.
-    wifi_utils.wait_until_network_expected_callback(
-        network_callback, constants.NetworkCallback.ON_AVAILABLE
-    )
+    try:
+      wifi_utils.wait_until_network_expected_callback(
+          network_callback, constants.NetworkCallback.ON_AVAILABLE
+      )
+    except errors.CallbackHandlerTimeoutError as e:
+      raise NetworkSuggestionFailedError(
+          _ERROR_MSG_NETWORK_CONNECT_FAILED.format(
+              wifi_ssid=wifi_info.ssid,
+              wifi_pwd=wifi_info.password,
+          )
+      ) from e
     logging.info('wifi network connected.')
 
     # Verify the connected network is expected Wifi network.
@@ -327,9 +358,17 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
       self.ad.wifi.utilityDropShellPermission()
 
     # Verify the network is connected.
-    wifi_utils.wait_until_network_expected_callback(
-        network_callback, constants.NetworkCallback.ON_AVAILABLE
-    )
+    try:
+      wifi_utils.wait_until_network_expected_callback(
+          network_callback, constants.NetworkCallback.ON_AVAILABLE
+      )
+    except errors.CallbackHandlerTimeoutError as e:
+      raise NetworkSuggestionFailedError(
+          _ERROR_MSG_NETWORK_CONNECT_FAILED.format(
+              wifi_ssid=wifi_info.ssid,
+              wifi_pwd=wifi_info.password,
+          )
+      ) from e
     logging.info('wifi network connected.')
 
     # Verify the post connect broadcast is received.
@@ -505,9 +544,17 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
 
     network_callback_id = network_callback.callback_id
     # Verify the network is connected.
-    wifi_utils.wait_until_network_expected_callback(
-        network_callback, constants.NetworkCallback.ON_AVAILABLE
-    )
+    try:
+      wifi_utils.wait_until_network_expected_callback(
+          network_callback, constants.NetworkCallback.ON_AVAILABLE
+      )
+    except errors.CallbackHandlerTimeoutError as e:
+      raise NetworkSuggestionFailedError(
+          _ERROR_MSG_NETWORK_CONNECT_FAILED.format(
+              wifi_ssid=wifi_info.ssid,
+              wifi_pwd=wifi_info.password,
+          )
+      ) from e
     logging.info('wifi network connected.')
 
     # Verify the connected network is expected Wifi network.
