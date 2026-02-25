@@ -233,6 +233,7 @@ def add_network_suggestions(
 def assert_connecting_with_expected_connection(
     ad: android_device.AndroidDevice,
     wifi_info: constants.WifiInfo,
+    check_bssid: bool = False,
 ) -> None:
   """Checks that the connected network matches the expected Wi-Fi."""
   asserts.assert_equal(
@@ -240,11 +241,12 @@ def assert_connecting_with_expected_connection(
       wifi_info.ssid,
       'The SSID of connected Wi-Fi is not expected.',
   )
-  asserts.assert_equal(
-      ad.wifi.wifiGetCurrentConnectionInfo()['bssid'],
-      wifi_info.bssid,
-      'The BSSID of connected Wi-Fi is not expected.',
-  )
+  if check_bssid:
+    asserts.assert_equal(
+        ad.wifi.wifiGetCurrentConnectionInfo()['bssid'],
+        wifi_info.bssid,
+        'The BSSID of connected Wi-Fi is not expected.',
+    )
 
 
 def wait_until_network_capability_is_as_expected(
@@ -298,6 +300,7 @@ def remove_network_suggestion_and_assert_disconnection(
     ad: android_device.AndroidDevice,
     network_suggestions: list[dict[str, str | int | bool]],
     network_callback: callback_handler_v2.CallbackHandlerV2,
+    check_on_lost_callback: bool = True,
 ) -> None:
   """Removes network suggestions and verifies the network is disconnected."""
   # clear existing callback lost events.
@@ -309,12 +312,13 @@ def remove_network_suggestion_and_assert_disconnection(
       'Failed to remove Network suggestion',
   )
   # Verify the network is lost.
-  network_callback.waitForEvent(
-      event_name=constants.NetworkCallback.CALLBACK_LOST,
-      predicate=lambda e: e.data['callbackName']
-      == constants.NetworkCallback.LOST,
-      timeout=constants.WIFI_LOST_TIMEOUT.total_seconds(),
-  )
+  if check_on_lost_callback:
+    network_callback.waitForEvent(
+        event_name=constants.NetworkCallback.CALLBACK_LOST,
+        predicate=lambda e: e.data['callbackName']
+        == constants.NetworkCallback.LOST,
+        timeout=constants.WIFI_LOST_TIMEOUT.total_seconds(),
+    )
 
 
 def _is_scan_result_for_wpa2_network(scan_result: Mapping[str, Any]):

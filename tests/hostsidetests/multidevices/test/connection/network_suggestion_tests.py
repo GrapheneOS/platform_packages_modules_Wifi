@@ -120,6 +120,8 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
   @override
   def teardown_test(self) -> None:
     self.ap_helper.stop_programmable_ap()
+    # Pass an empty list to remove added all network suggestions.
+    self.ad.wifi.wifiRemoveNetworkSuggestions([])
     self.ad.wifi.wifiClearConfiguredNetworks()
     self.ad.wifi.connectivityUnregisterNetwork(self.request_networkid)
     self.ad.wifi.wifiRemoveSuggestionConnectionStatusListener()
@@ -157,6 +159,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
+    is_bssid_set = False
     network_suggestion = constants.NetworkSuggestion(
         ssid=wifi_info.ssid,
         psk=wifi_info.password,
@@ -201,7 +204,9 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     logging.info('wifi network connected.')
 
     # Verify the connected network is expected Wifi network.
-    wifi_utils.assert_connecting_with_expected_connection(self.ad, wifi_info)
+    wifi_utils.assert_connecting_with_expected_connection(
+        self.ad, wifi_info, check_bssid=is_bssid_set
+    )
     logging.info('connected network is expected %s', wifi_info.ssid)
 
     # Remove the network suggestion and verify the process finished.
@@ -237,6 +242,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     )
 
     # Set up the network suggestion parameters.
+    is_bssid_set = True
     network_suggestion = constants.NetworkSuggestion(
         ssid=wifi_info.ssid,
         bssid=wifi_info.bssid,
@@ -282,7 +288,9 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     logging.info('wifi network connected.')
 
     # Verify the connected network is expected Wifi network.
-    wifi_utils.assert_connecting_with_expected_connection(self.ad, wifi_info)
+    wifi_utils.assert_connecting_with_expected_connection(
+        self.ad, wifi_info, check_bssid=is_bssid_set
+    )
     logging.info('connected network is expected %s', wifi_info.ssid)
 
     # Remove the network suggestion and verify the process finished.
@@ -321,6 +329,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     )
 
     # Set up the network suggestion parameters.
+    is_bssid_set = False
     network_suggestion = constants.NetworkSuggestion(
         ssid=wifi_info.ssid,
         psk=wifi_info.password,
@@ -379,7 +388,9 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     logging.info('post connect broadcast is received.')
 
     # Verify the connected network with expected Wifi network.
-    wifi_utils.assert_connecting_with_expected_connection(self.ad, wifi_info)
+    wifi_utils.assert_connecting_with_expected_connection(
+        self.ad, wifi_info, check_bssid=is_bssid_set
+    )
     logging.info('connected network is expected %s', wifi_info.ssid)
 
     # Remove the network suggestion and verify the process finished.
@@ -472,12 +483,13 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     )
     logging.info('network connection status is failed authentication.')
 
-    # Verify the network is lost.
-    wifi_utils.assert_no_network_callback_received_within_timeout(
+    # Remove the network suggestion, but do not check onLost callback.
+    wifi_utils.remove_network_suggestion_and_assert_disconnection(
+        self.ad,
+        network_suggestion_array,
         network_callback,
-        constants.NetworkCallback.ON_AVAILABLE,
+        check_on_lost_callback=False,
     )
-    logging.info('wifi network suggestion and connection removed.')
 
   def test_that_suggestion_modification_in_place(self) -> None:
     """Tests WiFi connection suggestion modification in place.
@@ -513,6 +525,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     )
 
     # Set up the network suggestion parameters.
+    is_bssid_set = False
     network_suggestion = constants.NetworkSuggestion(
         ssid=wifi_info.ssid,
         psk=wifi_info.password,
@@ -558,7 +571,9 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     logging.info('wifi network connected.')
 
     # Verify the connected network is expected Wifi network.
-    wifi_utils.assert_connecting_with_expected_connection(self.ad, wifi_info)
+    wifi_utils.assert_connecting_with_expected_connection(
+        self.ad, wifi_info, check_bssid=is_bssid_set
+    )
     logging.info('connected network is expected %s', wifi_info.ssid)
 
     # Verify the specific network capability exists.
