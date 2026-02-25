@@ -1061,6 +1061,17 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         }
     }
 
+    /**
+     * Wrapper that gets the current multicast filter state from WifiMulticastLockManager.
+     */
+    private void setCurrentMulticastFilter() {
+        // Primary CMM: Disable filtering if the lock manager indicates that multicast is enabled
+        // Secondary CMM: Always filter multicast packets
+        boolean enableFilter = isPrimary()
+                ? !mWifiInjector.getWifiMulticastLockManager().isMulticastEnabled() : true;
+        setMulticastFilter(enableFilter);
+    }
+
     /*
      * Log wifi event to SecurityLog if the event occurred on a managed network.
      */
@@ -4602,8 +4613,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      */
     private void setupClientMode() {
         Log.d(getTag(), "setupClientMode() ifacename = " + mInterfaceName);
-
-        setMulticastFilter(true);
+        setCurrentMulticastFilter();
         registerForWifiMonitorEvents();
         if (isPrimary()) {
             mWifiLastResortWatchdog.clearAllFailureCounts();
@@ -7317,7 +7327,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 case CMD_IPCLIENT_CREATED: {
                     if (!isFromCurrentIpClientCallbacks(message)) break;
                     setIpClientManager((IpClientManager) message.obj);
-                    setMulticastFilter(true);
+                    setCurrentMulticastFilter();
                     transitionTo(mL3ProvisioningState);
                     break;
                 }
