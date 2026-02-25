@@ -216,7 +216,7 @@ public class WifiAwareNativeManager {
             return;
         }
         if (mSupplicantNanIface != null) {
-            mMainlineSupplicant.removeWifiNanIface();
+            mMainlineSupplicant.removeWifiNanIface(mWifiNativeNanIface.name);
             mSupplicantNanIface = null;
         }
         mInterfaceDestroyedListener.active = false;
@@ -267,7 +267,7 @@ public class WifiAwareNativeManager {
             mWifiNative.teardownNanIface(nanIfaceId);
         }
         if (mSupplicantNanIface != null) {
-            mMainlineSupplicant.removeWifiNanIface();
+            mMainlineSupplicant.removeWifiNanIface(mWifiNativeNanIface.name);
             mSupplicantNanIface = null;
         }
         mMainlineSupplicant.unregisterDeathHandler(mSupplicantDeathHandler);

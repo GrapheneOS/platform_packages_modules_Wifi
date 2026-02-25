@@ -290,7 +290,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
 
         // 3. release (interface released)
         mDut.releaseAware();
-        mInOrder.verify(mMainlineSupplicant).removeWifiNanIface();
+        mInOrder.verify(mMainlineSupplicant).removeWifiNanIface(eq(IFACE_NAME));
         mInOrder.verify(mHalDeviceManager).removeIface(mWifiNanIfaceMock);
         mInOrder.verify(mWifiNative).teardownNanIface(anyInt());
         assertNull("Interface non-null!", mDut.getWifiNanIface());
@@ -324,7 +324,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
 
         // 7. release (interface released)
         mDut.releaseAware();
-        mInOrder.verify(mMainlineSupplicant).removeWifiNanIface();
+        mInOrder.verify(mMainlineSupplicant).removeWifiNanIface(eq(IFACE_NAME));
         mInOrder.verify(mHalDeviceManager).removeIface(mWifiNanIfaceMock);
         mInOrder.verify(mWifiNative).teardownNanIface(anyInt());
         assertNull("Interface non-null!", mDut.getWifiNanIface());
@@ -333,7 +333,7 @@ public class WifiAwareNativeManagerTest extends WifiBaseTest {
         mInOrder.verify(mWifiNative, never()).createNanIface(any(), any(), any());
         mInOrder.verify(mHalDeviceManager, never()).removeIface(any());
         mInOrder.verify(mWifiNative, never()).teardownNanIface(anyInt());
-        mInOrder.verify(mMainlineSupplicant, never()).removeWifiNanIface();
+        mInOrder.verify(mMainlineSupplicant, never()).removeWifiNanIface(anyString());
         verifyNoMoreInteractions(mWifiAwareStateManagerMock, mWifiNanIfaceMock,
                 mSupplicantNanIface);
     }

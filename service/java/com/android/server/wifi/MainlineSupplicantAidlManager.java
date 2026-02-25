@@ -318,8 +318,9 @@ public class MainlineSupplicantAidlManager {
     /**
      * Remove the WifiNanIface interface.
      */
-    public boolean removeWifiNanIface() {
+    public boolean removeWifiNanIface(String ifaceName) {
         String methodStr = "removeNanInterface";
+        final String interfaceName = ifaceName == null ? AWARE_IFACE_NAME : ifaceName;
         synchronized (mLock) {
             if (mWifiNanIface == null) {
                 return false;
@@ -328,7 +329,7 @@ public class MainlineSupplicantAidlManager {
                 if (!checkSupplicantAndLogFailure(methodStr)) {
                     return false;
                 }
-                mIMainlineSupplicant.removeNanInterface(AWARE_IFACE_NAME);
+                mIMainlineSupplicant.removeNanInterface(interfaceName);
                 mWifiNanIface = null; // Clear on success
                 return true;
             } catch (RemoteException e) {
