@@ -823,7 +823,7 @@ public class WifiEnterpriseConfig implements Parcelable {
      */
     public void setEapMethod(int eapMethod) {
         switch (eapMethod) {
-            /** Valid methods */
+            /* Valid methods */
             case Eap.WAPI_CERT:
                 mEapMethod = eapMethod;
                 setPhase2Method(Phase2.NONE);

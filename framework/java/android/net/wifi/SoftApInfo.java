@@ -402,14 +402,14 @@ public final class SoftApInfo implements Parcelable {
     public SoftApInfo() {
     }
 
-    @Override
     /** Implement the Parcelable interface. */
+    @Override
     public int describeContents() {
         return 0;
     }
 
-    @Override
     /** Implement the Parcelable interface */
+    @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeInt(mFrequency);
         dest.writeInt(mBandwidth);
@@ -421,8 +421,8 @@ public final class SoftApInfo implements Parcelable {
         dest.writeParcelable(mMldAddress, flags);
     }
 
-    @NonNull
     /** Implement the Parcelable interface */
+    @NonNull
     public static final Creator<SoftApInfo> CREATOR = new Creator<SoftApInfo>() {
         public SoftApInfo createFromParcel(Parcel in) {
             SoftApInfo info = new SoftApInfo();
