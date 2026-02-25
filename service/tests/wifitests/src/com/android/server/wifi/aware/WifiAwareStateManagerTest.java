@@ -5298,7 +5298,20 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onInitiateDataPathResponseSuccess(transactionId.getValue(), 1);
         mMockLooper.dispatchAll();
 
-        // (7) subscribe termination (from firmware - not app!)
+        // (7) Match peer again, info update. Should not trigger pairing again.
+        mDut.onMatchNotification(subscribeId, peerId, peerMac1, null, null, 0, 0, null, 0, null,
+                null, pairingConfig, null);
+        mMockLooper.dispatchAll();
+        verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
+                eq(sessionId.getValue()),
+                eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
+        inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(),
+                isNull(), anyInt(), isNull(), eq(alias), any(), isNull());
+        mMockLooper.dispatchAll();
+        inOrder.verify(mMockNative, never()).initiatePairing(anyByte(), anyInt(), any(), any(),
+                anyBoolean(), anyInt(), any(), isNull(), anyInt(), anyInt());
+
+        // (8) subscribe termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
@@ -5307,7 +5320,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         inOrderM.verify(mAwareMetricsMock).recordDiscoverySessionDuration(anyLong(), eq(false),
                 anyInt());
 
-        // (8) app terminates session
+        // (9) app terminates session
         mDut.terminateSession(clientId, sessionId.getValue());
         mMockLooper.dispatchAll();
         verify(mAwareMetricsMock, atLeastOnce()).recordPeerFoundResult(eq(clientId),
