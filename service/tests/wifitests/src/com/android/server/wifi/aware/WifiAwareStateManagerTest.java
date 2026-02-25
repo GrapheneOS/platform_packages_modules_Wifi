@@ -25,7 +25,9 @@ import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_DATA_PATH_ROLE_INITIATOR;
 import static android.net.wifi.aware.WifiAwareManager.WIFI_AWARE_DATA_PATH_ROLE_RESPONDER;
 import static android.net.wifi.aware.WifiAwareNetworkSpecifier.NETWORK_SPECIFIER_TYPE_IB;
+import static android.system.OsConstants.NETLINK_ROUTE;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.staticMockMarker;
 import static com.android.server.wifi.WifiSettingsConfigStore.D2D_ALLOWED_WHEN_INFRA_STA_DISABLED;
 import static com.android.server.wifi.aware.WifiAwareDiscoverySessionState.INVALID_INSTANCE_ID;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_CAPABILITIES;
@@ -52,8 +54,10 @@ import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -76,6 +80,9 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
+import android.net.LinkProperties;
+import android.net.ip.IIpClient;
+import android.net.ip.IpClientCallbacks;
 import android.net.wifi.IBooleanListener;
 import android.net.wifi.OuiKeyedData;
 import android.net.wifi.WifiAvailableChannel;
@@ -117,12 +124,15 @@ import android.util.SparseArray;
 import androidx.test.filters.SmallTest;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.dx.mockito.inline.extended.StaticInOrder;
 import com.android.dx.mockito.inline.extended.StaticMockitoSession;
 import com.android.internal.util.State;
 import com.android.internal.util.StateMachine;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.net.module.util.netlink.NetlinkUtils;
 import com.android.server.wifi.Clock;
 import com.android.server.wifi.DeviceConfigFacade;
+import com.android.server.wifi.FrameworkFacade;
 import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.InterfaceConflictManager;
 import com.android.server.wifi.MockResources;
@@ -206,6 +216,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
     @Mock private WifiSettingsConfigStore mWifiSettingsConfigStore;
     @Mock private WifiGlobals mWifiGlobals;
     @Mock private WifiDiagnostics mMockWifiDiagnostics;
+    @Mock private IIpClient mIpClient;
     final ArgumentCaptor<WifiSettingsConfigStore.OnSettingsChangedListener>
             mD2dAllowedSettingChangedListenerCaptor =
             ArgumentCaptor.forClass(WifiSettingsConfigStore.OnSettingsChangedListener.class);
@@ -227,6 +238,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
     @Captor
     ArgumentCaptor<StatsManager.StatsPullAtomCallback> mPullAtomCallbackArgumentCaptor;
+    private IpClientCallbacks mIpClientCallback;
+    private FrameworkFacade mFrameworkFacade = getFrameworkFacade();
 
     /**
      * Pre-test configuration. Initialize and install mocks.
@@ -237,6 +250,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mSession = ExtendedMockito.mockitoSession()
                 .strictness(Strictness.LENIENT)
                 .mockStatic(WifiInjector.class)
+                .mockStatic(NetlinkUtils.class)
                 .startMocking();
 
         when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
@@ -292,6 +306,11 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         when(mWifiInjector.getSettingsConfigStore()).thenReturn(mWifiSettingsConfigStore);
         when(mWifiInjector.getWifiGlobals()).thenReturn(mWifiGlobals);
         when(mWifiInjector.getWifiDiagnostics()).thenReturn(mMockWifiDiagnostics);
+        when(mWifiInjector.getFrameworkFacade()).thenReturn(mFrameworkFacade);
+        doAnswer(inv -> {
+            mIpClientCallback.onQuit();
+            return null;
+        }).when(mIpClient).shutdown();
         when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         mDut = new WifiAwareStateManager(mWifiInjector, mPairingConfigManager);
@@ -349,6 +368,20 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.handleUserSwitch(TEST_USER_ID);
         verify(mPairingConfigManager).reset();
         reset(mPairingConfigManager);
+    }
+
+    private FrameworkFacade getFrameworkFacade() {
+        FrameworkFacade facade = mock(FrameworkFacade.class);
+
+        doAnswer(new MockAnswerUtil.AnswerWithArguments() {
+            public void answer(
+                    Context context, String ifname, IpClientCallbacks callback) {
+                mIpClientCallback = callback;
+                callback.onIpClientCreated(mIpClient);
+            }
+        }).when(facade).makeIpClient(any(), anyString(), any());
+
+        return facade;
     }
 
     /**
@@ -6417,6 +6450,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         InOrder inOrder = inOrder(mockCallback, mockSessionCallback, mMockNative, mMockContext,
                 mPairingConfigManager);
         InOrder inOrderM = inOrder(mAwareMetricsMock);
+        StaticInOrder inOrderStatic = ExtendedMockito.inOrder(staticMockMarker(NetlinkUtils.class));
         when(mPairingConfigManager.getNikForCallingPackage(callingPackage)).thenReturn(mNik);
 
         mDut.enableUsage();
@@ -6531,6 +6565,11 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onDataPathConfirmNotification(ndpId, peerDataPathMac, true, 0, null,
                 List.of(AWARE_CHANNEL_INFO));
         mMockLooper.dispatchAll();
+        verify(mIpClient).startProvisioning(any());
+        mIpClientCallback.onProvisioningSuccess(new LinkProperties());
+        mMockLooper.dispatchAll();
+        inOrderStatic.verify(() -> NetlinkUtils.sendOneShotKernelMessage(eq(NETLINK_ROUTE),
+                isNotNull()));
         verify(mMockAwareDataPathStatemanager, never())
                 .onDataPathConfirm(anyInt(), any(), anyBoolean(), anyInt(),
                 any(), any());
@@ -6602,6 +6641,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         InOrder inOrder = inOrder(mockCallback, mockSessionCallback, mMockNative, mMockContext,
                 mPairingConfigManager);
         InOrder inOrderM = inOrder(mAwareMetricsMock);
+        StaticInOrder inOrderStatic = ExtendedMockito.inOrder(staticMockMarker(NetlinkUtils.class));
 
         mDut.enableUsage();
         mMockLooper.dispatchAll();
@@ -6705,6 +6745,11 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onDataPathConfirmNotification(ndpId, peerDataPathMac, true, 0, null,
                 List.of(AWARE_CHANNEL_INFO));
         mMockLooper.dispatchAll();
+        verify(mIpClient).startProvisioning(any());
+        mIpClientCallback.onProvisioningSuccess(new LinkProperties());
+        mMockLooper.dispatchAll();
+        inOrderStatic.verify(() -> NetlinkUtils.sendOneShotKernelMessage(eq(NETLINK_ROUTE),
+                isNotNull()));
         verify(mMockAwareDataPathStatemanager, never())
                 .onDataPathConfirm(anyInt(), any(), anyBoolean(), anyInt(),
                         any(), any());
