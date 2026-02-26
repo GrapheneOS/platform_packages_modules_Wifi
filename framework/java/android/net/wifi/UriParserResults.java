@@ -134,20 +134,20 @@ public final class UriParserResults implements Parcelable {
         return mWifiConfig;
     }
 
-    @FlaggedApi(Flags.FLAG_ANDROID_V_WIFI_API)
-    @Override
     /**
      * Implement the Parcelable interface.
      */
+    @FlaggedApi(Flags.FLAG_ANDROID_V_WIFI_API)
+    @Override
     public int describeContents() {
         return 0;
     }
 
-    @FlaggedApi(Flags.FLAG_ANDROID_V_WIFI_API)
-    @Override
     /**
      * Implement the Parcelable interface.
      */
+    @FlaggedApi(Flags.FLAG_ANDROID_V_WIFI_API)
+    @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeInt(mScheme);
         dest.writeString(mPublicKey);
@@ -155,11 +155,11 @@ public final class UriParserResults implements Parcelable {
         dest.writeParcelable(mWifiConfig, flags);
     }
 
-    @FlaggedApi(Flags.FLAG_ANDROID_V_WIFI_API)
-    @NonNull
     /**
      * Implement the Parcelable interface.
      */
+    @FlaggedApi(Flags.FLAG_ANDROID_V_WIFI_API)
+    @NonNull
     public static final Creator<UriParserResults> CREATOR =
             new Creator<UriParserResults>() {
                 public UriParserResults createFromParcel(Parcel in) {

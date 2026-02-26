@@ -355,14 +355,14 @@ public final class SoftApCapability implements Parcelable {
         mSupportedFeatures = features;
     }
 
-    @Override
     /** Implement the Parcelable interface. */
+    @Override
     public int describeContents() {
         return 0;
     }
 
-    @Override
     /** Implement the Parcelable interface */
+    @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeLong(mSupportedFeatures);
         dest.writeInt(mMaximumSupportedClientNumber);
@@ -373,8 +373,8 @@ public final class SoftApCapability implements Parcelable {
         dest.writeString(mCountryCodeFromDriver);
     }
 
-    @NonNull
     /** Implement the Parcelable interface */
+    @NonNull
     public static final Creator<SoftApCapability> CREATOR = new Creator<SoftApCapability>() {
         public SoftApCapability createFromParcel(Parcel in) {
             SoftApCapability capability = new SoftApCapability(in.readLong());

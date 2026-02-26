@@ -66,7 +66,6 @@ class ProtocolsMultiCountryTest(base_test.BaseTestClass):
 
   def setup_class(self):
     # Register two Android devices.
-    logging.basicConfig(level=logging.INFO, force=True)
     self.ads = self.register_controller(android_device, min_number=2)
     if 'wifi_country_code' in self.user_params:
       self.country_code = self.user_params['wifi_country_code']

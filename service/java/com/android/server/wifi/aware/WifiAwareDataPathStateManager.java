@@ -107,7 +107,7 @@ public class WifiAwareDataPathStateManager {
 
     private static final String AWARE_INTERFACE_PREFIX = "aware_data";
     private static final String NETWORK_TAG = "WIFI_AWARE_FACTORY";
-    private static final String AGENT_TAG_PREFIX = "WIFI_AWARE_AGENT_";
+    public static final String AGENT_TAG_PREFIX = "WIFI_AWARE_AGENT_";
     private static final int NETWORK_FACTORY_SCORE_AVAIL = 1;
     private static final int NETWORK_FACTORY_BANDWIDTH_AVAIL = 1;
     private static final int NETWORK_FACTORY_SIGNAL_STRENGTH_AVAIL = 1;
@@ -741,7 +741,10 @@ public class WifiAwareDataPathStateManager {
         }
     }
 
-    private byte[] createAddNeighborRtNetlinkNeighborMessage(int ifIndex, Inet6Address ip,
+    /**
+     * Create the Netlink command to add new neighbor to the routing table.
+     */
+    public static byte[] createAddNeighborRtNetlinkNeighborMessage(int ifIndex, Inet6Address ip,
             byte[] llAddr) {
         short flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_REPLACE | NLM_F_CREATE;
         final RtNetlinkNeighborMessage msg = new RtNetlinkNeighborMessage.Builder()
