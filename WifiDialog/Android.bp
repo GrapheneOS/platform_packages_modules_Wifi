@@ -23,6 +23,8 @@ android_app {
     certificate: ":com.android.wifi.dialog.certificate",
 
     libs: [
+        "framework-bluetooth.stubs.module_lib",
+        "framework-telecom.stubs.module_lib",
         "framework-wifi.impl",
     ],
     static_libs: [
@@ -37,6 +39,7 @@ android_app {
         "test_com.android.wifi",
     ],
     optimize: {
+        ignore_warnings: false,
         shrink_resources: true,
     },
     updatable: true,
