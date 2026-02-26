@@ -474,11 +474,11 @@ public class AwareIfaceAidlSupplicantImpl {
      */
     public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
             byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-            String password, int akm, int cipherSuite) {
+            String password, int akm, int cipherSuite, byte[] peerMac) {
         String methodStr = "respondToPairingRequest";
         NanRespondToPairingIndicationRequest request = createRespondToPairingIndicationRequest(
                 pairingId, accept, pairingIdentityKey, enablePairingCache, requestType, pmk,
-                password, akm, cipherSuite);
+                password, akm, cipherSuite, peerMac);
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
             mWifiNanIface.respondToPairingIndicationRequest((char) transactionId, request);
@@ -1089,10 +1089,11 @@ public class AwareIfaceAidlSupplicantImpl {
     private static NanRespondToPairingIndicationRequest createRespondToPairingIndicationRequest(
             int pairingInstanceId, boolean accept, byte[] pairingIdentityKey,
             boolean enablePairingCache, int requestType, byte[] pmk, String password, int akm,
-            int cipherSuite) {
+            int cipherSuite, byte[] peerMac) {
         NanRespondToPairingIndicationRequest request = new NanRespondToPairingIndicationRequest();
         request.pairingInstanceId = pairingInstanceId;
         request.acceptRequest = accept;
+        request.peerDiscMacAddr = copyArray(peerMac);
         request.pairingIdentityKey = copyArray(pairingIdentityKey, 16);
         request.enablePairingCache = enablePairingCache;
         request.requestType = requestType == NAN_PAIRING_REQUEST_TYPE_SETUP

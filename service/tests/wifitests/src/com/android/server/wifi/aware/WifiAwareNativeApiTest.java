@@ -446,16 +446,16 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
     @Test
     public void testRespondToPairingRequest() {
         when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
-        mDut.respondToPairingRequest((short) 1, 123, true, null, true, 1, null, null, 1, 1);
+        mDut.respondToPairingRequest((short) 1, 123, true, null, true, 1, null, null, 1, 1, null);
         verify(mWifiNanIfaceMock).respondToPairingRequest(eq((short) 1), eq(123), eq(true),
                 eq(null), eq(true), eq(1), eq(null), eq(null), eq(1), eq(1));
     }
 
     @Test
     public void testRespondToPairingRequestWithSupplicant() {
-        mDut.respondToPairingRequest((short) 1, 123, true, null, true, 1, null, null, 1, 1);
+        mDut.respondToPairingRequest((short) 1, 123, true, null, true, 1, null, null, 1, 1, null);
         verify(mAwareIfaceAidlSupplicantImplMock).respondToPairingRequest(eq((short) 1), eq(123),
-                eq(true), eq(null), eq(true), eq(1), eq(null), eq(null), eq(1), eq(1));
+                eq(true), eq(null), eq(true), eq(1), eq(null), eq(null), eq(1), eq(1), eq(null));
     }
 
     @Test
