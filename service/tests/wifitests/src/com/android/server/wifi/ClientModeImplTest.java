@@ -7724,6 +7724,27 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiNative).removeNetworkCachedData(FRAMEWORK_NETWORK_ID);
     }
 
+    /**
+     * Verify that network cached data is not cleared for RESERVED reason code in
+     * disconnected state.
+     */
+    @Test
+    public void testNetworkCachedDataIsNotClearedForReservedReasonCode() throws Exception {
+        // Setup CONNECT_MODE & a WifiConfiguration
+        initializeAndAddNetworkAndVerifySuccess();
+        mCmi.sendMessage(ClientModeImpl.CMD_START_CONNECT, 0, 0, TEST_BSSID_STR);
+        mLooper.dispatchAll();
+
+        // got RESERVED (0) during this connection attempt
+        DisconnectEventInfo disconnectEventInfo =
+                new DisconnectEventInfo(TEST_SSID, TEST_BSSID_STR, 0, false);
+        mCmi.sendMessage(WifiMonitor.NETWORK_DISCONNECTION_EVENT, disconnectEventInfo);
+        mLooper.dispatchAll();
+
+        assertEquals("DisconnectedState", getCurrentState().getName());
+        verify(mWifiNative, never()).removeNetworkCachedData(anyInt());
+    }
+
     /*
      * Verify that network cached data is cleared correctly in
      * disconnected state.

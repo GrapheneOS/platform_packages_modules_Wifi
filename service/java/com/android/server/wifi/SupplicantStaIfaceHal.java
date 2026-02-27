@@ -127,6 +127,7 @@ public class SupplicantStaIfaceHal {
     }
 
     public static class StaIfaceReasonCode {
+        public static final int RESERVED = 0;
         public static final int UNSPECIFIED = 1;
         public static final int PREV_AUTH_NOT_VALID = 2;
         public static final int DEAUTH_LEAVING = 3;
@@ -191,6 +192,8 @@ public class SupplicantStaIfaceHal {
 
         public static String toString(int code) {
             switch(code) {
+                case RESERVED:
+                    return "RESERVED";
                 case UNSPECIFIED:
                     return "UNSPECIFIED";
                 case PREV_AUTH_NOT_VALID:
