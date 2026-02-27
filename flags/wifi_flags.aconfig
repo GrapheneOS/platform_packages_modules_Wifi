@@ -529,3 +529,11 @@ flag {
     description: "API to get power statistics for each wifi core/radio"
     bug: "444936941"
 }
+
+flag {
+    name: "allow_d2d_without_sta_on_xr"
+    is_exported: false
+    namespace: "wifi"
+    description: "Enables Standalone D2D on XR devices, even when STA+D2D concurrency is supported"
+    bug: "486996062"
+}

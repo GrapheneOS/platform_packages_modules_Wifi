@@ -23,6 +23,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.content.pm.PackageManager;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -67,6 +68,7 @@ public class RssiMonitorTest extends WifiBaseTest {
     WifiResourceCache mWifiResourceCache;
     private final WifiInfo mWifiInfo = new ExtendedWifiInfo(mWifiGlobals, TEST_INTERFACE_NAME);
     @Mock WifiNative mWifiNative;
+    @Mock private PackageManager mPackageManager;
     @Mock Runnable mUpdateCapabilityRunnable;
     @Mock DeviceConfigFacade mDeviceConfigFacade;
     @Captor ArgumentCaptor<WifiNative.WifiRssiEventHandler> mRssiEventHandlerCaptor;
@@ -77,6 +79,7 @@ public class RssiMonitorTest extends WifiBaseTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        when(mContext.getPackageManager()).thenReturn(mPackageManager);
         when(mContext.getResources()).thenReturn(mMockResources);
         mWifiResourceCache = new WifiResourceCache(mContext);
         when(mContext.getResourceCache()).thenReturn(mWifiResourceCache);
