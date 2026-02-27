@@ -5630,7 +5630,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             return;
         }
-        if (TextUtils.isEmpty(pairingAlias)) {
+        if (pairingAlias == null) {
             return;
         }
         PairingSecurityAssociationInfo securityInfo = mPairingConfigManager
