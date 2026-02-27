@@ -177,6 +177,13 @@ public class WifiAwareDiscoverySessionState {
     }
 
     /**
+     * Get the pairing configuration.
+     */
+    public AwarePairingConfig getPairingConfig() {
+        return mPairingConfig;
+    }
+
+    /**
      * Check if the peer is paired.
      */
     public boolean isPeerPaired(byte[] mac) {

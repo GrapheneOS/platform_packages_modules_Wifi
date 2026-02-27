@@ -5648,7 +5648,17 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             return;
         }
+        if (data.second.getPairingConfig() == null
+                || !data.second.getPairingConfig().isPairingVerificationEnabled()) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "Pairing verification disabled");
+            }
+            return;
+        }
         if (pairingAlias == null) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "no peer nik cache");
+            }
             return;
         }
         PairingSecurityAssociationInfo securityInfo = mPairingConfigManager
@@ -5789,6 +5799,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     mWifiManager.getConnectionInfo());
         } else {
             peerId = peerHandle.peerId;
+        }
+        if (data.second.getPairingConfig() == null
+                || !data.second.getPairingConfig().isPairingVerificationEnabled()) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "Pairing verification disabled");
+            }
+            securityInfo = null;
         }
         if (securityInfo != null) {
             responseNanPairingVerificationRequest(data.first.getClientId(),
