@@ -800,15 +800,18 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
      * @param pmk                credential for the pairing verification
      * @param password           credential for the pairing setup
      * @param akm                Key exchange method is used for pairing
+     * @param pubSubId           ID of the publish/subscribe session
      * @return True is the request send succeed.
      */
     public boolean initiatePairing(short transactionId, int peerId, byte[] peer,
             byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-            String password, int akm, int cipherSuite) {
+            String password, int akm, int cipherSuite, byte pubSubId) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "initiatePairing: transactionId=" + transactionId + ", peerId=" + peerId
                     + ", requestType=" + requestType + ", enablePairingCache=" + enablePairingCache
-                    + ", peer=" + String.valueOf(HexEncoding.encode(peer)));
+                    + ", peer=" + String.valueOf(HexEncoding.encode(peer))
+                    + ", pmk=" + (pmk == null ? "null" : "<non-null>")
+                    + ", pubSubId=" + pubSubId);
         }
         recordTransactionId(transactionId);
         MacAddress peerMac = null;
@@ -822,7 +825,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         if (supplicant != null) {
             return supplicant.initiateNanPairingRequest(transactionId, peerId, peerMac,
                     pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
-                    cipherSuite);
+                    cipherSuite, pubSubId);
         }
 
         WifiNanIface iface = mHal.getWifiNanIface();
@@ -848,11 +851,12 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
      * @param pmk                credential for the pairing verification
      * @param password           credential for the pairing setup
      * @param akm                Key exchange method is used for pairing
+     * @param pubSubId           ID of the publish/subscribe session
      * @return True is the request send succeed.
      */
     public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
             byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-            String password, int akm, int cipherSuite) {
+            String password, int akm, int cipherSuite, byte pubSubId, byte[] peerMac) {
         if (mVerboseLoggingEnabled) {
             Log.v(
                     TAG,
@@ -864,15 +868,17 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
                             + pairingId
                             + ", enablePairingCache="
                             + enablePairingCache
-                            + ", requestType"
-                            + requestType);
+                            + ", requestType="
+                            + requestType
+                            + ", pmk=" + (pmk == null ? "null" : "<non-null>")
+                            + ", pubSubId=" + pubSubId);
         }
         recordTransactionId(transactionId);
         AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
         if (supplicant != null) {
             return supplicant.respondToPairingRequest(transactionId, pairingId, accept,
                     pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
-                    cipherSuite);
+                    cipherSuite, pubSubId, peerMac);
         }
 
         WifiNanIface iface = mHal.getWifiNanIface();

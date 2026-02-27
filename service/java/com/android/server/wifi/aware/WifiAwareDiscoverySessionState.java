@@ -518,7 +518,7 @@ public class WifiAwareDiscoverySessionState {
         boolean success = mWifiAwareNativeApi.initiatePairing(transactionId,
                 peerInfo.mInstanceId, peerInfo.mMac, nik,
                 mPairingConfig != null && mPairingConfig.isPairingCacheEnabled(),
-                requestType, pmk, password, akm, cipherSuite);
+                requestType, pmk, password, akm, cipherSuite, mPubSubId);
         if (!success) {
             if (requestType == NAN_PAIRING_REQUEST_TYPE_VERIFICATION) {
                 return false;
@@ -569,7 +569,7 @@ public class WifiAwareDiscoverySessionState {
 
         boolean success = mWifiAwareNativeApi.respondToPairingRequest(transactionId, pairingId,
                 accept, nik, mPairingConfig != null && mPairingConfig.isPairingCacheEnabled(),
-                requestType, pmk, password, akm, cipherSuite);
+                requestType, pmk, password, akm, cipherSuite, mPubSubId, peerInfo.mMac);
         if (!success) {
             if (requestType == NAN_PAIRING_REQUEST_TYPE_VERIFICATION) {
                 return false;
