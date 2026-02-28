@@ -2,36 +2,17 @@
 
 This document is for internal development.
 
-## How to build the wheel files
+## Build the wheel files
 
-1.  Load build configurations in the Android repo:
+1. Run `gcert` if you have not run it already.
 
-```
-source build/envsetup.sh
-lunch <target>
-```
+2. Make sure you have local python environment and have `build` module installed. This build script utilizes `python3 -m build` command to build
+the test suite into wheel files.
 
-1.  Build the `wifi_mobly_snippet` snippet apk and copy it to
-    `betowiq/betowiq/snippets`. Enter the root directory and run the following
-    command:
+3. In the root directory of Android Gerrit repo, run the following command:
 
 ```
-make wifi_mobly_snippet
-cp $OUT/testcases/wifi_mobly_snippet/arm64/wifi_mobly_snippet.apk packages/modules/Wifi/tests/hostsidetests/multidevices/betowiq/betowiq/snippets/
+bash packages/modules/Wifi/tests/hostsidetests/multidevices/betowiq/build.sh
 ```
 
-1.  Build the `wifi_aware_snippet_new` snippet apk and copy it to
-    `betowiq/betowiq/snippets`. Enter the root directory and run the following
-    command:
-
-```
-make wifi_aware_snippet_new
-cp $OUT/testcases/wifi_aware_snippet_new/arm64/wifi_aware_snippet_new.apk packages/modules/Wifi/tests/hostsidetests/multidevices/betowiq/betowiq/snippets/
-```
-
-1.  Enter `betowiq` project root directory and run the following command, then
-    you can find the `.whl` file under the `dist` directory:
-
-```
-python3 -m build
-```
+4. Find the pre-built wheel files under `/tmp/betowiq`.

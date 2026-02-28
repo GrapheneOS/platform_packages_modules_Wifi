@@ -76,15 +76,15 @@ class ApHelper:
     # If not using programmable AP, must configure SSID when running the test.
     configured_wifi_ssid = test_class_obj.user_params.get('wifi_ssid')
     configured_wifi_pwd = test_class_obj.user_params.get('wifi_password')
-    asserts.assert_is_not_none(
+    asserts.assert_true(
         configured_wifi_ssid,
         'Config wifi_ssid is not set. Please set wifi_ssid and wifi_password'
-        ' for running Wi-Fi connection tests.'
+        ' in "WifiConnectionTestbed.yaml".'
     )
-    asserts.assert_is_not_none(
+    asserts.assert_true(
         configured_wifi_pwd,
-        'Config wifi_password is not set. You must set wifi_ssid and'
-        ' wifi_password for running Wi-Fi connection tests.'
+        'Config wifi_password is not set. Please set wifi_ssid and'
+        ' wifi_password in "WifiConnectionTestbed.yaml.'
     )
 
     self.configured_wifi_info = wifi_utils.assert_configured_wifi_is_available(

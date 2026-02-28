@@ -3,10 +3,12 @@
 import logging
 from typing import override
 
+from mobly import asserts
 from mobly import base_test
 from mobly import test_runner
 from mobly import records
 from mobly.controllers import android_device
+from mobly.snippet import errors
 
 from connection import ap_helper
 from connection import constants
@@ -14,6 +16,24 @@ from connection import test_utils
 from connection import ui_action_utils
 from connection import wifi_utils
 import wifi_test_utils
+
+_ERROR_MSG_NETWORK_CONNECT_FAILED = (
+    'DUT failed to connect to Wi-Fi via network request. Please check:\n'
+    '1. Verify that SSID "{wifi_ssid}" and password "{wifi_pwd}" are correct'
+    ' in "WifiConnectionTestbed.yaml".\n'
+    '2. Ensure there is no other Wi-Fi network sharing the same SSID but a'
+    ' different password.\n'
+    '3. Review device logs to determine why the DUT failed to connect to the'
+    ' network.'
+)
+
+_ERROR_MSG_NETWORK_LOST = (
+    'Disconnected from the network even though the request is active.'
+)
+
+
+class NetworkRequestFailedError(Exception):
+  """Raised when the DUT failed to connect to Wi-Fi via network request."""
 
 
 class NetworkRequestTests(base_test.BaseTestClass):
@@ -153,18 +173,28 @@ class NetworkRequestTests(base_test.BaseTestClass):
     )
     logging.info('Request a network with network specifier.')
 
-    # TODO: b/433456977 - Set up a unique resource-id to improve robustness.
-    ui_action_utils.click_connect_in_connection_dialog(
-        self.ad, wifi_info.ssid, self.current_test_info.output_path,
-    )
-    wifi_utils.wait_until_network_expected_callback(
-        network_callback, constants.NetworkCallback.ON_AVAILABLE
-    )
+    try:
+      ui_action_utils.click_connect_in_connection_dialog(
+          self.ad, wifi_info.ssid, self.current_test_info.output_path,
+      )
+      wifi_utils.wait_until_network_expected_callback(
+          network_callback, constants.NetworkCallback.ON_AVAILABLE
+      )
+    except (
+        errors.CallbackHandlerTimeoutError, asserts.signals.TestFailure
+    ) as e:
+      raise NetworkRequestFailedError(
+          _ERROR_MSG_NETWORK_CONNECT_FAILED.format(
+              wifi_ssid=wifi_info.ssid,
+              wifi_pwd=wifi_info.password,
+          )
+      ) from e
     logging.info('wifi network connected.')
 
     wifi_utils.assert_no_network_callback_received_within_timeout(
         network_callback,
         constants.NetworkCallback.LOST,
+        error_msg=_ERROR_MSG_NETWORK_LOST,
     )
     logging.info(
         'wifi network not lost within %s seconds.',
@@ -217,19 +247,28 @@ class NetworkRequestTests(base_test.BaseTestClass):
     )
     logging.info('Request a network with network specifier pattern.')
 
-    # TODO: b/433456977 - Set up a unique resource-id to improve robustness.
-    ui_action_utils.click_pattern_matched_wifi_in_connection_dialog(
-        self.ad, wifi_info.ssid, self.current_test_info.output_path,
-    )
-
-    wifi_utils.wait_until_network_expected_callback(
-        network_callback, constants.NetworkCallback.ON_AVAILABLE
-    )
+    try:
+      ui_action_utils.click_pattern_matched_wifi_in_connection_dialog(
+          self.ad, wifi_info.ssid, self.current_test_info.output_path,
+      )
+      wifi_utils.wait_until_network_expected_callback(
+          network_callback, constants.NetworkCallback.ON_AVAILABLE
+      )
+    except (
+        errors.CallbackHandlerTimeoutError, asserts.signals.TestFailure
+    ) as e:
+      raise NetworkRequestFailedError(
+          _ERROR_MSG_NETWORK_CONNECT_FAILED.format(
+              wifi_ssid=wifi_info.ssid,
+              wifi_pwd=wifi_info.password,
+          )
+      ) from e
     logging.info('wifi network connected.')
 
     wifi_utils.assert_no_network_callback_received_within_timeout(
         network_callback,
         constants.NetworkCallback.LOST,
+        error_msg=_ERROR_MSG_NETWORK_LOST,
     )
     logging.info(
         'wifi network not lost within %s seconds.',
