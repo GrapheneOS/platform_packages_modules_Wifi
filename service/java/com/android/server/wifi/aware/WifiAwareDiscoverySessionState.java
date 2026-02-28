@@ -689,7 +689,7 @@ public class WifiAwareDiscoverySessionState {
     public boolean respondToDataPathRequest(short transactionId, int peerId, boolean accept,
             int ndpId, String interfaceName, Capabilities capabilities,
             WifiAwareDataPathSecurityConfig securityConfig, boolean isLegacyApi, byte[] appInfo,
-            byte[] peerMac) {
+            byte[] peerMac, byte[] ndiInitMac) {
         byte[] peer = peerMac;
         if (!isLegacyApi) {
             if (interfaceName == null) {
@@ -710,7 +710,7 @@ public class WifiAwareDiscoverySessionState {
         }
         boolean success = mWifiAwareNativeApi.respondToDataPathRequest(transactionId, accept, ndpId,
                 interfaceName, appInfo, false, capabilities, securityConfig, mPubSubId,
-                isPeerPaired(peer), peer);
+                isPeerPaired(peer), peer, ndiInitMac);
         if (!success && !isLegacyApi) {
             onDataPathRequestFailure(peerId, DATA_PATH_CONNECTION_FAILURE_REASON_INTERNAL_FAILURE);
         }

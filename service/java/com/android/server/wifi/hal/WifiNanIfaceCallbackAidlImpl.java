@@ -599,7 +599,7 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
                     + event.ndpInstanceId + ", appInfo.size()=" + event.appInfo.length);
         }
         mWifiNanIface.getFrameworkCallback().eventDataPathRequest(event.discoverySessionId,
-                event.peerDiscMacAddr, event.ndpInstanceId, event.appInfo);
+                event.peerDiscMacAddr, event.ndpInstanceId, event.appInfo, null);
     }
 
     @Override

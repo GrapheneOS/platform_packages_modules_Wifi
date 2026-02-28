@@ -300,7 +300,7 @@ public class WifiNanIfaceCallbackAidlImplTest extends WifiBaseTest {
         mDut.eventDataPathRequest(event);
 
         verify(mFrameworkCallbackMock).eventDataPathRequest(event.discoverySessionId,
-                event.peerDiscMacAddr, event.ndpInstanceId, event.appInfo);
+                event.peerDiscMacAddr, event.ndpInstanceId, event.appInfo, null);
     }
 
     @Test

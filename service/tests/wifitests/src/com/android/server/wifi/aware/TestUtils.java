@@ -117,7 +117,7 @@ public class TestUtils {
                 String interfaceName, byte[] appInfo,
                 boolean isOutOfBand, Capabilities capabilities,
                 WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-                boolean frameProtectionEnabled, byte[] peerMac) {
+                boolean frameProtectionEnabled, byte[] peerMac, byte[] ndiInitMac) {
             addTransactionId(transactionId);
             return true;
         }

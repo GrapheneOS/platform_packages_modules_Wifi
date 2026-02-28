@@ -35,6 +35,12 @@ parcelable NanRespondToDataPathIndicationRequest {
     int ndpInstanceId;
 
     /**
+     * MAC address of NAN Data Interface (NDI) address of the Initiator.
+     * It is a randomized MAC address used for the data interface to prevent device tracking.
+     */
+    byte[6] ndiInitMac;
+
+    /**
      * MAC address of the Initiator peer. This is the MAC address of the peer's
      * management/discovery NAN interface.
      */

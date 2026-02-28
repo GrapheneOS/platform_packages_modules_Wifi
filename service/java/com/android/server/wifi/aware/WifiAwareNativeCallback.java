@@ -379,10 +379,10 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
 
     @Override
     public void eventDataPathRequest(byte discoverySessionId, byte[] peerDiscMacAddr,
-            int ndpInstanceId, byte[] appInfo) {
+            int ndpInstanceId, byte[] appInfo, byte[] ndiInitMac) {
         incrementCbCount(CB_EV_DATA_PATH_REQUEST);
         mWifiAwareStateManager.onDataPathRequestNotification(discoverySessionId,
-                peerDiscMacAddr, ndpInstanceId, appInfo);
+                peerDiscMacAddr, ndpInstanceId, appInfo, ndiInitMac);
     }
 
     @Override

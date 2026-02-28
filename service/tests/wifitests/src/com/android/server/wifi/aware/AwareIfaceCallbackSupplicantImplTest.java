@@ -344,6 +344,7 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         event.peerDiscMacAddr = NDI_MAC_ADDR;
         event.ndpInstanceId = ndpInstanceId;
         event.appInfo = APP_INFO;
+        event.ndiInitMac = NDI_MAC_ADDR;
 
         mDut.eventDataPathRequest(event);
 
@@ -351,7 +352,8 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
                 discoverySessionId,
                 NDI_MAC_ADDR,
                 ndpInstanceId,
-                APP_INFO);
+                APP_INFO,
+                NDI_MAC_ADDR);
     }
 
     @Test

@@ -188,7 +188,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         }
         @Override
         public void eventDataPathRequest(byte discoverySessionId, byte[] peerDiscMacAddr,
-                int ndpInstanceId, byte[] appInfo) {
+                int ndpInstanceId, byte[] appInfo, byte[] ndiInitMac) {
         }
         @Override
         public void eventDataPathConfirm(int status, int ndpInstanceId,
@@ -1099,7 +1099,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
 
         assertTrue(mDut.respondToDataPathRequest(tid, accept, ndpId, interfaceName,
                 appInfo, isOutOfBand, TEST_CAPABILITIES, securityConfig, pubSubId,
-                frameProtectionEnabled, null));
+                frameProtectionEnabled, null, null));
 
         verify(mIWifiNanIfaceMock)
                 .respondToDataPathIndicationRequest(eq((char) tid), captor.capture());

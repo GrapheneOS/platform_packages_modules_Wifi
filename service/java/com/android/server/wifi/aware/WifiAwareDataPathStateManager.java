@@ -212,6 +212,15 @@ public class WifiAwareDataPathStateManager {
         return numOfNdps;
     }
 
+    public byte[] getNdiInitMac(int ndpId) {
+        Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation> nnriE =
+                getNetworkRequestByNdpId(ndpId);
+        if (nnriE == null) return null;
+        NdpInfo ndpInfo = nnriE.getValue().ndpInfos.get(ndpId);
+        if (ndpInfo == null) return null;
+        return ndpInfo.ndiInitMac;
+    }
+
     private Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation>
                 getNetworkRequestByNdpId(int ndpId) {
         for (Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation> entry :
@@ -416,7 +425,7 @@ public class WifiAwareDataPathStateManager {
      * @return False if no match found, true if match found
      */
     public boolean onDataPathRequest(int pubSubId, byte[] mac, int ndpId,
-            byte[] message) {
+            byte[] message, byte[] ndiInitMac) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "onDataPathRequest: pubSubId=" + pubSubId + ", mac=" + String.valueOf(
                     HexEncoding.encode(mac)) + ", ndpId=" + ndpId);
@@ -511,7 +520,7 @@ public class WifiAwareDataPathStateManager {
                     "onDataPathRequest: request " + networkSpecifier + " no interface available");
             mMgr.respondToDataPathRequest(false, ndpId, "", null, false, nnri.networkSpecifier,
                     mac, nnri.networkSpecifier.peerId, nnri.networkSpecifier.clientId,
-                    nnri.networkSpecifier.sessionId, null);
+                    nnri.networkSpecifier.sessionId, null, ndiInitMac);
             mNetworkRequestsCache.remove(networkSpecifier);
             mNetworkFactory.letAppKnowThatRequestsAreUnavailable(nnri);
             return true;
@@ -520,6 +529,7 @@ public class WifiAwareDataPathStateManager {
         NdpInfo ndpInfo = new NdpInfo(ndpId);
         ndpInfo.state = NdpInfo.STATE_RESPONDER_WAIT_FOR_RESPOND_RESPONSE;
         ndpInfo.peerDiscoveryMac = mac;
+        ndpInfo.ndiInitMac = ndiInitMac;
         ndpInfo.startTimestamp = mClock.getElapsedSinceBootMillis();
         nnri.ndpInfos.put(ndpId, ndpInfo);
 
@@ -530,7 +540,7 @@ public class WifiAwareDataPathStateManager {
                 nnri.networkSpecifier.isOutOfBand(),
                 nnri.networkSpecifier, mac, nnri.networkSpecifier.peerId,
                 nnri.networkSpecifier.clientId,
-                nnri.networkSpecifier.sessionId, null);
+                nnri.networkSpecifier.sessionId, null, ndiInitMac);
 
         return true;
     }
@@ -1428,6 +1438,7 @@ public class WifiAwareDataPathStateManager {
         public int peerTransportProtocol = -1; // uninitialized (invalid) value
         public byte[] peerIpv6Override = null;
         public List<WifiAwareChannelInfo> channelInfos;
+        public byte[] ndiInitMac = null;
         public long startTimestamp = 0; // request is made (initiator) / get request (responder)
 
         NdpInfo(int ndpId) {
