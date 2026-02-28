@@ -5346,7 +5346,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
                 eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
-        inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(),
+        inOrder.verify(mockSessionCallback, never()).onMatch(peerIdCaptor.capture(), isNull(),
                 isNull(), anyInt(), isNull(), eq(alias), any(), isNull());
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative, never()).initiatePairing(anyShort(), anyInt(), any(), any(),
