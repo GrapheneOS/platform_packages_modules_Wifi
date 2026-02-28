@@ -786,12 +786,11 @@ public class AwareIfaceAidlSupplicantImpl {
             req.baseConfig.serviceSpecificInfo = copyArray(publishConfig.mServiceSpecificInfo);
         }
         req.baseConfig.extendedServiceSpecificInfo = copyArray(publishConfig.mServiceSpecificInfo);
+        req.baseConfig.txMatchFilter = copyArray(publishConfig.mMatchFilter);
         if (publishConfig.mPublishType == PublishConfig.PUBLISH_TYPE_UNSOLICITED) {
-            req.baseConfig.txMatchFilter = copyArray(publishConfig.mMatchFilter);
             req.baseConfig.rxMatchFilter = new byte[0];
         } else {
             req.baseConfig.rxMatchFilter = copyArray(publishConfig.mMatchFilter);
-            req.baseConfig.txMatchFilter = new byte[0];
         }
         req.baseConfig.useRssiThreshold = false;
         req.baseConfig.disableDiscoveryTerminationIndication =
