@@ -344,6 +344,7 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         event.peerDiscMacAddr = NDI_MAC_ADDR;
         event.ndpInstanceId = ndpInstanceId;
         event.appInfo = APP_INFO;
+        event.ndiInitMac = NDI_MAC_ADDR;
 
         mDut.eventDataPathRequest(event);
 
@@ -351,7 +352,8 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
                 discoverySessionId,
                 NDI_MAC_ADDR,
                 ndpInstanceId,
-                APP_INFO);
+                APP_INFO,
+                NDI_MAC_ADDR);
     }
 
     @Test
@@ -711,6 +713,8 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         failureReasonCode.status = NanStatusCode.SUCCESS;
         int comeBackDelaySec = 10;
         byte[] cookie = {0x01, 0x02};
+        int bootstrappingMethod = 0;
+        byte sessionId = 1;
 
         NanBootstrappingConfirmInd event = new NanBootstrappingConfirmInd();
         event.bootstrappingInstanceId = bootstrappingInstanceId;
@@ -718,15 +722,21 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         event.failureReasonCode = failureReasonCode;
         event.comeBackDelaySec = comeBackDelaySec;
         event.cookie = cookie;
+        event.peerDiscMacAddr = MAC_ADDRESS;
+        event.bootstrappingMethod = bootstrappingMethod;
+        event.discoverySessionId = sessionId;
 
         mDut.eventBootstrappingConfirm(event);
 
         verify(mMockFrameworkCallback).eventBootstrappingConfirm(
+                sessionId,
                 bootstrappingInstanceId,
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT,
                 WifiNanIface.NanStatusCode.SUCCESS,
                 comeBackDelaySec,
-                cookie);
+                bootstrappingMethod,
+                cookie,
+                MAC_ADDRESS);
     }
 
     @Test
@@ -738,6 +748,8 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         failureReasonCode.status = NanStatusCode.SUCCESS;
         int comeBackDelaySec = 10;
         byte[] cookie = {0x01, 0x02};
+        int bootstrappingMethod = 0;
+        byte sessionId = 1;
 
         NanBootstrappingConfirmInd event = new NanBootstrappingConfirmInd();
         event.bootstrappingInstanceId = bootstrappingInstanceId;
@@ -745,15 +757,21 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         event.failureReasonCode = failureReasonCode;
         event.comeBackDelaySec = comeBackDelaySec;
         event.cookie = cookie;
+        event.peerDiscMacAddr = MAC_ADDRESS;
+        event.bootstrappingMethod = bootstrappingMethod;
+        event.discoverySessionId = sessionId;
 
         mDut.eventBootstrappingConfirm(event);
 
         verify(mMockFrameworkCallback).eventBootstrappingConfirm(
+                sessionId,
                 bootstrappingInstanceId,
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_REJECT,
                 WifiNanIface.NanStatusCode.SUCCESS,
                 comeBackDelaySec,
-                cookie);
+                bootstrappingMethod,
+                cookie,
+                MAC_ADDRESS);
     }
 
     @Test
@@ -765,6 +783,8 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         failureReasonCode.status = NanStatusCode.SUCCESS;
         int comeBackDelaySec = 10;
         byte[] cookie = {0x01, 0x02};
+        int bootstrappingMethod = 0;
+        byte sessionId = 1;
 
         NanBootstrappingConfirmInd event = new NanBootstrappingConfirmInd();
         event.bootstrappingInstanceId = bootstrappingInstanceId;
@@ -772,15 +792,21 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
         event.failureReasonCode = failureReasonCode;
         event.comeBackDelaySec = comeBackDelaySec;
         event.cookie = cookie;
+        event.peerDiscMacAddr = MAC_ADDRESS;
+        event.bootstrappingMethod = bootstrappingMethod;
+        event.discoverySessionId = sessionId;
 
         mDut.eventBootstrappingConfirm(event);
 
         verify(mMockFrameworkCallback).eventBootstrappingConfirm(
+                sessionId,
                 bootstrappingInstanceId,
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK,
                 WifiNanIface.NanStatusCode.SUCCESS,
                 comeBackDelaySec,
-                cookie);
+                bootstrappingMethod,
+                cookie,
+                MAC_ADDRESS);
     }
 
     @Test

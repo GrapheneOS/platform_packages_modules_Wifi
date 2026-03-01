@@ -220,7 +220,7 @@ public interface IWifiNanIface {
             String interfaceName, byte[] appInfo,
             boolean isOutOfBand, Capabilities capabilities,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-            boolean frameProtectionEnabled);
+            boolean frameProtectionEnabled, byte[] peerMac, byte[] ndiInitMac);
 
     /**
      * Terminate an existing data-path (does not delete the interface).

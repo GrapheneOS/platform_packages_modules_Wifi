@@ -188,7 +188,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         }
         @Override
         public void eventDataPathRequest(byte discoverySessionId, byte[] peerDiscMacAddr,
-                int ndpInstanceId, byte[] appInfo) {
+                int ndpInstanceId, byte[] appInfo, byte[] ndiInitMac) {
         }
         @Override
         public void eventDataPathConfirm(int status, int ndpInstanceId,
@@ -219,8 +219,9 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
                 byte[] serviceSpecificInfo) {
         }
         @Override
-        public void eventBootstrappingConfirm(int pairingId, int responseCode, int reason,
-                int comebackDelay, byte[] cookie) {
+        public void eventBootstrappingConfirm(int sessionId, int pairingId, int responseCode,
+		int reason, int comebackDelay, int bootstrappingMethod,
+		byte[] cookie, byte[] peerMacAddr) {
         }
         @Override
         public void eventSuspensionModeChanged(boolean isSuspended) {
@@ -1098,7 +1099,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
 
         assertTrue(mDut.respondToDataPathRequest(tid, accept, ndpId, interfaceName,
                 appInfo, isOutOfBand, TEST_CAPABILITIES, securityConfig, pubSubId,
-                frameProtectionEnabled));
+                frameProtectionEnabled, null, null));
 
         verify(mIWifiNanIfaceMock)
                 .respondToDataPathIndicationRequest(eq((char) tid), captor.capture());

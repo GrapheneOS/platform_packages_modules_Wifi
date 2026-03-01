@@ -471,11 +471,11 @@ public class WifiNanIface implements WifiHal.WifiInterface {
             String interfaceName, byte[] appInfo,
             boolean isOutOfBand, Capabilities capabilities,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-            boolean frameProtectionEnabled) {
+            boolean frameProtectionEnabled, byte[] peerMac, byte[] ndiInitMac) {
         return validateAndCall("respondToDataPathRequest", false,
                 () -> mWifiNanIface.respondToDataPathRequest(transactionId, accept, ndpId,
-                        interfaceName, appInfo, isOutOfBand, capabilities, securityConfig,
-                        pubSubId, frameProtectionEnabled));
+                        interfaceName, appInfo, isOutOfBand, capabilities, securityConfig, pubSubId,
+                        frameProtectionEnabled, peerMac, ndiInitMac));
     }
 
     /**
@@ -795,7 +795,7 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          *                They are passed from sender to receiver as-is with no parsing.
          */
         void eventDataPathRequest(byte discoverySessionId, byte[] peerDiscMacAddr,
-                int ndpInstanceId, byte[] appInfo);
+                int ndpInstanceId, byte[] appInfo, byte[] ndiInitMac);
 
         /**
          * Indicates that a data-path (NDP) setup has been completed. Received by both the
@@ -854,8 +854,8 @@ public class WifiNanIface implements WifiHal.WifiInterface {
         /**
          * Indicates that the bootstrapping is finished
          */
-        void eventBootstrappingConfirm(int pairingId, int responseCode, int reason,
-                int comebackDelay, byte[] cookie);
+        void eventBootstrappingConfirm(int sessionId, int pairingId, int responseCode, int reason,
+                int comebackDelay, int bootstrappingMethod, byte[] cookie, byte[] peerMacAddr);
 
         /**
          * Indicates that the suspension mode has changed, i.e., the device has entered or exited

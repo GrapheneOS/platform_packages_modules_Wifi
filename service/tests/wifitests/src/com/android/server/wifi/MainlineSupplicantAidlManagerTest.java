@@ -247,7 +247,7 @@ public class MainlineSupplicantAidlManagerTest extends WifiBaseTest {
     @Test
     public void testRemoveWifiNanIface() throws Exception {
         testGetWifiNanIface();
-        mDut.removeWifiNanIface();
+        mDut.removeWifiNanIface("aware0");
         verify(mIMainlineSupplicant).removeNanInterface("aware0");
     }
 

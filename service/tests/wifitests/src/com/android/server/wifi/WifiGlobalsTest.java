@@ -24,19 +24,25 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
+import android.content.pm.PackageManager;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.util.WifiResourceCache;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
 
 import java.util.List;
 
@@ -50,13 +56,19 @@ public class WifiGlobalsTest extends WifiBaseTest {
     private WifiResourceCache mWifiResourceCache;
 
     @Mock private WifiContext mContext;
+    @Mock private PackageManager mPackageManager;
+    private MockitoSession mSession;
 
     private static final int TEST_NETWORK_ID = 54;
     private static final String TEST_SSID = "\"GoogleGuest\"";
 
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        mSession = ExtendedMockito.mockitoSession()
+                .initMocks(this)
+                .strictness(Strictness.LENIENT)
+                .mockStatic(Flags.class, withSettings().lenient())
+                .startMocking();
 
         mResources = new MockResources();
         mResources.setInteger(R.integer.config_wifiPollRssiIntervalMilliseconds, 3000);
@@ -68,8 +80,16 @@ public class WifiGlobalsTest extends WifiBaseTest {
         when(mContext.getResources()).thenReturn(mResources);
         mWifiResourceCache = new WifiResourceCache(mContext);
         when(mContext.getResourceCache()).thenReturn(mWifiResourceCache);
+        when(mContext.getPackageManager()).thenReturn(mPackageManager);
 
         mWifiGlobals = new WifiGlobals(mContext);
+    }
+
+    @After
+    public void tearDown() {
+        if (mSession != null) {
+            mSession.finishMocking();
+        }
     }
 
     /** Test that the interval for poll RSSI is read from config overlay correctly. */
@@ -336,6 +356,38 @@ public class WifiGlobalsTest extends WifiBaseTest {
         assertFalse(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled());
         mWifiGlobals.setD2dStaConcurrencySupported(false);
         assertTrue(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled());
+
+        when(Flags.allowD2dWithoutStaOnXr()).thenReturn(true);
+
+        when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_XR_PERIPHERAL))
+                .thenReturn(true);
+        mWifiGlobals = new WifiGlobals(mContext);
+        mWifiGlobals.setD2dStaConcurrencySupported(true);
+        assertTrue(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled());
+
+        // Test for non-XR device with allowD2dWithoutStaOnXr flag true
+        when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_XR_PERIPHERAL))
+                .thenReturn(false);
+        mWifiGlobals = new WifiGlobals(mContext);
+        mWifiGlobals.setD2dStaConcurrencySupported(true);
+        assertFalse(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled());
+        mWifiGlobals.setD2dStaConcurrencySupported(false);
+        assertTrue(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled());
+
+        // Test for config_wifiD2dAllowedControlSupportedWhenInfraStaDisabled is false
+        // with allowD2dWithoutStaOnXr flag true
+        mResources.setBoolean(R.bool.config_wifiD2dAllowedControlSupportedWhenInfraStaDisabled,
+                false);
+        mWifiResourceCache.reset();
+        when(mPackageManager.hasSystemFeature(PackageManager.FEATURE_XR_PERIPHERAL))
+                .thenReturn(true);
+        mWifiGlobals = new WifiGlobals(mContext);
+        assertFalse(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled());
+
+        when(Flags.allowD2dWithoutStaOnXr()).thenReturn(false);
+        mWifiGlobals = new WifiGlobals(mContext);
+        mWifiGlobals.setD2dStaConcurrencySupported(true);
+        assertFalse(mWifiGlobals.isD2dSupportedWhenInfraStaDisabled());
     }
 
     @Test

@@ -17,6 +17,7 @@
 package com.android.server.wifi;
 
 import android.annotation.Nullable;
+import android.content.pm.PackageManager;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
@@ -30,6 +31,7 @@ import androidx.annotation.Keep;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiBlocklistMonitor.CarrierSpecificEapFailureConfig;
+import com.android.wifi.flags.Flags;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -57,6 +59,7 @@ public class WifiGlobals {
     private final AtomicInteger mPollRssiShortIntervalMillis = new AtomicInteger();
     private final AtomicInteger mPollRssiLongIntervalMillis = new AtomicInteger();
     private boolean mIsPollRssiIntervalOverridden = false;
+    private final boolean mIsXrPeripheral;
     private final AtomicBoolean mIpReachabilityDisconnectEnabled = new AtomicBoolean(true);
     private final AtomicBoolean mIsBluetoothConnected = new AtomicBoolean(false);
     // Set default to false to check if the value will be overridden by WifiSettingConfigStore.
@@ -92,6 +95,8 @@ public class WifiGlobals {
                 R.integer.config_wifiPreviouslyConnectedNetworkWrongPasswordThreshold);
         mIsWpa3SaeH2eSupported = mWifiResourceCache
                 .getBoolean(R.bool.config_wifiSaeH2eSupported);
+        mIsXrPeripheral = mContext.getPackageManager().hasSystemFeature(
+                PackageManager.FEATURE_XR_PERIPHERAL);
         Set<String> unsupportedSsidPrefixes = new ArraySet<>(mWifiResourceCache.getStringArray(
                 R.array.config_wifiForceDisableMacRandomizationSsidPrefixList));
         mCountryCodeToAfcServers = getCountryCodeToAfcServersMap();
@@ -631,6 +636,18 @@ public class WifiGlobals {
      * Returns whether the device supports device-to-device when infra STA is disabled.
      */
     public boolean isD2dSupportedWhenInfraStaDisabled() {
+        if (Flags.allowD2dWithoutStaOnXr()) {
+            if (!mWifiResourceCache
+                    .getBoolean(R.bool.config_wifiD2dAllowedControlSupportedWhenInfraStaDisabled)) {
+                return false;
+            }
+            if (mIsXrPeripheral) {
+                // Allowed for XR device
+                return true;
+            }
+            // For non-XR device, check if concurrency supported.
+            return !mIsD2dStaConcurrencySupported.get();
+        }
         return mWifiResourceCache
                 .getBoolean(R.bool.config_wifiD2dAllowedControlSupportedWhenInfraStaDisabled)
                 && !mIsD2dStaConcurrencySupported.get();
@@ -715,6 +732,9 @@ public class WifiGlobals {
         pw.println("mDisableFirmwareRoamingInIdleMode=" + mDisableFirmwareRoamingInIdleMode);
         pw.println("IsD2dSupportedWhenInfraStaDisabled="
                 + isD2dSupportedWhenInfraStaDisabled());
+        if (Flags.allowD2dWithoutStaOnXr()) {
+            pw.println("mIsXrPeripheral=" + mIsXrPeripheral);
+        }
         pw.println("mIsWpa3SaeH2eSupported=" + mIsWpa3SaeH2eSupported);
         for (int i = 0; i < mCarrierSpecificEapFailureConfigMapPerCarrierId.size(); i++) {
             int carrierId = mCarrierSpecificEapFailureConfigMapPerCarrierId.keyAt(i);

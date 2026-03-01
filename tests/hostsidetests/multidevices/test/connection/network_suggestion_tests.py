@@ -5,9 +5,10 @@ import logging
 from typing import override
 
 from mobly import base_test
-from mobly import test_runner
 from mobly import records
+from mobly import test_runner
 from mobly.controllers import android_device
+from mobly.snippet import errors
 
 from connection import ap_helper
 from connection import constants
@@ -15,6 +16,20 @@ from connection import test_utils
 from connection import ui_action_utils
 from connection import wifi_utils
 import wifi_test_utils
+
+_ERROR_MSG_NETWORK_CONNECT_FAILED = (
+    'DUT failed to connect to Wi-Fi via network suggestion. Please check:\n'
+    '1. Verify that SSID "{wifi_ssid}" and password "{wifi_pwd}" are correct'
+    ' in "WifiConnectionTestbed.yaml".\n'
+    '2. Ensure there is no other Wi-Fi network sharing the same SSID but a'
+    ' different password.\n'
+    '3. Review device logs to determine why the DUT failed to connect to the'
+    ' network.'
+)
+
+
+class NetworkSuggestionFailedError(Exception):
+  """Raised when the DUT failed to connect to Wi-Fi via network suggestion."""
 
 
 class NetworkSuggestionTests(base_test.BaseTestClass):
@@ -105,6 +120,8 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
   @override
   def teardown_test(self) -> None:
     self.ap_helper.stop_programmable_ap()
+    # Pass an empty list to remove added all network suggestions.
+    self.ad.wifi.wifiRemoveNetworkSuggestions([])
     self.ad.wifi.wifiClearConfiguredNetworks()
     self.ad.wifi.connectivityUnregisterNetwork(self.request_networkid)
     self.ad.wifi.wifiRemoveSuggestionConnectionStatusListener()
@@ -142,6 +159,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
+    is_bssid_set = False
     network_suggestion = constants.NetworkSuggestion(
         ssid=wifi_info.ssid,
         psk=wifi_info.password,
@@ -172,13 +190,23 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
       self.ad.wifi.utilityDropShellPermission()
 
     # Verify the network is connected.
-    wifi_utils.wait_until_network_expected_callback(
-        network_callback, constants.NetworkCallback.ON_AVAILABLE
-    )
+    try:
+      wifi_utils.wait_until_network_expected_callback(
+          network_callback, constants.NetworkCallback.ON_AVAILABLE
+      )
+    except errors.CallbackHandlerTimeoutError as e:
+      raise NetworkSuggestionFailedError(
+          _ERROR_MSG_NETWORK_CONNECT_FAILED.format(
+              wifi_ssid=wifi_info.ssid,
+              wifi_pwd=wifi_info.password,
+          )
+      ) from e
     logging.info('wifi network connected.')
 
     # Verify the connected network is expected Wifi network.
-    wifi_utils.assert_connecting_with_expected_connection(self.ad, wifi_info)
+    wifi_utils.assert_connecting_with_expected_connection(
+        self.ad, wifi_info, check_bssid=is_bssid_set
+    )
     logging.info('connected network is expected %s', wifi_info.ssid)
 
     # Remove the network suggestion and verify the process finished.
@@ -214,6 +242,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     )
 
     # Set up the network suggestion parameters.
+    is_bssid_set = True
     network_suggestion = constants.NetworkSuggestion(
         ssid=wifi_info.ssid,
         bssid=wifi_info.bssid,
@@ -245,13 +274,23 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
       self.ad.wifi.utilityDropShellPermission()
 
     # Verify the network is connected.
-    wifi_utils.wait_until_network_expected_callback(
-        network_callback, constants.NetworkCallback.ON_AVAILABLE
-    )
+    try:
+      wifi_utils.wait_until_network_expected_callback(
+          network_callback, constants.NetworkCallback.ON_AVAILABLE
+      )
+    except errors.CallbackHandlerTimeoutError as e:
+      raise NetworkSuggestionFailedError(
+          _ERROR_MSG_NETWORK_CONNECT_FAILED.format(
+              wifi_ssid=wifi_info.ssid,
+              wifi_pwd=wifi_info.password,
+          )
+      ) from e
     logging.info('wifi network connected.')
 
     # Verify the connected network is expected Wifi network.
-    wifi_utils.assert_connecting_with_expected_connection(self.ad, wifi_info)
+    wifi_utils.assert_connecting_with_expected_connection(
+        self.ad, wifi_info, check_bssid=is_bssid_set
+    )
     logging.info('connected network is expected %s', wifi_info.ssid)
 
     # Remove the network suggestion and verify the process finished.
@@ -290,6 +329,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     )
 
     # Set up the network suggestion parameters.
+    is_bssid_set = False
     network_suggestion = constants.NetworkSuggestion(
         ssid=wifi_info.ssid,
         psk=wifi_info.password,
@@ -327,9 +367,17 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
       self.ad.wifi.utilityDropShellPermission()
 
     # Verify the network is connected.
-    wifi_utils.wait_until_network_expected_callback(
-        network_callback, constants.NetworkCallback.ON_AVAILABLE
-    )
+    try:
+      wifi_utils.wait_until_network_expected_callback(
+          network_callback, constants.NetworkCallback.ON_AVAILABLE
+      )
+    except errors.CallbackHandlerTimeoutError as e:
+      raise NetworkSuggestionFailedError(
+          _ERROR_MSG_NETWORK_CONNECT_FAILED.format(
+              wifi_ssid=wifi_info.ssid,
+              wifi_pwd=wifi_info.password,
+          )
+      ) from e
     logging.info('wifi network connected.')
 
     # Verify the post connect broadcast is received.
@@ -340,7 +388,9 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     logging.info('post connect broadcast is received.')
 
     # Verify the connected network with expected Wifi network.
-    wifi_utils.assert_connecting_with_expected_connection(self.ad, wifi_info)
+    wifi_utils.assert_connecting_with_expected_connection(
+        self.ad, wifi_info, check_bssid=is_bssid_set
+    )
     logging.info('connected network is expected %s', wifi_info.ssid)
 
     # Remove the network suggestion and verify the process finished.
@@ -433,12 +483,13 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     )
     logging.info('network connection status is failed authentication.')
 
-    # Verify the network is lost.
-    wifi_utils.assert_no_network_callback_received_within_timeout(
+    # Remove the network suggestion, but do not check onLost callback.
+    wifi_utils.remove_network_suggestion_and_assert_disconnection(
+        self.ad,
+        network_suggestion_array,
         network_callback,
-        constants.NetworkCallback.ON_AVAILABLE,
+        check_on_lost_callback=False,
     )
-    logging.info('wifi network suggestion and connection removed.')
 
   def test_that_suggestion_modification_in_place(self) -> None:
     """Tests WiFi connection suggestion modification in place.
@@ -474,6 +525,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     )
 
     # Set up the network suggestion parameters.
+    is_bssid_set = False
     network_suggestion = constants.NetworkSuggestion(
         ssid=wifi_info.ssid,
         psk=wifi_info.password,
@@ -505,13 +557,23 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
 
     network_callback_id = network_callback.callback_id
     # Verify the network is connected.
-    wifi_utils.wait_until_network_expected_callback(
-        network_callback, constants.NetworkCallback.ON_AVAILABLE
-    )
+    try:
+      wifi_utils.wait_until_network_expected_callback(
+          network_callback, constants.NetworkCallback.ON_AVAILABLE
+      )
+    except errors.CallbackHandlerTimeoutError as e:
+      raise NetworkSuggestionFailedError(
+          _ERROR_MSG_NETWORK_CONNECT_FAILED.format(
+              wifi_ssid=wifi_info.ssid,
+              wifi_pwd=wifi_info.password,
+          )
+      ) from e
     logging.info('wifi network connected.')
 
     # Verify the connected network is expected Wifi network.
-    wifi_utils.assert_connecting_with_expected_connection(self.ad, wifi_info)
+    wifi_utils.assert_connecting_with_expected_connection(
+        self.ad, wifi_info, check_bssid=is_bssid_set
+    )
     logging.info('connected network is expected %s', wifi_info.ssid)
 
     # Verify the specific network capability exists.

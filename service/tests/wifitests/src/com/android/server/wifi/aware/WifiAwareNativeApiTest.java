@@ -385,17 +385,19 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
     public void testRespondToDataPathRequest() {
         when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
         mDut.respondToDataPathRequest((short) 1, true, 123, "aware0", null, true, null, null,
-                (byte) 1, false);
+                (byte) 1, false, null, null);
         verify(mWifiNanIfaceMock).respondToDataPathRequest(eq((short) 1), eq(true), eq(123),
-                eq("aware0"), eq(null), eq(true), eq(null), eq(null), eq((byte) 1), eq(false));
+                eq("aware0"), eq(null), eq(true), eq(null), eq(null), eq((byte) 1), eq(false),
+                eq(null), eq(null));
     }
 
     @Test
     public void testRespondToDataPathRequestWithSupplicant() {
         mDut.respondToDataPathRequest((short) 1, true, 123, "aware0", null, true, null, null,
-                (byte) 1, false);
+                (byte) 1, false, null, null);
         verify(mAwareIfaceAidlSupplicantImplMock).respondToDataPathRequest(eq((short) 1), eq(true),
-                eq(123), eq("aware0"), eq(null), eq(true), eq(null), eq((byte) 1), eq(false));
+                eq(123), eq("aware0"), eq(null), eq(true), eq(null), eq((byte) 1), eq(false),
+                eq(null), eq(null));
     }
 
     @Test

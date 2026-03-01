@@ -379,10 +379,10 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
 
     @Override
     public void eventDataPathRequest(byte discoverySessionId, byte[] peerDiscMacAddr,
-            int ndpInstanceId, byte[] appInfo) {
+            int ndpInstanceId, byte[] appInfo, byte[] ndiInitMac) {
         incrementCbCount(CB_EV_DATA_PATH_REQUEST);
         mWifiAwareStateManager.onDataPathRequestNotification(discoverySessionId,
-                peerDiscMacAddr, ndpInstanceId, appInfo);
+                peerDiscMacAddr, ndpInstanceId, appInfo, ndiInitMac);
     }
 
     @Override
@@ -439,10 +439,12 @@ public class WifiAwareNativeCallback implements WifiNanIface.Callback,
     }
 
     @Override
-    public void eventBootstrappingConfirm(int bootstrappingId, int responseCode, int reason,
-            int comebackDelay, byte[] cookie) {
-        mWifiAwareStateManager.onBootstrappingConfirmNotification(bootstrappingId, responseCode,
-                reason, comebackDelay, cookie);
+    public void eventBootstrappingConfirm(int sessionId, int bootstrappingId, int responseCode,
+	    int reason, int comebackDelay, int bootstrappingMethod,
+	    byte[] cookie, byte[] peerDiscMacAddr) {
+        mWifiAwareStateManager.onBootstrappingConfirmNotification(sessionId, bootstrappingId,
+		responseCode, reason, comebackDelay, bootstrappingMethod,
+		cookie, peerDiscMacAddr);
     }
 
     @Override

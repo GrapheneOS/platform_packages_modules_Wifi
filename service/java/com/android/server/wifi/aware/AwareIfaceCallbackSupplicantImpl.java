@@ -266,7 +266,7 @@ public class AwareIfaceCallbackSupplicantImpl extends ISupplicantNanIfaceEventCa
                     + ", ndpInstanceId=" + event.ndpInstanceId);
         }
         mFrameworkCallback.eventDataPathRequest(event.discoverySessionId,
-                event.peerDiscMacAddr, event.ndpInstanceId, event.appInfo);
+                event.peerDiscMacAddr, event.ndpInstanceId, event.appInfo, event.ndiInitMac);
     }
 
     @Override
@@ -584,10 +584,12 @@ public class AwareIfaceCallbackSupplicantImpl extends ISupplicantNanIfaceEventCa
                     + event.bootstrappingInstanceId);
         }
         mFrameworkCallback.eventBootstrappingConfirm(
+                event.discoverySessionId,
                 event.bootstrappingInstanceId,
                 convertAidlBootstrappingResponseCodeToFramework(event.responseCode),
                 WifiNanIface.NanStatusCode.fromAidl(event.failureReasonCode.status),
-                event.comeBackDelaySec, event.cookie);
+                event.comeBackDelaySec, event.bootstrappingMethod, event.cookie,
+		event.peerDiscMacAddr);
     }
 
     private static int toPublicDataPathCipherSuites(int nativeCipherSuites) {

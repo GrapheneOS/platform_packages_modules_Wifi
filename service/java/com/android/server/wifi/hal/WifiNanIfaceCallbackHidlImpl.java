@@ -417,7 +417,7 @@ public class WifiNanIfaceCallbackHidlImpl extends IWifiNanIfaceEventCallback.Stu
         }
         mWifiNanIface.getFrameworkCallback().eventDataPathRequest(event.discoverySessionId,
                 event.peerDiscMacAddr, event.ndpInstanceId,
-                convertArrayListToNativeByteArray(event.appInfo));
+                convertArrayListToNativeByteArray(event.appInfo), null);
     }
 
     @Override

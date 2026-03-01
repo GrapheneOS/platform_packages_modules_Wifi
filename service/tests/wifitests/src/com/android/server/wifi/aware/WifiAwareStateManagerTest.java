@@ -4864,12 +4864,12 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 WIFI_AWARE_DATA_PATH_ROLE_RESPONDER, clientId, sessionId.getValue(), peerId,
                 null, 0, -1, 0, false, config);
         mDut.respondToDataPathRequest(true, 1, "aware_data0", new byte[0], false, ns, peerMac1,
-                peerIdCaptor.getValue(), clientId, sessionId.getValue(), null);
+                peerIdCaptor.getValue(), clientId, sessionId.getValue(), null, null);
         mMockLooper.dispatchAll();
         // Verify the enhanced framework protection is enabled.
         inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
                 eq(1), eq("aware_data0"), eq(new byte[0]), eq(false),
-                any(), any(), anyByte(), eq(true));
+                any(), any(), anyByte(), eq(true), any(), any());
         mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
         mMockLooper.dispatchAll();
         verify(mMockAwareDataPathStatemanager)
@@ -5020,12 +5020,12 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 WIFI_AWARE_DATA_PATH_ROLE_RESPONDER, clientId, sessionId.getValue(), peerId,
                 null, 0, -1, 0, false, config);
         mDut.respondToDataPathRequest(true, 1, "aware_data0", new byte[0], false, ns, peerMac1,
-                peerIdCaptor.getValue(), clientId, sessionId.getValue(), null);
+                peerIdCaptor.getValue(), clientId, sessionId.getValue(), null, null);
         mMockLooper.dispatchAll();
         // Verify the enhanced framework protection is enabled.
         inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
                 eq(1), eq("aware_data0"), eq(new byte[0]), eq(false),
-                any(), any(), anyByte(), eq(true));
+                any(), any(), anyByte(), eq(true), any(), any());
         mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
         mMockLooper.dispatchAll();
         verify(mMockAwareDataPathStatemanager)
@@ -5142,8 +5142,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(peerMac), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN), isNull(),
                 eq(subscribeId), eq(false), eq(ssi));
         mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId);
-        mDut.onBootstrappingConfirmNotification(bootstrappingId,
-                WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT, NanStatusCode.SUCCESS, 0, null);
+        mDut.onBootstrappingConfirmNotification(subscribeId, bootstrappingId,
+                WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT, NanStatusCode.SUCCESS, 0,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, null, peerMac);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
                 peerIdCaptor.getValue(), true, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,
@@ -5345,7 +5346,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         verify(mAwareMetricsMock, atLeastOnce()).updatePeerFoundResult(eq(clientId),
                 eq(sessionId.getValue()),
                 eq(WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND), eq(0), any());
-        inOrder.verify(mockSessionCallback).onMatch(peerIdCaptor.capture(), isNull(),
+        inOrder.verify(mockSessionCallback, never()).onMatch(peerIdCaptor.capture(), isNull(),
                 isNull(), anyInt(), isNull(), eq(alias), any(), isNull());
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative, never()).initiatePairing(anyShort(), anyInt(), any(), any(),
@@ -5465,9 +5466,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId);
 
         // (4) Receive comeback respond, will send the request again with delay
-        mDut.onBootstrappingConfirmNotification(bootstrappingId,
+        mDut.onBootstrappingConfirmNotification(subscribeId, bootstrappingId,
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK, NanStatusCode.SUCCESS, 1000,
-                null);
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, null, peerMac);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback, never()).onBootstrappingVerificationConfirmed(
                 anyInt(), anyBoolean(), anyInt(), any());
@@ -5481,9 +5482,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (5) Receive comeback respond on the followup request, will consider reject and notify the
         // app
-        mDut.onBootstrappingConfirmNotification(bootstrappingId + 1,
+        mDut.onBootstrappingConfirmNotification(subscribeId, bootstrappingId + 1,
                 WifiAwareStateManager.NAN_BOOTSTRAPPING_COMEBACK, NanStatusCode.SUCCESS, 1000,
-                null);
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, null, peerMac);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
                 peerIdCaptor.getValue(), false, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,
@@ -6451,7 +6452,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         final byte[] peerDataPathMac = HexEncoding.decode("0A0B0C0D0E0F".toCharArray(), false);
         final String alias = "alias";
         final int ndpId = 1;
-        when(mMockAwareDataPathStatemanager.onDataPathRequest(anyInt(), any(), anyInt(), any()))
+        when(mMockAwareDataPathStatemanager.onDataPathRequest(anyInt(), any(), anyInt(), any(), any()))
                 .thenReturn(false);
 
         AwarePairingConfig pairingConfig = new AwarePairingConfig(true, true, true,
@@ -6567,7 +6568,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
         // (8) try to response a data path request.
-        mDut.onDataPathRequestNotification(publishId, peerMac1, ndpId, null);
+        mDut.onDataPathRequestNotification(publishId, peerMac1, ndpId, null, null);
         mMockLooper.dispatchAll();
         verify(mockSessionCallback).onDataPathRequestReceived(peerIdCaptor.capture());
 
@@ -6578,7 +6579,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         // Verify the enhanced framework protection is enabled.
         inOrder.verify(mMockNative).respondToDataPathRequest(transactionId.capture(), eq(true),
                 eq(ndpId), eq("aware_data0"), eq(new byte[0]), eq(false),
-                any(), any(), anyByte(), eq(true));
+                any(), any(), anyByte(), eq(true), any(), any());
         mDut.onRespondToDataPathSetupRequestResponse(transactionId.getValue(), true, 0);
         mMockLooper.dispatchAll();
         verify(mMockAwareDataPathStatemanager, never())
@@ -6722,8 +6723,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(peerMac), eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN), isNull(),
                 eq(subscribeId), eq(false), eq(ssi));
         mDut.onInitiateBootStrappingResponseSuccess(transactionId.getValue(), bootstrappingId);
-        mDut.onBootstrappingConfirmNotification(bootstrappingId,
-                WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT, NanStatusCode.SUCCESS, 0, null);
+        mDut.onBootstrappingConfirmNotification(subscribeId, bootstrappingId,
+                WifiAwareStateManager.NAN_BOOTSTRAPPING_ACCEPT, NanStatusCode.SUCCESS, 0,
+                AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN, null, peerMac);
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onBootstrappingVerificationConfirmed(
                 peerIdCaptor.getValue(), true, AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_SCAN,

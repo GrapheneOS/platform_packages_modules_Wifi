@@ -433,13 +433,14 @@ public class AwareIfaceAidlSupplicantImpl {
     public boolean respondToDataPathRequest(short transactionId, boolean accept, int ndpId,
             String interfaceName, byte[] appInfo, boolean isOutOfBand,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-            boolean frameProtectionEnabled) {
+            boolean frameProtectionEnabled, byte[] peerMac, byte[] ndiInitMac) {
         final String methodStr = "respondToDataPathRequest";
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
             NanRespondToDataPathIndicationRequest req =
                     createNanRespondToDataPathIndicationRequest(accept, ndpId, interfaceName,
-                            appInfo, isOutOfBand, securityConfig, pubSubId, frameProtectionEnabled);
+                            appInfo, isOutOfBand, securityConfig, pubSubId,
+                            frameProtectionEnabled,peerMac, ndiInitMac);
             mWifiNanIface.respondToDataPathIndicationRequest((char) transactionId, req);
             return true;
         } catch (RemoteException e) {
@@ -1015,11 +1016,13 @@ public class AwareIfaceAidlSupplicantImpl {
             createNanRespondToDataPathIndicationRequest(boolean accept, int ndpId,
             String interfaceName, byte[] appInfo, boolean isOutOfBand,
             WifiAwareDataPathSecurityConfig securityConfig, byte pubSubId,
-            boolean frameProtectionEnabled) {
+            boolean frameProtectionEnabled, byte[] peerMac, byte[] ndiInitMac) {
         NanRespondToDataPathIndicationRequest req = new NanRespondToDataPathIndicationRequest();
         req.acceptRequest = accept;
         req.ndpInstanceId = ndpId;
         req.ifaceName = interfaceName;
+        req.peerDiscMacAddr = copyArray(peerMac);
+        req.ndiInitMac = copyArray(ndiInitMac);
         req.serviceNameOutOfBand = new byte[0];
         req.securityConfig = new NanDataPathSecurityConfig();
         req.securityConfig.securityType = NanDataPathSecurityType.OPEN;

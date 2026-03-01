@@ -17,6 +17,7 @@
 package android.system.wifi.mainline_supplicant;
 
 import android.system.wifi.mainline_supplicant.NanStatus;
+import android.system.wifi.mainline_supplicant.NanBootstrappingMethod;
 
 /**
  * See Wi-Fi Aware Specification 4.0 section 9.5.21.7.
@@ -33,10 +34,22 @@ parcelable NanBootstrappingConfirmInd {
     }
 
     /**
+     * Discovery session (publish or subscribe) ID of a previously created discovery session. The
+     * bootstrapping request is received in the context of this discovery session.
+     * NAN Spec: Service Descriptor Attribute (SDA) / Instance ID
+     */
+    byte discoverySessionId;
+
+    /**
      * Id of the bootstrapping session. Obtained as part of earlier
      * |ISupplicantNanIface.initiateBootstrappingRequest| success notification.
      */
     int bootstrappingInstanceId;
+
+    /**
+     * One of |NanBootstrappingMethod| indicating the bootstrapping method used.
+     */
+    NanBootstrappingMethod bootstrappingMethod;
 
     /**
      * NAN management interface MAC address of the peer.

@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Manages the state of a single Aware discovery session (publish or subscribe).
@@ -88,6 +89,7 @@ public class WifiAwareDiscoverySessionState {
     private boolean mIsSuspended;
     private final HashSet<String> mPairedPeers = new HashSet<>();
     private final SparseIntArray mNdpIdByPeerId = new SparseIntArray();
+    private final SparseIntArray mInfoPerPeerId = new SparseIntArray();
 
     static class PeerInfo {
         PeerInfo(int instanceId, byte[] mac, PeerHandle peerHandle) {
@@ -172,6 +174,13 @@ public class WifiAwareDiscoverySessionState {
 
     public boolean isSessionSuspended() {
         return mIsSuspended;
+    }
+
+    /**
+     * Get the pairing configuration.
+     */
+    public AwarePairingConfig getPairingConfig() {
+        return mPairingConfig;
     }
 
     /**
@@ -689,7 +698,7 @@ public class WifiAwareDiscoverySessionState {
     public boolean respondToDataPathRequest(short transactionId, int peerId, boolean accept,
             int ndpId, String interfaceName, Capabilities capabilities,
             WifiAwareDataPathSecurityConfig securityConfig, boolean isLegacyApi, byte[] appInfo,
-            byte[] peerMac) {
+            byte[] peerMac, byte[] ndiInitMac) {
         byte[] peer = peerMac;
         if (!isLegacyApi) {
             if (interfaceName == null) {
@@ -710,7 +719,7 @@ public class WifiAwareDiscoverySessionState {
         }
         boolean success = mWifiAwareNativeApi.respondToDataPathRequest(transactionId, accept, ndpId,
                 interfaceName, appInfo, false, capabilities, securityConfig, mPubSubId,
-                isPeerPaired(peer));
+                isPeerPaired(peer), peer, ndiInitMac);
         if (!success && !isLegacyApi) {
             onDataPathRequestFailure(peerId, DATA_PATH_CONNECTION_FAILURE_REASON_INTERNAL_FAILURE);
         }
@@ -757,11 +766,19 @@ public class WifiAwareDiscoverySessionState {
             vendorDataArray = new OuiKeyedData[vendorDataList.size()];
             vendorDataList.toArray(vendorDataArray);
         }
+        int infoHashCode = Objects.hash(peerId, Arrays.hashCode(serviceSpecificInfo),
+                Arrays.hashCode(matchFilter), Arrays.hashCode(vendorDataArray));
 
         try {
             if (rangingIndication == 0) {
-                mCallback.onMatch(peerId, serviceSpecificInfo, matchFilter, peerCipherSuite, scid,
-                        pairingAlias, pairingConfig, vendorDataArray);
+                int oldHashCode = mInfoPerPeerId.get(peerId);
+                if (oldHashCode != infoHashCode) {
+                    mInfoPerPeerId.put(peerId, infoHashCode);
+                    // only send callback when there is an info change
+                    mCallback.onMatch(peerId, serviceSpecificInfo, matchFilter, peerCipherSuite,
+                            scid,
+                            pairingAlias, pairingConfig, vendorDataArray);
+                }
             } else {
                 mCallback.onMatchWithDistance(peerId, serviceSpecificInfo, matchFilter, rangeMm,
                         peerCipherSuite, scid, pairingAlias, pairingConfig, vendorDataArray);
@@ -793,6 +810,7 @@ public class WifiAwareDiscoverySessionState {
             return;
         }
         mPairedPeers.remove(HexEncoding.encodeToString(peerInfo.mMac));
+        mInfoPerPeerId.delete(peerId);
 
         try {
             mCallback.onMatchExpired(peerId);
