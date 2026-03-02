@@ -179,6 +179,7 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
         Expected Result:
             The connection info retrieval should succeed and return a valid WifiInfo object.
         """
+        wifi_test_utils.check_hotspot_device_supports_hotspot(self.dut2)
         self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
         logging.info("Granted FINE and BACKGROUND location permissions.")
@@ -209,6 +210,7 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
             The call should succeed, but the returned WifiInfo object should contain
             redacted, location-identifying information.
         """
+        wifi_test_utils.check_hotspot_device_supports_hotspot(self.dut2)
         self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         logging.info("Granted FINE location permissions.")
         time.sleep(2) # Allow permissions to settle
@@ -233,6 +235,7 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
         Expected Result:
             The transport info retrieval should succeed and return a valid object.
         """
+        wifi_test_utils.check_hotspot_device_supports_hotspot(self.dut2)
         self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._BACKGROUND_LOCATION_PERMISSION}")
         logging.info("Granted FINE and BACKGROUND location permissions.")
@@ -259,6 +262,7 @@ class WifiLocationInfoBackgroundTest(base_test.BaseTestClass):
         Expected Result:
             The transport info retrieval should fail and return None.
         """
+        wifi_test_utils.check_hotspot_device_supports_hotspot(self.dut2)
         self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
         logging.info("Granted FINE location permissions.")
         time.sleep(2) # Allow permissions to settle
