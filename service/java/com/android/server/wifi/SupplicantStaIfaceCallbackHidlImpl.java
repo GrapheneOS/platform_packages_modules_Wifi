@@ -516,6 +516,8 @@ abstract class SupplicantStaIfaceCallbackHidlImpl extends ISupplicantStaIfaceCal
 
     private int halToFrameworkReasonCode(int reason) {
         switch (reason) {
+            case 0:
+                return SupplicantStaIfaceHal.StaIfaceReasonCode.RESERVED;
             case ReasonCode.UNSPECIFIED:
                 return SupplicantStaIfaceHal.StaIfaceReasonCode.UNSPECIFIED;
             case ReasonCode.PREV_AUTH_NOT_VALID:

@@ -1036,6 +1036,9 @@ class SupplicantStaIfaceCallbackAidlImpl extends ISupplicantStaIfaceCallback.Stu
 
     private int halToFrameworkReasonCode(int reason) {
         switch (reason) {
+            // TODO(b/488443465): Define RESERVED = 0 in Supplicant AIDL - StaIfaceReasonCode.aidl
+            case 0:
+                return SupplicantStaIfaceHal.StaIfaceReasonCode.RESERVED;
             case StaIfaceReasonCode.UNSPECIFIED:
                 return SupplicantStaIfaceHal.StaIfaceReasonCode.UNSPECIFIED;
             case StaIfaceReasonCode.PREV_AUTH_NOT_VALID:
