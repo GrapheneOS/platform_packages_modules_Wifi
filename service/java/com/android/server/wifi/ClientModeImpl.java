@@ -4613,7 +4613,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
      */
     private void setupClientMode() {
         Log.d(getTag(), "setupClientMode() ifacename = " + mInterfaceName);
-        setCurrentMulticastFilter();
         registerForWifiMonitorEvents();
         if (isPrimary()) {
             mWifiLastResortWatchdog.clearAllFailureCounts();
@@ -7327,7 +7326,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 case CMD_IPCLIENT_CREATED: {
                     if (!isFromCurrentIpClientCallbacks(message)) break;
                     setIpClientManager((IpClientManager) message.obj);
-                    setCurrentMulticastFilter();
                     transitionTo(mL3ProvisioningState);
                     break;
                 }
@@ -9314,5 +9312,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
     private void setIpClientManager(IpClientManager ipClientManager) {
         mIpClient = ipClientManager;
         mWifiScoreReport.setIpClientManager(ipClientManager);
+        if (mIpClient != null) {
+            setCurrentMulticastFilter();
+        }
     }
 }
