@@ -1487,6 +1487,9 @@ message StaEvent {
 
     // Connection timed out
     DISCONNECT_CONNECT_WATCHDOG_TIMER = 21;
+
+    // disallowCurrentSuggestedNetwork API
+    DISCONNECT_DISALLOW_CURRENT_SUGGESTED_NETWORK = 22;
   }
 
   // Authentication Failure reasons as reported through the API.

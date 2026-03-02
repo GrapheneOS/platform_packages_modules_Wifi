@@ -670,11 +670,16 @@ public class WifiBlocklistMonitor {
          * remove the BSSID from blocklist to make sure we are not accidentally blocking good
          * BSSIDs.
          **/
-        removeFromBlocklist(bssid, "Network validation success");
-
+        BssidStatus status = mBssidStatusMap.get(bssid);
+        if (status != null && status.blockReason == REASON_NETWORK_VALIDATION_FAILURE) {
+            removeFromBlocklist(bssid, "Network validation success");
+        }
         for (String affiliatedBssid : getAffiliatedBssids(bssid)) {
             resetNetworkValidationFailures(affiliatedBssid, ssid);
-            removeFromBlocklist(affiliatedBssid, "Network validation success");
+            status = mBssidStatusMap.get(affiliatedBssid);
+            if (status != null && status.blockReason == REASON_NETWORK_VALIDATION_FAILURE) {
+                removeFromBlocklist(affiliatedBssid, "Network validation success");
+            }
         }
     }
 

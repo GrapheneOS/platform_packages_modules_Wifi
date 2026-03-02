@@ -11891,6 +11891,9 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiBlocklistMonitor).blockBssidForDurationMs(eq(TEST_BSSID_STR), any(),
                 eq(100 * 1000L), eq(REASON_APP_DISALLOW), eq(0));
         verify(mWifiBlocklistMonitor).updateAndGetBssidBlocklistForSsids(any());
+
+        mLooper.dispatchAll();
+        verify(mWifiNative).disconnect(any());
     }
 
     /**
