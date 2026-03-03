@@ -2721,13 +2721,6 @@ public class Nl80211NativeTest {
                 eq(NL80211_CMD_REG_CHANGE), any());
         verify(mNl80211Proxy).registerBroadcastCallback(
                 eq(NetlinkConstants.NL80211_CMD_WIPHY_REG_CHANGE), any());
-
-        // Tear down the interface and verify that the callbacks are unregistered.
-        mDut.tearDownClientInterface(CLIENT_IFACE_NAME);
-        verify(mNl80211Proxy).unregisterBroadcastCallback(
-                eq(NL80211_CMD_REG_CHANGE), any());
-        verify(mNl80211Proxy).unregisterBroadcastCallback(
-                eq(NetlinkConstants.NL80211_CMD_WIPHY_REG_CHANGE), any());
     }
 
     @Test
@@ -2739,17 +2732,10 @@ public class Nl80211NativeTest {
                 eq(NL80211_CMD_REG_CHANGE), any());
         verify(mNl80211Proxy).registerBroadcastCallback(
                 eq(NetlinkConstants.NL80211_CMD_WIPHY_REG_CHANGE), any());
-
-        // Tear down the interface and verify that the callbacks are unregistered.
-        mDut.tearDownSoftApInterface(AP_IFACE_NAME);
-        verify(mNl80211Proxy).unregisterBroadcastCallback(
-                eq(NL80211_CMD_REG_CHANGE), any());
-        verify(mNl80211Proxy).unregisterBroadcastCallback(
-                eq(NetlinkConstants.NL80211_CMD_WIPHY_REG_CHANGE), any());
     }
 
     @Test
-    public void testCountryCodeCallbackUnregisteredAfterLastInterfaceTornDown() {
+    public void testCountryCodeCallbackUnregisteredOnTearDownInterfaces() {
         mDut = initNl80211Native(false);
 
         // Setup two ifaces
@@ -2767,8 +2753,15 @@ public class Nl80211NativeTest {
         verify(mNl80211Proxy, never()).unregisterBroadcastCallback(
                 eq(NetlinkConstants.NL80211_CMD_WIPHY_REG_CHANGE), any());
 
-        // Tear down client iface (the last iface) should unregister the callbacks
+        // Tear down client iface should not unregister the callbacks.
         mDut.tearDownClientInterface(CLIENT_IFACE_NAME);
+        verify(mNl80211Proxy, never()).unregisterBroadcastCallback(
+                eq(NL80211_CMD_REG_CHANGE), any());
+        verify(mNl80211Proxy, never()).unregisterBroadcastCallback(
+                eq(NetlinkConstants.NL80211_CMD_WIPHY_REG_CHANGE), any());
+
+        // Tear down client iface should not unregister the callbacks.
+        mDut.tearDownInterfaces();
         verify(mNl80211Proxy).unregisterBroadcastCallback(eq(NL80211_CMD_REG_CHANGE), any());
         verify(mNl80211Proxy).unregisterBroadcastCallback(
                 eq(NetlinkConstants.NL80211_CMD_WIPHY_REG_CHANGE), any());
@@ -2863,12 +2856,13 @@ public class Nl80211NativeTest {
     }
 
     @Test
-    public void testCountryCodeChanged_sameCode_doesNotNotifyListeners() {
+    public void testCountryCodeChanged_sameCode_notifiesListeners() {
         mDut = initNl80211Native(false);
         when(mNl80211Utils.getCountryCode(WIPHY_INDEX_0)).thenReturn(COUNTRY_CODE);
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
         mDut.registerCountryCodeChangedListener(mExecutor, mCountryCodeChangedListener);
         // Reset to clear the notification from initial setup.
+        reset(mExecutor);
         reset(mCountryCodeChangedListener);
 
         ArgumentCaptor<Nl80211BroadcastMonitor.Nl80211BroadcastCallback> callbackCaptor =
@@ -2884,8 +2878,10 @@ public class Nl80211NativeTest {
 
         callbackCaptor.getValue().onEvent(NL80211_CMD_REG_CHANGE, regChangeMsg);
 
-        verify(mExecutor, never()).execute(any());
-        verify(mCountryCodeChangedListener, never()).onCountryCodeChanged(anyString());
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mExecutor).execute(runnableCaptor.capture());
+        runnableCaptor.getValue().run();
+        verify(mCountryCodeChangedListener).onCountryCodeChanged(COUNTRY_CODE);
     }
 
     /**
