@@ -4812,6 +4812,20 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return NativeUtil.getMacAddressOrNull(mLastBssid);
     }
 
+    private boolean hasCtrlChar(WifiConfiguration config) {
+        if (config == null || config.preSharedKey == null) {
+            return false;
+        }
+        String preSharedKey = config.preSharedKey;
+        int len = preSharedKey.length();
+        for (int i = 0; i < len; ++i) {
+            if (preSharedKey.charAt(i) < 32 || preSharedKey.charAt(i) >= 127) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void connectToNetwork(WifiConfiguration config) {
         if (mContext.getResources().getBoolean(R.bool.config_wifiUseHalApiToDisableFwRoaming)) {
             // Enable firmware roaming unless targeting a specific BSSID
@@ -4833,6 +4847,20 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             loge("CMD_START_CONNECT Failed to start connection to network " + config);
             mTargetWifiConfiguration = null;
             stopIpClient();
+            if (hasCtrlChar(config) && config.isSecurityType(WifiConfiguration.SECURITY_TYPE_PSK)) {
+                mWifiDiagnostics.triggerBugReportDataCapture(
+                        WifiDiagnostics.REPORT_REASON_AUTH_FAILURE);
+                mWrongPasswordNotifier.onWrongPasswordError(config);
+                mWifiConfigManager.updateNetworkSelectionStatus(
+                        mTargetNetworkId, WifiConfiguration.NetworkSelectionStatus
+                                .DISABLED_BY_WRONG_PASSWORD);
+                mWifiConfigManager.clearRecentFailureReason(mTargetNetworkId);
+                reportConnectionAttemptEnd(
+                        WifiMetrics.ConnectionEvent.FAILURE_AUTHENTICATION_FAILURE,
+                        WifiMetricsProto.ConnectionEvent.HLF_NONE,
+                        WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_WRONG_PSWD, -1);
+                return;
+            }
             reportConnectionAttemptEnd(
                     WifiMetrics.ConnectionEvent.FAILURE_CONNECT_NETWORK_FAILED,
                     WifiMetricsProto.ConnectionEvent.HLF_NONE,
