@@ -33,6 +33,7 @@ import android.net.NetworkSpecifier;
 import android.net.ProxyInfo;
 import android.net.StaticIpConfiguration;
 import android.net.Uri;
+import android.net.wifi.util.Environment;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.ParcelUuid;
@@ -4842,11 +4843,12 @@ public class WifiConfiguration implements Parcelable {
      * @throws IllegalArgumentException when attempting to set a private ({@code shared} = false)
      *                                  configuration to true
      */
-    // TODO: b/394417020 - add @RequiresApi version as 2026 Q2 version
-    @RequiresApi(37)
+    @RequiresApi(Build.VERSION_CODES.CINNAMON_BUN)
     @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public void setAllowedToUpdateByOtherUsers(boolean isAllowed) {
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (!Environment.isSdkAtLeastC()) {
+            throw new UnsupportedOperationException();
+        }
         if (!shared && isAllowed) {
             throw new IllegalArgumentException("private network can't update by other user");
         }
@@ -4860,10 +4862,12 @@ public class WifiConfiguration implements Parcelable {
      * Note: The admin user still can remove this configuration even if the network is not allowed
      * to be updated by other users.
      */
-    @RequiresApi(37)
+    @RequiresApi(Build.VERSION_CODES.CINNAMON_BUN)
     @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public boolean isAllowedToUpdateByOtherUsers() {
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (!Environment.isSdkAtLeastC()) {
+            throw new UnsupportedOperationException();
+        }
         return shared && mIsAllowedToUpdateByOtherUsers;
     }
 
@@ -4905,10 +4909,12 @@ public class WifiConfiguration implements Parcelable {
      * @hide
      */
     @SystemApi
-    @RequiresApi(37)
+    @RequiresApi(Build.VERSION_CODES.CINNAMON_BUN)
     @FlaggedApi(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public @UserIdInt int getCreatorUserId() {
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
+        if (!Environment.isSdkAtLeastC()) {
+            throw new UnsupportedOperationException();
+        }
         return getCreatorUserIdInternal();
     }
 
