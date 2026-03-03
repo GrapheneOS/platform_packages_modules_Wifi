@@ -620,7 +620,7 @@ public class NetworkSuggestionNominatorTest extends WifiBaseTest {
         // check for any saved networks.
         verify(mWifiConfigManager, times(suggestionSsids.length))
                 .isNetworkTemporarilyDisabledByUser(anyString());
-        if (Environment.isSdkNewerThanB()
+        if (Environment.isSdkAtLeastC()
                 && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
             verify(mWifiDeviceStateChangeManager, times(suggestionSsids.length))
                     .isAapmEnabled();
@@ -818,7 +818,7 @@ public class NetworkSuggestionNominatorTest extends WifiBaseTest {
 
         verify(mWifiConfigManager, times(suggestionSsids.length))
                 .isNetworkTemporarilyDisabledByUser(anyString());
-        if (Environment.isSdkNewerThanB()
+        if (Environment.isSdkAtLeastC()
                 && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
             verify(mWifiDeviceStateChangeManager, times(suggestionSsids.length))
                     .isAapmEnabled();
@@ -2079,7 +2079,7 @@ public class NetworkSuggestionNominatorTest extends WifiBaseTest {
      */
     @Test
     public void testAapmModeAndAllowedAutoJoinInAdvancedProtection() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
         String[] scanSsids = {"test1"};
         String[] bssids = {"6c:f3:7f:ae:8c:f3"};

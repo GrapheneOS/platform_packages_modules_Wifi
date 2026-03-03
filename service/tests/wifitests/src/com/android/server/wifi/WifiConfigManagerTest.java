@@ -8831,7 +8831,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
     @Test
     public void testAapmFeatureDisableInsecureWifiAutojoin() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
 
         // Test with a secure network type
@@ -8934,7 +8934,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
     @Test
     public void testAapmFeatureNotDisableInsecureWifiAutojoinWhenCreatorUidIsDOPO() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), any())).thenReturn(true);
         // Test with a secure network type
@@ -9064,7 +9064,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
 
     @Test
     public void testUpdateNetworkAutoJoinInAdvancedProtectionModeEnabled() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
 
         // 1. Add a network with auto-join enabled.

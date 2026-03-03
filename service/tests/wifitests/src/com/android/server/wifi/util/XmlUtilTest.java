@@ -1042,7 +1042,7 @@ public class XmlUtilTest extends WifiBaseTest {
      */
     @Test
     public void testWifiConfigurationWithAllowedAutoJoinInAdvancedProtection() throws Exception {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
         when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
         config.setAutoJoinInAdvancedProtectionModeEnabled(true);
@@ -1058,7 +1058,7 @@ public class XmlUtilTest extends WifiBaseTest {
     @Test
     public void testAllowedAutoJoinInAdvancedProtection_DefaultToFalseForInsecure()
             throws IOException, XmlPullParserException {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
         // First generate XML data that only has the header filled in
         final XmlSerializer out = new FastXmlSerializer();
@@ -1091,7 +1091,7 @@ public class XmlUtilTest extends WifiBaseTest {
     @Test
     public void testAllowedAutoJoinInAdvancedProtection_DefaultToTrueForSecure()
             throws IOException, XmlPullParserException {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
         // First generate XML data that only has the header filled in
         final XmlSerializer out = new FastXmlSerializer();
@@ -1123,7 +1123,7 @@ public class XmlUtilTest extends WifiBaseTest {
     @Test
     public void testAllowedAutoJoinInAdvancedProtection_DefaultToTrueForInsecureButCreatedByDOPO()
             throws IOException, XmlPullParserException {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), any())).thenReturn(true);
         when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
         // First generate XML data that only has the header filled in
