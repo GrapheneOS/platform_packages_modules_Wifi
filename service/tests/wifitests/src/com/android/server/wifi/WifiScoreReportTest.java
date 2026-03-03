@@ -173,6 +173,7 @@ public class WifiScoreReportTest extends WifiBaseTest {
     @Mock MlConnectedScorer mMockMlConnectedScorer;
     @Mock NetworkPreEvaluationManager mMockNetworkPreEvaluationManager;
     @Captor ArgumentCaptor<WifiManager.ScoreUpdateObserver> mExternalScoreUpdateObserverCbCaptor;
+    @Captor ArgumentCaptor<IBinder.DeathRecipient> mDeathRecipientCaptor;
     private WifiConfiguration mWifiConfiguration = new WifiConfiguration();
     private TestLooper mLooper;
 
@@ -1935,4 +1936,122 @@ public class WifiScoreReportTest extends WifiBaseTest {
                         && !sessionInfo.isCarrierNetwork()));
     }
 
+    @Test
+    public void setWifiConnectedNetworkScorer_onStartThrowsRemoteException_revertsToDefault()
+            throws Exception {
+        // Register Client.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+        assertTrue(mWifiScoreReport.isExternalScorerActive());
+
+        // Mock onStart to throw RemoteException.
+        doThrow(new RemoteException()).when(mWifiConnectedNetworkScorer).onStart(any());
+
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+
+        // Verify that we reverted to the default scorer.
+        assertFalse(mWifiScoreReport.isExternalScorerActive());
+        verify(mWifiGlobals).setUsingExternalScorer(false);
+    }
+
+    @Test
+    public void stopConnectedNetworkScorer_onStopThrowsRemoteException_revertsToDefault()
+            throws Exception {
+        // Register Client and start a session.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+        assertTrue(mWifiScoreReport.isExternalScorerActive());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+        verify(mWifiConnectedNetworkScorer).onStart(any());
+
+        // Mock onStop to throw RemoteException.
+        doThrow(new RemoteException()).when(mWifiConnectedNetworkScorer).onStop(anyInt());
+
+        mWifiScoreReport.stopConnectedNetworkScorer();
+
+        // Verify that we reverted to the default scorer.
+        assertFalse(mWifiScoreReport.isExternalScorerActive());
+        verify(mWifiGlobals).setUsingExternalScorer(false);
+    }
+
+    @Test
+    public void binderDied_revertsToDefaultScorer() throws Exception {
+        // Register Client.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, mWifiConnectedNetworkScorer,
+                TEST_UID);
+        assertTrue(mWifiScoreReport.isExternalScorerActive());
+        verify(mAppBinder).linkToDeath(mDeathRecipientCaptor.capture(), anyInt());
+
+        // Simulate binder death.
+        mDeathRecipientCaptor.getValue().binderDied();
+        mLooper.dispatchAll();
+
+        // Verify that we reverted to the default scorer.
+        assertFalse(mWifiScoreReport.isExternalScorerActive());
+        verify(mWifiGlobals).setUsingExternalScorer(false);
+    }
+
+    @Test
+    public void externalScorerCallbacks_withInvalidSessionId_areIgnored() throws Exception {
+        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
+        // Register Client and start a session.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(
+                mExternalScoreUpdateObserverCbCaptor.capture());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+        assertEquals(TEST_SESSION_ID, scorerImpl.mSessionId);
+
+        // Reset mocks to check for new interactions.
+        reset(mNetworkAgent, mWifiNative, mWifiBlocklistMonitor);
+
+        int invalidSessionId = TEST_SESSION_ID + 1;
+        int currentNudYes = mWifiScoreReport.getNudYes();
+
+        // Trigger callbacks with invalid session ID.
+        WifiManager.ScoreUpdateObserver observer = mExternalScoreUpdateObserverCbCaptor.getValue();
+        observer.notifyScoreUpdate(invalidSessionId, 50);
+        observer.notifyStatusUpdate(invalidSessionId, false);
+        observer.triggerUpdateOfWifiUsabilityStats(invalidSessionId);
+        observer.requestNudOperation(invalidSessionId);
+        observer.blocklistCurrentBssid(invalidSessionId);
+
+        mLooper.dispatchAll();
+
+        // Verify no actions were taken for session-specific calls.
+        verify(mNetworkAgent, never()).sendNetworkScore(any());
+        verify(mWifiNative, never()).getWifiLinkLayerStats(anyString());
+        verify(mWifiNative, never()).signalPoll(anyString());
+        verify(mWifiBlocklistMonitor, never()).handleBssidConnectionFailure(any(), any(), anyInt(),
+                anyInt());
+        assertEquals(currentNudYes, mWifiScoreReport.getNudYes());
+    }
+
+    @Test
+    public void triggerUpdateOfWifiUsabilityStats_withNullSignalPollResult_handlesGracefully()
+            throws Exception {
+        WifiConnectedNetworkScorerImpl scorerImpl = new WifiConnectedNetworkScorerImpl();
+        // Register Client and start a session.
+        mWifiScoreReport.setWifiConnectedNetworkScorer(mAppBinder, scorerImpl, TEST_UID);
+        verify(mExternalScoreUpdateObserverProxy).registerCallback(
+                mExternalScoreUpdateObserverCbCaptor.capture());
+        when(mNetwork.getNetId()).thenReturn(TEST_NETWORK_ID);
+        mWifiScoreReport.startConnectedNetworkScorer(TEST_NETWORK_ID, TEST_USER_SELECTED);
+
+        // Set initial RSSI and mock signalPoll to return null.
+        int initialRssi = -50;
+        mWifiInfo.setRssi(initialRssi);
+        when(mWifiNative.signalPoll(TEST_IFACE_NAME)).thenReturn(null);
+
+        // Trigger the update.
+        mExternalScoreUpdateObserverCbCaptor.getValue().triggerUpdateOfWifiUsabilityStats(
+                scorerImpl.mSessionId);
+        mLooper.dispatchAll();
+
+        // Verify getWifiLinkLayerStats is still called, but RSSI is unchanged due to null poll.
+        verify(mWifiNative).getWifiLinkLayerStats(TEST_IFACE_NAME);
+        assertEquals(initialRssi, mWifiInfo.getRssi());
+    }
 }
