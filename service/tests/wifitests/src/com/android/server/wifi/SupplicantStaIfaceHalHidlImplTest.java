@@ -1245,6 +1245,13 @@ public class SupplicantStaIfaceHalHidlImplTest extends WifiBaseTest {
         verify(mWifiMonitor).broadcastNetworkDisconnectionEvent(
                 eq(WLAN0_IFACE_NAME), eq(false), eq(reasonCode),
                 eq(TRANSLATED_SUPPLICANT_SSID.toString()), eq(BSSID));
+
+        mISupplicantStaIfaceCallback.onDisconnected(
+                NativeUtil.macAddressToByteArray(BSSID), false, 0);
+        verify(mWifiMonitor).broadcastNetworkDisconnectionEvent(
+                eq(WLAN0_IFACE_NAME), eq(false),
+                eq(SupplicantStaIfaceHal.StaIfaceReasonCode.RESERVED),
+                eq(TRANSLATED_SUPPLICANT_SSID.toString()), eq(BSSID));
     }
 
     /**

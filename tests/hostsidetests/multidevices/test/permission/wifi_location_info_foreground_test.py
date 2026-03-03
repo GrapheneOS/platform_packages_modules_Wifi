@@ -151,6 +151,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
         Expected Result:
             The connection info retrieval should fail (return None).
         """
+        wifi_test_utils.check_hotspot_device_supports_hotspot(self.hotspot_device)
         try:
             wifi_config = self._start_local_only_hotspot_and_get_config()
             self.dut.wifi.wifiConnecting(wifi_config)
@@ -172,6 +173,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
         Expected Result:
             The connection info retrieval should succeed (return not None).
         """
+        wifi_test_utils.check_hotspot_device_supports_hotspot(self.hotspot_device)
         try:
             self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
             logging.info("Granted FINE location permissions.")
@@ -194,6 +196,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
         Expected Result:
             The transport info retrieval should fail (return None).
         """
+        wifi_test_utils.check_hotspot_device_supports_hotspot(self.hotspot_device)
         try:
             wifi_config = self._start_local_only_hotspot_and_get_config()
             self.dut.wifi.wifiConnecting(wifi_config)
@@ -216,6 +219,7 @@ class WifiLocationInfoForegroundTest(base_test.BaseTestClass):
         Expected Result:
             The transport info retrieval should succeed (return not None).
         """
+        wifi_test_utils.check_hotspot_device_supports_hotspot(self.hotspot_device)
         try:
             self.dut.adb.shell(f"pm grant --user current {self._WIFI_SNIPPET_PACKAGE} {self._FINE_LOCATION_PERMISSION}")
             logging.info("Granted FINE location permissions.")

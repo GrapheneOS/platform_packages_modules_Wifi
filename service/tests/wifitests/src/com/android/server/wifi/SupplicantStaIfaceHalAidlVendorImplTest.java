@@ -102,6 +102,9 @@ import android.hardware.wifi.supplicant.StaIfaceReasonCode;
 import android.hardware.wifi.supplicant.StaIfaceStatusCode;
 import android.hardware.wifi.supplicant.SupplicantStateChangeData;
 import android.hardware.wifi.supplicant.SupplicantStatusCode;
+import android.hardware.wifi.supplicant.UsdPublishConfig;
+import android.hardware.wifi.supplicant.UsdServiceProtoType;
+import android.hardware.wifi.supplicant.UsdSubscribeConfig;
 import android.hardware.wifi.supplicant.WifiChannelWidthInMhz;
 import android.hardware.wifi.supplicant.WifiTechnology;
 import android.hardware.wifi.supplicant.WpaDriverCapabilitiesMask;
@@ -122,13 +125,10 @@ import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiMigration;
 import android.net.wifi.WifiSsid;
-import android.net.wifi.util.Environment;
 import android.net.wifi.usd.Config;
 import android.net.wifi.usd.PublishConfig;
 import android.net.wifi.usd.SubscribeConfig;
-import android.hardware.wifi.supplicant.UsdPublishConfig;
-import android.hardware.wifi.supplicant.UsdSubscribeConfig;
-import android.hardware.wifi.supplicant.UsdServiceProtoType;
+import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -1130,6 +1130,13 @@ public class SupplicantStaIfaceHalAidlVendorImplTest extends WifiBaseTest {
                 NativeUtil.macAddressToByteArray(BSSID), false, reasonCode);
         verify(mWifiMonitor).broadcastNetworkDisconnectionEvent(
                 eq(WLAN0_IFACE_NAME), eq(false), eq(reasonCode),
+                eq(TRANSLATED_SUPPLICANT_SSID.toString()), eq(BSSID));
+
+        mISupplicantStaIfaceCallback.onDisconnected(
+                NativeUtil.macAddressToByteArray(BSSID), false, 0);
+        verify(mWifiMonitor).broadcastNetworkDisconnectionEvent(
+                eq(WLAN0_IFACE_NAME), eq(false),
+                eq(SupplicantStaIfaceHal.StaIfaceReasonCode.RESERVED),
                 eq(TRANSLATED_SUPPLICANT_SSID.toString()), eq(BSSID));
     }
 
