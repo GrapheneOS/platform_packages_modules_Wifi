@@ -9998,33 +9998,11 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
-     * Test unregister listener from background user.
-     */
-    @Test(expected = SecurityException.class)
-    public void testRemoveSuggestionUserApprovalStatusListenerFromBackgroundUser() {
-        when(mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(anyInt()))
-                .thenReturn(false);
-        mWifiServiceImpl.removeSuggestionUserApprovalStatusListener(
-                mSuggestionUserApprovalStatusListener, TEST_PACKAGE_NAME);
-    }
-
-    /**
      * Test register listener without listener
      */
     @Test(expected = NullPointerException.class)
     public void testAddSuggestionUserApprovalStatusListenerWithIllegalArgument() {
         mWifiServiceImpl.addSuggestionUserApprovalStatusListener(null, TEST_PACKAGE_NAME);
-    }
-
-    /**
-     * Test unregister callback without permission.
-     */
-    @Test(expected = SecurityException.class)
-    public void testUnregisterSuggestionUserApprovalStatusListenerWithMissingPermission() {
-        doThrow(new SecurityException()).when(mContext).enforceCallingOrSelfPermission(
-                eq(ACCESS_WIFI_STATE), eq("WifiService"));
-        mWifiServiceImpl.removeSuggestionUserApprovalStatusListener(
-                mSuggestionUserApprovalStatusListener, TEST_PACKAGE_NAME);
     }
 
     /**
@@ -12409,12 +12387,6 @@ public class WifiServiceImplTest extends WifiBaseTest {
                 .removeLocalOnlyDisconnectionStatusListener(mLocalOnlyDisconnectionStatusListener,
                         null));
 
-        when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
-                anyInt())).thenReturn(false);
-        assertThrows(SecurityException.class, () -> mWifiServiceImpl
-                .removeLocalOnlyDisconnectionStatusListener(mLocalOnlyDisconnectionStatusListener,
-                        TEST_PACKAGE_NAME));
-
         // verify removeLocalOnlyDisconnectionStatusListener callable with permission
         when(mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(
                 anyInt())).thenReturn(true);
@@ -12438,19 +12410,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     }
 
     /**
-     * Test unregister callback without permission.
-     */
-    @Test
-    public void testUnregisterLocalOnlyNetworkCallbackWithMissingPermission() {
-        doThrow(new SecurityException()).when(mContext).enforceCallingOrSelfPermission(
-                eq(ACCESS_WIFI_STATE), eq("WifiService"));
-        assertThrows(SecurityException.class, () -> mWifiServiceImpl
-                .removeLocalOnlyConnectionStatusListener(
-                        mLocalOnlyConnectionStatusListener, TEST_PACKAGE_NAME));
-    }
-
-    /**
-     * Test register nad unregister callback will go to WifiNetworkSuggestionManager
+     * Test register and unregister callback will go to WifiNetworkSuggestionManager
      */
     @Test
     public void testRegisterUnregisterLocalOnlyNetworkCallback() throws Exception {

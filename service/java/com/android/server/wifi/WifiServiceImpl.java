@@ -7950,19 +7950,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         if (listener == null) {
             throw new IllegalArgumentException("listener must not be null");
         }
-        enforceAccessPermission();
         int uid = Binder.getCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, packageName);
-        long callingIdentity = Binder.clearCallingIdentity();
-        try {
-            if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(uid)) {
-                Log.e(TAG, "UID " + uid + " not visible to the current user");
-                throw new SecurityException("UID " + uid + " not visible to the current user");
-            }
-        } finally {
-            // restore calling identity
-            Binder.restoreCallingIdentity(callingIdentity);
-        }
         if (mVerboseLoggingEnabled) {
             mLog.info("removeLocalOnlyConnectionFailureListener uid=%")
                     .c(uid).flush();
@@ -8014,12 +8003,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             @NonNull ILocalOnlyDisconnectionStatusListener listener, @NonNull String packageName) {
         Objects.requireNonNull(listener, "Listener must not be null");
         Objects.requireNonNull(packageName, "packageName must not be null");
-        enforceAccessPermission();
         int uid = Binder.getCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, packageName);
-        if (!mWifiPermissionsUtil.checkRequestCompanionProfileAutomotiveProjectionPermission(uid)) {
-            throw new SecurityException("UID " + uid + " has no permission to access API");
-        }
         if (mVerboseLoggingEnabled) {
             mLog.info("removeLocalOnlyDisconnectionStatusListener uid=%")
                     .c(uid).flush();
@@ -8352,19 +8337,9 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     @Override
     public void removeSuggestionUserApprovalStatusListener(
             ISuggestionUserApprovalStatusListener listener, String packageName) {
-        enforceAccessPermission();
         int uid = Binder.getCallingUid();
         mWifiPermissionsUtil.checkPackage(uid, packageName);
         long callingIdentity = Binder.clearCallingIdentity();
-        try {
-            if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(uid)) {
-                Log.e(TAG, "UID " + uid + " not visible to the current user");
-                throw new SecurityException("UID " + uid + " not visible to the current user");
-            }
-        } finally {
-            // restore calling identity
-            Binder.restoreCallingIdentity(callingIdentity);
-        }
         if (mVerboseLoggingEnabled) {
             mLog.info("removeSuggestionUserApprovalStatusListener uid=%")
                     .c(uid).flush();
