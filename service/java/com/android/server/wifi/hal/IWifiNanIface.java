@@ -59,22 +59,20 @@ public interface IWifiNanIface {
     /**
      * Enable and configure Aware.
      *
-     * @param transactionId Transaction ID for the transaction - used in the
-     *            async callback to match with the original request.
-     * @param configRequest Requested Aware configuration.
-     * @param notifyIdentityChange Indicates whether to get address change callbacks.
-     * @param initialConfiguration Specifies whether initial configuration
-     *            (true) or an update (false) to the configuration.
-     * @param rangingEnabled Indicates whether to enable ranging.
+     * @param transactionId                 Transaction ID for the transaction - used in the
+     *                                      async callback to match with the original request.
+     * @param configRequest                 Requested Aware configuration.
+     * @param initialConfiguration          Specifies whether initial configuration
+     *                                      (true) or an update (false) to the configuration.
+     * @param rangingEnabled                Indicates whether to enable ranging.
      * @param isInstantCommunicationEnabled Indicates whether to enable instant communication
-     * @param instantModeChannel
-     * @param clusterId Indicate which cluster to join.
-     * @param macAddressRandomizationIntervalSec
-     * @param powerParameters Instance of {@link WifiNanIface.PowerParameters} containing the
-     *                        parameters to use in our config request.
+     * @param clusterId                     Indicate which cluster to join.
+     * @param powerParameters               Instance of {@link WifiNanIface.PowerParameters}
+     *                                      containing the
+     *                                      parameters to use in our config request.
      */
     boolean enableAndConfigure(short transactionId, ConfigRequest configRequest,
-            boolean notifyIdentityChange, boolean initialConfiguration, boolean rangingEnabled,
+            boolean initialConfiguration, boolean rangingEnabled,
             boolean isInstantCommunicationEnabled, int instantModeChannel, int clusterId,
             int macAddressRandomizationIntervalSec, WifiNanIface.PowerParameters powerParameters);
 
