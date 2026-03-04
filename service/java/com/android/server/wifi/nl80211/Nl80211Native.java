@@ -1361,14 +1361,11 @@ public class Nl80211Native {
             if (requestRandomMac) scanFlags |= NL80211_SCAN_FLAG_RANDOM_ADDR;
             if (enable6GhzRnr) scanFlags |= NL80211_SCAN_FLAG_COLOCATED_6GHZ;
 
-            List<byte[]> trimmedHiddenSsids;
-            if (hiddenNetworkSSIDs.isEmpty()) {
-                // If no hidden SSIDs are supplied, set an empty SSID to indicate a wildcard scan.
-                trimmedHiddenSsids = List.of(new byte[0]);
-            } else {
-                trimmedHiddenSsids =
-                        trimScanSsids(ifaceInfo.wiphyInfo.scanCapabilities, hiddenNetworkSSIDs);
-            }
+            List<byte[]> ssidsToScan = new ArrayList<>();
+            ssidsToScan.add(new byte[0]); // Always add an empty SSID for wildcard scan
+            ssidsToScan.addAll(hiddenNetworkSSIDs);
+            List<byte[]> trimmedHiddenSsids =
+                    trimScanSsids(ifaceInfo.wiphyInfo.scanCapabilities, ssidsToScan);
 
             int result = mNl80211Utils.triggerScan(ifaceInfo.ifIndex, scanFlags, freqs,
                     trimmedHiddenSsids, vendorIes);

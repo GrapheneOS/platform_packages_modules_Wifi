@@ -981,11 +981,13 @@ public class Nl80211NativeTest {
     public void testStartScan_success() {
         mDut = initNl80211Native(false);
         Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
-                .setMaxNumScanSsids(2)
+                .setMaxNumScanSsids(10)
                 .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, scanCapabilities, null);
         Set<Integer> freqs = new HashSet<>(List.of(2412, 5180));
         List<byte[]> hiddenSsids = List.of("hidden1".getBytes(), "hidden2".getBytes());
+        List<byte[]> expectedSsids = List.of(new byte[0], "hidden1".getBytes(),
+                "hidden2".getBytes());
         Bundle extraParams = new Bundle();
         extraParams.putBoolean(Nl80211Native.SCANNING_PARAM_ENABLE_6GHZ_RNR, true);
         extraParams.putByteArray(Nl80211Native.EXTRA_SCANNING_PARAM_VENDOR_IES,
@@ -993,15 +995,21 @@ public class Nl80211NativeTest {
 
         when(mNl80211Utils.triggerScan(
                 eq(CLIENT_IFACE_INDEX), anyInt(),
-                eq(freqs), eq(hiddenSsids), eq(new byte[]{0x01, 0x02})))
+                eq(freqs), any(), eq(new byte[]{0x01, 0x02})))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
                 freqs, hiddenSsids, extraParams);
         assertEquals(WifiScanner.REASON_SUCCEEDED, result);
+        ArgumentCaptor<List<byte[]>> ssidsCaptor = ArgumentCaptor.forClass(List.class);
         verify(mNl80211Utils).triggerScan(
-                eq(CLIENT_IFACE_INDEX), anyInt(), eq(freqs), eq(hiddenSsids),
+                eq(CLIENT_IFACE_INDEX), anyInt(), eq(freqs), ssidsCaptor.capture(),
                 eq(new byte[]{0x01, 0x02}));
+        List<byte[]> ssids = ssidsCaptor.getValue();
+        assertEquals(expectedSsids.size(), ssids.size());
+        for (int i = 0; i < expectedSsids.size(); i++) {
+            assertArrayEquals(expectedSsids.get(i), ssids.get(i));
+        }
     }
 
     @Test
@@ -1031,14 +1039,16 @@ public class Nl80211NativeTest {
     @Test
     public void testStartScan_emptyHiddenSsids_triggersWildcardScan() {
         mDut = initNl80211Native(false);
-        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, null, null);
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanSsids(2)
+                .build();
+        setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, scanCapabilities, null);
 
         List<byte[]> emptySsids = new ArrayList<>();
-        List<byte[]> expectedSsids = List.of(new byte[0]);
 
         when(mNl80211Utils.triggerScan(
                 eq(CLIENT_IFACE_INDEX), anyInt(),
-                eq(null), eq(expectedSsids), eq(null)))
+                eq(null), any(), eq(null)))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_LOW_LATENCY,
@@ -1058,25 +1068,32 @@ public class Nl80211NativeTest {
     public void testStartScan_withHiddenSsids_trimsCorrectly() {
         mDut = initNl80211Native(false);
         Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
-                .setMaxNumScanSsids(1)
+                .setMaxNumScanSsids(2)
                 .build();
         setupClientModeInterfaceForTest(WIPHY_INDEX_0, null, scanCapabilities, null);
 
         byte[] ssid1 = "ssid1".getBytes();
         byte[] ssid2 = "ssid2".getBytes();
         List<byte[]> hiddenSsids = List.of(ssid1, ssid2);
-        List<byte[]> expectedTrimmedSsids = List.of(ssid1); // Only first one should be taken
+        // Only the wildcard SSID & ssid1 should be taken as the maximum number of SSID is set to 2
+        List<byte[]> expectedTrimmedSsids = List.of(new byte[0], ssid1);
 
         when(mNl80211Utils.triggerScan(
-                eq(CLIENT_IFACE_INDEX), anyInt(), eq(null), eq(expectedTrimmedSsids), eq(null)))
+                eq(CLIENT_IFACE_INDEX), anyInt(), eq(null), any(), eq(null)))
                 .thenReturn(WifiScanner.REASON_SUCCEEDED);
 
         int result = mDut.startScan(CLIENT_IFACE_NAME, WifiScanner.SCAN_TYPE_HIGH_ACCURACY,
                 null, hiddenSsids, null);
         assertEquals(WifiScanner.REASON_SUCCEEDED, result);
+        ArgumentCaptor<List<byte[]>> ssidsCaptor = ArgumentCaptor.forClass(List.class);
         verify(mNl80211Utils).triggerScan(
                 eq(CLIENT_IFACE_INDEX), anyInt(),
-                eq(null), eq(expectedTrimmedSsids), eq(null));
+                eq(null), ssidsCaptor.capture(), eq(null));
+        List<byte[]> ssids = ssidsCaptor.getValue();
+        assertEquals(expectedTrimmedSsids.size(), ssids.size());
+        for (int i = 0; i < expectedTrimmedSsids.size(); i++) {
+            assertArrayEquals(expectedTrimmedSsids.get(i), ssids.get(i));
+        }
     }
 
     /** Test that startScan correctly handles extra scanning parameters. */
