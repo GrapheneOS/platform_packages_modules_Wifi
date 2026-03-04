@@ -263,8 +263,8 @@ public class WifiRttControllerAidlImplTest extends WifiBaseTest {
         collector.checkThat("entry 0: rtt burst size", rttConfig.numFramesPerBurst,
                 equalTo(RangingRequest.getMaxRttBurstSize()));
         // ntbMinMeasurementTime in units of 100 us
-        // DEFAULT_NTB_MIN_TIME_BETWEEN_MEASUREMENTS_MICROS = 250000 --> 2500 * 100 us
-        collector.checkThat("", rttConfig.ntbMinMeasurementTime, equalTo(2500L));
+        // DEFAULT_NTB_MIN_TIME_BETWEEN_MEASUREMENTS_MICROS = 40000 --> 400 * 100 us
+        collector.checkThat("", rttConfig.ntbMinMeasurementTime, equalTo(400L));
         // ntbMaxMeasurementTime in units of 10 ms
         // DEFAULT_NTB_MAX_TIME_BETWEEN_MEASUREMENTS_MICROS = 15000000 --> 1500 * 10 ms
         collector.checkThat("", rttConfig.ntbMaxMeasurementTime, equalTo(1500L));
