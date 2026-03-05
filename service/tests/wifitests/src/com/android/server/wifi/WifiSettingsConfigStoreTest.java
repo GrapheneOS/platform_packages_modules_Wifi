@@ -403,6 +403,71 @@ public class WifiSettingsConfigStoreTest extends WifiBaseTest {
     }
 
     @Test
+    public void testSharedToPrivateMigration_emptySharedStore() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
+        when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
+        initializeWifiSettingsConfigStore();
+
+        // Capture both shared and user-specific StoreData.
+        ArgumentCaptor<WifiConfigStore.StoreData> storeDataCaptor = ArgumentCaptor.forClass(
+                WifiConfigStore.StoreData.class);
+        verify(mWifiConfigStore, times(2)).registerStoreData(storeDataCaptor.capture());
+        WifiConfigStore.StoreData sharedStoreData = storeDataCaptor.getAllValues().get(0);
+        WifiConfigStore.StoreData userStoreData = storeDataCaptor.getAllValues().get(1);
+
+        // Setup mock for Settings.Global to return non-default values
+        when(mFrameworkFacade.getIntegerSetting(eq(mContext),
+                eq(Settings.Global.WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON), anyInt()))
+                .thenReturn(0); // default is true(1)
+        when(mFrameworkFacade.getIntegerSetting(eq(mContext),
+                eq(Settings.Global.WIFI_WAKEUP_ENABLED), anyInt()))
+                .thenReturn(1); // default is false(0)
+        when(mFrameworkFacade.getIntegerSetting(eq(mContext),
+                eq(WifiScanAlwaysAvailableSettingsCompatibility
+                        .SETTINGS_GLOBAL_WIFI_SCAN_ALWAYS_AVAILABLE), anyInt()))
+                .thenReturn(1); // default is false(0)
+
+        // Mock SettingsMigrationDataHolder so migrateFromSettingsIfNeeded succeeds
+        WifiMigration.SettingsMigrationData migrationData =
+                mock(WifiMigration.SettingsMigrationData.class);
+        when(mSettingsMigrationDataHolder.retrieveData()).thenReturn(migrationData);
+
+        // Setup mock for UserManager and Current User
+        when(mUserManager.getUserHandles(anyBoolean())).thenReturn(List.of(TEST_USER_HANDLE));
+        when(ActivityManager.getCurrentUser()).thenReturn(UserHandle.getUserId(TEST_UID));
+
+        // Trigger deserializeData with null (empty shared store)
+        sharedStoreData.deserializeData(null, -1, -1, null);
+
+        // Verify mUsersNeedMigration is empty, because this is an empty store (new device)
+        assertTrue(mWifiSettingsConfigStore.mUsersNeedMigration.isEmpty());
+
+        // Verify the DEFAULT_WIFI_* keys were loaded into mSettings from Settings.Global
+        assertEquals(false, mWifiSettingsConfigStore.get(
+                WifiSettingsConfigStore.DEFAULT_WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON));
+        assertEquals(true, mWifiSettingsConfigStore.get(
+                WifiSettingsConfigStore.DEFAULT_WIFI_WAKEUP_ENABLED));
+        assertEquals(true, mWifiSettingsConfigStore.get(
+                WifiSettingsConfigStore.DEFAULT_WIFI_SCAN_ALWAYS_AVAILABLE));
+
+        // Trigger user store deserializeData with null
+        userStoreData.deserializeData(null, -1, -1, null);
+
+        // Verify the private settings were correctly assigned their default values loaded
+        // from Settings.Global
+        assertEquals(false, mWifiSettingsConfigStore.get(
+                WifiSettingsConfigStore.WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON));
+        assertEquals(true, mWifiSettingsConfigStore.get(
+                WifiSettingsConfigStore.WIFI_WAKEUP_ENABLED));
+        assertEquals(true, mWifiSettingsConfigStore.get(
+                WifiSettingsConfigStore.WIFI_SCAN_ALWAYS_AVAILABLE));
+
+        // Check fallback for keys without global settings (e.g. WIFI_WEP_ALLOWED)
+        assertEquals(WifiSettingsConfigStore.WIFI_WEP_ALLOWED.defaultValue,
+                mWifiSettingsConfigStore.get(WifiSettingsConfigStore.WIFI_WEP_ALLOWED));
+    }
+
+    @Test
     public void testSharedToPrivateMigration_migrateForExistingUser() throws Exception {
         assumeTrue(Environment.isSdkNewerThanB());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
