@@ -59,6 +59,8 @@ class NetworkRequestTests(base_test.BaseTestClass):
     test_utils.drop_shell_permission(ad, ensure_mbs_initialized=True)
     test_utils.enable_wifi_verbose_logging(ad)
     test_utils.set_screen_on_and_unlock(ad)
+    # Make sure location mode is on before triggering any Wi-Fi scan.
+    test_utils.set_location_mode_on(ad)
 
     # Disable wifi scan throttle.
     self._original_wifi_scan_throttle_state = None
@@ -69,6 +71,8 @@ class NetworkRequestTests(base_test.BaseTestClass):
       ad.wifi.wifiSetScanThrottleState(False)
       # Set this attribute to revert this change in teardown_class phase.
       self._original_wifi_scan_throttle_state = current_wifi_scan_throttle_state
+
+    test_utils.logging_device_model(ad)
 
   @override
   def setup_class(self):
@@ -90,7 +94,6 @@ class NetworkRequestTests(base_test.BaseTestClass):
     # request_networkid support managing multiple network sessions.
     # But we only need one wifi connection in each test
     self.request_networkid = '0'
-    test_utils.logging_device_model(self.ad)
 
   @override
   def teardown_class(self):
