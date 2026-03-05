@@ -41,6 +41,7 @@ import android.content.Context;
 import android.hardware.wifi.supplicant.BtCoexistenceMode;
 import android.hardware.wifi.supplicant.ConnectionCapabilities;
 import android.hardware.wifi.supplicant.DebugLevel;
+import android.hardware.wifi.supplicant.DeviceIdentityKey;
 import android.hardware.wifi.supplicant.DppAkm;
 import android.hardware.wifi.supplicant.DppCurve;
 import android.hardware.wifi.supplicant.DppNetRole;
@@ -83,7 +84,6 @@ import android.hardware.wifi.supplicant.UsdPublishConfig;
 import android.hardware.wifi.supplicant.UsdPublishTransmissionType;
 import android.hardware.wifi.supplicant.UsdServiceProtoType;
 import android.hardware.wifi.supplicant.UsdSubscribeConfig;
-import android.hardware.wifi.supplicant.DeviceIdentityKey;
 import android.hardware.wifi.supplicant.WifiChannelWidthInMhz;
 import android.hardware.wifi.supplicant.WifiTechnology;
 import android.hardware.wifi.supplicant.WpaDriverCapabilitiesMask;
@@ -125,6 +125,7 @@ import com.android.server.wifi.util.NativeUtil;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -4171,7 +4172,8 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
         aidlConfig.usdBaseConfig.freqsMhz =
                 (freqs == null || freqs.length <= 1) ? new int[0] : Arrays.copyOfRange(freqs, 1,
                         freqs.length);
-        aidlConfig.usdBaseConfig.serviceName = Arrays.toString(frameworkConfig.getServiceName());
+        aidlConfig.usdBaseConfig.serviceName = new String(frameworkConfig.getServiceName(),
+                StandardCharsets.UTF_8);
         aidlConfig.usdBaseConfig.serviceSpecificInfo =
                 frameworkConfig.getServiceSpecificInfo() != null
                         ? frameworkConfig.getServiceSpecificInfo() : new byte[0];
@@ -4253,7 +4255,8 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
         aidlConfig.subscribeType = frameworkToHalSubscriberType(frameworkConfig.getSubscribeType());
         aidlConfig.queryPeriodMillis = frameworkConfig.getQueryPeriodMillis();
         aidlConfig.usdBaseConfig = new UsdBaseConfig();
-        aidlConfig.usdBaseConfig.serviceName = Arrays.toString(frameworkConfig.getServiceName());
+        aidlConfig.usdBaseConfig.serviceName = new String(frameworkConfig.getServiceName(),
+                StandardCharsets.UTF_8);
         if (IS_PROXIMITY_RANGING_IMPL) {
             if (Environment.isSdkNewerThanB() &&
                 (mIsUsingMainlineSupplicant || isServiceVersionAtLeast(5))) {
@@ -4267,8 +4270,7 @@ public abstract class SupplicantStaIfaceHalAidlBase implements ISupplicantStaIfa
                     frameworkConfig.getPeerDeviceIdentityKeys());
             }
             // Handle SERVICE_NAME_ANY special case
-            if (Config.SERVICE_NAME_ANY.equals(
-                    Arrays.toString(frameworkConfig.getServiceName()))) {
+            if (Config.SERVICE_NAME_ANY.equals(aidlConfig.usdBaseConfig.serviceName)) {
                 aidlConfig.usdBaseConfig.serviceName = "";
             }
         }
