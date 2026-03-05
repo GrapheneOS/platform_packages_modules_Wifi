@@ -1092,10 +1092,12 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                                             "User removed broadcast received with no user handle");
                                     return;
                                 }
-                                mWifiThreadRunner.post(() ->
-                                    mWifiConfigManager
-                                            .removeNetworksForUser(userHandle.getIdentifier()),
-                                            TAG + "#handleUserRemoved");
+                                mWifiThreadRunner.post(() -> {
+                                    mWifiConfigManager.removeNetworksForUser(
+                                            userHandle.getIdentifier());
+                                    mWifiNetworkSuggestionsManager.removeSuggestionsForUser(
+                                            userHandle.getIdentifier());
+                                }, TAG + "#handleUserRemoved");
                             } else if (BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED
                                     .equals(action)) {
                                 int state = intent.getIntExtra(

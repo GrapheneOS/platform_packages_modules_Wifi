@@ -3232,5 +3232,37 @@ public class PasspointManagerTest extends WifiBaseTest {
         assertEquals(PasspointMatch.HomeProvider, result.second);
         assertEquals(TEST_FQDN, result.first.getConfig().getHomeSp().getFqdn());
     }
+
+    @Test
+    public void testSetProvidersFiltersProvidersFromRemovedUser() throws Exception {
+        List<PasspointProvider> providers = new ArrayList<>();
+
+        PasspointConfiguration config0 =
+                createTestConfigWithUserCredential(TEST_FQDN, TEST_FRIENDLY_NAME);
+        PasspointProvider provider0 = mock(PasspointProvider.class);
+        when(provider0.getCreatorUid()).thenReturn(TEST_CREATOR_UID); // user 0
+        when(provider0.getConfig()).thenReturn(config0);
+        when(provider0.getPackageName()).thenReturn(TEST_PACKAGE);
+        providers.add(provider0);
+
+        PasspointConfiguration config1 =
+                createTestConfigWithUserCredential(TEST_FQDN2, TEST_FRIENDLY_NAME2);
+        PasspointProvider provider1 = mock(PasspointProvider.class);
+        when(provider1.getCreatorUid()).thenReturn(TEST_CREATOR_UID1); // user 1
+        when(provider1.getConfig()).thenReturn(config1);
+        when(provider1.getPackageName()).thenReturn(TEST_PACKAGE1);
+        providers.add(provider1);
+
+        when(mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(TEST_CREATOR_UID))
+                .thenReturn(true);
+        when(mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(TEST_CREATOR_UID1))
+                .thenReturn(false);
+
+        mUserDataSource.setProviders(providers);
+
+        assertEquals(1, mUserDataSource.getProviders().size());
+        assertEquals(config0.getUniqueId(),
+                mUserDataSource.getProviders().get(0).getConfig().getUniqueId());
+    }
 }
 
