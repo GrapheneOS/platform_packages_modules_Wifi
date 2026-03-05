@@ -34,6 +34,7 @@ import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.SoftApConfiguration.BandType;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.util.Environment;
 import android.net.wifi.util.WifiResourceCache;
 import android.os.Handler;
 import android.os.Process;
@@ -133,8 +134,7 @@ public class WifiApConfigStore {
         }
 
         public void reset() {
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (Flags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
                 resetUserSessionData();
             } else {
                 mPersistentWifiApConfig = null;
@@ -206,8 +206,7 @@ public class WifiApConfigStore {
         final SoftApStoreDataSource softApStoreDataSource = new SoftApStoreDataSource();
         wifiConfigStore.registerStoreData(
                 wifiInjector.makeSharedSoftApStoreData(softApStoreDataSource));
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-        if (Flags.multiUserWifiEnhancement()) {
+        if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
             wifiConfigStore.registerStoreData(
                     wifiInjector.makeUserSoftApStoreData(softApStoreDataSource));
         }
@@ -660,8 +659,7 @@ public class WifiApConfigStore {
 
     private String generateKeyForPersistentMac(WifiSsid ssid) {
         String key = ssid != null ? ssid.toString() : null;
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-        if (Flags.multiUserWifiEnhancement()) {
+        if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
             String currentUserId = String.valueOf(mWifiPermissionsUtil.getCurrentUser());
             key = ssid != null ? ssid.toString() + currentUserId
                     : currentUserId;

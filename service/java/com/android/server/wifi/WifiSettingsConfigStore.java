@@ -324,8 +324,7 @@ public class WifiSettingsConfigStore {
                 WIFI_WEP_ALLOWED,
                 D2D_ALLOWED_WHEN_INFRA_STA_DISABLED
         ));
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-        if (mFeatureFlags.multiUserWifiEnhancement()) {
+        if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
             // Register data store for user-specific settings.
             wifiConfigStore.registerStoreData(new UserStoreData());
             // Register new user-specific keys that don't originally support B&R in old build. When
@@ -390,8 +389,7 @@ public class WifiSettingsConfigStore {
     private void triggerSaveToStoreAndInvokeUserPrivateOrAllListeners(boolean isUserPrivateOnly) {
         mHandler.post(() -> {
             Iterable<Key> keys = sKeys;
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (mFeatureFlags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                 mHasNewUserStoreDataToSerialize = true;
                 if (!isUserPrivateOnly) {
                     mHasNewSharedStoreDataToSerialize = true;
@@ -410,8 +408,7 @@ public class WifiSettingsConfigStore {
      */
     private <T> void triggerSaveToStoreAndInvokeListeners(@NonNull Key<T> key) {
         mHandler.post(() -> {
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (mFeatureFlags.multiUserWifiEnhancement()
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()
                     && mUserPrivateKeys.contains(key)) {
                 mHasNewUserStoreDataToSerialize = true;
             } else {
@@ -762,8 +759,7 @@ public class WifiSettingsConfigStore {
             pw.println(mCachedMigrationData.isVerboseLoggingEnabled());
             pw.println();
         }
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-        if (mFeatureFlags.multiUserWifiEnhancement()) {
+        if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
             pw.println("Migration data for shared to private settings migration:");
             for (Key key : mUserPrivateKeys) {
                 pw.print(key.key);
@@ -828,8 +824,7 @@ public class WifiSettingsConfigStore {
                 @Nullable WifiConfigStoreEncryptionUtil encryptionUtil)
                 throws XmlPullParserException, IOException {
             synchronized (mLock) {
-                // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-                if (mFeatureFlags.multiUserWifiEnhancement()) {
+                if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                     // Only serialize shared settings.
                     Map<String, Object> sharedSettings = new HashMap<>(mSettings);
                     for (Key key : mUserPrivateKeys) {
@@ -857,8 +852,7 @@ public class WifiSettingsConfigStore {
             if (values != null) {
                 synchronized (mLock) {
                     mSettings.putAll(values);
-                    // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-                    if (mFeatureFlags.multiUserWifiEnhancement()) {
+                    if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                         // Invoke registered listeners for shared setting keys. Obtain shared keys
                         // by subtracting private keys from all keys.
                         Set<Key> sharedKeys = new HashSet<>(sKeys);
@@ -871,8 +865,7 @@ public class WifiSettingsConfigStore {
 
                 }
             }
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (mFeatureFlags.multiUserWifiEnhancement()
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()
                     && mUsersNeedMigration.isEmpty()) {
                 mUsersNeedMigration.addAll(mUserManager.getUserHandles(/* excludeDying= */ true));
                 prepareSharedToPrivateMigrationDataHolder(values);
@@ -883,8 +876,7 @@ public class WifiSettingsConfigStore {
         public void resetData() {
             synchronized (mLock) {
                 mSettings.clear();
-                // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-                if (mFeatureFlags.multiUserWifiEnhancement()) {
+                if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                     mUsersNeedMigration.clear();
                     mSharedToPrivateMigrationDataHolder.clear();
                     mHasNewSharedStoreDataToSerialize = false;

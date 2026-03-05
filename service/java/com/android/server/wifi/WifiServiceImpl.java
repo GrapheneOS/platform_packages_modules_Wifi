@@ -1221,8 +1221,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         mWifiThreadRunner.post(() -> {
             mWifiConfigManager.handleUserSwitch(userId);
             resetNotificationManager();
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (mFeatureFlags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                 mActiveModeWarden.handleUserSwitch(userId);
                 mWifiApConfigStore.handleUserSwitch(userId);
                 mSettingsConfigStore.handleUserSwitch(userId);
@@ -1234,8 +1233,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         Log.d(TAG, "Handle user unlock " + userId);
         mWifiThreadRunner.post(() -> {
             mWifiConfigManager.handleUserUnlock(userId);
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (mFeatureFlags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                 mActiveModeWarden.handleUserUnlock(userId);
                 boolean isScanAlwaysAvailable =
                         mSettingsStore.isScanAlwaysAvailableToggleEnabled();
@@ -1256,8 +1254,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         Log.d(TAG, "Handle user stop " + userId);
         mWifiThreadRunner.post(() -> {
             mWifiConfigManager.handleUserStop(userId);
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (mFeatureFlags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                 mActiveModeWarden.handleUserStop(userId);
                 mWifiApConfigStore.handleUserStop(userId);
                 mSettingsConfigStore.handleUserStop(userId);
@@ -6781,8 +6778,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         mLog.info("retrieveBackupData uid=%").c(Binder.getCallingUid()).flush();
         Log.d(TAG, "Retrieving backup data");
         List<WifiConfiguration> wifiConfigurations = mWifiThreadRunner.call(
-                // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-                () -> mFeatureFlags.multiUserWifiEnhancement()
+                () -> (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement())
                         ? mWifiConfigManager.getConfiguredNetworksCreatedByCurrentUserWithPassword()
                         : mWifiConfigManager.getConfiguredNetworksWithPasswords(),
                 null, TAG + "#retrieveBackupData");
@@ -6810,11 +6806,11 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                     .isChangeEnabled(NOT_OVERRIDE_EXISTING_NETWORKS_ON_RESTORE, callingUid);
             int networkId;
             boolean sharedDevice = false;
-            if (mFeatureFlags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()) {
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                 sharedDevice = mUserManager.getUserCount() > 1;
             }
             for (WifiConfiguration configuration : configurations) {
-                if (mFeatureFlags.multiUserWifiEnhancement() && Environment.isSdkNewerThanB()
+                if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()
                         && sharedDevice) {
                     if (configuration == null) {
                         continue;
