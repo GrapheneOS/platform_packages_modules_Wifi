@@ -2688,7 +2688,11 @@ public class ActiveModeWarden {
                     requestInfo.listener.onAnswer(primaryManager);
                     return;
                 }
+                boolean allowSameBssidConnection =
+                        mWifiGlobals.isMultiInternetSameBssidConnectionAllowed()
+                        && requestInfo.clientRole == ROLE_CLIENT_SECONDARY_LONG_LIVED;
                 ConcreteClientModeManager cmmForSameBssid =
+                        allowSameBssidConnection ? null :
                         findAnyClientModeManagerConnectingOrConnectedToBssid(
                                 requestInfo.ssid, requestInfo.bssid);
                 if (cmmForSameBssid != null) {
