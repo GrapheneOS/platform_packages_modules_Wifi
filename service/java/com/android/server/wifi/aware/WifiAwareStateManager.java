@@ -164,6 +164,7 @@ import java.net.Inet6Address;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -451,6 +452,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private int mMaxNdpSessionLimit = 0;
     private String mLastCountryCode = null;
     private Boolean mIs5gAwareSupported = null;
+    private final SecureRandom mRandom = new SecureRandom();
+    private final int mMasterPref = mRandom.nextInt(128);
 
     /**
      * Current logged in user ID.
@@ -6140,7 +6143,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         // - discovery window: minimum value if specified, 0 (disable) is considered an infinity
         boolean support5gBand = false;
         boolean support6gBand = false;
-        int masterPreference = 0;
+        int masterPreference = -1;
         boolean clusterIdValid = false;
         int clusterLow = 0;
         int clusterHigh = ConfigRequest.CLUSTER_ID_MAX;
@@ -6203,6 +6206,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 vendorData = cr.getVendorData();
             }
         }
+        masterPreference = masterPreference == -1 ? mMasterPref : masterPreference;
         ConfigRequest.Builder builder = new ConfigRequest.Builder().setSupport5gBand(support5gBand)
                 .setMasterPreference(masterPreference).setClusterLow(clusterLow)
                 .setClusterHigh(clusterHigh);
