@@ -1584,6 +1584,7 @@ public class Nl80211Native {
             }
 
             List<byte[]> scanSsids = new ArrayList<>();
+            scanSsids.add(new byte[0]); // Always add an empty SSID for wildcard scan
             List<byte[]> matchSsids = new ArrayList<>();
             Set<Integer> uniqueFreqs = new ArraySet<>();
             int networksWithoutFreqs = 0;
