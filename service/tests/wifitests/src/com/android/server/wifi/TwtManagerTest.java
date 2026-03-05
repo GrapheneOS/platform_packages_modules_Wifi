@@ -370,6 +370,54 @@ public class TwtManagerTest extends WifiBaseTest {
                 argThat(argument -> isBundleContentEqual(twtStats, argument)));
     }
 
+    /**
+     * Test the case where a getStatsTwtSession command fails in the native layer.
+     * Verifies that the correct failure callback (onResult with default stats) is invoked
+     * on the ITwtStatsListener without a ClassCastException.
+     */
+    @Test
+    public void testGetStatsSessionFailure() throws RemoteException {
+        final Bundle defaultTwtStats = getDefaultTwtStats();
+        ITwtCallback iTwtCallback = mock(ITwtCallback.class);
+        ITwtStatsListener iTwtStatsListener = mock(ITwtStatsListener.class);
+        TwtRequest twtRequest = mock(TwtRequest.class);
+
+        when(iTwtStatsListener.asBinder()).thenReturn(mAppBinder);
+        when(iTwtCallback.asBinder()).thenReturn(mAppBinder);
+        InOrder inOrderListener = inOrder(iTwtStatsListener);
+
+        // 1. Setup a session
+        when(mWifiNative.setupTwtSession(anyInt(), eq(WIFI_IFACE_NAME), eq(twtRequest))).thenReturn(
+                true);
+        mTwtManager.setupTwtSession(WIFI_IFACE_NAME, twtRequest, iTwtCallback,
+                Binder.getCallingUid(), TEST_BSSID);
+        ArgumentCaptor<Integer> cmdIdCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(mWifiNative).setupTwtSession(cmdIdCaptor.capture(), eq(WIFI_IFACE_NAME),
+                eq(twtRequest));
+        int setupCmdId = cmdIdCaptor.getValue();
+        mWifiNativeTwtEventsArgumentCaptor.getValue().onTwtSessionCreate(setupCmdId, 100, 1000, 1,
+                TEST_TWT_SESSION_ID);
+        verify(iTwtCallback).onCreate(eq(100), eq(1000L), eq(1), eq(Binder.getCallingUid()),
+                eq(TEST_TWT_SESSION_ID));
+
+        // 2. Call getStatsTwtSession - capture the cmdId
+        when(mWifiNative.getStatsTwtSession(anyInt(), eq(WIFI_IFACE_NAME),
+                eq(TEST_TWT_SESSION_ID))).thenReturn(true);
+        mTwtManager.getStatsTwtSession(WIFI_IFACE_NAME, iTwtStatsListener, TEST_TWT_SESSION_ID);
+        verify(mWifiNative).getStatsTwtSession(cmdIdCaptor.capture(), eq(WIFI_IFACE_NAME),
+                eq(TEST_TWT_SESSION_ID));
+        int statsCmdId = cmdIdCaptor.getValue();
+
+        // 3. Simulate onTwtFailure for the getStats cmdId
+        mWifiNativeTwtEventsArgumentCaptor.getValue().onTwtFailure(statsCmdId,
+                TwtSessionCallback.TWT_ERROR_CODE_FAIL);
+
+        // 4. Verify the ITwtStatsListener is called with default stats
+        inOrderListener.verify(iTwtStatsListener).onResult(
+                argThat(argument -> isBundleContentEqual(defaultTwtStats, argument)));
+
+    }
+
     @Test
     public void testDisconnect() throws RemoteException {
         ITwtCallback iTwtCallback = mock(ITwtCallback.class);
