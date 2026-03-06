@@ -186,6 +186,7 @@ def add_network_suggestions(
     network_suggestions: list[dict[str, str | int | bool]],
     network_request: constants.NetworkRequest,
     hsv_output_path_when_failed: str | None = None,
+    allow_button_text: str | None = None,
 ) -> callback_handler_v2.CallbackHandlerV2:
   """Adds network suggestions and verify approval, asserts expected suggestions.
 
@@ -194,6 +195,8 @@ def add_network_suggestions(
     network_suggestions: A list of network suggestions to add.
     network_request: A network request to add.
     hsv_output_path_when_failed: Path of hsv output when failed.
+    allow_button_text: The text of the allow button on the popup window when
+      adding new network suggestions.
 
   Returns:
     A network callback handler of an added networksuggestion.
@@ -215,7 +218,7 @@ def add_network_suggestions(
 
   # TODO: b/433456977 - Set up a unique resource-id to improve robustness.
   ui_action_utils.allow_network_suggestion_in_dialog(
-      ad, hsv_output_path_when_failed
+      ad, hsv_output_path_when_failed, allow_button_text=allow_button_text
   )
 
   network_suggestion_listener.waitForEvent(

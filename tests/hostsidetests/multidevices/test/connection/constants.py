@@ -25,6 +25,21 @@ CALLBACK_TIMEOUT = datetime.timedelta(seconds=40)
 
 USE_PROGRAMMABLE_AP_DEFAULT = False
 
+KEY_CLOSE_BUTTON_OF_NO_DEVICE_FOUND_DIALOG = (
+    'close_button_of_no_device_found_dialog'
+)
+KEY_CLOSE_BUTTON_OF_SOMETHING_CAME_UP_DIALOG = (
+    'close_button_of_something_came_up_dialog'
+)
+KEY_CONNECT_BUTTON_OF_NETWORK_REQUEST_DIALOG = (
+    'connect_button_of_network_request_dialog'
+)
+KEY_ALLOW_BUTTON_OF_ADDING_SUGGESTION_DIALOG = (
+    'allow_button_of_adding_suggestion_dialog'
+)
+KEY_SELECT_WIFI_BUTTON_OF_NETWORK_REQUEST_DIALOG = (
+    'select_wifi_button_of_network_request_dialog'
+)
 
 @dataclasses.dataclass
 class WifiInfo:

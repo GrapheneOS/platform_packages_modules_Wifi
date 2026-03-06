@@ -2,7 +2,6 @@
 
 import json
 import logging
-from typing import override
 
 from mobly import base_test
 from mobly import records
@@ -70,7 +69,6 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
 
     test_utils.logging_device_model(ad)
 
-  @override
   def setup_class(self):
     self.ad = self.register_controller(android_device)[0]
     self._setup_android_device(self.ad)
@@ -91,7 +89,16 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     # But we only need one wifi connection in each test
     self.request_networkid = '0'
 
-  @override
+    self._close_button_of_no_device_found_dialog = self.user_params.get(
+        constants.KEY_CLOSE_BUTTON_OF_NO_DEVICE_FOUND_DIALOG, None
+    )
+    self._close_button_of_something_came_up_dialog = self.user_params.get(
+        constants.KEY_CLOSE_BUTTON_OF_SOMETHING_CAME_UP_DIALOG, None
+    )
+    self._allow_button_of_adding_suggestion_dialog = self.user_params.get(
+        constants.KEY_ALLOW_BUTTON_OF_ADDING_SUGGESTION_DIALOG, None
+    )
+
   def teardown_class(self):
     if self._original_wifi_scan_throttle_state is not None:
       self.ad.wifi.wifiSetScanThrottleState(
@@ -99,7 +106,6 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
       )
       self._original_wifi_scan_throttle_state = None
 
-  @override
   def setup_test(self) -> None:
     self.ad.wifi.wifiFactoryReset()
     self.ad.wifi.wifiToggleEnable()
@@ -114,12 +120,13 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     ui_action_utils.close_failed_to_connect_wifi_dialog(
         self.ad,
         self.current_test_info.output_path,
+        button_something_came_up=self._close_button_of_something_came_up_dialog,
+        button_no_device_found=self._close_button_of_no_device_found_dialog,
     )
     ui_action_utils.return_home_page(self.ad)
     # set the wifi snippet to foreground
     self.ad.wifi.utilityBringToForeground()
 
-  @override
   def teardown_test(self) -> None:
     self.ap_helper.stop_programmable_ap()
     # Pass an empty list to remove added all network suggestions.
@@ -131,7 +138,6 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     self.ad.wifi.wifiRemoveNetworkSuggestionPostConnectionReceiver()
     self.ad.services.create_output_excerpts_all(self.current_test_info)
 
-  @override
   def on_fail(self, record: records.TestResultRecord) -> None:
     self.ad.take_bug_report(destination=self.current_test_info.output_path)
 
@@ -180,6 +186,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
         network_suggestion_array,
         network_request,
         hsv_output_path_when_failed=self.current_test_info.output_path,
+        allow_button_text=self._allow_button_of_adding_suggestion_dialog,
     )
     logging.info('wifi network suggestion added.')
 
@@ -264,6 +271,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
         network_suggestion_array,
         network_request,
         hsv_output_path_when_failed=self.current_test_info.output_path,
+        allow_button_text=self._allow_button_of_adding_suggestion_dialog,
     )
     logging.info('wifi network suggestion added.')
 
@@ -357,6 +365,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
         network_suggestion_array,
         network_request,
         hsv_output_path_when_failed=self.current_test_info.output_path,
+        allow_button_text=self._allow_button_of_adding_suggestion_dialog,
     )
     logging.info('wifi network suggestion added.')
 
@@ -451,6 +460,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
         network_suggestion_array,
         network_request,
         hsv_output_path_when_failed=self.current_test_info.output_path,
+        allow_button_text=self._allow_button_of_adding_suggestion_dialog,
     )
     logging.info('wifi network suggestion added.')
 
@@ -546,6 +556,7 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
         network_suggestion_array,
         network_request,
         hsv_output_path_when_failed=self.current_test_info.output_path,
+        allow_button_text=self._allow_button_of_adding_suggestion_dialog,
     )
     logging.info('wifi network suggestion added.')
 
