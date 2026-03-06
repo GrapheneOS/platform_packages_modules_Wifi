@@ -13894,7 +13894,7 @@ public class WifiManager {
         }
         List<AdvancedProtectionFeature> features = new ArrayList<>();
         if (Environment.isSdkAtLeastC()
-                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                && Flags.disableInsecureWifiAutojoinWhenAapmOn()) {
             features.add(
                     new AdvancedProtectionFeature(
                             AdvancedProtectionManager.FEATURE_ID_DISALLOW_INSECURE_WIFI_AUTOJOIN));

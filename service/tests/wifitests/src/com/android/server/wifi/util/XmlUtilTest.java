@@ -116,9 +116,8 @@ public class XmlUtilTest extends WifiBaseTest {
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(Flags.class, withSettings().lenient())
                 .mockStatic(ActivityManager.class, withSettings().lenient())
-                .mockStatic(android.security.Flags.class, withSettings().lenient())
                 .startMocking();
-        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+        when(Flags.disableInsecureWifiAutojoinWhenAapmOn())
                 .thenReturn(false);
         when(ActivityManager.getCurrentUser()).thenReturn(UserHandle.getUserId(TEST_UID));
     }
@@ -1044,7 +1043,7 @@ public class XmlUtilTest extends WifiBaseTest {
     public void testWifiConfigurationWithAllowedAutoJoinInAdvancedProtection() throws Exception {
         assumeTrue(Environment.isSdkAtLeastC());
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
-        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
+        when(Flags.disableInsecureWifiAutojoinWhenAapmOn()).thenReturn(true);
         config.setAutoJoinInAdvancedProtectionModeEnabled(true);
         serializeDeserializeWifiConfiguration(config);
         config.setAutoJoinInAdvancedProtectionModeEnabled(false);
@@ -1059,7 +1058,7 @@ public class XmlUtilTest extends WifiBaseTest {
     public void testAllowedAutoJoinInAdvancedProtection_DefaultToFalseForInsecure()
             throws IOException, XmlPullParserException {
         assumeTrue(Environment.isSdkAtLeastC());
-        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
+        when(Flags.disableInsecureWifiAutojoinWhenAapmOn()).thenReturn(true);
         // First generate XML data that only has the header filled in
         final XmlSerializer out = new FastXmlSerializer();
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -1092,7 +1091,7 @@ public class XmlUtilTest extends WifiBaseTest {
     public void testAllowedAutoJoinInAdvancedProtection_DefaultToTrueForSecure()
             throws IOException, XmlPullParserException {
         assumeTrue(Environment.isSdkAtLeastC());
-        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
+        when(Flags.disableInsecureWifiAutojoinWhenAapmOn()).thenReturn(true);
         // First generate XML data that only has the header filled in
         final XmlSerializer out = new FastXmlSerializer();
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -1125,7 +1124,7 @@ public class XmlUtilTest extends WifiBaseTest {
             throws IOException, XmlPullParserException {
         assumeTrue(Environment.isSdkAtLeastC());
         when(mWifiPermissionsUtil.isDeviceOwner(anyInt(), any())).thenReturn(true);
-        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()).thenReturn(true);
+        when(Flags.disableInsecureWifiAutojoinWhenAapmOn()).thenReturn(true);
         // First generate XML data that only has the header filled in
         final XmlSerializer out = new FastXmlSerializer();
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

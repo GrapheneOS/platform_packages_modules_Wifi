@@ -1398,7 +1398,7 @@ public class WifiConfigManager {
 
         internalConfig.allowAutojoin = externalConfig.allowAutojoin;
         if (Environment.isSdkAtLeastC()
-                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                && mFeatureFlags.disableInsecureWifiAutojoinWhenAapmOn()) {
             internalConfig.setAutoJoinInAdvancedProtectionModeEnabled(
                     externalConfig.isAutoJoinInAdvancedProtectionModeEnabled());
         }
@@ -1525,7 +1525,7 @@ public class WifiConfigManager {
         newInternalConfig.numRebootsSinceLastUse = 0;
         initRandomizedMacForInternalConfig(newInternalConfig);
         if (Environment.isSdkAtLeastC()
-                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                && mFeatureFlags.disableInsecureWifiAutojoinWhenAapmOn()) {
             for (SecurityParams p : newInternalConfig.getSecurityParamsList()) {
                 if (p.isSecurityType(WifiConfiguration.SECURITY_TYPE_OPEN)
                         || p.isSecurityType(WifiConfiguration.SECURITY_TYPE_WEP)

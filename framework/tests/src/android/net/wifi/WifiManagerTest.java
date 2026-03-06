@@ -4847,11 +4847,11 @@ public class WifiManagerTest {
         verify(mWifiService).getSupportedInterfaceNames(any(IListListener.Stub.class));
     }
 
+    @RequiresFlagsEnabled(Flags.FLAG_DISABLE_INSECURE_WIFI_AUTOJOIN_WHEN_AAPM_ON)
     @Test
-    @RequiresFlagsEnabled(android.security.Flags.FLAG_AAPM_FEATURE_DISABLE_INSECURE_WIFI_AUTOJOIN)
     public void testGetAvailableAdvancedProtectionFeaturesWhenFlagIsEnabled() {
         assumeTrue(Environment.isSdkAtLeastC());
-        assumeTrue(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin());
+        assumeTrue(Flags.disableInsecureWifiAutojoinWhenAapmOn());
         List<AdvancedProtectionFeature> features =
                 mWifiManager.getAvailableAdvancedProtectionFeatures();
         assertNotNull(features);
