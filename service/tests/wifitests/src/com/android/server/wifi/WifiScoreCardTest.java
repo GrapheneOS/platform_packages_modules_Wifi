@@ -1578,6 +1578,18 @@ public class WifiScoreCardTest extends WifiBaseTest {
                 mWifiScoreCard.detectAbnormalConnectionFailure(mWifiInfo.getSSID()));
     }
 
+    private byte[] makeSerializedNetworkStatsWithFrequencies(String ssid, List<Integer> freqs) {
+        // Use a temporary WifiScoreCard to build the proto, to avoid side-effects
+        // on the instance under test.
+        WifiScoreCard tempScoreCard = new WifiScoreCard(mClock, "some seed", mDeviceConfigFacade,
+                mContext, mWifiGlobals);
+        PerNetwork perNetwork = tempScoreCard.lookupNetwork(ssid);
+        for (int freq : freqs) {
+            perNetwork.addFrequency(freq);
+        }
+        return perNetwork.toNetworkStats().toByteArray();
+    }
+
     @Test
     public void testAddGetFrequencies() {
         mWifiScoreCard.noteConnectionAttempt(mWifiInfo, -53, mWifiInfo.getSSID());
@@ -1592,6 +1604,52 @@ public class WifiScoreCardTest extends WifiBaseTest {
         // Check over aged channel will not return.
         assertEquals(1, perNetwork.getFrequencies(900L).size());
         assertEquals(2432, (int) perNetwork.getFrequencies(Long.MAX_VALUE).get(0));
+    }
+
+    @Test
+    public void testGetFrequenciesWithLazyRead() {
+        // 1. Prepare serialized data with a frequency from a "previous session".
+        final int storedFreq = 5220;
+        byte[] serializedData = makeSerializedNetworkStatsWithFrequencies(
+                TEST_SSID_1.toString(), Arrays.asList(storedFreq));
+
+        // 2. Setup a custom MemoryStore to capture the read listener.
+        mWifiScoreCard.installMemoryStore(new WifiScoreCard.MemoryStore() {
+            @Override
+            public void read(String key, String name, WifiScoreCard.BlobListener listener) {
+                // Capture the listener to be called later.
+                mBlobListeners.add(listener);
+            }
+            @Override
+            public void write(String key, String name, byte[] value) { }
+            @Override
+            public void setCluster(String key, String cluster) { }
+            @Override
+            public void removeCluster(String cluster) { }
+        });
+
+        // 3. Look up the network. This triggers a read, and the listener is captured.
+        PerNetwork perNetwork = mWifiScoreCard.lookupNetwork(TEST_SSID_1.toString());
+        assertEquals("Listener should have been captured", 1, mBlobListeners.size());
+
+        // 4. Add a new frequency to the in-memory object.
+        final int newFreq = 2412;
+        perNetwork.addFrequency(newFreq);
+
+        // At this point, the stored data has not been merged.
+        // A call to getFrequencies() without the fix would only return [2412].
+        // Let's simulate the async read completing, which stages the data for the next merge.
+        mBlobListeners.get(0).onBlobRetrieved(serializedData);
+
+        // 5. Call getFrequencies(). The fix ensures this call triggers finishPendingRead(),
+        // which merges the stored data.
+        List<Integer> frequencies = perNetwork.getFrequencies(Long.MAX_VALUE);
+
+        // 6. Assert that the list contains both the new and the stored frequencies,
+        // with the newest one first.
+        List<Integer> expectedFrequencies = Arrays.asList(newFreq, storedFreq);
+        assertEquals("Frequencies from memory and store should be merged",
+                expectedFrequencies, frequencies);
     }
 
     private void addTotalBytes(long txBytes, long rxBytes) {
