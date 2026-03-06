@@ -226,7 +226,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         if (version >= 5) {
             backupDataStringBuilder.append(
                     "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"false\" />\n");
-            if (Environment.isSdkNewerThanB()
+            if (Environment.isSdkAtLeastC()
                     && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
                 backupDataStringBuilder.append(
                         "<boolean name=\"AllowedAutoJoinInAdvancedProtection\""
@@ -1160,7 +1160,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
     @Test
     public void testRestoreFromV1_5BackupData() {
         mCheckDump = false; // for skip case
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         mCheckDump = true;
         when(Flags.multiUserWifiEnhancement()).thenReturn(true);
         when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())

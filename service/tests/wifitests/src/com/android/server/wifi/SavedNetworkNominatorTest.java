@@ -577,7 +577,7 @@ public class SavedNetworkNominatorTest extends WifiBaseTest {
      */
     @Test
     public void testAapmModeAndAllowedAutoJoinInAdvancedProtection() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         String[] ssids = {"\"test1\""};
         String[] bssids = {"6c:f3:7f:ae:8c:f3"};
         int[] freqs = {2470};

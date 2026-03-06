@@ -671,7 +671,8 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         if (Flags.multiUserWifiEnhancement()) {
             sbuf.append("<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"false\" />\n");
         }
-        if (android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+        if (Environment.isSdkAtLeastC()
+                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
             sbuf.append(
                     "<boolean name=\"AllowedAutoJoinInAdvancedProtection\" value=\"false\" />\n");
         }
@@ -1338,7 +1339,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
 
     @Test
     public void parseNetworkWithNonExistAutoJoinInAAPM() throws Exception {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
                 .thenReturn(false);
         when(ActivityManager.getCurrentUser()).thenReturn(TEST_CREATOR_USER_ID);
