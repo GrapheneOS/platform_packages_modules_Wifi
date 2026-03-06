@@ -62,6 +62,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -104,6 +105,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -1729,7 +1731,7 @@ public class Nl80211NativeTest {
         mDut = initNl80211Native(false);
         Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
                 .setMaxNumScanSsids(0)
-                .setMaxNumSchedScanSsids(1)
+                .setMaxNumSchedScanSsids(2)
                 .build();
         Nl80211Utils.WiphyInfo wiphyInfo = new Nl80211Utils.WiphyInfo.Builder()
                 .setBandInfo(new Nl80211Utils.BandInfo.Builder().build())
@@ -1768,7 +1770,13 @@ public class Nl80211NativeTest {
         assertTrue(result);
         verify(mNl80211Utils).startPnoScan(
                 eq(CLIENT_IFACE_INDEX), any(), anyLong(), anyInt(), anyInt(), anyBoolean(),
-                anyBoolean(), anyBoolean(), eq(List.of(ssid1)), any(), any());
+                anyBoolean(), anyBoolean(),
+                argThat(list ->
+                        list.size() == 2
+                                && Arrays.equals(list.get(0), new byte[0])
+                                && Arrays.equals(list.get(1), ssid1)
+                ),
+                any(), any());
     }
 
     @Test
