@@ -365,6 +365,7 @@
           <item type="bool" name="config_preEvaluationEnabled" />
           <item type="bool" name="config_wifiMainlineSupplicantEnabled" />
           <item type="bool" name="config_wificondMigrationEnabled" />
+          <item type="array" name="config_wifiMobilityFilterCarrierIdBlocklist" />
 
           <!-- Params from config.xml that can be overlayed -->
 
