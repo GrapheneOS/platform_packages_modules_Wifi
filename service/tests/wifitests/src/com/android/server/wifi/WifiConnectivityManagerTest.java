@@ -4976,7 +4976,7 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         InOrder inOrder = inOrder(mWifiBlocklistMonitor, mWifiConfigManager);
         // Force a connectivity scan
         inOrder.verify(mWifiBlocklistMonitor, never())
-                .updateAndGetBssidBlocklistForSsids(anySet());
+                .updateAndGetBssidBlocklistForSsids(anySet(), anySet());
         mWifiConnectivityManager.forceConnectivityScan(WIFI_WORK_SOURCE);
         mLooper.dispatchAll();
         inOrder.verify(mWifiBlocklistMonitor).clearBssidBlocklistForReason(
@@ -4984,7 +4984,8 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         inOrder.verify(mWifiBlocklistMonitor).tryEnablingBlockedBssids(any());
         inOrder.verify(mWifiConfigManager).updateNetworkSelectionStatus(disabledConfig.networkId,
                 WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);
-        inOrder.verify(mWifiBlocklistMonitor).updateAndGetBssidBlocklistForSsids(anySet());
+        inOrder.verify(mWifiBlocklistMonitor)
+                .updateAndGetBssidBlocklistForSsids(anySet(), anySet());
     }
 
     /**
@@ -5006,14 +5007,15 @@ public class WifiConnectivityManagerTest extends WifiBaseTest {
         InOrder inOrder = inOrder(mWifiBlocklistMonitor, mWifiConfigManager);
         // Force a connectivity scan
         inOrder.verify(mWifiBlocklistMonitor, never())
-                .updateAndGetBssidBlocklistForSsids(anySet());
+                .updateAndGetBssidBlocklistForSsids(anySet(), anySet());
         mWifiConnectivityManager.forceConnectivityScan(WIFI_WORK_SOURCE);
         mLooper.dispatchAll();
         inOrder.verify(mWifiBlocklistMonitor).tryEnablingBlockedBssids(any());
         inOrder.verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(
                 disabledConfig.networkId,
                 WifiConfiguration.NetworkSelectionStatus.DISABLED_NONE);
-        inOrder.verify(mWifiBlocklistMonitor).updateAndGetBssidBlocklistForSsids(anySet());
+        inOrder.verify(mWifiBlocklistMonitor)
+                .updateAndGetBssidBlocklistForSsids(anySet(), anySet());
     }
 
     /**

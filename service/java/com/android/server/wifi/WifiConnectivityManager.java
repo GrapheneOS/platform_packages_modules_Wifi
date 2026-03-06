@@ -669,7 +669,8 @@ public class WifiConnectivityManager {
 
         List<WifiNetworkSelector.ClientModeManagerState> cmmStates = new ArrayList<>();
         WifiNetworkSelector.ClientModeManagerState primaryCmmState = null;
-        Set<String> connectedSsids = new HashSet<>();
+        Set<String> connectedSsids = new ArraySet<>();
+        Set<String> connectedBssids = new ArraySet<>();
         boolean hasExistingSecondaryCmm = false;
         for (ClientModeManager clientModeManager :
                 mActiveModeWarden.getInternetConnectivityClientModeManagers()) {
@@ -682,6 +683,7 @@ public class WifiConnectivityManager {
             WifiInfo wifiInfo = clientModeManager.getConnectionInfo();
             if (clientModeManager.isConnected()) {
                 connectedSsids.add(wifiInfo.getSSID());
+                connectedBssids.add(wifiInfo.getBSSID());
             }
             WifiNetworkSelector.ClientModeManagerState cmmState =
                     new WifiNetworkSelector.ClientModeManagerState(clientModeManager);
@@ -714,7 +716,7 @@ public class WifiConnectivityManager {
             }
         }
         Set<String> bssidBlocklist = mWifiBlocklistMonitor.updateAndGetBssidBlocklistForSsids(
-                connectedSsids);
+                connectedSsids, connectedBssids);
         updateUserDisabledList(scanDetails);
         // Clear expired recent failure statuses
         mConfigManager.cleanupExpiredRecentFailureReasons();
