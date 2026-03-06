@@ -220,6 +220,12 @@ public class PasspointManager {
         public void setProviders(List<PasspointProvider> providers) {
             mProviders.clear();
             for (PasspointProvider provider : providers) {
+                if (!mWifiPermissionsUtil.doesUidBelongToCurrentUserOrDeviceOwner(
+                        provider.getCreatorUid())) {
+                    Log.w(TAG, "Skipping provider: " + provider.getProviderId()
+                            + " from a removed profile: " + provider.getCreatorUid());
+                    continue;
+                }
                 provider.enableVerboseLogging(mVerboseLoggingEnabled);
                 mProviders.put(provider.getConfig().getUniqueId(), provider);
                 if (provider.getPackageName() != null) {
