@@ -113,13 +113,13 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
      *                         boolean, boolean, boolean, int, int, WifiNanIface.PowerParameters)}
      */
     public boolean enableAndConfigure(short transactionId, ConfigRequest configRequest,
-            boolean notifyIdentityChange, boolean initialConfiguration, boolean rangingEnabled,
+            boolean initialConfiguration, boolean rangingEnabled,
             boolean isInstantCommunicationEnabled, int instantModeChannel, int clusterId,
             int macAddressRandomizationIntervalSec, WifiNanIface.PowerParameters powerParameters) {
         final String methodStr = "enableAndConfigure";
         return validateAndCall(methodStr, false,
                 () -> enableAndConfigureInternal(methodStr, transactionId, configRequest,
-                        notifyIdentityChange, initialConfiguration, rangingEnabled,
+                        initialConfiguration, rangingEnabled,
                         isInstantCommunicationEnabled, instantModeChannel,
                         macAddressRandomizationIntervalSec, powerParameters));
     }
@@ -349,7 +349,7 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
 
     boolean enableAndConfigureInternal(
             String methodStr, short transactionId, ConfigRequest configRequest,
-            boolean notifyIdentityChange, boolean initialConfiguration, boolean rangingEnabled,
+            boolean initialConfiguration, boolean rangingEnabled,
             boolean isInstantCommunicationEnabled, int instantModeChannel,
             int macAddressRandomizationIntervalSec, WifiNanIface.PowerParameters powerParameters) {
         android.hardware.wifi.V1_2.IWifiNanIface iface12 = mockableCastTo_1_2();
@@ -441,9 +441,9 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
                     req.hopCountMax = 2;
                     req.configParams.masterPref = (byte) configRequest.mMasterPreference;
                     req.configParams.disableDiscoveryAddressChangeIndication =
-                            !notifyIdentityChange;
-                    req.configParams.disableStartedClusterIndication = !notifyIdentityChange;
-                    req.configParams.disableJoinedClusterIndication = !notifyIdentityChange;
+                            false;
+                    req.configParams.disableStartedClusterIndication = false;
+                    req.configParams.disableJoinedClusterIndication = false;
                     req.configParams.includePublishServiceIdsInBeacon = true;
                     req.configParams.numberOfPublishServiceIdsInBeacon = 0;
                     req.configParams.includeSubscribeServiceIdsInBeacon = true;
@@ -504,9 +504,9 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
                     req.hopCountMax = 2;
                     req.configParams.masterPref = (byte) configRequest.mMasterPreference;
                     req.configParams.disableDiscoveryAddressChangeIndication =
-                            !notifyIdentityChange;
-                    req.configParams.disableStartedClusterIndication = !notifyIdentityChange;
-                    req.configParams.disableJoinedClusterIndication = !notifyIdentityChange;
+                            false;
+                    req.configParams.disableStartedClusterIndication = false;
+                    req.configParams.disableJoinedClusterIndication = false;
                     req.configParams.includePublishServiceIdsInBeacon = true;
                     req.configParams.numberOfPublishServiceIdsInBeacon = 0;
                     req.configParams.includeSubscribeServiceIdsInBeacon = true;
@@ -553,9 +553,9 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
                     android.hardware.wifi.V1_4.NanConfigRequest req =
                             new android.hardware.wifi.V1_4.NanConfigRequest();
                     req.masterPref = (byte) configRequest.mMasterPreference;
-                    req.disableDiscoveryAddressChangeIndication = !notifyIdentityChange;
-                    req.disableStartedClusterIndication = !notifyIdentityChange;
-                    req.disableJoinedClusterIndication = !notifyIdentityChange;
+                    req.disableDiscoveryAddressChangeIndication = false;
+                    req.disableStartedClusterIndication = false;
+                    req.disableJoinedClusterIndication = false;
                     req.includePublishServiceIdsInBeacon = true;
                     req.numberOfPublishServiceIdsInBeacon = 0;
                     req.includeSubscribeServiceIdsInBeacon = true;
@@ -584,9 +584,9 @@ public class WifiNanIfaceHidlImpl implements IWifiNanIface {
                 } else {
                     NanConfigRequest req = new NanConfigRequest();
                     req.masterPref = (byte) configRequest.mMasterPreference;
-                    req.disableDiscoveryAddressChangeIndication = !notifyIdentityChange;
-                    req.disableStartedClusterIndication = !notifyIdentityChange;
-                    req.disableJoinedClusterIndication = !notifyIdentityChange;
+                    req.disableDiscoveryAddressChangeIndication = false;
+                    req.disableStartedClusterIndication = false;
+                    req.disableJoinedClusterIndication = false;
                     req.includePublishServiceIdsInBeacon = true;
                     req.numberOfPublishServiceIdsInBeacon = 0;
                     req.includeSubscribeServiceIdsInBeacon = true;

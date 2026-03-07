@@ -565,7 +565,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         byte interactive5 = 2;
 
         Pair<NanConfigRequest, NanConfigRequestSupplemental> configs =
-                validateEnableAndConfigure((short) 10, new ConfigRequest.Builder().build(), false,
+                validateEnableAndConfigure((short) 10, new ConfigRequest.Builder().build(), true,
                         false, false, false, interactive24, interactive5);
 
         collector.checkThat("validDiscoveryWindowIntervalVal-5", true,
@@ -600,7 +600,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         byte idle5 = 2;
 
         Pair<NanConfigRequest, NanConfigRequestSupplemental> configs =
-                validateEnableAndConfigure((short) 10, new ConfigRequest.Builder().build(), false,
+                validateEnableAndConfigure((short) 10, new ConfigRequest.Builder().build(), true,
                         true, false, true, idle24, idle5);
 
         collector.checkThat("validDiscoveryWindowIntervalVal-5", true,
@@ -927,7 +927,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
             short transactionId, ConfigRequest configRequest, boolean notifyIdentityChange,
             boolean initialConfiguration, boolean isInteractive, boolean isIdle,
             int discoveryWindow24Ghz, int discoveryWindow5Ghz) throws RemoteException {
-        assertTrue(mDut.enableAndConfigure(transactionId, configRequest, notifyIdentityChange,
+        assertTrue(mDut.enableAndConfigure(transactionId, configRequest,
                 initialConfiguration, false, false, 2437, -1 /* clusterId */,
                 1800 /* PARAM_MAC_RANDOM_INTERVAL_SEC_DEFAULT */,
                 getPowerParams(isInteractive, isIdle, discoveryWindow24Ghz, discoveryWindow5Ghz)));

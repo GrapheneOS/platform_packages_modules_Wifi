@@ -2365,6 +2365,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         private static final long AWARE_SEND_MESSAGE_TIMEOUT = 10_000;
         private static final int MESSAGE_QUEUE_DEPTH_PER_UID = 50;
+        private static final int DELAY_FOR_CLUSTER_START_MS = 50;
         private int mSendArrivalSequenceCounter = 0;
         private boolean mSendQueueBlocked = false;
         private final SparseArray<Message> mHostQueuedSendMessages = new SparseArray<>();
@@ -3133,6 +3134,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case COMMAND_TYPE_PUBLISH: {
+                    if (mClusterId == ALL_ZERO_MAC) {
+                        Message newMsg = mSm.obtainMessage();
+                        newMsg.copyFrom(msg);
+                        mSm.sendMessageDelayed(newMsg, DELAY_FOR_CLUSTER_START_MS);
+                        waitForResponse = false;
+                        break;
+                    }
                     int clientId = msg.arg2;
                     IWifiAwareDiscoverySessionCallback callback =
                             (IWifiAwareDiscoverySessionCallback) msg.obj;
@@ -3153,6 +3161,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     break;
                 }
                 case COMMAND_TYPE_SUBSCRIBE: {
+                    if (mClusterId == ALL_ZERO_MAC) {
+                        Message newMsg = mSm.obtainMessage();
+                        newMsg.copyFrom(msg);
+                        mSm.sendMessageDelayed(newMsg, DELAY_FOR_CLUSTER_START_MS);
+                        waitForResponse = false;
+                        break;
+                    }
                     int clientId = msg.arg2;
                     IWifiAwareDiscoverySessionCallback callback =
                             (IWifiAwareDiscoverySessionCallback) msg.obj;
@@ -4086,8 +4101,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             }
             return false;
         }
-        boolean notificationRequired =
-                doesAnyClientNeedIdentityChangeNotifications() || notifyIdentityChange;
         boolean rangingRequired = doesAnyClientNeedRanging();
         int instantMode = getInstantModeFromAllClients();
         boolean enableInstantMode = false;
@@ -4109,7 +4122,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         boolean initialConfiguration = mCurrentAwareConfiguration == null
                 || reEnableAware;
         boolean success = mWifiAwareNativeApi.enableAndConfigure(transactionId, merged,
-                notificationRequired, initialConfiguration,
+                initialConfiguration,
                 mPowerManager.isInteractive(), mPowerManager.isDeviceIdleMode(),
                 rangingRequired, enableInstantMode, instantModeChannel, mClusterIdInt);
         if (!success) {
@@ -4155,6 +4168,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         if (mClients.size() == 0) {
             mCurrentAwareConfiguration = null;
+            mClusterId = ALL_ZERO_MAC;
             mPairingRequest.clear();
             mDataPathMgr.deleteAllInterfaces();
             mCurrentRangingEnabled = false;
@@ -4191,7 +4205,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return false;
         }
 
-        return mWifiAwareNativeApi.enableAndConfigure(transactionId, merged, notificationReqs,
+        return mWifiAwareNativeApi.enableAndConfigure(transactionId, merged,
                 false, mPowerManager.isInteractive(), mPowerManager.isDeviceIdleMode(),
                 rangingEnabled, enableInstantMode, instantModeChannel, mClusterIdInt);
     }
@@ -4215,7 +4229,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         return mWifiAwareNativeApi.enableAndConfigure(transactionId, mergeConfigRequests(null),
-                notificationReqs, false, mPowerManager.isInteractive(),
+                false, mPowerManager.isInteractive(),
                 mPowerManager.isDeviceIdleMode(), rangingEnabled,
                 enableInstantMode, instantModeChannel, mClusterIdInt);
     }
@@ -5560,7 +5574,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             client.onInterfaceAddressChange(mac);
         }
 
-        mAwareMetrics.recordEnableAware();
         if (mIs5gAwareSupported == null) {
             // Update 5g aware support status if not already set
             if (SdkLevel.isAtLeastS()) {
@@ -5604,10 +5617,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
         for (int i = 0; i < mClients.size(); ++i) {
             WifiAwareClientState client = mClients.valueAt(i);
-            client.onClusterChange(clusterEventType, clusterId, mCurrentDiscoveryInterfaceMac);
+            if (client.getNotifyIdentityChange()) {
+                client.onClusterChange(clusterEventType, clusterId, mCurrentDiscoveryInterfaceMac);
+            }
         }
-
-        mAwareMetrics.recordEnableAware();
     }
 
     private void onMatchLocal(int pubSubId, int requestorinstanceid, byte[] peerMac,
@@ -5765,6 +5778,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         mClients.clear();
         mPairingRequest.clear();
         mCurrentAwareConfiguration = null;
+        mClusterId = ALL_ZERO_MAC;
         mSm.onAwareDownCleanupSendQueueState();
         mDataPathMgr.onAwareDownCleanupDataPaths();
         mCurrentDiscoveryInterfaceMac = ALL_ZERO_MAC;

@@ -71,6 +71,7 @@ import android.net.wifi.aware.DiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareDiscoverySessionCallback;
 import android.net.wifi.aware.IWifiAwareEventCallback;
 import android.net.wifi.aware.IWifiAwareManager;
+import android.net.wifi.aware.IdentityChangedListener;
 import android.net.wifi.aware.PeerHandle;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.PublishDiscoverySession;
@@ -148,6 +149,8 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
     private static final String TEST_PACKAGE_NAME = "com.android.somePackage";
     private static final String TEST_FEATURE_ID = "com.android.someFeature";
     private static final int MAX_NDP_SESSION = 8;
+    private static final byte[] CLUSTER_ID = MacAddress.fromString("50:6F:9A:01:00:00")
+            .toByteArray();
 
     private static final WifiAwareChannelInfo AWARE_CHANNEL_INFO =
             new WifiAwareChannelInfo(5750, CHANNEL_WIDTH_80MHZ, 2);
@@ -2371,9 +2374,12 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
 
         if (startUpSequence) {
             inOrder.verify(mMockNative).enableAndConfigure(transactionId.capture(),
-                    eq(configRequest), eq(false), eq(true), eq(true),
+                    eq(configRequest), eq(true), eq(true),
                     eq(false), eq(false), eq(false), anyInt(), anyInt());
             mDut.onConfigSuccessResponse(transactionId.getValue());
+            mMockLooper.dispatchAll();
+            mDut.onClusterChangeNotification(IdentityChangedListener.CLUSTER_CHANGE_EVENT_STARTED,
+                    CLUSTER_ID);
             mMockLooper.dispatchAll();
         }
 
