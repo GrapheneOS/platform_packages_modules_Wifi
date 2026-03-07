@@ -282,10 +282,9 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                 .mockStatic(ActivityManager.class, withSettings().lenient())
                 .mockStatic(Flags.class, withSettings().lenient())
                 .mockStatic(WifiMigration.class, withSettings().lenient())
-                .mockStatic(android.security.Flags.class, withSettings().lenient())
                 .startMocking();
         when(Flags.multiUserWifiEnhancement()).thenReturn(false);
-        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+        when(Flags.disableInsecureWifiAutojoinWhenAapmOn())
                 .thenReturn(false);
         when(ActivityManager.getCurrentUser()).thenReturn(UserHandle.getUserId(TEST_UID));
         when(WifiMigration.convertAndRetrieveSharedConfigStoreFile(anyInt())).thenReturn(null);
@@ -496,7 +495,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
             sbuf.append("<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"false\" />\n");
         }
         if (Environment.isSdkAtLeastC()
-                && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                && Flags.disableInsecureWifiAutojoinWhenAapmOn()) {
             sbuf.append(
                     "<boolean name=\"AllowedAutoJoinInAdvancedProtection\" value=\"false\" />\n");
         }
@@ -527,13 +526,13 @@ public class WifiConfigStoreTest extends WifiBaseTest {
 
         // Changing flag value and run the testing,
         // first boolean for flag: multiUserWifiEnhancement
-        // second boolean for flag: aapmFeatureDisableInsecureWifiAutojoin
+        // second boolean for flag: disableInsecureWifiAutojoinWhenAapmOn
         boolean[][] testFlagStatusInAndroidC =
                 {{false, false}, {false, true}, {true, false}, {true, true}};
         // Setup user store XML bytes.
         for (int i = 0; i < testFlagStatusInAndroidC.length; i++) {
             when(Flags.multiUserWifiEnhancement()).thenReturn(testFlagStatusInAndroidC[i][0]);
-            when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+            when(Flags.disableInsecureWifiAutojoinWhenAapmOn())
                     .thenReturn(testFlagStatusInAndroidC[i][1]);
             WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
             openNetwork.creatorName = TEST_CREATOR_NAME;
@@ -548,7 +547,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                 openNetwork.setAllowedToUpdateByOtherUsers(false);
             }
             if (Environment.isSdkAtLeastC()
-                    && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                    && Flags.disableInsecureWifiAutojoinWhenAapmOn()) {
                 openNetwork.setAutoJoinInAdvancedProtectionModeEnabled(false);
             }
             userConfigs.clear();
@@ -580,7 +579,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
     public void testWriteWifiConfigStoreData() throws Exception {
         // Changing flag value and run the testing,
         // first boolean for flag: multiUserWifiEnhancement
-        // second boolean for flag: aapmFeatureDisableInsecureWifiAutojoin
+        // second boolean for flag: disableInsecureWifiAutojoinWhenAapmOn
         mWifiConfigStore.switchUserStoresAndRead(mUserStores);
         NetworkListStoreData networkList = new NetworkListUserStoreData(
                 mContext, mWifiPermissionsUtil);
@@ -590,7 +589,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                 {{false, false}, {false, true}, {true, false}, {true, true}};
         for (int i = 0; i < testFlagStatusInAndroidC.length; i++) {
             when(Flags.multiUserWifiEnhancement()).thenReturn(testFlagStatusInAndroidC[i][0]);
-            when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+            when(Flags.disableInsecureWifiAutojoinWhenAapmOn())
                     .thenReturn(testFlagStatusInAndroidC[i][1]);
             WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenOweNetwork();
             openNetwork.creatorName = TEST_CREATOR_NAME;
@@ -604,7 +603,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
                 openNetwork.setAllowedToUpdateByOtherUsers(false);
             }
             if (Environment.isSdkAtLeastC()
-                    && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                    && Flags.disableInsecureWifiAutojoinWhenAapmOn()) {
                 openNetwork.setAutoJoinInAdvancedProtectionModeEnabled(false);
             }
             // Setup network list store data.

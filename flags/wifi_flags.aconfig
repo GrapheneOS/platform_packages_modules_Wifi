@@ -537,3 +537,10 @@ flag {
     description: "Enables Standalone D2D on XR devices, even when STA+D2D concurrency is supported"
     bug: "486996062"
 }
+
+flag {
+    name: "disable_insecure_wifi_autojoin_when_aapm_on"
+    namespace: "wifi"
+    description: "Android Advanced Protection Mode Feature: Disable Insecure Wifi Autojoin"
+    bug: "489845821"
+}

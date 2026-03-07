@@ -148,7 +148,7 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
                 }
 
                 if (Environment.isSdkAtLeastC()
-                        && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()
+                        && Flags.disableInsecureWifiAutojoinWhenAapmOn()
                         && isAapmEnabled
                         && !network.isAutoJoinInAdvancedProtectionModeEnabled()) {
                     localLog("Ignoring auto join disabled on AAP SSID: " + network.SSID);

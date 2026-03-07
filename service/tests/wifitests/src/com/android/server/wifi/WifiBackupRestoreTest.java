@@ -227,7 +227,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
             backupDataStringBuilder.append(
                     "<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"false\" />\n");
             if (Environment.isSdkAtLeastC()
-                    && android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+                    && Flags.disableInsecureWifiAutojoinWhenAapmOn()) {
                 backupDataStringBuilder.append(
                         "<boolean name=\"AllowedAutoJoinInAdvancedProtection\""
                         + " value=\"true\" />\n");
@@ -262,7 +262,6 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         // static mocking
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(Flags.class, withSettings().lenient())
-                .mockStatic(android.security.Flags.class, withSettings().lenient())
                 .strictness(Strictness.LENIENT)
                 .startMocking();
         when(mWifiPermissionsUtil.checkConfigOverridePermission(anyInt())).thenReturn(true);
@@ -1163,7 +1162,7 @@ public class WifiBackupRestoreTest extends WifiBaseTest {
         assumeTrue(Environment.isSdkAtLeastC());
         mCheckDump = true;
         when(Flags.multiUserWifiEnhancement()).thenReturn(true);
-        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+        when(Flags.disableInsecureWifiAutojoinWhenAapmOn())
                 .thenReturn(true);
         List<WifiConfiguration> configurations = new ArrayList<>();
         configurations.add(createNetworkForConfigurationWithV1_5Data());

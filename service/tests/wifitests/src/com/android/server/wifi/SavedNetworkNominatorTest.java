@@ -68,9 +68,8 @@ public class SavedNetworkNominatorTest extends WifiBaseTest {
         mStaticMockSession = mockitoSession().strictness(Strictness.LENIENT)
                 .mockStatic(WifiInjector.class)
                 .mockStatic(Flags.class)
-                .mockStatic(android.security.Flags.class)
                 .startMocking();
-        lenient().when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+        lenient().when(Flags.disableInsecureWifiAutojoinWhenAapmOn())
                 .thenReturn(true);
         lenient().when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
         when(mWifiInjector.getActiveModeWarden()).thenReturn(mActiveModeWarden);
