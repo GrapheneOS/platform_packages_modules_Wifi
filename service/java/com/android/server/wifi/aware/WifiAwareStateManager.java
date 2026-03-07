@@ -216,6 +216,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     public static final int INSTANT_MODE_DISABLED = 0;
     public static final int INSTANT_MODE_24GHZ = 1;
     public static final int INSTANT_MODE_5GHZ = 3;
+    public static final int NDP_ID_NOT_SPECIFIED = 0;
 
     /*
      * State machine message types. There are sub-types for the messages (except for TIMEOUTs).
@@ -1268,7 +1269,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      * @see android.net.wifi.aware.DiscoverySession#releaseDataPath(PeerHandle)
      */
     public void releaseDataPathRequest(int clientId, int sessionId, int peerId) {
-        endDataPath(peerId, clientId, sessionId);
+        endDataPath(peerId, clientId, sessionId, NDP_ID_NOT_SPECIFIED);
     }
 
     /**
@@ -1700,12 +1701,13 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     /**
      * Command to terminate the specified data-path.
      */
-    public void endDataPath(int peerId, int clientId, int sessionId) {
+    public void endDataPath(int peerId, int clientId, int sessionId, int ndpId) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_END_DATA_PATH;
         msg.arg2 = clientId;
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_SESSION_ID, sessionId);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_PEER_ID, peerId);
+        msg.getData().putInt(MESSAGE_BUNDLE_KEY_NDP_ID, ndpId);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_IS_LEGACY_API, false);
         mSm.sendMessage(msg);
     }
@@ -2585,7 +2587,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                                     getClientSessionForPubSubId(session.getPubSubId());
                             if (data != null) {
                                 endDataPath(peerId, data.first.getClientId(),
-                                        data.second.getSessionId());
+                                        data.second.getSessionId(), ndpId);
                             } else {
                                 Log.e(TAG, "Could not find client with active pubsubId?");
                             }
@@ -3399,10 +3401,18 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         if (client != null) {
                             WifiAwareDiscoverySessionState session = client.getSession(sessionId);
                             if (session != null) {
-                                ndpId = session.getNdpId(peerId);
-                                waitForResponse = session.endDataPath(mCurrentTransactionId, ndpId,
-                                        peerId);
-                                mActiveNdps.delete(ndpId);
+                                ArraySet<Integer> ndps = session.getNdps(peerId);
+                                if (ndpId == NDP_ID_NOT_SPECIFIED) {
+                                    if (ndps != null) {
+                                        for (int ndp : ndps) {
+                                            mActiveNdps.remove(ndp);
+                                        }
+                                    }
+                                } else {
+                                    mActiveNdps.delete(ndpId);
+                                }
+                                waitForResponse = session.endDataPath(mCurrentTransactionId,
+                                        peerId, ndpId);
                                 cleanupNdi();
                             }
                         }
@@ -6538,6 +6548,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         private final String mInterfaceName;
         private boolean mProvisioned = false;
         private DataPathConfirmHandler mConfirmHandlerHandler;
+        private NetworkInterface mNi = null;
 
         IpClientCallbacksImpl(String interfaceName) {
             mInterfaceName = interfaceName;
@@ -6560,6 +6571,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 return;
             }
             if (mProvisioned) {
+                handler.handleProvisionSuccess(mNi);
                 return;
             }
             mConfirmHandlerHandler = handler;
@@ -6597,16 +6609,15 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     return;
                 }
                 if (mConfirmHandlerHandler != null) {
-                    NetworkInterface ni = null;
                     try {
-                        ni = NetworkInterface.getByName(mInterfaceName);
+                        mNi = NetworkInterface.getByName(mInterfaceName);
                     } catch (SocketException e) {
                         Log.e(TAG, "onProvisioningSuccess, but no interface found: " + e);
                         mConfirmHandlerHandler.handleProvisionFailed();
                         mConfirmHandlerHandler = null;
                         return;
                     }
-                    mConfirmHandlerHandler.handleProvisionSuccess(ni);
+                    mConfirmHandlerHandler.handleProvisionSuccess(mNi);
                     mConfirmHandlerHandler = null;
                 }
                 if (mNetworkAgent != null) {
