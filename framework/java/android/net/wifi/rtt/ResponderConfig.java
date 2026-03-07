@@ -188,7 +188,7 @@ public final class ResponderConfig implements Parcelable {
     @SystemApi
     public static final int PREAMBLE_EHT = 4;
 
-    private static final long DEFAULT_NTB_MIN_TIME_BETWEEN_MEASUREMENTS_MICROS = 250000;
+    private static final long DEFAULT_NTB_MIN_TIME_BETWEEN_MEASUREMENTS_MICROS = 40000;
     private static final long DEFAULT_NTB_MAX_TIME_BETWEEN_MEASUREMENTS_MICROS = 15000000;
 
     /**

@@ -6665,6 +6665,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiConfigManager).removeNetworksForUser(userHandle.getIdentifier());
+        verify(mWifiNetworkSuggestionsManager).removeSuggestionsForUser(userHandle.getIdentifier());
     }
 
     @Test

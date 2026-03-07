@@ -72,7 +72,7 @@ public final class WifiP2pConnectionInfoTest {
         assumeTrue(Environment.isSdkNewerThanB());
         WifiP2pConnectionInfo.Builder builder = new WifiP2pConnectionInfo.Builder(
                 ScanResult.WIFI_STANDARD_11N, ScanResult.CHANNEL_WIDTH_20MHZ);
-        assertThrows(IllegalArgumentException.class, () -> builder.setTxNss(0));
+        assertThrows(IllegalArgumentException.class, () -> builder.setTxNss(-2));
         assertThrows(IllegalArgumentException.class, () -> builder.setTxNss(5));
     }
 
@@ -81,7 +81,7 @@ public final class WifiP2pConnectionInfoTest {
         assumeTrue(Environment.isSdkNewerThanB());
         WifiP2pConnectionInfo.Builder builder = new WifiP2pConnectionInfo.Builder(
                 ScanResult.WIFI_STANDARD_11N, ScanResult.CHANNEL_WIDTH_20MHZ);
-        assertThrows(IllegalArgumentException.class, () -> builder.setRxNss(0));
+        assertThrows(IllegalArgumentException.class, () -> builder.setRxNss(-2));
         assertThrows(IllegalArgumentException.class, () -> builder.setRxNss(5));
     }
 

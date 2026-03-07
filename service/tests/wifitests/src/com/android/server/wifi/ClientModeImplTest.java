@@ -11917,6 +11917,68 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiNative).disconnect(any());
     }
 
+    @Test
+    public void testConnectWithControlCharsInPskConnectFailed() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+        WifiConfiguration config = createTestNetwork(false);
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        config.preSharedKey = "\"Pass\0word\"";
+        when(mWifiConfigManager.getConfiguredNetwork(FRAMEWORK_NETWORK_ID)).thenReturn(config);
+        when(mWifiConfigManager.getConfiguredNetworkWithoutMasking(FRAMEWORK_NETWORK_ID))
+                .thenReturn(config);
+        when(mWifiNative.connectToNetwork(any(), any())).thenReturn(false);
+        startConnectSuccess();
+        verify(mWifiConfigManager).updateNetworkSelectionStatus(
+                FRAMEWORK_NETWORK_ID,
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_BY_WRONG_PASSWORD);
+        verify(mWrongPasswordNotifier).onWrongPasswordError(eq(config));
+        verify(mWifiDiagnostics).triggerBugReportDataCapture(
+                WifiDiagnostics.REPORT_REASON_AUTH_FAILURE);
+        verify(mWifiConfigManager).clearRecentFailureReason(FRAMEWORK_NETWORK_ID);
+        verify(mWifiMetrics).endConnectionEvent(
+                any(),
+                eq(WifiMetrics.ConnectionEvent.FAILURE_AUTHENTICATION_FAILURE),
+                eq(WifiMetricsProto.ConnectionEvent.HLF_NONE),
+                eq(WifiMetricsProto.ConnectionEvent.AUTH_FAILURE_WRONG_PSWD),
+                anyInt(), anyInt());
+        assertEquals("DisconnectedState", getCurrentState().getName());
+    }
+
+    @Test
+    public void testConnectWithoutControlCharsInPskConnectFailed() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+        WifiConfiguration config = createTestNetwork(false);
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_PSK);
+        config.preSharedKey = "\"ValidPassword123\"";
+        when(mWifiConfigManager.getConfiguredNetwork(FRAMEWORK_NETWORK_ID)).thenReturn(config);
+        when(mWifiConfigManager.getConfiguredNetworkWithoutMasking(FRAMEWORK_NETWORK_ID))
+                .thenReturn(config);
+        when(mWifiNative.connectToNetwork(any(), any())).thenReturn(false);
+        startConnectSuccess();
+        verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(
+                FRAMEWORK_NETWORK_ID,
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_BY_WRONG_PASSWORD);
+        verify(mWrongPasswordNotifier, never()).onWrongPasswordError(any());
+        assertEquals("DisconnectedState", getCurrentState().getName());
+    }
+
+    @Test
+    public void testConnectWithControlCharsInNonPskConnectFailed() throws Exception {
+        initializeAndAddNetworkAndVerifySuccess();
+        WifiConfiguration config = createTestNetwork(false);
+        config.setSecurityParams(WifiConfiguration.SECURITY_TYPE_OPEN);
+        when(mWifiConfigManager.getConfiguredNetwork(FRAMEWORK_NETWORK_ID)).thenReturn(config);
+        when(mWifiConfigManager.getConfiguredNetworkWithoutMasking(FRAMEWORK_NETWORK_ID))
+                .thenReturn(config);
+        when(mWifiNative.connectToNetwork(any(), any())).thenReturn(false);
+        startConnectSuccess();
+        verify(mWifiConfigManager, never()).updateNetworkSelectionStatus(
+                FRAMEWORK_NETWORK_ID,
+                WifiConfiguration.NetworkSelectionStatus.DISABLED_BY_WRONG_PASSWORD);
+        verify(mWrongPasswordNotifier, never()).onWrongPasswordError(any());
+        assertEquals("DisconnectedState", getCurrentState().getName());
+    }
+
     /**
      * Verify that metrics are updated once roaming is complete.
      */

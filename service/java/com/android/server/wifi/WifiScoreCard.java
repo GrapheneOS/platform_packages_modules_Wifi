@@ -1258,6 +1258,7 @@ public class WifiScoreCard {
          * @return a list of frequencies
          */
         List<Integer> getFrequencies(Long ageInMills) {
+            finishPendingRead();
             List<Integer> results = new ArrayList<>();
             Long nowInMills = mClock.getElapsedSinceBootMillis();
             for (Integer freq : mFrequencyList.getEntries()) {

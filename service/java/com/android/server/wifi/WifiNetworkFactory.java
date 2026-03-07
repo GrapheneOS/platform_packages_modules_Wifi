@@ -804,11 +804,19 @@ public class WifiNetworkFactory extends NetworkFactory {
             // Invalid request with wifi network specifier.
             if (!isRequestWithWifiNetworkSpecifierValid(networkRequest)) {
                 Log.e(TAG, "Invalid network specifier: " + ns + ". Rejecting");
+                sendConnectionFailureIfAllowed(networkRequest.getRequestorPackageName(),
+                    networkRequest.getRequestorUid(),
+                    (WifiNetworkSpecifier) networkRequest.getNetworkSpecifier(),
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN);
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return false;
             }
             if (mWifiPermissionsUtil.isGuestUser()) {
                 Log.e(TAG, "network specifier from guest user, reject");
+                sendConnectionFailureIfAllowed(networkRequest.getRequestorPackageName(),
+                    networkRequest.getRequestorUid(),
+                    (WifiNetworkSpecifier) networkRequest.getNetworkSpecifier(),
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN);
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return false;
             }
@@ -824,6 +832,10 @@ public class WifiNetworkFactory extends NetworkFactory {
                     networkRequest.getRequestorPackageName())) {
                 Log.e(TAG, "Request not from foreground app or service."
                         + " Rejecting request from " + networkRequest.getRequestorPackageName());
+                sendConnectionFailureIfAllowed(networkRequest.getRequestorPackageName(),
+                    networkRequest.getRequestorUid(),
+                    (WifiNetworkSpecifier) networkRequest.getNetworkSpecifier(),
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN);
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return false;
             }
@@ -833,6 +845,10 @@ public class WifiNetworkFactory extends NetworkFactory {
                     networkRequest, mActiveSpecificNetworkRequest)) {
                 Log.e(TAG, "Request cannot override active request."
                         + " Rejecting request from " + networkRequest.getRequestorPackageName());
+                sendConnectionFailureIfAllowed(networkRequest.getRequestorPackageName(),
+                    networkRequest.getRequestorUid(),
+                    (WifiNetworkSpecifier) networkRequest.getNetworkSpecifier(),
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN);
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return false;
             }
@@ -842,6 +858,10 @@ public class WifiNetworkFactory extends NetworkFactory {
                     networkRequest, mConnectedSpecificNetworkRequest)) {
                 Log.e(TAG, "Request cannot override connected request."
                         + " Rejecting request from " + networkRequest.getRequestorPackageName());
+                sendConnectionFailureIfAllowed(networkRequest.getRequestorPackageName(),
+                    networkRequest.getRequestorUid(),
+                    (WifiNetworkSpecifier) networkRequest.getNetworkSpecifier(),
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN);
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return false;
             }
@@ -889,11 +909,19 @@ public class WifiNetworkFactory extends NetworkFactory {
             // Invalid request with wifi network specifier.
             if (!isRequestWithWifiNetworkSpecifierValid(networkRequest)) {
                 Log.e(TAG, "Invalid network specifier: " + ns + ". Rejecting");
+                sendConnectionFailureIfAllowed(networkRequest.getRequestorPackageName(),
+                    networkRequest.getRequestorUid(),
+                    (WifiNetworkSpecifier) networkRequest.getNetworkSpecifier(),
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN);
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return;
             }
             if (mWifiPermissionsUtil.isGuestUser()) {
                 Log.e(TAG, "network specifier from guest user, reject");
+                sendConnectionFailureIfAllowed(networkRequest.getRequestorPackageName(),
+                    networkRequest.getRequestorUid(),
+                    (WifiNetworkSpecifier) networkRequest.getNetworkSpecifier(),
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN);
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return;
             }
@@ -901,6 +929,10 @@ public class WifiNetworkFactory extends NetworkFactory {
             if (!mActiveModeWarden.hasPrimaryClientModeManager()) {
                 Log.e(TAG, "Request with wifi network specifier when wifi is off."
                         + "Rejecting");
+                sendConnectionFailureIfAllowed(networkRequest.getRequestorPackageName(),
+                    networkRequest.getRequestorUid(),
+                    (WifiNetworkSpecifier) networkRequest.getNetworkSpecifier(),
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN);
                 releaseRequestAsUnfulfillableByAnyFactory(networkRequest);
                 return;
             }
@@ -1417,6 +1449,10 @@ public class WifiNetworkFactory extends NetworkFactory {
     // Invoked at the start of new active request processing.
     private void setupForActiveRequest() {
         if (mActiveSpecificNetworkRequest != null) {
+            sendConnectionFailureIfAllowed(mActiveSpecificNetworkRequest.getRequestorPackageName(),
+                    mActiveSpecificNetworkRequest.getRequestorUid(),
+                    mActiveSpecificNetworkRequestSpecifier,
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_NOT_FOUND);
             cleanupActiveRequest();
         }
     }
@@ -1582,6 +1618,10 @@ public class WifiNetworkFactory extends NetworkFactory {
         if (mActiveSpecificNetworkRequest != null) {
             Log.w(TAG, "ClientModeManager retrieval failed or removed, cancelling "
                     + mActiveSpecificNetworkRequest);
+            sendConnectionFailureIfAllowed(mActiveSpecificNetworkRequest.getRequestorPackageName(),
+                    mActiveSpecificNetworkRequest.getRequestorUid(),
+                    mActiveSpecificNetworkRequestSpecifier,
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_UNKNOWN);
             teardownForActiveRequest();
         }
         if (mConnectedSpecificNetworkRequest != null) {
@@ -1643,6 +1683,10 @@ public class WifiNetworkFactory extends NetworkFactory {
             Log.v(TAG, "mUserSelectedScanRetryCount: " + mUserApprovedScanRetryCount);
         }
         if (mSkipUserDialogue && mUserApprovedScanRetryCount >= USER_APPROVED_SCAN_RETRY_MAX) {
+            sendConnectionFailureIfAllowed(mActiveSpecificNetworkRequest.getRequestorPackageName(),
+                    mActiveSpecificNetworkRequest.getRequestorUid(),
+                    mActiveSpecificNetworkRequestSpecifier,
+                    WifiManager.STATUS_LOCAL_ONLY_CONNECTION_FAILURE_NOT_FOUND);
             cleanupActiveRequest();
             return;
         }
