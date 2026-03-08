@@ -634,11 +634,10 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(ActivityManager.class, withSettings().lenient())
                 .mockStatic(Flags.class, withSettings().lenient())
-                .mockStatic(android.security.Flags.class, withSettings().lenient())
                 .strictness(Strictness.LENIENT)
                 .startMocking();
         when(Flags.multiUserWifiEnhancement()).thenReturn(false);
-        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+        when(Flags.disableInsecureWifiAutojoinWhenAapmOn())
                 .thenReturn(false);
         when(mContext.getPackageManager()).thenReturn(mPackageManager);
         when(mPackageManager.getNameForUid(anyInt())).thenReturn(TEST_CREATOR_NAME);
@@ -671,7 +670,8 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         if (Flags.multiUserWifiEnhancement()) {
             sbuf.append("<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"false\" />\n");
         }
-        if (android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()) {
+        if (Environment.isSdkAtLeastC()
+                && Flags.disableInsecureWifiAutojoinWhenAapmOn()) {
             sbuf.append(
                     "<boolean name=\"AllowedAutoJoinInAdvancedProtection\" value=\"false\" />\n");
         }
@@ -1338,8 +1338,8 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
 
     @Test
     public void parseNetworkWithNonExistAutoJoinInAAPM() throws Exception {
-        assumeTrue(Environment.isSdkNewerThanB());
-        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+        assumeTrue(Environment.isSdkAtLeastC());
+        when(Flags.disableInsecureWifiAutojoinWhenAapmOn())
                 .thenReturn(false);
         when(ActivityManager.getCurrentUser()).thenReturn(TEST_CREATOR_USER_ID);
         when(Flags.multiUserWifiEnhancement()).thenReturn(true);
@@ -1348,7 +1348,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
         mNetworkListSharedStoreData.setConfigurations(networkList);
         byte[] xmlData = getTestNetworksXmlBytes(networkList.get(0), networkList.get(1),
                 networkList.get(2));
-        when(android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin())
+        when(Flags.disableInsecureWifiAutojoinWhenAapmOn())
                 .thenReturn(true);
         List<WifiConfiguration> deserializedNetworks = deserializeData(xmlData);
         assertEquals(3, deserializedNetworks.size());

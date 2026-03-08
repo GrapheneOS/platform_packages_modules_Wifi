@@ -20,6 +20,7 @@ import static com.android.server.wifi.WifiNetworkSelector.toNetworkString;
 
 import android.annotation.NonNull;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.util.Environment;
 import android.os.Process;
 import android.telephony.TelephonyManager;
 import android.util.LocalLog;
@@ -30,6 +31,7 @@ import android.util.SparseArray;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiNetworkSuggestionsManager.ExtendedWifiNetworkSuggestion;
 import com.android.server.wifi.entitlement.PseudonymInfo;
+import com.android.wifi.flags.Flags;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -318,7 +320,8 @@ public class NetworkSuggestionNominator implements WifiNetworkSelector.NetworkNo
             mLocalLog.log("Ignoring user disabled network: " + network);
             return false;
         }
-        if (android.security.Flags.aapmFeatureDisableInsecureWifiAutojoin()
+        if (Environment.isSdkAtLeastC()
+                && Flags.disableInsecureWifiAutojoinWhenAapmOn()
                 && isAapmEnabled
                 && !config.isAutoJoinInAdvancedProtectionModeEnabled()) {
             mLocalLog.log("Ignoring auto join disabled on AAP network: " + network);

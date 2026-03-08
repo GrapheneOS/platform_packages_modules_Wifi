@@ -27,6 +27,7 @@ import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_5
 import static com.android.server.wifi.aware.WifiAwareStateManager.INSTANT_MODE_DISABLED;
 import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP;
 import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_VERIFICATION;
+import static com.android.server.wifi.aware.WifiAwareStateManager.NDP_ID_NOT_SPECIFIED;
 
 import android.annotation.NonNull;
 import android.net.wifi.OuiKeyedData;
@@ -44,6 +45,7 @@ import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.util.HexEncoding;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.util.ArraySet;
 import android.util.Log;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
@@ -88,7 +90,7 @@ public class WifiAwareDiscoverySessionState {
     private boolean mIsSuspendable;
     private boolean mIsSuspended;
     private final HashSet<String> mPairedPeers = new HashSet<>();
-    private final SparseIntArray mNdpIdByPeerId = new SparseIntArray();
+    private final SparseArray<ArraySet<Integer>> mNdpIdByPeerId = new SparseArray<>();
     private final SparseIntArray mInfoPerPeerId = new SparseIntArray();
 
     static class PeerInfo {
@@ -191,9 +193,9 @@ public class WifiAwareDiscoverySessionState {
     }
 
     /**
-     * Get the ndp id of the peer
+     * Get all NDP Ids associated with this peer
      */
-    public int getNdpId(int peerId) {
+    public ArraySet<Integer> getNdps(int peerId) {
         return mNdpIdByPeerId.get(peerId);
     }
 
@@ -201,11 +203,13 @@ public class WifiAwareDiscoverySessionState {
      * Get the peer id of the ndp id
      */
     public int getPeerId(int ndpId) {
-        int index = mNdpIdByPeerId.indexOfValue(ndpId);
-        if (index < 0) {
-            return 0;
+        for (int i = 0; i < mNdpIdByPeerId.size(); i++) {
+            ArraySet<Integer> values = mNdpIdByPeerId.valueAt(i);
+            if (values.contains(ndpId)) {
+                return mNdpIdByPeerId.keyAt(i);
+            }
         }
-        return mNdpIdByPeerId.keyAt(index);
+        return 0;
     }
 
     /**
@@ -730,14 +734,33 @@ public class WifiAwareDiscoverySessionState {
      * Terminate a data path
      * @see WifiAwareNativeApi#endDataPath(short, int)
      */
-    public boolean endDataPath(short transactionId, int ndpId, int peerId) {
-        mNdpIdByPeerId.delete(peerId);
+    public boolean endDataPath(short transactionId, int peerId, int ndpId) {
+        ArraySet<Integer> ndps = mNdpIdByPeerId.get(peerId);
+        boolean success = false;
+        if (ndpId != NDP_ID_NOT_SPECIFIED) {
+            // If NDP is specified, means only end a single data path, this is for the timeout case
+            success = mWifiAwareNativeApi.endDataPath(transactionId, ndpId);
+            if (ndps != null) {
+                ndps.remove(ndpId);
+                if (!ndps.isEmpty()) {
+                    // If there is still active datapath, will not send callback
+                    return success;
+                }
+            }
+        } else if (ndps != null) {
+            // If ndpId is not specified, means disconnect the peer, all associated NDPs will be
+            // ended.
+            for (int ndp : ndps) {
+                success |= mWifiAwareNativeApi.endDataPath(transactionId, ndp);
+            }
+        }
+        mNdpIdByPeerId.remove(peerId);
         try {
             mCallback.onDataPathDisconnected(peerId);
         } catch (RemoteException e) {
             Log.w(TAG, "endDataPath: RemoteException (FYI): " + e);
         }
-        return mWifiAwareNativeApi.endDataPath(transactionId, ndpId);
+        return success;
     }
 
     /**
@@ -941,7 +964,12 @@ public class WifiAwareDiscoverySessionState {
      * Event that receive the data path request success
      */
     public boolean onDataPathRequestSuccess(int peerId, int ndpId) {
-        mNdpIdByPeerId.put(peerId, ndpId);
+        ArraySet<Integer> ndps = mNdpIdByPeerId.get(peerId);
+        if (ndps == null) {
+            ndps = new ArraySet<>();
+            mNdpIdByPeerId.put(peerId, ndps);
+        }
+        ndps.add(ndpId);
         return true;
     }
 
@@ -1007,7 +1035,15 @@ public class WifiAwareDiscoverySessionState {
             Log.e(TAG, "onDataPathTerminated: unknown peer id");
             return;
         }
-        mNdpIdByPeerId.delete(peerId);
+        ArraySet<Integer> ndps = mNdpIdByPeerId.get(peerId);
+        ndps.remove(ndpId);
+        if (!ndps.isEmpty()) {
+            if (mDbg) {
+                Log.v(TAG, "Still have active NDP with this peer");
+            }
+            return;
+        }
+        mNdpIdByPeerId.remove(peerId);
         try {
             mCallback.onDataPathDisconnected(peerId);
         } catch (RemoteException e) {

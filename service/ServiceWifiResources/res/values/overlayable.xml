@@ -253,6 +253,8 @@
           <item type="bool" name="config_wifiMultiStaLocalOnlyConcurrencyEnabled" />
           <item type="bool" name="config_wifiMultiStaRestrictedConcurrencyEnabled" />
           <item type="bool" name="config_wifiMultiStaMultiInternetConcurrencyEnabled" />
+          <item type="bool" name="config_wifiMultiInternetSameBandConnectionAllowed" />
+          <item type="bool" name="config_wifiMultiInternetSameBssidConnectionAllowed" />
           <item type="bool" name="config_wifiDefaultCoexAlgorithmEnabled"/>
           <item type="bool" name="config_wifiCoexForGpsL1"/>
           <item type="integer" name="config_wifiCoexGpsL1ThresholdKhz"/>
@@ -363,6 +365,7 @@
           <item type="bool" name="config_preEvaluationEnabled" />
           <item type="bool" name="config_wifiMainlineSupplicantEnabled" />
           <item type="bool" name="config_wificondMigrationEnabled" />
+          <item type="array" name="config_wifiMobilityFilterCarrierIdBlocklist" />
 
           <!-- Params from config.xml that can be overlayed -->
 
