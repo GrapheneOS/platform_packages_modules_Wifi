@@ -139,24 +139,6 @@ public class WifiGlobalsTest extends WifiBaseTest {
         assertTrue(mWifiGlobals.isWpa3SaeH2eSupported());
     }
 
-    /** Verify multi-internet same band and same BSSID allowed overlays. */
-    @Test
-    public void testMultiInternetSameBandAndBssidAllowedOverlays() {
-        mResources.setBoolean(R.bool.config_wifiMultiInternetSameBandConnectionAllowed, false);
-        mResources.setBoolean(R.bool.config_wifiMultiInternetSameBssidConnectionAllowed, false);
-        mWifiResourceCache.reset();
-        mWifiGlobals = new WifiGlobals(mContext);
-        assertFalse(mWifiGlobals.isMultiInternetSameBandConnectionAllowed());
-        assertFalse(mWifiGlobals.isMultiInternetSameBssidConnectionAllowed());
-
-        mResources.setBoolean(R.bool.config_wifiMultiInternetSameBandConnectionAllowed, true);
-        mResources.setBoolean(R.bool.config_wifiMultiInternetSameBssidConnectionAllowed, true);
-        mWifiResourceCache.reset();
-        mWifiGlobals = new WifiGlobals(mContext);
-        assertTrue(mWifiGlobals.isMultiInternetSameBandConnectionAllowed());
-        assertTrue(mWifiGlobals.isMultiInternetSameBssidConnectionAllowed());
-    }
-
     /** Verify P2P device name customization. */
     @Test
     public void testP2pDeviceNameCustomization() {

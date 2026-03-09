@@ -69,8 +69,6 @@ public class WifiGlobals {
     private int mPreviouslyConnectedNetworkWrongPasswordThreshold = 3;
     private boolean mIsWpa3SaeUpgradeOffloadEnabled;
     private boolean mIsWpa3SaeH2eSupported;
-    private boolean mIsMultiInternetSameBandConnectionAllowed;
-    private boolean mIsMultiInternetSameBssidConnectionAllowed;
     private boolean mDisableFirmwareRoamingInIdleMode = false;
     private final Map<String, List<String>> mCountryCodeToAfcServers;
     // This is set by WifiManager#setVerboseLoggingEnabled(int).
@@ -97,10 +95,6 @@ public class WifiGlobals {
                 R.integer.config_wifiPreviouslyConnectedNetworkWrongPasswordThreshold);
         mIsWpa3SaeH2eSupported = mWifiResourceCache
                 .getBoolean(R.bool.config_wifiSaeH2eSupported);
-        mIsMultiInternetSameBandConnectionAllowed = mWifiResourceCache.getBoolean(
-                R.bool.config_wifiMultiInternetSameBandConnectionAllowed);
-        mIsMultiInternetSameBssidConnectionAllowed = mWifiResourceCache.getBoolean(
-                R.bool.config_wifiMultiInternetSameBssidConnectionAllowed);
         mIsXrPeripheral = mContext.getPackageManager().hasSystemFeature(
                 PackageManager.FEATURE_XR_PERIPHERAL);
         Set<String> unsupportedSsidPrefixes = new ArraySet<>(mWifiResourceCache.getStringArray(
@@ -413,14 +407,6 @@ public class WifiGlobals {
      */
     public boolean isWpa3SaeH2eSupported() {
         return mIsWpa3SaeH2eSupported;
-    }
-
-    public boolean isMultiInternetSameBandConnectionAllowed() {
-        return mIsMultiInternetSameBandConnectionAllowed;
-    }
-
-    public boolean isMultiInternetSameBssidConnectionAllowed() {
-        return mIsMultiInternetSameBssidConnectionAllowed;
     }
 
     /**
@@ -750,10 +736,6 @@ public class WifiGlobals {
             pw.println("mIsXrPeripheral=" + mIsXrPeripheral);
         }
         pw.println("mIsWpa3SaeH2eSupported=" + mIsWpa3SaeH2eSupported);
-        pw.println("mIsMultiInternetSameBandConnectionAllowed="
-                + mIsMultiInternetSameBandConnectionAllowed);
-        pw.println("mIsMultiInternetSameBssidConnectionAllowed="
-                + mIsMultiInternetSameBssidConnectionAllowed);
         for (int i = 0; i < mCarrierSpecificEapFailureConfigMapPerCarrierId.size(); i++) {
             int carrierId = mCarrierSpecificEapFailureConfigMapPerCarrierId.keyAt(i);
             SparseArray<CarrierSpecificEapFailureConfig> perFailureMap =
