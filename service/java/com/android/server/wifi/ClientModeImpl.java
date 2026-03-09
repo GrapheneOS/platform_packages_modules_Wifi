@@ -6390,6 +6390,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         @Override
         public void enterImpl() {
             if (mVerboseLoggingEnabled) Log.v(getTag(), "Entering L2ConnectingState");
+            // Ensure state update and broadcast are sent before any immediate rejection occurs.
+            // This prevents the framework from suppressing the broadcast if it transitions
+            // back to DISCONNECTED so quickly that it perceives no state change.
+            sendNetworkChangeBroadcast(DetailedState.CONNECTING);
             // Make sure we connect: we enter this state prior to connecting to a new
             // network. In some cases supplicant ignores the connect requests (it might not
             // find the target SSID in its cache), Therefore we end up stuck that state, hence the
