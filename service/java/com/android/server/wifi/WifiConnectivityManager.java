@@ -424,10 +424,6 @@ public class WifiConnectivityManager {
     @VisibleForTesting
     public boolean filterMultiInternetFrequency(int primaryFreq, int secondaryFreq,
             String interfaceName) {
-        if (mWifiGlobals.isMultiInternetSameBandConnectionAllowed()
-                && primaryFreq == secondaryFreq) {
-            return true;
-        }
         return mWifiGlobals.isSupportMultiInternetDual5G()
                 ? ScanResult.isValidCombinedBandForDual5GHz(primaryFreq, secondaryFreq)
                 : isSimultaneousBandSupported(
@@ -481,10 +477,11 @@ public class WifiConnectivityManager {
             return false;
         }
         final WifiInfo primaryInfo = primaryCcm.getConnectionInfo();
+        final int primaryBand = ScanResult.toBand(primaryInfo.getFrequency());
+
         List<WifiCandidates.Candidate> secondaryCmmCandidates;
-        boolean allowSameBssidConnection = mWifiGlobals.isMultiInternetSameBssidConnectionAllowed();
         if (mMultiInternetManager.isStaConcurrencyForMultiInternetMultiApAllowed()) {
-            if (primaryCcm.isMlo() && !allowSameBssidConnection) {
+            if (primaryCcm.isMlo()) {
                 // For an MLO connection, select candidate BSSIDs that are not affiliated or the
                 // primary link's BSSID, as the primary's BSSID may differ from its link MAC
                 // address.
@@ -500,10 +497,7 @@ public class WifiConnectivityManager {
                         .filter(c -> {
                             return filterMultiInternetFrequency(
                                     primaryInfo.getFrequency(), c.getFrequency(),
-                                    primaryCcm.getInterfaceName())
-                                    && (allowSameBssidConnection
-                                    || !TextUtils.equals(c.getKey().bssid.toString(),
-                                    primaryCcm.getConnectedBssid()));
+                                    primaryCcm.getInterfaceName());
                         })
                         .collect(Collectors.toList());
             }
@@ -512,11 +506,8 @@ public class WifiConnectivityManager {
             secondaryCmmCandidates = candidates.stream().filter(c -> {
                 return filterMultiInternetFrequency(primaryInfo.getFrequency(), c.getFrequency(),
                         primaryCcm.getInterfaceName())
-                        && (allowSameBssidConnection
-                        || (!primaryCcm.isAffiliatedLinkBssid(c.getKey().bssid)
-                        && !TextUtils.equals(c.getKey().bssid.toString(),
-                        primaryCcm.getConnectedBssid())))
-                        && TextUtils.equals(c.getKey().matchInfo.networkSsid, primaryInfo.getSSID())
+                        && !primaryCcm.isAffiliatedLinkBssid(c.getKey().bssid) && TextUtils.equals(
+                        c.getKey().matchInfo.networkSsid, primaryInfo.getSSID())
                         && c.getKey().networkId == primaryInfo.getNetworkId()
                         && c.getKey().securityType == primaryInfo.getCurrentSecurityType();
             }).collect(Collectors.toList());

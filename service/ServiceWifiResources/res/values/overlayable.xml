@@ -253,8 +253,6 @@
           <item type="bool" name="config_wifiMultiStaLocalOnlyConcurrencyEnabled" />
           <item type="bool" name="config_wifiMultiStaRestrictedConcurrencyEnabled" />
           <item type="bool" name="config_wifiMultiStaMultiInternetConcurrencyEnabled" />
-          <item type="bool" name="config_wifiMultiInternetSameBandConnectionAllowed" />
-          <item type="bool" name="config_wifiMultiInternetSameBssidConnectionAllowed" />
           <item type="bool" name="config_wifiDefaultCoexAlgorithmEnabled"/>
           <item type="bool" name="config_wifiCoexForGpsL1"/>
           <item type="integer" name="config_wifiCoexGpsL1ThresholdKhz"/>
