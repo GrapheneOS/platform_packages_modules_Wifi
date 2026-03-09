@@ -746,16 +746,25 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
      *
      * @param transactionId Transaction ID for the transaction - used in the async callback to
      *                      match with the original request.
-     * @param ndpId The NDP (Aware data path) ID to be terminated.
+     * @param ndpId         The NDP (Aware data path) ID to be terminated.
+     * @param peer          The MAC address of the peer NMI
+     * @param ndiInitMac    The initiator ndi mac address. If local device is initiator this can be
+     *                      null
+     * @param ndiName       The name of the local NDI. This will be used when local device is
+     *                      initiator
      */
-    public boolean endDataPath(short transactionId, int ndpId) {
+    public boolean endDataPath(short transactionId, int ndpId, byte[] peer, byte[] ndiInitMac,
+            String ndiName) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "endDataPath: transactionId=" + transactionId + ", ndpId=" + ndpId);
         }
         recordTransactionId(transactionId);
         AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
         if (supplicant != null) {
-            return supplicant.endDataPath(transactionId, ndpId);
+            if (ndiInitMac == null) {
+                ndiInitMac = supplicant.getNdiMacAddress(ndiName);
+            }
+            return supplicant.endDataPath(transactionId, ndpId, peer, ndiInitMac);
         }
 
         WifiNanIface iface = mHal.getWifiNanIface();

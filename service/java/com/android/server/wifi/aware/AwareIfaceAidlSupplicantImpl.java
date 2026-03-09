@@ -465,14 +465,13 @@ public class AwareIfaceAidlSupplicantImpl {
     }
 
     /**
-     * @see ISupplicantNanIface#terminateDataPathRequest(char, int)
+     * @see ISupplicantNanIface#terminateDataPathRequest(char, int, byte[], String)
      */
-    public boolean endDataPath(short transactionId, int ndpId) {
+    public boolean endDataPath(short transactionId, int ndpId, byte[] peer, byte[] ndiInitMac) {
         final String methodStr = "endDataPath";
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
-            // TODO: Add correct peer MAC address passed from the upper framework layer
-            mWifiNanIface.terminateDataPathRequest((char) transactionId, ndpId, new byte[6]);
+            mWifiNanIface.terminateDataPathRequest((char) transactionId, ndpId, peer, ndiInitMac);
             return true;
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);

@@ -35,6 +35,7 @@ import android.net.wifi.WifiContext;
 import android.net.wifi.aware.ConfigRequest;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
+import android.net.wifi.util.HexEncoding;
 import android.net.wifi.util.WifiResourceCache;
 
 import androidx.test.filters.SmallTest;
@@ -60,6 +61,7 @@ import java.io.PrintWriter;
  */
 @SmallTest
 public class WifiAwareNativeApiTest extends WifiBaseTest {
+    private static final String NDI_NAME = "aware_data0";
     @Mock WifiAwareNativeManager mWifiAwareNativeManagerMock;
     @Mock WifiNanIface mWifiNanIfaceMock;
     @Mock WifiContext mWifiContextMock;
@@ -403,14 +405,17 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
     @Test
     public void testEndDataPath() {
         when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
-        mDut.endDataPath((short) 1, 123);
+        mDut.endDataPath((short) 1, 123, new byte[6], new byte[16], NDI_NAME);
         verify(mWifiNanIfaceMock).endDataPath(eq((short) 1), eq(123));
     }
 
     @Test
     public void testEndDataPathWithSupplicant() {
-        mDut.endDataPath((short) 1, 123);
-        verify(mAwareIfaceAidlSupplicantImplMock).endDataPath(eq((short) 1), eq(123));
+        byte[] addr = HexEncoding.decode("060708090A0B".toCharArray(), false);
+        byte[] ndiInitMac = HexEncoding.decode("010203040506".toCharArray(), false);
+        mDut.endDataPath((short) 1, 123, addr, ndiInitMac, NDI_NAME);
+        verify(mAwareIfaceAidlSupplicantImplMock).endDataPath(eq((short) 1), eq(123),
+                eq(addr), eq(ndiInitMac));
     }
 
     @Test

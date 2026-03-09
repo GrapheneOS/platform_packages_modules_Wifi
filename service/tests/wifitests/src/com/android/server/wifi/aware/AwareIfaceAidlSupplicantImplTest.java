@@ -573,10 +573,12 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         short transactionId = 110;
         int ndpId = 200;
         byte[] addr = new byte[6];
+        byte[] initMac = new byte[6];
 
-        assertTrue(mDut.endDataPath(transactionId, ndpId));
+
+        assertTrue(mDut.endDataPath(transactionId, ndpId, addr, initMac));
         verify(mMockSupplicantNanIface)
-                .terminateDataPathRequest((char) transactionId, ndpId, addr);
+                .terminateDataPathRequest((char) transactionId, ndpId, addr, initMac);
     }
 
     @Test
@@ -584,10 +586,12 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         short transactionId = 111;
         int ndpId = 200;
         byte[] addr = new byte[6];
+        byte[] initMac = new byte[6];
+
 
         doThrow(new RemoteException()).when(mMockSupplicantNanIface)
-                .terminateDataPathRequest(anyChar(), anyInt(), any());
-        assertFalse(mDut.endDataPath(transactionId, ndpId));
+                .terminateDataPathRequest(anyChar(), anyInt(), any(), any());
+        assertFalse(mDut.endDataPath(transactionId, ndpId, addr, initMac));
     }
 
     @Test
@@ -595,10 +599,11 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         short transactionId = 112;
         int ndpId = 200;
         byte[] addr = new byte[6];
+        byte[] initMac = new byte[6];
 
         doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
-                .terminateDataPathRequest(anyChar(), anyInt(), any());
-        assertFalse(mDut.endDataPath(transactionId, ndpId));
+                .terminateDataPathRequest(anyChar(), anyInt(), any(), any());
+        assertFalse(mDut.endDataPath(transactionId, ndpId, addr, initMac));
     }
 
     @Test

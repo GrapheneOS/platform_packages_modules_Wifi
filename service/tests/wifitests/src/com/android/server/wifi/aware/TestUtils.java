@@ -122,7 +122,8 @@ public class TestUtils {
             return true;
         }
 
-        public boolean endDataPath(short transactionId, int ndpId) {
+        public boolean endDataPath(short transactionId, int ndpId, byte[] peer, byte[] ndiInitMac,
+                String ndiName) {
             addTransactionId(transactionId);
             return true;
         }

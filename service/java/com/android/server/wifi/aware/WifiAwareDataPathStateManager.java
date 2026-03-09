@@ -24,6 +24,7 @@ import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_CREATE;
 import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_REPLACE;
 import static com.android.net.module.util.netlink.StructNlMsgHdr.NLM_F_REQUEST;
 
+import android.annotation.NonNull;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.IpPrefix;
@@ -321,10 +322,12 @@ public class WifiAwareDataPathStateManager {
      *
      * @param networkSpecifier The network specifier provided as part of the initiate request.
      * @param ndpId            The ID assigned to the data-path.
+     * @param peer             The discovery MAC address of the peer.
+     * @param ndiName          The name of the local NDI.
      * @return False if has error, otherwise return true
      */
     public boolean onDataPathInitiateSuccess(WifiAwareNetworkSpecifier networkSpecifier,
-            int ndpId) {
+            int ndpId, byte[] peer, String ndiName) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG,
                     "onDataPathInitiateSuccess: networkSpecifier=" + networkSpecifier + ", ndpId="
@@ -335,13 +338,13 @@ public class WifiAwareDataPathStateManager {
         if (nnri == null) {
             Log.w(TAG, "onDataPathInitiateSuccess: network request not found for networkSpecifier="
                     + networkSpecifier);
-            mMgr.endDataPath(ndpId);
+            mMgr.endDataPath(ndpId, peer, ndiName, null);
             return false;
         }
         if (nnri.networkSpecifier.getIndex() != networkSpecifier.getIndex()) {
                         Log.w(TAG, "onDataPathInitiateSuccess: network request mismatch"
                             + "for networkSpecifier=" + networkSpecifier);
-            mMgr.endDataPath(ndpId);
+            mMgr.endDataPath(ndpId, peer, ndiName, null);
             return false;
         }
 
@@ -349,7 +352,7 @@ public class WifiAwareDataPathStateManager {
                 != AwareNetworkRequestInformation.STATE_INITIATOR_WAIT_FOR_REQUEST_RESPONSE) {
             Log.w(TAG, "onDataPathInitiateSuccess: network request in incorrect state: state="
                     + nnri.state);
-            mMgr.endDataPath(ndpId);
+            mMgr.endDataPath(ndpId, peer, ndiName, null);
             mNetworkRequestsCache.remove(networkSpecifier);
             declareUnfullfillable(nnri);
             return false;
@@ -539,11 +542,14 @@ public class WifiAwareDataPathStateManager {
     /**
      * Called on the RESPONDER when the response to data-path request has been completed.
      *
-     * @param ndpId The ID of the data-path (NDP)
+     * @param ndpId   The ID of the data-path (NDP)
      * @param success Whether or not the 'RespondToDataPathRequest' operation was a success.
+     * @param reasonOnFailure The reason for the failure, if any.
+     * @param peer    The discovery MAC address of the peer.
      * @return true if framework start to waiting for the confirm
      */
-    public boolean onRespondToDataPathRequest(int ndpId, boolean success, int reasonOnFailure) {
+    public boolean onRespondToDataPathRequest(int ndpId, boolean success, int reasonOnFailure,
+            byte[] peer) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "onRespondToDataPathRequest: ndpId=" + ndpId + ", success=" + success);
         }
@@ -566,7 +572,7 @@ public class WifiAwareDataPathStateManager {
         if (!success) {
             Log.w(TAG, "onRespondToDataPathRequest: request " + networkSpecifier
                     + " failed responding");
-            mMgr.endDataPath(ndpId);
+            mMgr.endDataPath(ndpId, peer, nnri.interfaceName, ndpInfo.ndiInitMac);
             nnri.ndpInfos.remove(ndpId);
             if (nnri.specifiedPeerDiscoveryMac != null) {
                 mNetworkRequestsCache.remove(networkSpecifier);
@@ -581,7 +587,7 @@ public class WifiAwareDataPathStateManager {
                 || nnri.state == AwareNetworkRequestInformation.STATE_TERMINATING) {
             Log.w(TAG, "onRespondToDataPathRequest: request " + networkSpecifier
                     + " is incorrect state=" + nnri.state);
-            mMgr.endDataPath(ndpId);
+            mMgr.endDataPath(ndpId, peer, nnri.interfaceName, ndpInfo.ndiInitMac);
             nnri.ndpInfos.remove(ndpId);
             if (nnri.specifiedPeerDiscoveryMac != null) {
                 mNetworkRequestsCache.remove(networkSpecifier);
@@ -599,17 +605,17 @@ public class WifiAwareDataPathStateManager {
      * is possibly (if {@code accept} is {@code true}) ready for use from the firmware's
      * perspective - now can do L3 configuration.
      *
-     * @param ndpId         Id of the data-path
-     * @param mac           The MAC address of the peer's data-path (not discovery interface). Only
-     *                      valid
-     *                      if {@code accept} is {@code true}.
-     * @param accept        Indicates whether the data-path setup has succeeded (been accepted) or
-     *                      failed (been rejected).
-     * @param reason        If {@code accept} is {@code false} provides a reason code for the
-     *                      rejection/failure.
-     * @param message       The message provided by the peer as part of the data-path setup
-     *                      process.
-     * @param channelInfo   Lists of channels used for this NDP.
+     * @param ndpId       Id of the data-path
+     * @param mac         The MAC address of the peer's data-path (not discovery interface). Only
+     *                    valid
+     *                    if {@code accept} is {@code true}.
+     * @param accept      Indicates whether the data-path setup has succeeded (been accepted) or
+     *                    failed (been rejected).
+     * @param reason      If {@code accept} is {@code false} provides a reason code for the
+     *                    rejection/failure.
+     * @param message     The message provided by the peer as part of the data-path setup
+     *                    process.
+     * @param channelInfo Lists of channels used for this NDP.
      * @return False if has error, otherwise return true
      */
     public boolean onDataPathConfirm(int ndpId, byte[] mac, boolean accept,
@@ -625,10 +631,8 @@ public class WifiAwareDataPathStateManager {
         Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation> nnriE =
                 getNetworkRequestByNdpId(ndpId);
         if (nnriE == null) {
+            // This should be already cleared
             Log.w(TAG, "onDataPathConfirm: network request not found for ndpId=" + ndpId);
-            if (accept) {
-                mMgr.endDataPath(ndpId);
-            }
             return false;
         }
 
@@ -646,7 +650,8 @@ public class WifiAwareDataPathStateManager {
                 mNetworkFactory.letAppKnowThatRequestsAreUnavailable(nnri);
             }
             if (accept) {
-                mMgr.endDataPath(ndpId);
+                mMgr.endDataPath(ndpId, ndpInfo.peerDiscoveryMac, nnri.interfaceName,
+                        ndpInfo.ndiInitMac);
             }
             return false;
         }
@@ -666,7 +671,8 @@ public class WifiAwareDataPathStateManager {
                     Log.e(TAG, "onDataPathConfirm: ACCEPT nnri=" + nnri
                                 + ": can't configure network - "
                                 + e);
-                    mMgr.endDataPath(ndpId);
+                    mMgr.endDataPath(ndpId, ndpInfo.peerDiscoveryMac, nnri.interfaceName,
+                            ndpInfo.ndiInitMac);
                     if (nnri.specifiedPeerDiscoveryMac != null) {
                         declareUnfullfillable(nnri);
                     }
@@ -784,7 +790,7 @@ public class WifiAwareDataPathStateManager {
             if (sVdbg) {
                 Log.d(TAG, "Failed address validation");
             }
-            if (!isAddressValidationExpired(nnri, ndpInfo.ndpId)) {
+            if (!isAddressValidationExpired(nnri, ndpInfo)) {
                 Object token = mDelayNetworkValidationMap.get(ndpInfo.ndpId);
                 if (token == null) {
                     token = new Object();
@@ -833,12 +839,14 @@ public class WifiAwareDataPathStateManager {
         mWifiLockManager.updateAwareConnected(true);
     }
 
-    private boolean isAddressValidationExpired(AwareNetworkRequestInformation nnri, int ndpId) {
+    private boolean isAddressValidationExpired(@NonNull AwareNetworkRequestInformation nnri,
+            @NonNull NdpInfo ndpInfo) {
         if (mClock.getElapsedSinceBootMillis() - nnri.startValidationTimestamp
                 > ADDRESS_VALIDATION_TIMEOUT_MS) {
             Log.e(TAG, "Timed-out while waiting for IPv6 address to be usable");
-            mMgr.endDataPath(ndpId);
-            mDelayNetworkValidationMap.remove(ndpId);
+            mMgr.endDataPath(ndpInfo.ndpId, ndpInfo.peerDiscoveryMac, nnri.interfaceName,
+                    ndpInfo.ndiInitMac);
+            mDelayNetworkValidationMap.remove(ndpInfo.ndpId);
             if (nnri.specifiedPeerDiscoveryMac != null) {
                 declareUnfullfillable(nnri);
             }
@@ -964,7 +972,8 @@ public class WifiAwareDataPathStateManager {
         mAwareMetrics.recordNdpStatus(NanStatusCode.INTERNAL_FAILURE,
                 nnri.networkSpecifier.isOutOfBand(), nnri.networkSpecifier.role,
                 ndpInfo.startTimestamp, nnri.networkSpecifier.sessionId);
-        mMgr.endDataPath(ndpId);
+        mMgr.endDataPath(ndpId, ndpInfo.peerDiscoveryMac, nnri.interfaceName,
+                ndpInfo.ndiInitMac);
         nnri.ndpInfos.remove(ndpId);
         if (nnri.specifiedPeerDiscoveryMac != null) {
             mNetworkFactory.letAppKnowThatRequestsAreUnavailable(nnri);
@@ -1186,8 +1195,10 @@ public class WifiAwareDataPathStateManager {
                     if (sVdbg) Log.v(TAG, "releaseNetworkFor: in progress NDP being terminated");
                     for (int index = 0; index < nnri.ndpInfos.size(); index++) {
                         int ndpId = nnri.ndpInfos.keyAt(index);
+                        NdpInfo ndpInfo = nnri.ndpInfos.valueAt(index);
                         cleanNetworkValidationTask(ndpId);
-                        mMgr.endDataPath(ndpId);
+                        mMgr.endDataPath(ndpId, ndpInfo.peerDiscoveryMac, nnri.interfaceName,
+                                ndpInfo.ndiInitMac);
                     }
                     nnri.state = AwareNetworkRequestInformation.STATE_TERMINATING;
                 } else {
@@ -1233,7 +1244,10 @@ public class WifiAwareDataPathStateManager {
                 Log.v(TAG, "WifiAwareNetworkAgent.unwanted: request=" + mAwareNetworkRequestInfo);
             }
             for (int index = 0; index < mAwareNetworkRequestInfo.ndpInfos.size(); index++) {
-                mMgr.endDataPath(mAwareNetworkRequestInfo.ndpInfos.keyAt(index));
+                int ndpId = mAwareNetworkRequestInfo.ndpInfos.keyAt(index);
+                NdpInfo ndpInfo = mAwareNetworkRequestInfo.ndpInfos.valueAt(index);
+                mMgr.endDataPath(ndpId, ndpInfo.peerDiscoveryMac,
+                        mAwareNetworkRequestInfo.interfaceName, ndpInfo.ndiInitMac);
             }
             mAwareNetworkRequestInfo.state = AwareNetworkRequestInformation.STATE_TERMINATING;
 

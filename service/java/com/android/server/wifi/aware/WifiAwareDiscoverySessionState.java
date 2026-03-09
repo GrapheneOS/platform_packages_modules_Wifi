@@ -735,17 +735,28 @@ public class WifiAwareDiscoverySessionState {
 
     /**
      * Terminate a data path
-     * @see WifiAwareNativeApi#endDataPath(short, int)
+     * @see WifiAwareNativeApi#endDataPath(short, int, byte[], byte[], String)
      */
-    public boolean endDataPath(short transactionId, int peerId, int ndpId) {
+    public boolean endDataPath(short transactionId, int peerId, int ndpId, String ndiName) {
         ArraySet<Integer> ndps = mNdpIdByPeerId.get(peerId);
         boolean success = false;
+        PeerInfo peerInfo = getPeerInfo(peerId);
+        if (peerInfo == null) {
+            Log.wtf(TAG, "endDataPath: with unknown peer=" + peerId);
+            return false;
+        }
+        byte[] peerMac = peerInfo.mMac;
+        byte[] ndiInitMac = null;
         if (ndpId != NDP_ID_NOT_SPECIFIED) {
+            if (mIsPublishSession) {
+                ndiInitMac = mInitNdiPerNdpId.get(ndpId);
+            }
             // If NDP is specified, means only end a single data path, this is for the timeout case
-            success = mWifiAwareNativeApi.endDataPath(transactionId, ndpId);
+            success = mWifiAwareNativeApi.endDataPath(transactionId, ndpId, peerMac, ndiInitMac,
+                    ndiName);
+            mInitNdiPerNdpId.remove(ndpId);
             if (ndps != null) {
                 ndps.remove(ndpId);
-                mInitNdiPerNdpId.remove(ndpId);
                 if (!ndps.isEmpty()) {
                     // If there is still active datapath, will not send callback
                     return success;
@@ -755,7 +766,9 @@ public class WifiAwareDiscoverySessionState {
             // If ndpId is not specified, means disconnect the peer, all associated NDPs will be
             // ended.
             for (int ndp : ndps) {
-                success |= mWifiAwareNativeApi.endDataPath(transactionId, ndp);
+                ndiInitMac = mInitNdiPerNdpId.get(ndp);
+                success |= mWifiAwareNativeApi.endDataPath(transactionId, ndp, peerMac,
+                        ndiInitMac, ndiName);
                 mInitNdiPerNdpId.remove(ndp);
             }
         }
