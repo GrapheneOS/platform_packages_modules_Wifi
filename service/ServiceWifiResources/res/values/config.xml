@@ -197,7 +197,7 @@
 
     <!-- Integer indicating the idle interval in milliseconds for checking SoftAP traffic status.
          The default value is 0 (disabled). The mechanism will be enabled when this overlay
-         configuration is set to a non-zero value. The minimal value is required to be larger than 10000 (10 seconds)
+         configuration is set to a non-zero value. The minimal value is required to be larger than 9999 (i.e. at least 10 seconds)
          to avoid impacting the system. -->
     <integer translatable="false" name="config_wifiFrameworkSoftApTrafficStatusIdleIntervalMilliseconds">0</integer>
 
