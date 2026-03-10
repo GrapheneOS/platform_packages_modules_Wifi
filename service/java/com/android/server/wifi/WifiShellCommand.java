@@ -3519,7 +3519,13 @@ public class WifiShellCommand extends BasicShellCommandHandler {
                         return -1;
                     }
 
-                    WifiChipStats stats = pwrManager.getWlanPwrStats();
+                    if (pwrManager.isPowerStatsApiSupported()) {
+                        pw.println("Source: New Power Stats API");
+                    } else {
+                        pw.println("Source: Legacy Link Layer Stats");
+                    }
+
+                    WifiChipStats stats = pwrManager.getPowerStatsForMetrics();
 
                     if (stats != null) {
                         pw.println("SUCCESS: Wi-Fi Power Stats:");

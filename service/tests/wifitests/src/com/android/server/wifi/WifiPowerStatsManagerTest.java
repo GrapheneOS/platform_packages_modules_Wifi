@@ -176,16 +176,6 @@ public class WifiPowerStatsManagerTest {
     }
 
     @Test
-    public void testDump_ApiDisabled() {
-        when(Flags.powerStatsApi()).thenReturn(false);
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        mWifiPowerStatsManager.dump(null, pw, null);
-        String dumpOutput = sw.toString();
-        assertTrue(dumpOutput.contains("WifiPowerStats: Power stats API is disabled."));
-    }
-
-    @Test
     public void testGetWlanPwrStats_DeepValidation() {
         ByteBuffer testBuffer = createTestPowerStatsBuffer();
         when(mNl80211Native.getWifiChipStats(TEST_INTERFACE_NAME)).thenReturn(testBuffer);
@@ -219,11 +209,6 @@ public class WifiPowerStatsManagerTest {
         assertEquals("Chip power-on time mismatch", 5000, chip.wlanPwrOnTimeMs);
         assertEquals("Sleep levels count mismatch", 1, chip.sleepLevelsNum);
         assertEquals("Sleep time value mismatch", 1000, chip.sleepTimeMsPerLevels[0]);
-
-        StringWriter sw = new StringWriter();
-        mWifiPowerStatsManager.dump(null, new PrintWriter(sw), null);
-        assertTrue("Dump should contain parsed stats data",
-                sw.toString().contains("onTimeMs=5000"));
     }
 
     @Test
@@ -239,6 +224,74 @@ public class WifiPowerStatsManagerTest {
         assertEquals(0, stats.rxRateStats.length);
         assertNotNull(stats.chipPowerState);
         assertEquals(0, stats.chipPowerState.wlanPwrOnTimeMs);
+    }
+
+    @Test
+    public void testGetPowerStatsForMetrics_FallbackToLegacy() {
+        when(Flags.powerStatsApi()).thenReturn(false);
+
+        WifiLinkLayerStats legacyStats = new WifiLinkLayerStats();
+        legacyStats.on_time = 1000;
+        legacyStats.tx_time = 200;
+        legacyStats.rx_time = 300;
+        legacyStats.on_time_scan = 50;
+
+        legacyStats.radioStats = new WifiLinkLayerStats.RadioStat[1];
+        legacyStats.radioStats[0] = new WifiLinkLayerStats.RadioStat();
+        legacyStats.radioStats[0].radio_id = 0;
+        legacyStats.radioStats[0].on_time = 1000;
+        legacyStats.radioStats[0].tx_time = 200;
+        legacyStats.radioStats[0].rx_time = 300;
+
+        mWifiPowerStatsManager.updateLatestLinkLayerStats(legacyStats);
+
+        WifiChipStats stats = mWifiPowerStatsManager.getPowerStatsForMetrics();
+
+        assertNotNull(stats);
+        assertEquals(1, stats.numWifiCore);
+        assertEquals(1000, stats.coreStats[0].radioOnTimeMs);
+        assertEquals(200, stats.coreStats[0].txTimeMs);
+        assertEquals(300, stats.coreStats[0].rxTimeMs);
+        assertEquals(500, stats.coreStats[0].rxListeningTimeMsPerLevels[0]);
+
+        StringWriter sw = new StringWriter();
+        mWifiPowerStatsManager.dump(null, new PrintWriter(sw), null);
+        assertTrue("Dump should indicate legacy source (0)",
+                sw.toString().contains("Source: 0"));
+    }
+
+    @Test
+    public void testGetPowerStatsForMetrics_NativeSuccess() {
+        when(Flags.powerStatsApi()).thenReturn(true);
+
+        ByteBuffer testBuffer = createTestPowerStatsBuffer();
+        when(mNl80211Native.getWifiChipStats(TEST_INTERFACE_NAME)).thenReturn(testBuffer);
+
+        WifiChipStats stats = mWifiPowerStatsManager.getPowerStatsForMetrics();
+
+        assertNotNull(stats);
+        assertEquals(1, stats.numWifiCore);
+        assertEquals(5000, stats.chipPowerState.wlanPwrOnTimeMs);
+
+        StringWriter sw = new StringWriter();
+        mWifiPowerStatsManager.dump(null, new PrintWriter(sw), null);
+        assertTrue("Dump should indicate new power stats source (1)",
+                sw.toString().contains("Source: 1"));
+    }
+
+    @Test
+    public void testGetPowerStatsForMetrics_NativeFail_ReturnsNull() {
+        when(Flags.powerStatsApi()).thenReturn(true);
+        when(mNl80211Native.getWifiChipStats(TEST_INTERFACE_NAME)).thenReturn(null);
+
+        WifiChipStats stats = mWifiPowerStatsManager.getPowerStatsForMetrics();
+        assertNull(stats);
+
+        StringWriter sw = new StringWriter();
+        mWifiPowerStatsManager.dump(null, new PrintWriter(sw), null);
+        String dumpOutput = sw.toString();
+        // Should not contain any source info because stats was null
+        assertTrue(!dumpOutput.contains("Source:"));
     }
 
     @Test

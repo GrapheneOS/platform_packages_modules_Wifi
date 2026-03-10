@@ -698,6 +698,8 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
 
     private final WifiInjector mWifiInjector;
 
+    private final WifiPowerStatsManager mWifiPowerStatsManager;
+
     @Nullable
     private StateMachineObituary mObituary = null;
 
@@ -892,6 +894,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         mSettingsConfigStore = settingsConfigStore;
         initCapabilitiesAndSecuritySettings();
         mWifiDeviceStateChangeManager = wifiInjector.getWifiDeviceStateChangeManager();
+        mWifiPowerStatsManager = wifiInjector.getWifiPowerStatsManager();
 
         PowerManager powerManager = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
 
@@ -1762,6 +1765,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             mRxTime = stats.rx_time;
             mRunningBeaconCount = stats.beacon_rx;
             mWifiInfo.updatePacketRates(stats, mLastLinkLayerStatsUpdate);
+            mWifiPowerStatsManager.updateLatestLinkLayerStats(stats);
         } else {
             long mTxPkts = mFacade.getTxPackets(mInterfaceName);
             long mRxPkts = mFacade.getRxPackets(mInterfaceName);

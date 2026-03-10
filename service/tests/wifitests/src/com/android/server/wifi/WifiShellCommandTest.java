@@ -1951,11 +1951,11 @@ public class WifiShellCommandTest extends WifiBaseTest {
         WifiPowerStatsManager powerStatsManager = mock(WifiPowerStatsManager.class);
         when(mWifiInjector.getWifiPowerStatsManager()).thenReturn(powerStatsManager);
         WifiChipStats chipStats = mock(WifiChipStats.class);
-        when(powerStatsManager.getWlanPwrStats()).thenReturn(chipStats);
+        when(powerStatsManager.getPowerStatsForMetrics()).thenReturn(chipStats);
 
         assertEquals(0, mWifiShellCommand.exec(
                 new Binder(), new FileDescriptor(), new FileDescriptor(), new FileDescriptor(),
                 new String[]{"get-power-stats"}));
-        verify(powerStatsManager).getWlanPwrStats();
+        verify(powerStatsManager).getPowerStatsForMetrics();
     }
 }
