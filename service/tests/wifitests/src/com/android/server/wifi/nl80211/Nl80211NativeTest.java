@@ -3251,6 +3251,92 @@ public class Nl80211NativeTest {
         verify(mNl80211Utils, never()).getWifiChipStats(anyString());
     }
 
+    @Test
+    public void testGeneratePnoScanPlans_success() {
+        mDut = initNl80211Native(false);
+        PnoSettings pnoSettings = new PnoSettings();
+        pnoSettings.setIntervalMillis(10000L);
+        pnoSettings.setScanIntervalMultiplier(2);
+        pnoSettings.setScanIterations(3);
+
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanPlans(2)
+                .setMaxScanPlanIntervalSeconds(60)
+                .setMaxScanPlanIterations(5)
+                .build();
+
+        List<Nl80211Utils.PnoScanPlan> plans = mDut.generatePnoScanPlans(pnoSettings,
+                scanCapabilities);
+
+        assertEquals(2, plans.size());
+        assertEquals(10000, plans.get(0).intervalMs);
+        assertEquals(3, plans.get(0).iterations);
+        assertEquals(20000, plans.get(1).intervalMs);
+        // The last plan's iterations is typically ignored/don't matter for the kernel logic
+        // but we verify the calculation of the interval.
+    }
+
+    @Test
+    public void testGeneratePnoScanPlans_unsupportedNumPlans() {
+        mDut = initNl80211Native(false);
+        PnoSettings pnoSettings = new PnoSettings();
+        pnoSettings.setIntervalMillis(10000L);
+        pnoSettings.setScanIntervalMultiplier(2);
+
+        // Driver only supports 1 scan plan, but our code requests 2.
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanPlans(1)
+                .setMaxScanPlanIntervalSeconds(60)
+                .setMaxScanPlanIterations(5)
+                .build();
+
+        List<Nl80211Utils.PnoScanPlan> plans = mDut.generatePnoScanPlans(pnoSettings,
+                scanCapabilities);
+
+        assertTrue(plans.isEmpty());
+    }
+
+    @Test
+    public void testGeneratePnoScanPlans_intervalTooLong() {
+        mDut = initNl80211Native(false);
+        PnoSettings pnoSettings = new PnoSettings();
+        pnoSettings.setIntervalMillis(30000L);
+        pnoSettings.setScanIntervalMultiplier(3); // Max interval = 90s
+
+        // Driver only supports up to 60s intervals.
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanPlans(2)
+                .setMaxScanPlanIntervalSeconds(60)
+                .setMaxScanPlanIterations(5)
+                .build();
+
+        List<Nl80211Utils.PnoScanPlan> plans = mDut.generatePnoScanPlans(pnoSettings,
+                scanCapabilities);
+
+        assertTrue(plans.isEmpty());
+    }
+
+    @Test
+    public void testGeneratePnoScanPlans_tooManyIterations() {
+        mDut = initNl80211Native(false);
+        PnoSettings pnoSettings = new PnoSettings();
+        pnoSettings.setIntervalMillis(10000L);
+        pnoSettings.setScanIntervalMultiplier(2);
+        pnoSettings.setScanIterations(10);
+
+        // Driver only supports up to 5 iterations.
+        Nl80211Utils.ScanCapabilities scanCapabilities = new Nl80211Utils.ScanCapabilities.Builder()
+                .setMaxNumScanPlans(2)
+                .setMaxScanPlanIntervalSeconds(60)
+                .setMaxScanPlanIterations(5)
+                .build();
+
+        List<Nl80211Utils.PnoScanPlan> plans = mDut.generatePnoScanPlans(pnoSettings,
+                scanCapabilities);
+
+        assertTrue(plans.isEmpty());
+    }
+
     private Nl80211Utils.BandCapabilities createBandCapabilities(int bandIndex, int... freqs) {
         Nl80211Utils.BandCapabilities.Builder builder = new Nl80211Utils.BandCapabilities.Builder()
                 .setBandIndex(bandIndex);

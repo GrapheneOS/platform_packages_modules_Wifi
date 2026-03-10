@@ -2827,9 +2827,9 @@ public class Nl80211Utils {
         // Set the relative threshold between 2Ghz and the default 5GHz threshold we set in the scan
         // match attribute
         if (requestSchedScanRelativeRssi) {
-            byte[] rssiAdjust = new byte[8];
+            byte[] rssiAdjust = new byte[2];
             ByteBuffer buf = ByteBuffer.wrap(rssiAdjust).order(ByteOrder.nativeOrder());
-            buf.putInt(NetlinkConstants.NL80211_BAND_2GHZ);
+            buf.put((byte) NetlinkConstants.NL80211_BAND_2GHZ);
             buf.put((byte) (min2gRssiDbm - min5gRssiDbm));
             request.addAttribute(new StructNlAttr(
                     NetlinkConstants.NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST, rssiAdjust));

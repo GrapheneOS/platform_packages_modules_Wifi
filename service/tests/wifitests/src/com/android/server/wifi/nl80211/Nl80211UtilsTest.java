@@ -1269,7 +1269,7 @@ public class Nl80211UtilsTest {
                 NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST);
         assertNotNull(rssiAdjustAttr);
         ByteBuffer buf = rssiAdjustAttr.getValueAsByteBuffer();
-        assertEquals(NL80211_BAND_2GHZ, buf.getInt());
+        assertEquals(NL80211_BAND_2GHZ, buf.get());
         assertEquals(min2gRssi - min5gRssi, buf.get());
     }
 
