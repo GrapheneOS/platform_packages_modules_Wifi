@@ -22,6 +22,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiMigration;
+import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -235,6 +236,25 @@ public class WifiSettingsConfigStore {
      */
     public static final Key<Boolean> WIFI_WAKEUP_ENABLED = new Key<>("wifi_wakeup_enabled", false);
 
+    /**
+     * Store the default value for {@link #WIFI_WAKEUP_ENABLED} from SettingsProvider.
+     */
+    public static final Key<Boolean> DEFAULT_WIFI_WAKEUP_ENABLED =
+            new Key<>("default_wifi_wakeup_enabled", true);
+
+    /**
+     * Store the default value for {@link #WIFI_SCAN_ALWAYS_AVAILABLE} from SettingsProvider.
+     */
+    public static final Key<Boolean> DEFAULT_WIFI_SCAN_ALWAYS_AVAILABLE =
+            new Key<>("default_wifi_scan_always_enabled", false);
+
+    /**
+     * Store the default value for {@link #WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON} from
+     * SettingsProvider.
+     */
+    public static final Key<Boolean> DEFAULT_WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON =
+            new Key<>("default_wifi_networks_available_notification_on", true);
+
     /******** Wifi shared pref keys ***************/
 
     private final Context mContext;
@@ -427,7 +447,38 @@ public class WifiSettingsConfigStore {
                 mCachedMigrationData.isScanThrottleEnabled());
         mSettings.put(WIFI_VERBOSE_LOGGING_ENABLED.key,
                 mCachedMigrationData.isVerboseLoggingEnabled());
+        if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
+            // Ensure the global default values (DEFAULT_WIFI_*) are loaded into mSettings
+            // during the initial settings migration.
+            loadDefaultValuesFromGlobalSettingsIfNeeded();
+        }
         triggerSaveToStoreAndInvokeUserPrivateOrAllListeners(false /* isUserPrivateOnly */);
+    }
+
+    /**
+     * Loads the default values for specific Wi-Fi settings from {@link Settings.Global}
+     * and populates the local settings map if they are not already present.
+     */
+    private void loadDefaultValuesFromGlobalSettingsIfNeeded() {
+        final Map<Key<Boolean>, String> globalSettingsKeyMap = Map.of(
+                DEFAULT_WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON,
+                Settings.Global.WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON,
+                DEFAULT_WIFI_WAKEUP_ENABLED,
+                Settings.Global.WIFI_WAKEUP_ENABLED,
+                DEFAULT_WIFI_SCAN_ALWAYS_AVAILABLE,
+                WifiScanAlwaysAvailableSettingsCompatibility
+                        .SETTINGS_GLOBAL_WIFI_SCAN_ALWAYS_AVAILABLE
+        );
+        for (Map.Entry<Key<Boolean>, String> entry : globalSettingsKeyMap.entrySet()) {
+            Key<Boolean> configStoreKey = entry.getKey();
+            String settingsGlobalKey = entry.getValue();
+            if (!mSettings.containsKey(configStoreKey.key)) {
+                boolean value = mFrameworkFacade.getIntegerSetting(mContext,
+                        settingsGlobalKey, configStoreKey.defaultValue ? 1 : 0) == 1;
+                Log.i(TAG, "prepare default value " + value + " for key " + configStoreKey.key);
+                mSettings.put(configStoreKey.key, value);
+            }
+        }
     }
 
     /**
@@ -452,7 +503,10 @@ public class WifiSettingsConfigStore {
                 WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON,
                 Settings.Global.WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON,
                 WIFI_WAKEUP_ENABLED,
-                Settings.Global.WIFI_WAKEUP_ENABLED
+                Settings.Global.WIFI_WAKEUP_ENABLED,
+                WIFI_SCAN_ALWAYS_AVAILABLE,
+                WifiScanAlwaysAvailableSettingsCompatibility
+                        .SETTINGS_GLOBAL_WIFI_SCAN_ALWAYS_AVAILABLE
         );
         keysForMigrationFromSettingsGlobal.forEach((configStoreKey, settingsGlobalKey) -> {
             if (mSharedToPrivateMigrationDataHolder.containsKey(configStoreKey.key)) {
@@ -473,14 +527,18 @@ public class WifiSettingsConfigStore {
         // Key.defaultValue when not retrieved from SharedStoreData.
         final List<Key> keysForMigrationFromDefaultValue = List.of(
                 WIFI_WEP_ALLOWED /* no Settings.Global */,
-                D2D_ALLOWED_WHEN_INFRA_STA_DISABLED /* no Settings.Global */,
-                WIFI_SCAN_ALWAYS_AVAILABLE /* already migrated to SharedStoreData */
+                D2D_ALLOWED_WHEN_INFRA_STA_DISABLED /* no Settings.Global */
         );
         for (Key key : keysForMigrationFromDefaultValue) {
             if (!mSharedToPrivateMigrationDataHolder.containsKey(key.key)) {
                 mSharedToPrivateMigrationDataHolder.put(key.key, key.defaultValue);
             }
         }
+
+        // Ensure the global default values (DEFAULT_WIFI_*) are loaded into mSettings.
+        // This is necessary because migrateFromSharedToPrivateIfNeeded() relies on these
+        // DEFAULT_WIFI_* keys to assign initial values to new users.
+        loadDefaultValuesFromGlobalSettingsIfNeeded();
     }
 
     /**
@@ -502,8 +560,22 @@ public class WifiSettingsConfigStore {
                 // Don't migrate for new users, but still explicitly reset values to defaultValue so
                 // that the corresponding controllers can maintain their state properly on user
                 // switch.
+                final Map<Key, Key> defaultKeyMap = Map.of(
+                        WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON,
+                                DEFAULT_WIFI_NETWORKS_AVAILABLE_NOTIFICATION_ON,
+                        WIFI_WAKEUP_ENABLED, DEFAULT_WIFI_WAKEUP_ENABLED,
+                        WIFI_SCAN_ALWAYS_AVAILABLE, DEFAULT_WIFI_SCAN_ALWAYS_AVAILABLE
+                );
                 for (Key key : mUserPrivateKeys) {
-                    mSettings.put(key.key, key.defaultValue);
+                    Key defaultKey = defaultKeyMap.get(key);
+                    if (defaultKey != null) {
+                        Object defaultValue = get(defaultKey);
+                        Log.i(TAG, "Use default value " + defaultValue + " for key - " + key);
+                        mSettings.put(key.key, defaultValue);
+                    } else {
+                        Log.i(TAG, "Use key's default value for key - " + key);
+                        mSettings.put(key.key, key.defaultValue);
+                    }
                 }
             }
             triggerSaveToStoreAndInvokeUserPrivateOrAllListeners(true /* isUserPrivateOnly */);
