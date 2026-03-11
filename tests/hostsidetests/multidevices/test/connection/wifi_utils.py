@@ -32,18 +32,75 @@ _ERROR_MSG_CONFIGURED_WIFI_IS_OPEN = (
     ' network (SSID: "{wifi_ssid}") is an open network.'
 )
 
+_ERROR_MSG_NETWORK_PASSPHRASE_SECURITY_TYPE_NOT_SUPPORTED = (
+    'Unsupported Wi-Fi network security type. Please change a personal WPA2 or WPA3 Wi-Fi network.'
+)
+
 
 def wait_for_expected_wifi_discovered(
     ad: android_device.AndroidDevice,
     wifi_ssid: str,
     wifi_bssid: str,
     timeout: datetime.timedelta = constants.WIFI_SCAN_TIMEOUT,
-) -> None:
+) -> Mapping[str, Any]:
   """Waits for the Wi-Fi to be discovered."""
-  test_utils.wait_until_or_assert(
-      condition=lambda: is_wifi_discovered(ad, wifi_ssid, wifi_bssid),
-      error_msg=f'Failed to discover AP wifi {wifi_ssid}.',
-      timeout=timeout,
+  def find_wifi():
+    for wifi in ad.wifi.wifiScanAndGetResultsWithShellPermission():
+        if wifi['SSID'] == wifi_ssid and wifi['BSSID'] == wifi_bssid:
+            return wifi
+    return None
+
+  end_time = time.monotonic() + timeout.total_seconds()
+  while time.monotonic() < end_time:
+      result = find_wifi()
+      if result:
+          return result
+      time.sleep(1)
+  asserts.fail(f'Failed to discover AP {wifi_ssid} within {timeout}')
+
+
+def create_network_specifier(
+    password: str,
+    scan_result: Mapping[str, Any],
+    **kwargs,
+) -> constants.NetworkSpecifier:
+  """Creates the network specifier"""
+  psk = None
+  wpa3_passphrase = None
+  if _is_scan_result_for_wpa2_network(scan_result):
+    psk = password
+  elif _is_scan_result_for_wpa3_network(scan_result):
+    wpa3_passphrase = password
+  else:
+    raise ValueError(_ERROR_MSG_NETWORK_PASSPHRASE_SECURITY_TYPE_NOT_SUPPORTED)
+
+  return constants.NetworkSpecifier(
+      psk=psk,
+      wpa3_passphrase=wpa3_passphrase,
+      **kwargs,
+  )
+
+
+def create_network_suggestion(
+    ssid: str,
+    password: str,
+    scan_result: Mapping[str, Any],
+    **kwargs: Any
+) -> constants.NetworkSuggestion:
+  """Create network suggestion"""
+  psk = None
+  wpa3_passphrase = None
+  if _is_scan_result_for_wpa2_network(scan_result):
+    psk = password
+  elif _is_scan_result_for_wpa3_network(scan_result):
+    wpa3_passphrase = password
+  else:
+    raise ValueError(_ERROR_MSG_NETWORK_PASSPHRASE_SECURITY_TYPE_NOT_SUPPORTED)
+  return constants.NetworkSuggestion(
+      ssid=ssid,
+      psk=psk,
+      wpa3_passphrase=wpa3_passphrase,
+      **kwargs,
   )
 
 

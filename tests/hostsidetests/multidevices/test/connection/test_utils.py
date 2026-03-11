@@ -12,10 +12,12 @@ from mobly.controllers.android_device_lib import apk_utils
 from snippet_uiautomator import uiautomator
 
 from connection import constants
+from connection import test_utils
 
 TEST_OUTPUT_PATH: str = ''
 
-_APK_PACKAGE = 'com.google.snippet.wifi'
+APK_PACKAGE = 'com.google.snippet.wifi'
+_ANDROID_WATCH_FEATURE = 'android.hardware.type.watch'
 _SHORT_DELAY_TIME_BETWEEN_ACTIONS = datetime.timedelta(seconds=1)
 
 
@@ -28,16 +30,23 @@ def install_and_load_wifi_mobly_snippet_and_uiautomator(
     device: AndroidDevice instance.
     user_params: User params to get the apk path from the testbed host.
   """
-  apk_path_list = user_params.get('mh_files', {}).get('wifi_mobly_snippet_apk')
+  files = user_params.get('files', {})
+  if not files:
+    files = user_params.get('mh_files', {})
+  apk_path_list = files.get('build_apk')
   if apk_path_list and apk_path_list[0]:
     apk_path = apk_path_list[0]
+    apk_utils.uninstall(device, APK_PACKAGE)
     apk_utils.install(device, apk_path)
-  # TODO: b/432226106 - Explicit load the snippet to avoid the issue
-  # - failed to get_latest_logcat_timestamp
+  load_snippet(device)
+
+
+def load_snippet(device: android_device.AndroidDevice):
   # Since loading the snippet server on we own, skip the uiautomator service and
   # let snippet client handle the lifecycle.
-  device.load_snippet('wifi', _APK_PACKAGE)
+  device.load_snippet('wifi', APK_PACKAGE)
   device.ui = uiautomator.UiDevice(ui=device.wifi)
+  test_utils.drop_shell_permission(device, ensure_mbs_initialized=True)
 
 
 def wait_until_or_assert(
@@ -120,3 +129,8 @@ def set_location_mode_on(device: android_device.AndroidDevice):
       constants.LocationMode.LOCATION_MODE_HIGH_ACCURACY,
       'Failed to enable location mode.',
   )
+
+
+def is_watch_device(device: android_device.AndroidDevice) -> bool:
+  """Checks if the connected device is a Wear OS watch."""
+  return "watch" in device.adb.getprop("ro.build.characteristics")
