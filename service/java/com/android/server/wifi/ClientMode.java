@@ -404,7 +404,7 @@ public interface ClientMode {
     /**
      * Notify changes in PowerManager#isDeviceIdleMode
      */
-    void onIdleModeChanged(boolean isIdle);
+
 
     /**
      * Block current connect network and add to blocklist

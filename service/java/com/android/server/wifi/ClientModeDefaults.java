@@ -293,8 +293,5 @@ public interface ClientModeDefaults extends ClientMode {
     }
 
     @Override
-    default void onIdleModeChanged(boolean isIdle) { }
-
-    @Override
     default void blockNetwork(BlockingOption option) { }
 }

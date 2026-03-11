@@ -8893,9 +8893,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
         return status == WifiNative.SET_FIRMWARE_ROAMING_SUCCESS;
     }
 
-    @Override
-    public void onIdleModeChanged(boolean isIdle) {
-    }
 
     @Override
     public boolean setCountryCode(String countryCode) {

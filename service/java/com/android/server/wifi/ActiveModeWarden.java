@@ -279,16 +279,6 @@ public class ActiveModeWarden {
         return mWifiState.get();
     }
 
-    /**
-     * Notify changes in PowerManager#isDeviceIdleMode
-     */
-    public void onIdleModeChanged(boolean isIdle) {
-        // only client mode managers need to get notified for now to consider enabling/disabling
-        // firmware roaming
-        for (ClientModeManager cmm : mClientModeManagers) {
-            cmm.onIdleModeChanged(isIdle);
-        }
-    }
 
     /**
      * See {@link WifiManager#addWifiStateChangedListener(Executor, WifiStateChangedListener)}
