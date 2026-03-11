@@ -2191,6 +2191,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 RangingRequest request, IContinuousRangingResultCallback callback) {
 
             int failureReason = validateContinuousRangingRequest(request);
+            mRttMetrics.recordContinuousRangingRequest(request, failureReason);
             if (failureReason != 0) {
                 try {
                     callback.onRangingFailure(failureReason);
@@ -2215,8 +2216,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             newRequest.mRequest = request;
             newRequest.mCallback = callback;
             newRequest.mCmdId = mNextCommandId++;
+            newRequest.mStartTimeMillis = mClock.getElapsedSinceBootMillis();
 
             if (mSupplicantWifiRttController.rangeRequest(newRequest.mCmdId, newRequest.mRequest)) {
+                mRttMetrics.recordContinuousRangingStartStatus(0, newRequest.mRequest);
                 mContinuousRangingSessions.put(newRequest.mCmdId, newRequest);
                 // TODO: Send the same session timeout to HAL
                 mContinuousRangingTimeoutMessage.schedule(
@@ -2224,6 +2227,9 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             } else {
                 Log.e(TAG, "queueContinuousRangingRequest: rangeRequest call failed");
                 try {
+                    mRttMetrics.recordContinuousRangingStartStatus(
+                            ContinuousRangingResultCallback.FAILURE_REASON_GENERIC,
+                            newRequest.mRequest);
                     callback.onRangingFailure(
                             ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
                 } catch (RemoteException e) {
@@ -2264,12 +2270,14 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
 
             try {
                 // TODO: post-process results if needed, similar to one-shot ranging
+                mRttMetrics.recordContinuousRangingResults(cmdId, results);
                 session.mCallback.onRangingResults(results);
             } catch (RemoteException e) {
                 Log.e(TAG, "onContinuousRangingResults: callback exception -- " + e);
             }
         }
 
+        @SuppressLint("NewApi")
         private void removeContinuousRangingSession(int cmdId, int reason) {
             mContinuousRangingTimeoutMessage.cancel();
             ContinuousRangingRequestInfo session = mContinuousRangingSessions.remove(cmdId);
@@ -2279,6 +2287,12 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                 }
                 return;
             }
+
+            long durationMs = mClock.getElapsedSinceBootMillis() - session.mStartTimeMillis;
+            int intervalMs = session.mRequest.mRttPeers.get(0).getProximityDetectionConfig()
+                    .getContinuousRangingIntervalMillis();
+            mRttMetrics.recordContinuousRangingSession(durationMs, intervalMs);
+            mRttMetrics.recordContinuousRangingTerminationReason(reason);
 
             try {
                 session.mCallback.onRangingStopped(reason);
@@ -2470,6 +2484,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
         String mCallingFeatureId;
         RangingRequest mRequest;
         IContinuousRangingResultCallback mCallback;
+        long mStartTimeMillis;
 
         int mCmdId = 0; // uninitialized cmdId value
 
@@ -2478,7 +2493,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             return "ContinuousRangingRequestInfo: uid=" + mUid + ", workSource=" + mWorkSource
                     + ", binder=" + mBinder + ", dr=" + mDr + ", callingPackage=" + mCallingPackage
                     + ", callingFeatureId=" + mCallingFeatureId + ", request="
-                    + mRequest.toString() + ", callback=" + mCallback + ", cmdId=" + mCmdId;
+                    + mRequest.toString() + ", callback=" + mCallback + ", startTimeMillis="
+                    + mStartTimeMillis + ", cmdId=" + mCmdId;
         }
     }
 }
