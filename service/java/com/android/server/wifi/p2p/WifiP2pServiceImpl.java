@@ -5901,11 +5901,18 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 // no need to update P2P connection information.
                 if (mGroup != null) return;
 
+                // Capture the state before resetWifiP2pInfo clears it.
+                final boolean isGroupFormed = mWifiP2pInfo.groupFormed;
                 mWifiP2pMetrics.endGroupEvent();
                 updateThisDevice(WifiP2pDevice.AVAILABLE);
                 resetWifiP2pInfo();
                 mDetailedState = NetworkInfo.DetailedState.DISCONNECTED;
-                onGroupRemoved();
+                if (isGroupFormed) {
+                    onGroupRemoved();
+                } else {
+                    onGroupCreationFailed(
+                            WifiP2pManager.GROUP_CREATION_FAILURE_REASON_GROUP_REMOVED);
+                }
                 sendP2pConnectionChangedBroadcast();
                 if (!SdkLevel.isAtLeastU()) {
                     // Ensure tethering service to stop tethering.
