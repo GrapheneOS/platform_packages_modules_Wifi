@@ -438,6 +438,8 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         14. Verify neither device receives the `onPairingVerificationSucceeded`
             callback.
         """
+        wifi_test_utils.skip_if_not_meet_min_sdk_level(self.publisher, 37)
+        wifi_test_utils.skip_if_not_meet_min_sdk_level(self.subscriber, 37)
 
         pairing_config = constants.AwarePairingConfig(
             pairing_setup_enabled=True,
