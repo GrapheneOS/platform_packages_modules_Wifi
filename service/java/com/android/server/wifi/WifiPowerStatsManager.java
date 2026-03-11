@@ -16,6 +16,8 @@
 
 package com.android.server.wifi;
 
+import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.util.Log;
 
 import com.android.server.wifi.nl80211.Nl80211Native;
@@ -29,6 +31,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -48,6 +51,12 @@ public class WifiPowerStatsManager {
 
     private final Nl80211Native mNl80211Native;
     private final ActiveModeWarden mActiveModeWarden;
+
+    // Cache to store the most recent legacy statistics
+    private volatile WifiLinkLayerStats mLatestLinkLayerStats;
+
+    private static final int STATS_SOURCE_LEGACY = 0;
+    private static final int STATS_SOURCE_NEW_POWER_STATS = 1;
 
     private static final class PwrStatAttribute {
         /* Reserved for INVALID = 0; */
@@ -117,7 +126,7 @@ public class WifiPowerStatsManager {
             return null;
         }
 
-        if (!Flags.powerStatsApi()) {
+        if (!isPowerStatsApiSupported()) {
             Log.e(TAG, "Power stats API is not enabled, returning empty stats.");
             return WifiChipStats.makeWifiChipStats(0, new WifiChipStats.CoreRadioStats[0],
                     new WifiChipStats.TxRateStats[0], new WifiChipStats.RxRateStats[0],
@@ -150,6 +159,10 @@ public class WifiPowerStatsManager {
         return stats;
     }
 
+    public boolean isPowerStatsApiSupported() {
+        return Flags.powerStatsApi();
+    }
+
     private void addToHistory(String msg) {
         synchronized (mHistoryList) {
             if (mHistoryList.size() >= MAX_HISTORY_SIZE) {
@@ -164,10 +177,6 @@ public class WifiPowerStatsManager {
      * Dumps the power statistics history.
      */
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
-        if (!Flags.powerStatsApi()) {
-            pw.println("WifiPowerStats: Power stats API is disabled.");
-            return;
-        }
         pw.println("Dump of WifiPowerStatsManager:");
         pw.println("--- WifiPowerStats History ---");
         synchronized (mHistoryList) {
@@ -408,6 +417,165 @@ public class WifiPowerStatsManager {
         } catch (Exception e) {
             Log.e(TAG, "Failed to parse CoreRadioStats array.", e);
             return null;
+        }
+    }
+
+    /**
+     * Updates the cached LinkLayerStats.
+     *
+     * @param stats The fresh stats object from the driver/HAL.
+     */
+    public void updateLatestLinkLayerStats(@NonNull WifiLinkLayerStats stats) {
+        this.mLatestLinkLayerStats = stats;
+    }
+
+    /**
+     * Retrieves power statistics for metrics reporting.
+     *
+     * @return A unified {@link WifiChipStats} object.
+     */
+    @Nullable
+    public WifiChipStats getPowerStatsForMetrics() {
+        WifiChipStats stats = null;
+        int statsSource = STATS_SOURCE_LEGACY;
+
+        if (isPowerStatsApiSupported()) {
+            stats = getWlanPwrStats();
+            statsSource = STATS_SOURCE_NEW_POWER_STATS;
+            if (stats == null) {
+                Log.e(TAG, "Failed to get power stats via new API.");
+            }
+        } else {
+            stats = LinkLayerToChipStatsConverter.convert(mLatestLinkLayerStats);
+        }
+
+        if (stats != null) {
+            addToHistory("Source: " + statsSource + ", Stats: " + stats);
+        }
+        return stats;
+    }
+
+    /**
+     * Static Utility to adapt legacy WifiLinkLayerStats to WifiChipStats.
+     * Encapsulated here to keep the mapping logic self-contained.
+     */
+    private static class LinkLayerToChipStatsConverter {
+
+        /**
+         * Converts legacy stats to the unified chip stats model.
+         */
+        private static WifiChipStats convert(@Nullable WifiLinkLayerStats legacyStats) {
+            if (legacyStats == null) {
+                return createEmptyStats();
+            }
+
+            // Band Derivation
+            int currentBand = 0;
+            if (legacyStats.links != null && legacyStats.links.length > 0) {
+                currentBand = getBandFromFrequency(legacyStats.links[0].frequencyMhz);
+            }
+
+            // Core Radio Stats Mapping
+            List<WifiChipStats.CoreRadioStats> coreStatsList = new ArrayList<>();
+
+            if (legacyStats.radioStats != null) {
+                int numRadios = legacyStats.radioStats.length;
+                for (int i = 0; i < numRadios; i++) {
+                    coreStatsList.add(deriveCoreStats(legacyStats.radioStats[i]));
+                }
+            } else {
+                coreStatsList.add(deriveCoreStatsFromTopLevel(legacyStats));
+            }
+
+            // Rate Stats Mapping
+            List<WifiChipStats.TxRateStats> txRateStatsList = new ArrayList<>();
+            List<WifiChipStats.RxRateStats> rxRateStatsList = new ArrayList<>();
+
+            List<WifiChipStats.RateInfo> txRateInfos = new ArrayList<>();
+            List<WifiChipStats.RateInfo> rxRateInfos = new ArrayList<>();
+
+            if (legacyStats.peerInfo != null) {
+                for (WifiLinkLayerStats.PeerInfo peer : legacyStats.peerInfo) {
+                    if (peer.rateStats != null) {
+                        txRateInfos.addAll(mapRateInfos(peer.rateStats, true, currentBand));
+                        rxRateInfos.addAll(mapRateInfos(peer.rateStats, false, currentBand));
+                    }
+                }
+            }
+
+            txRateStatsList.add(new WifiChipStats.TxRateStats(0, txRateInfos));
+            rxRateStatsList.add(new WifiChipStats.RxRateStats(0, rxRateInfos));
+
+            WifiChipStats.ChipPowerState powerState = new WifiChipStats.ChipPowerState(
+                    0, 0, new int[0]);
+
+            return WifiChipStats.makeWifiChipStats(
+                    coreStatsList.size(),
+                    coreStatsList.toArray(new WifiChipStats.CoreRadioStats[0]),
+                    txRateStatsList.toArray(new WifiChipStats.TxRateStats[0]),
+                    rxRateStatsList.toArray(new WifiChipStats.RxRateStats[0]),
+                    powerState
+            );
+        }
+
+        private static WifiChipStats.CoreRadioStats deriveCoreStats(
+                WifiLinkLayerStats.RadioStat radio) {
+            long derivedIdleTime = Math.max(0,
+                    (long) radio.on_time - radio.tx_time - radio.rx_time);
+
+            return new WifiChipStats.CoreRadioStats(
+                    radio.radio_id,
+                    radio.on_time,
+                    radio.tx_time,
+                    radio.rx_time,
+                    1,
+                    new int[]{(int) derivedIdleTime}
+            );
+        }
+
+        private static WifiChipStats.CoreRadioStats deriveCoreStatsFromTopLevel(
+                WifiLinkLayerStats legacy) {
+            long derivedIdleTime = Math.max(0,
+                    (long) legacy.on_time - legacy.tx_time - legacy.rx_time);
+            return new WifiChipStats.CoreRadioStats(
+                    0, legacy.on_time, legacy.tx_time, legacy.rx_time,
+                    1, new int[]{(int) derivedIdleTime});
+        }
+
+        private static List<WifiChipStats.RateInfo> mapRateInfos(
+                WifiLinkLayerStats.RateStat[] legacyRates, boolean isTx, int band) {
+            List<WifiChipStats.RateInfo> convertedList = new ArrayList<>();
+            if (legacyRates == null) return convertedList;
+
+            for (WifiLinkLayerStats.RateStat rateStat : legacyRates) {
+                long count = isTx ? rateStat.txMpdu : rateStat.rxMpdu;
+
+                if (count > 0) {
+                    convertedList.add(new WifiChipStats.RateInfo(
+                            rateStat.rateMcsIdx,
+                            band,
+                            rateStat.bw,
+                            rateStat.nss,
+                            (int) count
+                    ));
+                }
+            }
+            return convertedList;
+        }
+
+        private static int getBandFromFrequency(int freqMhz) {
+            if (freqMhz >= 2400 && freqMhz < 2500) return 0; // 2.4 GHz
+            if (freqMhz >= 4900 && freqMhz < 5900) return 1; // 5 GHz
+            if (freqMhz >= 5925 && freqMhz < 7200) return 2; // 6 GHz
+            return 0;
+        }
+
+        private static WifiChipStats createEmptyStats() {
+            return WifiChipStats.makeWifiChipStats(0,
+                    new WifiChipStats.CoreRadioStats[0],
+                    new WifiChipStats.TxRateStats[0],
+                    new WifiChipStats.RxRateStats[0],
+                    new WifiChipStats.ChipPowerState(0, 0, new int[0]));
         }
     }
 }

@@ -568,6 +568,15 @@ public class SupplicantWifiRttControllerAidlImpl implements ISupplicantWifiRttCo
                 config.bw = frameworkToHalRttPacketBandwidth(responder.channelWidth);
                 config.preamble = frameworkToHalResponderPreamble(responder.preamble);
                 config.vendorData = vendorData;
+
+                // constrain parameters per device capabilities
+                if (cap != null) {
+                    config.bw = halRttChannelBandwidthCapabilityLimiter(config.bw, cap,
+                            config.type);
+                    config.preamble = halRttPreambleCapabilityLimiter(config.preamble, cap,
+                                config.type, responder.frequency);
+                }
+
                 validateBwAndPreambleCombination(config.bw, config.preamble);
                 // ResponderConfig#ntbMaxMeasurementTime is in units of 10 milliseconds
                 config.ntbMaxMeasurementTimeIn10Millis = responder
@@ -582,14 +591,6 @@ public class SupplicantWifiRttControllerAidlImpl implements ISupplicantWifiRttCo
                 config.numRetriesPerFtmr = 3;
                 config.burstDuration = (byte) WifiRttController.getOptimumBurstDuration(
                         request.mRttBurstSize);
-
-                // constrain parameters per device capabilities
-                if (cap != null) {
-                    config.bw = halRttChannelBandwidthCapabilityLimiter(config.bw, cap,
-                            config.type);
-                    config.preamble = halRttPreambleCapabilityLimiter(config.preamble, cap,
-                                config.type, responder.frequency);
-                }
                 boolean success = addSecureRangingConfig(config, responder.getSecureRangingConfig(),
                             cap, request.getSecurityMode());
                 if (!success) {
@@ -857,11 +858,12 @@ public class SupplicantWifiRttControllerAidlImpl implements ISupplicantWifiRttCo
             SupplicantWifiRttController.ProximityRangingCapabilities cap, @RttType int rttType)
             throws IllegalArgumentException {
         byte requestedBandwidth = halRttChannelBandwidth;
-        int bwSupported =
+        int bwSupportedIndex =
                 (rttType == RttType.TWO_SIDED_11AZ_NTB_SECURE)
                         ? cap.maxSupportedPacketBandwidthNtb
                         : cap.maxSupportedPacketBandwidth80211mcBased;
-        while ((halRttChannelBandwidth != 0) && ((halRttChannelBandwidth & bwSupported) == 0)) {
+        byte bwSupported = frameworkToHalRttPacketBandwidth(bwSupportedIndex);
+        while ((halRttChannelBandwidth != 0) && (halRttChannelBandwidth > bwSupported)) {
             halRttChannelBandwidth >>= 1;
         }
 
@@ -903,11 +905,12 @@ public class SupplicantWifiRttControllerAidlImpl implements ISupplicantWifiRttCo
             }
         }
         // Check device capability whether preamble is supported by the device, otherwise adjust it.
-        int preambleSupported =
+        int preambleSupportedIndex =
                 (rttType == RttType.TWO_SIDED_11AZ_NTB_SECURE)
                         ? cap.maxSupportedPreambleNtb
                         : cap.maxSupportedPreamble80211mcBased;
-        while ((halRttPreamble != 0) && ((halRttPreamble & preambleSupported) == 0)) {
+        byte preambleSupported = frameworkToHalResponderPreamble(preambleSupportedIndex);
+        while ((halRttPreamble != 0) && (halRttPreamble > preambleSupported)) {
             halRttPreamble >>= 1;
         }
 

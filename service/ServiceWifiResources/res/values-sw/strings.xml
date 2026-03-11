@@ -18,7 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="wifiResourcesAppLabel" product="default" msgid="3120115613525263696">"Nyenzo za Wi-Fi ya Mfumo"</string>
     <string name="wifi_available_title" msgid="3899472737467127635">"Unganisha Wi‑Fi inayotumiwa na mtu yeyote"</string>
-    <string name="wifi_available_title_connecting" msgid="7233590022728579868">"Inaunganisha kwenye mtandao wa Wi‑Fi"</string>
+    <string name="wifi_available_title_connecting" msgid="7233590022728579868">"Inaunganisha mtandao wa Wi‑Fi"</string>
     <string name="wifi_available_title_connected" msgid="6329493859989844201">"Imeunganisha kwenye mtandao wa Wi-Fi"</string>
     <string name="wifi_available_title_failed_to_connect" msgid="4840833680513368639">"Imeshindwa kuunganisha kwenye mtandao wa Wi‑Fi"</string>
     <string name="wifi_available_content_failed_to_connect" msgid="4330035988269701861">"Gusa ili uone mitandao yote"</string>
