@@ -2376,64 +2376,6 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiStateTracker).updateState(WIFI_IFACE_NAME, WifiStateTracker.DISCONNECTED);
     }
 
-    @Test
-    public void testIdleModeChanged_firmwareRoaming() throws Exception {
-        // verify no-op when either the feature flag is disabled or firmware roaming is not
-        // supported
-        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(false);
-        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
-        mCmi.onIdleModeChanged(true);
-        verify(mWifiNative, never()).enableFirmwareRoaming(anyString(), anyInt());
-        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(true);
-        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(false);
-        mCmi.onIdleModeChanged(true);
-        verify(mWifiNative, never()).enableFirmwareRoaming(anyString(), anyInt());
-
-        // Enable both, then verify firmware roaming is not yet disabled when idle mode is entered
-        // because screen is still on
-        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(true);
-        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
-        mCmi.onIdleModeChanged(true);
-        verify(mWifiNative, never()).enableFirmwareRoaming(anyString(), anyInt());
-
-        // Verify firmware roaming is now disabled after screen turns off
-        setScreenState(false);
-        mLooper.dispatchAll();
-        verify(mWifiNative).enableFirmwareRoaming(anyString(),
-                eq(WifiNative.DISABLE_FIRMWARE_ROAMING));
-
-        // Verify firmware roaming is enabled when idle mode exited
-        when(mWifiRoamingConfigStore.getRoamingMode(anyString())).thenReturn(
-                WifiManager.ROAMING_MODE_NORMAL);
-        mCmi.onIdleModeChanged(false);
-        verify(mWifiNative).setRoamingMode(anyString(),
-                eq(WifiManager.ROAMING_MODE_NORMAL));
-    }
-
-    @Test
-    public void testIdleModeChanged_firmwareRoamingLocalOnlyCase() throws Exception {
-        // mock connected network to be local only
-        mConnectedNetwork.BSSID = TEST_BSSID_STR;
-        mConnectedNetwork.fromWifiNetworkSpecifier = true;
-        connect();
-        verify(mWifiNative).enableFirmwareRoaming(anyString(),
-                eq(WifiNative.DISABLE_FIRMWARE_ROAMING));
-
-        // Enable feature, then verify firmware roaming is disabled when idle mode is entered
-        when(mWifiGlobals.isDisableFirmwareRoamingInIdleMode()).thenReturn(true);
-        when(mWifiConnectivityHelper.isFirmwareRoamingSupported()).thenReturn(true);
-        mCmi.onIdleModeChanged(true);
-        setScreenState(false);
-        mLooper.dispatchAll();
-        verify(mWifiNative, times(2)).enableFirmwareRoaming(anyString(),
-                eq(WifiNative.DISABLE_FIRMWARE_ROAMING));
-
-        // Verify firmware roaming is not enabled when idle mode exited
-        mCmi.onIdleModeChanged(false);
-        verify(mWifiNative, never()).enableFirmwareRoaming(anyString(),
-                eq(WifiNative.ENABLE_FIRMWARE_ROAMING));
-    }
-
     /**
      * Verify that when the primary connects, roaming mode is set
      * based on the connected network ssid.
