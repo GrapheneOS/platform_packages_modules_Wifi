@@ -737,7 +737,7 @@ public class Nl80211Native {
                                     return;
                                 }
 
-                                if (!countryCode.equals(mCountryCode)) {
+                                if (!countryCode.isEmpty()) {
                                     mCountryCode = countryCode;
                                     notifyCountryCodeChangedListeners(countryCode);
                                 }
@@ -761,7 +761,7 @@ public class Nl80211Native {
                                 Collections.sort(wiphyIndexes);
                                 for (int wiphyIndex : wiphyIndexes) {
                                     countryCode = mNl80211Utils.getCountryCode(wiphyIndex);
-                                    if (countryCode != null && !countryCode.equals(mCountryCode)) {
+                                    if (countryCode != null && !countryCode.isEmpty()) {
                                         mCountryCode = countryCode;
                                         notifyCountryCodeChangedListeners(countryCode);
                                     }
@@ -950,10 +950,6 @@ public class Nl80211Native {
         // Erase the band to wiphy mapping if there are no more interfaces set up on the wiphy.
         if (!mActiveIfaceToWiphyIndex.values().contains(wiphyIndex)) {
             eraseBandToWiphyIndexMapping(wiphyIndex);
-        }
-
-        if (mActiveIfaceToWiphyIndex.isEmpty()) {
-            unregisterCountryCodeCallbacks();
         }
     }
 
@@ -1288,6 +1284,7 @@ public class Nl80211Native {
             for (String apIface : new ArrayList<>(mApInterfaceInfos.keySet())) {
                 tearDownSoftApInterface(apIface);
             }
+            unregisterCountryCodeCallbacks();
             return true;
         }
     }
