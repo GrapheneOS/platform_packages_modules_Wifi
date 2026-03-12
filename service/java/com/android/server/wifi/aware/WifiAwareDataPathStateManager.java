@@ -212,15 +212,6 @@ public class WifiAwareDataPathStateManager {
         return numOfNdps;
     }
 
-    public byte[] getNdiInitMac(int ndpId) {
-        Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation> nnriE =
-                getNetworkRequestByNdpId(ndpId);
-        if (nnriE == null) return null;
-        NdpInfo ndpInfo = nnriE.getValue().ndpInfos.get(ndpId);
-        if (ndpInfo == null) return null;
-        return ndpInfo.ndiInitMac;
-    }
-
     private Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation>
                 getNetworkRequestByNdpId(int ndpId) {
         for (Map.Entry<WifiAwareNetworkSpecifier, AwareNetworkRequestInformation> entry :

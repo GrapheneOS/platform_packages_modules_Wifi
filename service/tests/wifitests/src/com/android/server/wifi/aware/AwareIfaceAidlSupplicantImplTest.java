@@ -213,8 +213,10 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         short transactionId = 20;
         String interfaceName = "aware_data0";
         assertTrue(mDut.createAwareNetworkInterface(transactionId, interfaceName));
-        verify(mMockSupplicantNanIface).createDataInterfaceRequest((char) transactionId,
-                interfaceName);
+        ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
+        verify(mMockSupplicantNanIface).createDataInterfaceRequest(eq((char) transactionId),
+                eq(interfaceName), captor.capture());
+        assertArrayEquals(captor.getValue(), mDut.getNdiMacAddress(interfaceName));
     }
 
     @Test
@@ -222,7 +224,7 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         short transactionId = 21;
         String interfaceName = "aware_data0";
         doThrow(new RemoteException()).when(mMockSupplicantNanIface)
-                .createDataInterfaceRequest(anyChar(), anyString());
+                .createDataInterfaceRequest(anyChar(), anyString(), any());
         assertFalse(mDut.createAwareNetworkInterface(transactionId, interfaceName));
     }
 
@@ -231,7 +233,7 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         short transactionId = 22;
         String interfaceName = "aware_data0";
         doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
-                .createDataInterfaceRequest(anyChar(), anyString());
+                .createDataInterfaceRequest(anyChar(), anyString(), any());
         assertFalse(mDut.createAwareNetworkInterface(transactionId, interfaceName));
     }
 

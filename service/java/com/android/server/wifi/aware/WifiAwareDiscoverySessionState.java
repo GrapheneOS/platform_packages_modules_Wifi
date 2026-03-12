@@ -92,6 +92,7 @@ public class WifiAwareDiscoverySessionState {
     private final HashSet<String> mPairedPeers = new HashSet<>();
     private final SparseArray<ArraySet<Integer>> mNdpIdByPeerId = new SparseArray<>();
     private final SparseIntArray mInfoPerPeerId = new SparseIntArray();
+    private final SparseArray<byte[]> mInitNdiPerNdpId = new SparseArray<>();
 
     static class PeerInfo {
         PeerInfo(int instanceId, byte[] mac, PeerHandle peerHandle) {
@@ -296,6 +297,7 @@ public class WifiAwareDiscoverySessionState {
         }
         mCallback = null;
         mNdpIdByPeerId.clear();
+        mInitNdiPerNdpId.clear();
 
         if (mIsPublishSession) {
             mWifiAwareNativeApi.stopPublish((short) 0, mPubSubId);
@@ -720,6 +722,7 @@ public class WifiAwareDiscoverySessionState {
             if (appInfo == null) {
                 appInfo = new byte[0];
             }
+            ndiInitMac = mInitNdiPerNdpId.get(ndpId);
         }
         boolean success = mWifiAwareNativeApi.respondToDataPathRequest(transactionId, accept, ndpId,
                 interfaceName, appInfo, false, capabilities, securityConfig, mPubSubId,
@@ -742,6 +745,7 @@ public class WifiAwareDiscoverySessionState {
             success = mWifiAwareNativeApi.endDataPath(transactionId, ndpId);
             if (ndps != null) {
                 ndps.remove(ndpId);
+                mInitNdiPerNdpId.remove(ndpId);
                 if (!ndps.isEmpty()) {
                     // If there is still active datapath, will not send callback
                     return success;
@@ -752,6 +756,7 @@ public class WifiAwareDiscoverySessionState {
             // ended.
             for (int ndp : ndps) {
                 success |= mWifiAwareNativeApi.endDataPath(transactionId, ndp);
+                mInitNdiPerNdpId.remove(ndp);
             }
         }
         mNdpIdByPeerId.remove(peerId);
@@ -977,7 +982,7 @@ public class WifiAwareDiscoverySessionState {
      * Event that receive the data path request from the peer
      */
     public int onDataPathRequestReceived(byte[] mac, int ndpId, byte[] message, int clientId,
-            int sessionId, WifiInfo wifiInfo, boolean found) {
+            int sessionId, WifiInfo wifiInfo, boolean found, byte[] ndiInitMac) {
         PeerHandle peerHandle = getPeerHandleFromPeerMac(mac);
         int peerId;
         if (peerHandle == null) {
@@ -987,6 +992,7 @@ public class WifiAwareDiscoverySessionState {
             peerId = peerHandle.peerId;
         }
         if (!found) {
+            mInitNdiPerNdpId.put(ndpId, ndiInitMac);
             try {
                 mCallback.onDataPathRequestReceived(peerId);
             } catch (RemoteException e) {
@@ -1022,6 +1028,7 @@ public class WifiAwareDiscoverySessionState {
             Log.e(TAG, "onDataPathConfirm: unknown peer id");
             return false;
         }
+        mInitNdiPerNdpId.remove(ndpId);
         onDataPathRequestFailure(peerId, reason);
         return true;
     }
@@ -1044,6 +1051,7 @@ public class WifiAwareDiscoverySessionState {
             return;
         }
         mNdpIdByPeerId.remove(peerId);
+        mInitNdiPerNdpId.remove(ndpId);
         try {
             mCallback.onDataPathDisconnected(peerId);
         } catch (RemoteException e) {

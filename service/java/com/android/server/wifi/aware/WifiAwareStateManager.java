@@ -4651,9 +4651,6 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
         boolean success;
         if (!isOutOfBand) {
-            if (ndiInitMac == null && accept) {
-                ndiInitMac = mDataPathMgr.getNdiInitMac(ndpId);
-            }
             WifiAwareClientState client = mClients.get(clientId);
             if (client == null) {
                 Log.e(TAG, "respondToDataPathRequestLocal: no client exists for clientId="
@@ -5987,7 +5984,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
         int peerId = data.second.onDataPathRequestReceived(mac, ndpId, message,
                 data.first.getClientId(), data.second.getSessionId(),
-                mWifiManager.getConnectionInfo(), found);
+                mWifiManager.getConnectionInfo(), found, ndiInitMac);
         if (!found) {
             mPendingRequest.append(peerId, ndpId);
         }

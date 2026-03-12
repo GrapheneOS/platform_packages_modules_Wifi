@@ -109,11 +109,12 @@ interface ISupplicantNanIface {
      *
      * @param cmdId Command Id to use for this invocation.
      * @param ifaceName The name of the interface, e.g. "aware0".
+     * @param MacAddr The MAC address of the interface
      * @throws ServiceSpecificException with one of the following values:
      *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
      *         |SupplicantStatusCode.FAILURE_UNKNOWN|
      */
-    void createDataInterfaceRequest(in char cmdId, in String ifaceName);
+    void createDataInterfaceRequest(in char cmdId, in String ifaceName, in byte[6] MacAddr);
 
     /**
      * Deletes a NAN Data Interface.
@@ -278,7 +279,8 @@ interface ISupplicantNanIface {
      *         |SupplicantStatusCode.FAILURE_IFACE_INVALID|,
      *         |SupplicantStatusCode.FAILURE_UNKNOWN|
      */
-    void terminatePairingRequest(in char cmdId, in int pairingInstanceId, in byte[6] peerDiscMacAddr);
+    void terminatePairingRequest(
+            in char cmdId, in int pairingInstanceId, in byte[6] peerDiscMacAddr);
 
     /**
      * Initiate a data-path (NDP) setup operation: Initiator.
@@ -294,7 +296,7 @@ interface ISupplicantNanIface {
      */
     void initiateDataPathRequest(in char cmdId, in NanInitiateDataPathRequest msg);
 
-   /**
+    /**
      * Respond to a received data indication as part of a data-path (NDP) setup operation.
      * An indication is received by the Responder from the Initiator.
      * Asynchronous response is with
@@ -310,7 +312,7 @@ interface ISupplicantNanIface {
     void respondToDataPathIndicationRequest(
             in char cmdId, in NanRespondToDataPathIndicationRequest msg);
 
-   /**
+    /**
      * Data-path (NDP) termination request. Executed by either Initiator or Responder.
      * Asynchronous response is with
      * |ISupplicantNanIfaceEventCallback.notifyTerminateDataPathResponse|.
