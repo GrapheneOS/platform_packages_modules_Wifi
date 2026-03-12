@@ -951,7 +951,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
      * @return True if the request send success
      */
     public boolean respondToBootstrappingRequest(short transactionId, int bootstrappingId,
-            boolean accept, byte pubSubId, int method) {
+            boolean accept, byte pubSubId, int method, byte[] peerDiscMacAddr) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "respondToBootstrappingRequest: transactionId=" + transactionId
                     + ", bootstrappingId=" + bootstrappingId + ", pubsubId=" + pubSubId);
@@ -960,7 +960,7 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
         AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
         if (supplicant != null) {
             return supplicant.respondToNanBootstrappingRequest(transactionId, bootstrappingId,
-                    accept, pubSubId, method);
+                    accept, pubSubId, method, peerDiscMacAddr);
         }
 
         WifiNanIface iface = mHal.getWifiNanIface();

@@ -142,7 +142,7 @@ public class TestUtils {
         }
 
         public boolean respondToBootstrappingRequest(short transactionId, int bootstrappingId,
-                boolean accept, byte pubSubId, int method) {
+                boolean accept, byte pubSubId, int method, byte[] peerDiscMacAddr) {
             addTransactionId(transactionId);
             return true;
         }
