@@ -5087,7 +5087,7 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                         mWifiBlocklistMonitor.setAllowlistSsids(config.SSID,
                                 Collections.emptyList());
                         mWifiBlocklistMonitor.updateFirmwareRoamingConfiguration(
-                                Set.of(config.SSID));
+                                Set.of(config.SSID), Collections.EMPTY_SET);
                     }
 
                     updateWifiConfigOnStartConnection(config, bssid);
@@ -9129,7 +9129,10 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
             allowlistSsids.add(config.SSID);
         }
         mWifiBlocklistMonitor.setAllowlistSsids(config.SSID, allowlistSsids);
-        mWifiBlocklistMonitor.updateFirmwareRoamingConfiguration(new ArraySet<>(allowlistSsids));
+        mWifiBlocklistMonitor.updateFirmwareRoamingConfiguration(new ArraySet<>(allowlistSsids),
+                mWifiInfo.getBSSID() == null
+                        ? Collections.EMPTY_SET
+                        : new ArraySet<>(List.of(mWifiInfo.getBSSID())));
     }
 
     private boolean checkAndHandleLinkedNetworkRoaming(String associatedBssid) {
@@ -9294,7 +9297,6 @@ public class ClientModeImpl extends StateMachine implements ClientMode {
                 }
             }
         }
-        mWifiBlocklistMonitor.updateAndGetBssidBlocklistForSsids(Set.of(configuration.SSID));
         mFrameworkDisconnectReasonOverride = WifiStatsLog.WIFI_DISCONNECT_REPORTED__FAILURE_CODE__DISCONNECT_DISALLOW_CURRENT_SUGGESTED_NETWORK;
         sendMessageAtFrontOfQueue(CMD_DISCONNECT,
                 StaEvent.DISCONNECT_DISALLOW_CURRENT_SUGGESTED_NETWORK);
