@@ -816,9 +816,10 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         boolean accept = true;
         byte pubSubId = 1;
         int method = 0;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
 
         assertTrue(mDut.respondToNanBootstrappingRequest(transactionId, bootstrappingId, accept,
-                pubSubId, method));
+                pubSubId, method, peer.toByteArray()));
         verify(mMockSupplicantNanIface).respondToBootstrappingIndicationRequest(
                 eq((char) transactionId), any(NanBootstrappingResponse.class));
     }
@@ -830,11 +831,12 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         boolean accept = true;
         byte pubSubId = 1;
         int method = 0;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
 
         doThrow(new RemoteException()).when(mMockSupplicantNanIface)
                 .respondToBootstrappingIndicationRequest(anyChar(), any());
         assertFalse(mDut.respondToNanBootstrappingRequest(transactionId, bootstrappingId, accept,
-                pubSubId, method));
+                pubSubId, method, peer.toByteArray()));
     }
 
     @Test
@@ -844,11 +846,12 @@ public class AwareIfaceAidlSupplicantImplTest extends WifiBaseTest {
         boolean accept = true;
         byte pubSubId = 1;
         int method = 0;
+        MacAddress peer = MacAddress.fromString("00:11:22:33:44:55");
 
         doThrow(new ServiceSpecificException(0, "error")).when(mMockSupplicantNanIface)
                 .respondToBootstrappingIndicationRequest(anyChar(), any());
         assertFalse(mDut.respondToNanBootstrappingRequest(transactionId, bootstrappingId, accept,
-                pubSubId, method));
+                pubSubId, method, peer.toByteArray()));
     }
 
     @Test

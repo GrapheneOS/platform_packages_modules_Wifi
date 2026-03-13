@@ -650,7 +650,7 @@ public class WifiAwareDiscoverySessionState {
      * @return True if the send success
      */
     public boolean respondToBootstrapping(short transactionId,
-            int peerId, int bootstrappingId, boolean accept, int method) {
+            int peerId, int bootstrappingId, boolean accept, int method, byte[] peerDiscMacAddr) {
         PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
         if (peerInfo == null) {
             Log.e(TAG, "initiateBootstrapping: attempting to send pairing request to"
@@ -659,7 +659,7 @@ public class WifiAwareDiscoverySessionState {
         }
 
         return mWifiAwareNativeApi.respondToBootstrappingRequest(transactionId,
-                bootstrappingId, accept, mPubSubId, method);
+                bootstrappingId, accept, mPubSubId, method, peerDiscMacAddr);
     }
 
     /**
