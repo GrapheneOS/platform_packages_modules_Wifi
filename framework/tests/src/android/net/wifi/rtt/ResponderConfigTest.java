@@ -21,7 +21,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 
 import android.net.MacAddress;
+import android.net.wifi.ScanResult;
 import android.net.wifi.usd.DiscoveryResult;
+import android.net.wifi.usd.ProximityRangingInfo;
 import android.net.wifi.util.Environment;
 import android.os.Parcel;
 
@@ -42,6 +44,7 @@ public class ResponderConfigTest {
     private static final int TEST_USD_PEER_ID = 123;
     private static final byte[] TEST_DEV_IK = new byte[16];
     private static final byte[] TEST_PMK = new byte[32];
+    private static final int TEST_PREAMBLE_SCAN_RESULT = ScanResult.PREAMBLE_HE;
 
     static {
         Arrays.fill(TEST_DEV_IK, (byte) 0x0A);
@@ -51,6 +54,7 @@ public class ResponderConfigTest {
     private DiscoveryResult createTestDiscoveryResult() {
         return new DiscoveryResult.Builder(TEST_USD_PEER_ID)
                 .setDeviceIdentityKey(TEST_DEV_IK)
+                .setProximityRangingInfo(createTestProximityRangingInfo())
                 .build();
     }
 
@@ -68,6 +72,18 @@ public class ResponderConfigTest {
                 .setProximityDetectionSeekerDeviceIdentityKey(TEST_DEV_IK)
                 .build();
         return new SecureRangingConfig.Builder(pasnConfig).build();
+    }
+
+    private ProximityRangingInfo createTestProximityRangingInfo() {
+        return new ProximityRangingInfo.Builder()
+                .setDeviceName("Test Device")
+                .set80211mcBasedRangingSupported(true)
+                .setNtbSecureLtfRangingSupported(true)
+                .setAuthenticatedPasnModeSupported(true)
+                .setNtbRstaRoleSupported(true)
+                .set80211mcBasedIstaRoleSupported(true)
+                .setMaxSupportedPreambleNtb(TEST_PREAMBLE_SCAN_RESULT)
+                .build();
     }
 
     @Test

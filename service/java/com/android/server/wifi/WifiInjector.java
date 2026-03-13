@@ -80,6 +80,7 @@ import com.android.server.wifi.p2p.WifiP2pMonitor;
 import com.android.server.wifi.p2p.WifiP2pNative;
 import com.android.server.wifi.rtt.RttMetrics;
 import com.android.server.wifi.rtt.RttServiceImpl;
+import com.android.server.wifi.usd.UsdRequestManager;
 import com.android.server.wifi.util.KeystoreWrapper;
 import com.android.server.wifi.util.LastCallerInfoManager;
 import com.android.server.wifi.util.LruConnectionTracker;
@@ -292,6 +293,7 @@ public class WifiInjector {
     private final PairingConfigManager mPairingConfigManager;
     private final MainlineSupplicantAidlManager mMainlineSupplicant;
     private RttServiceImpl mRttServiceImpl;
+    private UsdRequestManager mUsdRequestManager;
     private final WifiPowerStatsManager mWifiPowerStatsManager;
 
     public WifiInjector(WifiContext context) {
@@ -1385,6 +1387,14 @@ public class WifiInjector {
 
     public void setRttServiceImpl(RttServiceImpl rttServiceImpl) {
         mRttServiceImpl = rttServiceImpl;
+    }
+
+    public UsdRequestManager getUsdRequestManager() {
+        return mUsdRequestManager;
+    }
+
+    public void setUsdRequestManager(UsdRequestManager usdRequestManager) {
+        mUsdRequestManager = usdRequestManager;
     }
 
     @NonNull

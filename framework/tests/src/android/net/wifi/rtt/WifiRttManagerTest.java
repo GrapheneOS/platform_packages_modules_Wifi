@@ -42,6 +42,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiSsid;
 import android.net.wifi.aware.PeerHandle;
 import android.net.wifi.usd.DiscoveryResult;
+import android.net.wifi.usd.ProximityRangingInfo;
 import android.net.wifi.util.Environment;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -1211,6 +1212,7 @@ public class WifiRttManagerTest {
     private DiscoveryResult createTestDiscoveryResult() {
         return new DiscoveryResult.Builder(TEST_USD_PEER_ID)
                 .setDeviceIdentityKey(TEST_DEV_IK)
+                .setProximityRangingInfo(createTestProximityRangingInfo())
                 .build();
     }
 
@@ -1228,6 +1230,18 @@ public class WifiRttManagerTest {
                 .setProximityDetectionSeekerDeviceIdentityKey(TEST_DEV_IK)
                 .build();
         return new SecureRangingConfig.Builder(pasnConfig).build();
+    }
+
+    private ProximityRangingInfo createTestProximityRangingInfo() {
+        return new ProximityRangingInfo.Builder()
+                .setDeviceName("Test Device")
+                .set80211mcBasedRangingSupported(true)
+                .setNtbSecureLtfRangingSupported(true)
+                .setAuthenticatedPasnModeSupported(true)
+                .setNtbRstaRoleSupported(true)
+                .set80211mcBasedIstaRoleSupported(true)
+                .setMaxSupportedPreambleNtb(TEST_PREAMBLE_SCAN_RESULT)
+                .build();
     }
 
     @Test

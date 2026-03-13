@@ -512,7 +512,6 @@ public class RttMetricsTest extends WifiBaseTest {
         mDut.clear();
 
         RangingRequest request = getDummyRangingRequest(1, 0);
-        mDut.recordContinuousRangingRequest(request, 0);
         mDut.recordContinuousRangingStartStatus(0, request);
 
         ExtendedMockito.verify(() -> WifiStatsLog.write(

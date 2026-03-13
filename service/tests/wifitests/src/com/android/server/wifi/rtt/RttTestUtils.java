@@ -390,4 +390,43 @@ public class RttTestUtils {
                 .build();
     }
 
+    /**
+     * Returns a dummy RangingRequest suitable for continuous ranging tests with USD Peer Id.
+     */
+    public static RangingRequest getDummyContinuousRangingRequestWithUsdPeerId() {
+        int discoveryChannelFrequency = 2412;
+        int rangingIntervalMs = 1000;
+
+        // SAE
+        PasnConfig pasnConfig = new PasnConfig
+                .Builder(PasnConfig.AKM_SAE, PasnConfig.CIPHER_GCMP_256)
+                .setPassword("TEST_PASSWORD")
+                .build();
+        SecureRangingConfig secureRangingConfig = new SecureRangingConfig
+                .Builder(pasnConfig)
+                .setRangingFrameProtectionEnabled(true)
+                .setSecureHeLtfEnabled(true)
+                .build();
+
+        ProximityDetectionConfig pdConfig =
+                new ProximityDetectionConfig.Builder(
+                        ProximityDetectionConfig.RANGING_SERVICE_ROLE_SEEKER)
+                        .setDiscoveryChannelFrequencyMhz(discoveryChannelFrequency)
+                        .setContinuousRangingIntervalMillis(rangingIntervalMs)
+                        .build();
+
+        ResponderConfig responder = new ResponderConfig.Builder()
+                .setUsdPeerId(1234)
+                .setResponderType(ResponderConfig.RESPONDER_STA)
+                .setChannelWidth(ScanResult.CHANNEL_WIDTH_80MHZ)
+                .setPreamble(ScanResult.PREAMBLE_HE)
+                .set80211azNtbSupported(true)
+                .setProximityDetectionConfig(pdConfig)
+                .setSecureRangingConfig(secureRangingConfig)
+                .build();
+
+        return new RangingRequest.Builder()
+                .addResponder(responder)
+                .build();
+    }
 }

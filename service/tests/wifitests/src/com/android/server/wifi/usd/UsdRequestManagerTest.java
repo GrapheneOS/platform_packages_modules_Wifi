@@ -492,6 +492,79 @@ public class UsdRequestManagerTest extends WifiBaseTest {
     }
 
     /**
+     * Test getMacAddressFromUsdPeerId when peer exists and has a valid MAC address.
+     */
+    @Test
+    public void testGetMacAddressFromUsdPeerId() throws RemoteException {
+        // Setup active subscribe session
+        SubscribeConfig config = new SubscribeConfig.Builder(USD_TEST_SERVICE_NAME).build();
+        when(mSubscribeSessionCallback.asBinder()).thenReturn(mAppBinder);
+        when(mUsdNativeManager.subscribe(any(), anyInt(), any())).thenReturn(true);
+        mUsdRequestManager.subscribe(config, mSubscribeSessionCallback);
+        mUsdNativeEventsCallback.onUsdSubscribeStarted(USD_REQUEST_COMMAND_ID, TEST_SUBSCRIBE_ID);
+
+        // Discovery info
+        android.net.MacAddress peerMac = android.net.MacAddress.fromString("66:77:88:99:00:11");
+        UsdRequestManager.UsdHalDiscoveryInfo discoveryInfo =
+                new UsdRequestManager.UsdHalDiscoveryInfo(
+                TEST_SUBSCRIBE_ID, 3003, peerMac,
+                mSsi, 0, false, null, null, null);
+
+        mUsdNativeEventsCallback.onUsdServiceDiscovered(discoveryInfo);
+
+        org.mockito.ArgumentCaptor<Integer> peerIdCaptor =
+                org.mockito.ArgumentCaptor.forClass(Integer.class);
+        verify(mSubscribeSessionCallback).onSubscribeDiscovered(peerIdCaptor.capture(),
+                any(), anyInt(), anyBoolean(), any(), any());
+
+        int usdPeerId = peerIdCaptor.getValue();
+
+        byte[] macAddress = mUsdRequestManager.getMacAddressFromUsdPeerId(usdPeerId);
+        assertNotNull(macAddress);
+        assertArrayEquals(peerMac.toByteArray(), macAddress);
+    }
+
+    /**
+     * Test getMacAddressFromUsdPeerId when peer does not exist.
+     */
+    @Test
+    public void testGetMacAddressFromUsdPeerId_NotFound() {
+        byte[] macAddress = mUsdRequestManager.getMacAddressFromUsdPeerId(12345);
+        assertNull(macAddress);
+    }
+
+    /**
+     * Test getMacAddressFromUsdPeerId when peer exists but MAC address is null.
+     */
+    @Test
+    public void testGetMacAddressFromUsdPeerId_NullMacAddress() throws RemoteException {
+        // Setup active subscribe session
+        SubscribeConfig config = new SubscribeConfig.Builder(USD_TEST_SERVICE_NAME).build();
+        when(mSubscribeSessionCallback.asBinder()).thenReturn(mAppBinder);
+        when(mUsdNativeManager.subscribe(any(), anyInt(), any())).thenReturn(true);
+        mUsdRequestManager.subscribe(config, mSubscribeSessionCallback);
+        mUsdNativeEventsCallback.onUsdSubscribeStarted(USD_REQUEST_COMMAND_ID, TEST_SUBSCRIBE_ID);
+
+        // Discovery info with null MAC address
+        UsdRequestManager.UsdHalDiscoveryInfo discoveryInfo =
+                new UsdRequestManager.UsdHalDiscoveryInfo(
+                TEST_SUBSCRIBE_ID, 3003, null,
+                mSsi, 0, false, null, null, null);
+
+        mUsdNativeEventsCallback.onUsdServiceDiscovered(discoveryInfo);
+
+        org.mockito.ArgumentCaptor<Integer> peerIdCaptor =
+                org.mockito.ArgumentCaptor.forClass(Integer.class);
+        verify(mSubscribeSessionCallback).onSubscribeDiscovered(peerIdCaptor.capture(),
+                any(), anyInt(), anyBoolean(), any(), any());
+
+        int usdPeerId = peerIdCaptor.getValue();
+
+        byte[] macAddress = mUsdRequestManager.getMacAddressFromUsdPeerId(usdPeerId);
+        assertNull(macAddress);
+    }
+
+    /**
      * Verifies that when Proximity Ranging info is null in the HAL metadata,
      * the SDK object passed to the application is also null.
      */

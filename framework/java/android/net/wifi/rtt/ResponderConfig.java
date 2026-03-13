@@ -625,14 +625,45 @@ public final class ResponderConfig implements Parcelable {
         Objects.requireNonNull(config, "config must not be null");
         Objects.requireNonNull(secureRangingConfig, "secureRangingConfig must not be null");
         ProximityRangingInfo rangingInfo = peerInfo.getProximityRangingInfo();
-        boolean is11azSupported = (rangingInfo != null)
-                && (rangingInfo.isNtbSecureLtfRangingSupported()
-                || rangingInfo.isNtbNonSecureLtfRangingSupported());
-        //TODO implementation
-        return new ResponderConfig.Builder()
+        Objects.requireNonNull(rangingInfo, "peer proximity ranging info must not be null");
+        Builder responderBuilder = new ResponderConfig.Builder();
+        boolean is11mcSupported = rangingInfo.is80211mcBasedRangingSupported();
+        boolean is11azSupported = rangingInfo.isNtbSecureLtfRangingSupported()
+                || rangingInfo.isNtbNonSecureLtfRangingSupported();
+        int mcChannelWidth = translateFromScanResultToLocalChannelWidth(
+                rangingInfo.getMaxSupportedPacketWidth80211mcBased());
+        int azChannelWidth = translateFromScanResultToLocalChannelWidth(
+                rangingInfo.getMaxSupportedPacketWidthNtb());
+        int channelWidth = CHANNEL_WIDTH_20MHZ;
+        if (is11mcSupported && is11azSupported) {
+            // Take the upper bound of the bandwidth here, and check the device cap in
+            // SupplicantWifiRttControllerAidlImpl#halRttChannelBandwidthCapabilityLimiter.
+            channelWidth = Math.max(mcChannelWidth, azChannelWidth);
+        } else {
+            channelWidth = is11azSupported ? azChannelWidth : mcChannelWidth;
+        }
+        int mcPreamble = rangingInfo.getMaxSupportedPreamble80211mcBased();
+        int azPreamble = rangingInfo.getMaxSupportedPreambleNtb();
+        int preamble = PREAMBLE_LEGACY;
+        if (is11mcSupported && is11azSupported) {
+            // Take the upper bound of the preamble here, and check the device cap in
+            // SupplicantWifiRttControllerAidlImpl#halRttPreambleCapabilityLimiter.
+            preamble = Math.max(mcPreamble, azPreamble);
+        } else {
+            preamble = is11azSupported ? azPreamble : mcPreamble;
+        }
+        responderBuilder.set80211mcSupported(is11mcSupported)
+            .set80211azNtbSupported(is11azSupported)
+            .setChannelWidth(channelWidth)
+            .setPreamble(preamble)
+            .setNtbMaxTimeBetweenMeasurementsMicros(
+                DEFAULT_NTB_MAX_TIME_BETWEEN_MEASUREMENTS_MICROS)
+            .setNtbMinTimeBetweenMeasurementsMicros(
+                DEFAULT_NTB_MIN_TIME_BETWEEN_MEASUREMENTS_MICROS);
+
+        return responderBuilder
                 .setUsdPeerId(peerInfo.getPeerId())
                 .setResponderType(ResponderConfig.RESPONDER_STA)
-                .set80211azNtbSupported(is11azSupported)
                 .setProximityDetectionConfig(config)
                 .setSecureRangingConfig(secureRangingConfig)
                 .build();
