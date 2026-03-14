@@ -475,16 +475,16 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
     @Test
     public void testRespondToBootstrappingRequest() {
         when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
-        mDut.respondToBootstrappingRequest((short) 1, 123, true, (byte) 1, 1);
+        mDut.respondToBootstrappingRequest((short) 1, 123, true, (byte) 1, 1, null);
         verify(mWifiNanIfaceMock).respondToBootstrappingRequest(eq((short) 1), eq(123), eq(true),
                 eq((byte) 1), eq(1));
     }
 
     @Test
     public void testRespondToBootstrappingRequestWithSupplicant() {
-        mDut.respondToBootstrappingRequest((short) 1, 123, true, (byte) 1, 1);
+        mDut.respondToBootstrappingRequest((short) 1, 123, true, (byte) 1, 1, null);
         verify(mAwareIfaceAidlSupplicantImplMock).respondToNanBootstrappingRequest(eq((short) 1),
-                eq(123), eq(true), eq((byte) 1), eq(1));
+                eq(123), eq(true), eq((byte) 1), eq(1), eq(null));
     }
 
     @Test

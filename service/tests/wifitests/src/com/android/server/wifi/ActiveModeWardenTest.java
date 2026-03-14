@@ -5849,16 +5849,6 @@ public class ActiveModeWardenTest extends WifiBaseTest {
         assertInDisabledState();
     }
 
-    @Test
-    public void testOnIdleModeChanged() throws Exception {
-        enterClientModeActiveState();
-        List<ClientModeManager> currentCMMs = mActiveModeWarden.getClientModeManagers();
-        assertTrue(currentCMMs.size() >= 1);
-        mActiveModeWarden.onIdleModeChanged(true);
-        for (ClientModeManager cmm : currentCMMs) {
-            verify(cmm).onIdleModeChanged(true);
-        }
-    }
 
     @Test
     public void testWepNotDeprecated() throws Exception {

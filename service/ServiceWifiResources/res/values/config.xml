@@ -1283,11 +1283,6 @@
          configured, the default range is 192.168.49.128 to 192.168.49.254 -->
     <string translatable="false" name="config_wifiP2pGoEapolIpAddressRangeStart"/>
     <string translatable="false" name="config_wifiP2pGoEapolIpAddressRangeEnd"/>
-    <!-- Boolean indicating whether to disable firmware roaming when the device goes into idle mode.
-         true: firmware roaming will be disabled when the device goes into idle mode and screen
-               is off, and then re-activated when the device exits idle mode or screen is on.
-         false: firmware roaming will not be affected. -->
-    <bool translatable="false" name ="config_wifiDisableFirmwareRoamingInIdleMode">false</bool>
     <!-- Boolean indicating whether the framework updates country from scan results when there is
          no telephony country code. This is applied to all generic cases and might require the
          regulatory approval (for example, FCC pre-approval is required according to "594280 D01
@@ -1344,13 +1339,13 @@
          value should be a multiple of 100 microseconds. Non-zero values in this setting take
          precedence over individual responder settings, effectively enforcing a system-wide minimum
          measurement interval for non-trigger based ranging operations.. -->
-    <integer translatable="false" name="config_wifi80211azMinTimeBetweenNtbMeasurementsMicros">250000</integer>
+    <integer translatable="false" name="config_wifi80211azMinTimeBetweenNtbMeasurementsMicros">0</integer>
     <!-- Integer for maximum time between IEEE 802.11az non-trigger based ranging measurements in
          microseconds. Note that ranging request converts this to units of 10 milliseconds. So the
          value should be a multiple of 10000 microseconds. Non-zero values in this setting take
          precedence over individual responder settings, effectively enforcing a system-wide maximum
          measurement interval for non-trigger based ranging operations. -->
-    <integer translatable="false" name="config_wifi80211azMaxTimeBetweenNtbMeasurementsMicros">15000000</integer>
+    <integer translatable="false" name="config_wifi80211azMaxTimeBetweenNtbMeasurementsMicros">0</integer>
 
     <!-- Boolean indicating whether the device supports d2d allowed control when infra STA is disabled  -->
     <bool translatable="false" name ="config_wifiD2dAllowedControlSupportedWhenInfraStaDisabled">false</bool>

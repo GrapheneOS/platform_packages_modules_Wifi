@@ -554,10 +554,10 @@ public class AwareIfaceAidlSupplicantImpl {
      * @see ISupplicantNanIface#respondToNanBootstrappingRequest(char, NanBootstrappingResponse)
      */
     public boolean respondToNanBootstrappingRequest(short transactionId, int bootstrappingId,
-            boolean accept, byte pubSubId, int method) {
+            boolean accept, byte pubSubId, int method, byte[] peerDiscMacAddr) {
         String methodStr = "respondToNanBootstrappingRequest";
         NanBootstrappingResponse request = createNanBootstrappingResponse(bootstrappingId, accept,
-                pubSubId, method);
+                pubSubId, method, peerDiscMacAddr);
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
             mWifiNanIface.respondToBootstrappingIndicationRequest((char) transactionId,
@@ -1131,13 +1131,14 @@ public class AwareIfaceAidlSupplicantImpl {
     }
 
     private static NanBootstrappingResponse createNanBootstrappingResponse(int bootstrappingId,
-            boolean accept, byte pubSubId, int method) {
+            boolean accept, byte pubSubId, int method, byte[] peerDiscMacAddr) {
         NanBootstrappingResponse
                 request = new NanBootstrappingResponse();
         request.acceptRequest = accept;
         request.bootstrappingInstanceId = bootstrappingId;
         request.discoverySessionId = pubSubId;
         request.responseBootstrappingMethod = method;
+        request.peerDiscMacAddr = copyArray(peerDiscMacAddr);
         return request;
     }
 

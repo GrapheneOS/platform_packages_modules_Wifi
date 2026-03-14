@@ -1597,12 +1597,6 @@ public class ConcreteClientModeManagerTest extends WifiBaseTest {
 
         mClientModeManager.setShouldReduceNetworkScore(false);
         verify(mClientModeImpl, times(2)).setShouldReduceNetworkScore(false);
-
-        mClientModeManager.onIdleModeChanged(true);
-        verify(mClientModeImpl).onIdleModeChanged(true);
-
-        mClientModeManager.onIdleModeChanged(false);
-        verify(mClientModeImpl).onIdleModeChanged(false);
     }
 
     @Test

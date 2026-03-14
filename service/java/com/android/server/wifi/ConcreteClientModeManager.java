@@ -1748,10 +1748,6 @@ public class ConcreteClientModeManager implements ClientModeManager {
         return getClientMode().isMlo();
     }
 
-    @Override
-    public void onIdleModeChanged(boolean isIdle) {
-        getClientMode().onIdleModeChanged(isIdle);
-    }
 
     @Override
     public void blockNetwork(BlockingOption option) {

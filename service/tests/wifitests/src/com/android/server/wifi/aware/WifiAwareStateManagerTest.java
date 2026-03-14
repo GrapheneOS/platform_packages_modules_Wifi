@@ -4855,7 +4855,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).respondToBootstrappingRequest(transactionId.capture(),
                 eq(bootstrappingId), eq(true), eq(publishId),
-                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_DISPLAY));
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_DISPLAY), eq(peerMac1));
         mDut.onRespondToBootstrappingIndicationResponseSuccess(transactionId.getValue());
         mMockLooper.dispatchAll();
         verify(mockSessionCallback).onBootstrappingVerificationConfirmed(peerIdCaptor.capture(),
@@ -6601,7 +6601,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative).respondToBootstrappingRequest(transactionId.capture(),
                 eq(bootstrappingId), eq(true), eq(publishId),
-                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_DISPLAY));
+                eq(AwarePairingConfig.PAIRING_BOOTSTRAPPING_QR_DISPLAY), eq(peerMac1));
         mDut.onRespondToBootstrappingIndicationResponseSuccess(transactionId.getValue());
         mMockLooper.dispatchAll();
         verify(mockSessionCallback).onBootstrappingVerificationConfirmed(peerIdCaptor.capture(),

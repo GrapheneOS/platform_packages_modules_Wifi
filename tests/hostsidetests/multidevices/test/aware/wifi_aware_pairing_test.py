@@ -224,6 +224,12 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
             pairing_verification_enabled=True,
             bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_DISPLAY,
         )
+        pairing_config1 = constants.AwarePairingConfig(
+            pairing_setup_enabled=True,
+            pairing_cache_enabled=True,
+            pairing_verification_enabled=True,
+            bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_KEYPAD,
+        )
         pub_config = constants.PublishConfig(
             publish_type=constants.PublishType.UNSOLICITED,
             service_specific_info=_PUB_SSI,
@@ -232,7 +238,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         sub_config = constants.SubscribeConfig(
             subscribe_type=constants.SubscribeType.PASSIVE,
             service_specific_info=_SUB_SSI,
-            pairing_config=pairing_config
+            pairing_config=pairing_config1
         )
 
         # Step 1: Attach Wi-Fi Aware sessions.
@@ -265,7 +271,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         self.subscriber.wifi.wifiAwareInitiateBootstrapping(
             sub_session,
             sub_peer_id,
-            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            constants.BootstrappingMethod.PIN_CODE_KEYPAD,
         )
 
         # Step 3.2: Both devices get bootstrapping success callback.
@@ -285,7 +291,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         )
         asserts.assert_equal(
             sub_bootstrapping_success_event.data['bootstrappingMethod'],
-            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            constants.BootstrappingMethod.PIN_CODE_KEYPAD,
             'Subscriber received wrong bootstrapping method.',
         )
         self.publisher.log.info('Publisher bootstrapping succeeded.')
@@ -445,8 +451,16 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
             pairing_setup_enabled=True,
             pairing_cache_enabled=False,
             pairing_verification_enabled=True,
-            bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            bootstrapping_methods=constants.BootstrappingMethod.PASSPHRASE_DISPLAY,
         )
+
+        pairing_config1 = constants.AwarePairingConfig(
+            pairing_setup_enabled=True,
+            pairing_cache_enabled=True,
+            pairing_verification_enabled=True,
+            bootstrapping_methods=constants.BootstrappingMethod.PASSPHRASE_KEYPAD,
+        )
+
         pub_config = constants.PublishConfig(
             publish_type=constants.PublishType.UNSOLICITED,
             service_specific_info=_PUB_SSI,
@@ -455,7 +469,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         sub_config = constants.SubscribeConfig(
             subscribe_type=constants.SubscribeType.PASSIVE,
             service_specific_info=_SUB_SSI,
-            pairing_config=pairing_config
+            pairing_config=pairing_config1
         )
 
         # Step 1: Attach Wi-Fi Aware sessions.
@@ -488,7 +502,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         self.subscriber.wifi.wifiAwareInitiateBootstrapping(
             sub_session,
             sub_peer_id,
-            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            constants.BootstrappingMethod.PASSPHRASE_KEYPAD,
         )
 
         # Step 3.2: Both devices get bootstrapping success callback.
@@ -503,12 +517,12 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
 
         asserts.assert_equal(
             pub_bootstrapping_success_event.data['bootstrappingMethod'],
-            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            constants.BootstrappingMethod.PASSPHRASE_DISPLAY,
             'Publisher received wrong bootstrapping method.',
         )
         asserts.assert_equal(
             sub_bootstrapping_success_event.data['bootstrappingMethod'],
-            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            constants.BootstrappingMethod.PASSPHRASE_KEYPAD,
             'Subscriber received wrong bootstrapping method.',
         )
         self.publisher.log.info('Publisher bootstrapping succeeded.')
@@ -667,6 +681,14 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
             pairing_verification_enabled=True,
             bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_DISPLAY,
         )
+
+        pairing_config1 = constants.AwarePairingConfig(
+            pairing_setup_enabled=True,
+            pairing_cache_enabled=True,
+            pairing_verification_enabled=True,
+            bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_KEYPAD,
+        )
+
         pub_config = constants.PublishConfig(
             publish_type=constants.PublishType.UNSOLICITED,
             service_specific_info=_PUB_SSI,
@@ -675,7 +697,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         sub_config = constants.SubscribeConfig(
             subscribe_type=constants.SubscribeType.PASSIVE,
             service_specific_info=_SUB_SSI,
-            pairing_config=pairing_config
+            pairing_config=pairing_config1
         )
 
         # Step 1: Attach Wi-Fi Aware sessions.
@@ -708,7 +730,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         self.subscriber.wifi.wifiAwareInitiateBootstrapping(
             sub_session,
             sub_peer_id,
-            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            constants.BootstrappingMethod.PIN_CODE_KEYPAD,
         )
 
         # Step 3.2: Both devices get bootstrapping success callback.
@@ -728,7 +750,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         )
         asserts.assert_equal(
             sub_bootstrapping_success_event.data['bootstrappingMethod'],
-            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            constants.BootstrappingMethod.PIN_CODE_KEYPAD,
             'Subscriber received wrong bootstrapping method.',
         )
         self.publisher.log.info('Publisher bootstrapping succeeded.')
@@ -792,8 +814,8 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         methods.
 
         Test Steps:
-        1. Publisher supports PIN_CODE_DISPLAY.
-        2. Subscriber supports PIN_CODE_KEYPAD.
+        1. Publisher supports QR_DISPLAY.
+        2. Subscriber supports QR_SCAN.
         3. Subscriber initiates bootstrapping.
         4. Both should receive a bootstrapping success callback.
         """
@@ -804,7 +826,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
                 pairing_setup_enabled=True,
                 pairing_cache_enabled=True,
                 pairing_verification_enabled=True,
-                bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+                bootstrapping_methods=constants.BootstrappingMethod.QR_DISPLAY,
             ),
         )
         sub_config = constants.SubscribeConfig(
@@ -814,7 +836,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
                 pairing_setup_enabled=True,
                 pairing_cache_enabled=True,
                 pairing_verification_enabled=True,
-                bootstrapping_methods=constants.BootstrappingMethod.PIN_CODE_KEYPAD,
+                bootstrapping_methods=constants.BootstrappingMethod.QR_SCAN,
             ),
         )
 
@@ -847,7 +869,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
         self.subscriber.wifi.wifiAwareInitiateBootstrapping(
             sub_session,
             sub_peer_id,
-            constants.BootstrappingMethod.PIN_CODE_KEYPAD,
+            constants.BootstrappingMethod.QR_SCAN,
         )
 
         # Step 3.2: Both devices get bootstrapping success callback.
@@ -862,12 +884,12 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
 
         asserts.assert_equal(
             pub_bootstrapping_success_event.data['bootstrappingMethod'],
-            constants.BootstrappingMethod.PIN_CODE_DISPLAY,
+            constants.BootstrappingMethod.QR_DISPLAY,
             'Publisher received wrong bootstrapping method.',
         )
         asserts.assert_equal(
             sub_bootstrapping_success_event.data['bootstrappingMethod'],
-            constants.BootstrappingMethod.PIN_CODE_KEYPAD,
+            constants.BootstrappingMethod.QR_SCAN,
             'Subscriber received wrong bootstrapping method.',
         )
         self.publisher.log.info('Publisher bootstrapping succeeded.')

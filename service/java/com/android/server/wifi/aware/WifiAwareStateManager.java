@@ -1539,7 +1539,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      * Respond to a bootstrapping request
      */
     private void respondToBootstrappingRequest(int clientId, int sessionId, int peerId,
-            int bootstrappingId, boolean accept, int method, byte[] serviceSpecificInfo) {
+            int bootstrappingId, boolean accept, int method, byte[] serviceSpecificInfo,
+            byte[] peerDiscMacAddr) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_RESPONSE_BOOTSTRAPPING_REQUEST;
         msg.arg2 = clientId;
@@ -1549,6 +1550,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD, method);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_REQUEST_ID, bootstrappingId);
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_SSI_DATA, serviceSpecificInfo);
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS, peerDiscMacAddr);
         mSm.sendMessage(msg);
     }
 
@@ -3279,8 +3281,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     boolean accept = data.getBoolean(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_ACCEPT);
                     int bootstrappingId = data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_REQUEST_ID);
                     int method = data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD);
+                    byte[] peerMac = data.getByteArray(MESSAGE_BUNDLE_KEY_MAC_ADDRESS);
                     waitForResponse = respondToBootstrappingRequestLocal(mCurrentTransactionId,
-                            clientId, sessionId, peerId, bootstrappingId, accept, method);
+                            clientId, sessionId, peerId, bootstrappingId, accept, method, peerMac);
                     break;
                 }
                 case COMMAND_TYPE_TRANSMIT_NEXT_MESSAGE: {
@@ -4491,12 +4494,15 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private boolean respondToBootstrappingRequestLocal(short transactionId, int clientId,
-            int sessionId, int peerId, int bootstrappingId, boolean accept, int method) {
+            int sessionId, int peerId, int bootstrappingId, boolean accept, int method,
+            byte[] peerDiscMacAddr) {
         String methodString = "respondToBootstrappingRequestLocal";
         if (mVdbg) {
             Log.v(TAG, methodString + ": transactionId=" + transactionId
                     + ", clientId=" + clientId + ", sessionId=" + sessionId + ", peerId=" + peerId
-                    + ", accept=" + accept + ", method" + method);
+                    + ", accept=" + accept + ", method=" + method + ", peerDiscMacAddr="
+                    + (peerDiscMacAddr == null ? "<null>" :
+                           String.valueOf(HexEncoding.encode(peerDiscMacAddr))));
         }
         WifiAwareDiscoverySessionState session = getClientSession(clientId, sessionId,
                 methodString);
@@ -4504,7 +4510,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             return false;
         }
         return session.respondToBootstrapping(transactionId, peerId, bootstrappingId, accept,
-                method);
+                method, peerDiscMacAddr);
     }
 
     private boolean sendFollowonMessageLocal(short transactionId, int clientId, int sessionId,
@@ -5896,8 +5902,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         int responseMethod = data.second.getMatchedBootstrappingMethod(method);
         respondToBootstrappingRequest(data.first.getClientId(), data.second.getSessionId(),
                 data.second.getPeerIdOrAddIfNew(peerId, peerDiscMacAddr, 0,
-                    mWifiManager.getConnectionInfo()),
-                bootstrappingId, responseMethod != 0, responseMethod, serviceSpecificInfo);
+                    mWifiManager.getConnectionInfo()), bootstrappingId,
+                    responseMethod != 0, responseMethod, serviceSpecificInfo, peerDiscMacAddr);
     }
 
     private boolean onBootStrappingConfirmReceivedLocal(int sessionId, int bootstrappingId,

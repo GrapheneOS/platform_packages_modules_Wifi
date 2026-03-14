@@ -71,7 +71,6 @@ public class WifiGlobals {
     private boolean mIsWpa3SaeH2eSupported;
     private boolean mIsMultiInternetSameBandConnectionAllowed;
     private boolean mIsMultiInternetSameBssidConnectionAllowed;
-    private boolean mDisableFirmwareRoamingInIdleMode = false;
     private final Map<String, List<String>> mCountryCodeToAfcServers;
     // This is set by WifiManager#setVerboseLoggingEnabled(int).
     private int mVerboseLoggingLevel = WifiManager.VERBOSE_LOGGING_LEVEL_DISABLED;
@@ -303,15 +302,6 @@ public class WifiGlobals {
     public boolean isWpaPersonalDeprecated() {
         return mWifiResourceCache
                 .getBoolean(R.bool.config_wifiWpaPersonalDeprecated);
-    }
-
-    /**
-     * Helper method to check whether this device should disable firmware roaming in idle mode.
-     * @return if the device should disable firmware roaming in idle mode.
-     */
-    public boolean isDisableFirmwareRoamingInIdleMode() {
-        return mWifiResourceCache
-                .getBoolean(R.bool.config_wifiDisableFirmwareRoamingInIdleMode);
     }
 
     /**
@@ -743,7 +733,6 @@ public class WifiGlobals {
         pw.println("mIsUsingExternalScorer="
                 + mIsUsingExternalScorer);
         pw.println("mIsWepAllowed=" + mIsWepAllowed.get());
-        pw.println("mDisableFirmwareRoamingInIdleMode=" + mDisableFirmwareRoamingInIdleMode);
         pw.println("IsD2dSupportedWhenInfraStaDisabled="
                 + isD2dSupportedWhenInfraStaDisabled());
         if (Flags.allowD2dWithoutStaOnXr()) {

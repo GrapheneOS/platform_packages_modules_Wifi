@@ -1368,8 +1368,6 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                         doScan = true;
                     }
                 }
-                mWifiThreadRunner.post(() ->
-                    mActiveModeWarden.onIdleModeChanged(idle), TAG + "#handleIdleModeChanged");
             }
         }
         if (doScan) {
