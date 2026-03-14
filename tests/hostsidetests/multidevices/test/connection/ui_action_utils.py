@@ -11,7 +11,6 @@ from snippet_uiautomator import errors
 
 from connection import constants
 
-
 _UI_OPERATION_TIMEOUT = datetime.timedelta(seconds=10)
 _UI_RESPONGE_TIMEOUT = datetime.timedelta(seconds=3)
 
@@ -20,8 +19,12 @@ def click_connect_in_connection_dialog(
     device: android_device.AndroidDevice,
     ssid: str,
     hsv_output_path_when_failed: str | None = None,
+    connect_button_text: str | None = None,
 ) -> None:
-  """Clicks Connect in wifi connection dialog."""
+  """Clicks Connect in wifi connection dialog.
+
+  go/hsv/6077908610187264 is an example showing the dialog this method handles.
+  """
   # TODO: b/433456977 - Set up a unique resource-id to improve robustness.
   connection_dialog = device.ui(text=ssid)
   try:
@@ -29,36 +32,50 @@ def click_connect_in_connection_dialog(
         connection_dialog.wait.exists(_UI_OPERATION_TIMEOUT),
         msg='Failed to find wifi connection dialog',
     )
+    connect_button_text = connect_button_text or 'Connect'
+    asserts.assert_true(
+        device.ui(text=connect_button_text).click(),
+        msg='Failed to click the connect button in wifi connection dialog',
+    )
   except (errors.BaseError, asserts.signals.TestFailure):
     capture_hsv_snapshot(
         device,
-        prefix='network_allow_notification',
+        prefix='wifi_connection_dialog',
         output_path=hsv_output_path_when_failed,
     )
     raise
-  device.ui(text='Connect').click()
 
 
 def click_pattern_matched_wifi_in_connection_dialog(
     device: android_device.AndroidDevice,
     ssid: str,
-    hsv_output_path_when_failed: str | None = None,
+    select_button_text: str | None = None,
 ) -> None:
-  """Clicks pattern matched wifi in connection dialog."""
+  """Clicks pattern matched wifi in connection dialog.
+
+  go/hsv/4632544036257792 and go/hsv/6467167670239232 are examples showing the
+  dialog this method handles.
+  """
   pattern_matched_wifi = device.ui(text=ssid)
-  try:
-    asserts.assert_true(
-        pattern_matched_wifi.wait.exists(_UI_OPERATION_TIMEOUT),
-        msg='Failed to find pattern matched wifi connection dialog',
-    )
-  except (errors.BaseError, asserts.signals.TestFailure):
-    capture_hsv_snapshot(
-        device,
-        prefix='network_allow_notification',
-        output_path=hsv_output_path_when_failed,
-    )
-    raise
-  pattern_matched_wifi.click()
+  asserts.assert_true(
+      pattern_matched_wifi.wait.exists(_UI_OPERATION_TIMEOUT),
+      msg='Failed to find pattern matched wifi connection dialog',
+  )
+  click_success = False
+  if select_button_text:
+    click_success = device.ui(text=select_button_text).click()
+  else:
+    click_success = pattern_matched_wifi.click()
+    # Try clicking `Connect` to handle OEM UI customization. We don't have a
+    # better way besides having a try since:
+    # 1. `click_success` is True even when clicking it does not take effect.
+    # 2. We cannot wait too long to check whether `text=ssid` element disappears
+    #    since there's a short timeout for user to respond to this dialog.
+    click_success |= device.ui(text='Connect').click()
+  asserts.assert_true(
+      click_success,
+      msg='Failed to select matched Wi-Fi when using a pattern network request.'
+  )
 
 
 def open_notification_bar(device: android_device.AndroidDevice) -> None:
@@ -69,20 +86,25 @@ def open_notification_bar(device: android_device.AndroidDevice) -> None:
 def allow_network_suggestion_in_dialog(
     device: android_device.AndroidDevice,
     hsv_output_path_when_failed: str | None = None,
+    allow_button_text: str | None = None,
 ) -> None:
-  """Allows network suggestion in dialog."""
+  """Allows network suggestion in dialog.
+
+  go/hsv/4858200577802240 is an example showing the dialog this method handles.
+  """
+  allow_button_text = allow_button_text or 'Allow'
   try:
     asserts.assert_true(
-        device.ui(textContains='Allow').wait.exists(
+        device.ui(textContains=allow_button_text).wait.exists(
             constants.CALLBACK_TIMEOUT
         ),
         msg='Failed to find network suggestion in dialog',
     )
-    device.ui(text='Allow').click()
+    device.ui(text=allow_button_text).click()
   except (errors.BaseError, asserts.signals.TestFailure):
     capture_hsv_snapshot(
         device,
-        prefix='network_allow_notification',
+        prefix='allow_adding_network_suggestion',
         output_path=hsv_output_path_when_failed,
     )
     raise
@@ -98,6 +120,8 @@ def return_home_page(device: android_device.AndroidDevice) -> None:
 def close_failed_to_connect_wifi_dialog(
     device: android_device.AndroidDevice,
     hsv_output_path_when_failed: str | None = None,
+    button_no_device_found: str | None = None,
+    button_something_came_up: str | None = None,
 ) -> None:
   """Closes failed to connect wifi dialog."""
   if device.ui(textContains='No devices found.').wait.exists(
@@ -108,7 +132,8 @@ def close_failed_to_connect_wifi_dialog(
         prefix='No devices found.',
         output_path=hsv_output_path_when_failed,
     )
-    device.ui(text='Cancel').click()
+    text = button_no_device_found or 'Cancel'
+    device.ui(text=text).click()
   if device.ui(textContains='Something came up.').wait.exists(
       _UI_OPERATION_TIMEOUT
   ):
@@ -117,7 +142,10 @@ def close_failed_to_connect_wifi_dialog(
         prefix='Something came up',
         output_path=hsv_output_path_when_failed,
     )
-    device.ui(text='Cancel').click()
+    if button_something_came_up:
+      device.ui(textMatches=button_something_came_up).click()
+    else:
+      device.ui(textMatches='Cancel|OK').click()
 
 
 def capture_hsv_snapshot(
