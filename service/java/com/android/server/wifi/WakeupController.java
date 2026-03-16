@@ -23,6 +23,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.Process;
 import android.provider.Settings;
@@ -176,8 +177,7 @@ public class WakeupController {
         mContentObserver = new ContentObserver(mHandler) {
             @Override
             public void onChange(boolean selfChange) {
-                // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-                if (mFeatureFlags.multiUserWifiEnhancement()) {
+                if (mFeatureFlags.multiUserWifiEnhancement() && Environment.isSdkAtLeastC()) {
                     synchronized (mLock) {
                         boolean oldValue = mWifiWakeupEnabled;
                         readWifiWakeupEnabledFromSettings();
@@ -199,8 +199,7 @@ public class WakeupController {
                 Settings.Global.WIFI_WAKEUP_ENABLED), true, mContentObserver);
         readWifiWakeupEnabledFromSettings();
 
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-        if (mFeatureFlags.multiUserWifiEnhancement()) {
+        if (mFeatureFlags.multiUserWifiEnhancement() && Environment.isSdkAtLeastC()) {
             mWifiSettingsConfigStore.registerChangeListener(
                     WifiSettingsConfigStore.WIFI_WAKEUP_ENABLED, (key, value) -> {
                         updateWifiWakeupEnabledFromSettingsConfigStore(value);
@@ -234,8 +233,7 @@ public class WakeupController {
                     mContext, Settings.Global.WIFI_WAKEUP_ENABLED, 0) == 1;
             Log.d(TAG, "Settings.Global: WifiWake " + (mWifiWakeupEnabled ? "enabled"
                     : "disabled"));
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (mFeatureFlags.multiUserWifiEnhancement()
+            if (mFeatureFlags.multiUserWifiEnhancement() && Environment.isSdkAtLeastC()
                     && mWifiWakeupEnabled != mWifiSettingsConfigStore.get(
                     WifiSettingsConfigStore.WIFI_WAKEUP_ENABLED)) {
                 mWifiSettingsConfigStore.put(WifiSettingsConfigStore.WIFI_WAKEUP_ENABLED,
@@ -277,8 +275,7 @@ public class WakeupController {
      */
     public void setEnabled(boolean enable) {
         synchronized (mLock) {
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (mFeatureFlags.multiUserWifiEnhancement()
+            if (mFeatureFlags.multiUserWifiEnhancement() && Environment.isSdkAtLeastC()
                     && mWifiWakeupEnabled != enable) {
                 // It is important for new builds to set mWifiWakeupEnabled immediately, instead of
                 // delegating to callbacks (e.g. old build relies on onChange to maintain

@@ -1054,7 +1054,7 @@ public class WifiConfigurationTest {
     @Test
     @RequiresFlagsEnabled(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public void testGetProfileKeyForPrivateNetworks() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(Flags.multiUserWifiEnhancement()).thenReturn(true);
         WifiConfiguration config = new WifiConfiguration();
         final String mSsid = "\"TestAp\"";
@@ -1549,7 +1549,7 @@ public class WifiConfigurationTest {
     @Test
     @RequiresFlagsEnabled(Flags.FLAG_MULTI_USER_WIFI_ENHANCEMENT)
     public void testSetAndGetCreatorUserId() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mMockUserHandle.getIdentifier()).thenReturn(UserHandle.SYSTEM.getIdentifier());
         when(Flags.multiUserWifiEnhancement()).thenReturn(true);
         WifiConfiguration config = new WifiConfiguration();

@@ -1022,6 +1022,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testUserSwitchingDisablesP2p_whenFlagEnabled() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         final int userId = 10;
         // Entering P2pEnabledState will populate the device address to the mThisDevice.
@@ -1052,6 +1053,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testUserStopDisablesP2p_forCurrentUser_whenFlagEnabled() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         final int userId = 10;
         forceP2pEnabled(mClient1);

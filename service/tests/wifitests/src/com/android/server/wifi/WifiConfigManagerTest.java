@@ -8693,7 +8693,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     @Test
     public void testConfigOnlyCanBeUpdatedByCreatorUser() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         when(mWifiPermissionsUtil.areTwoAppsFromSameUser(anyInt(), anyInt())).thenReturn(false);
         // Adding a network which disallow other user to edit it.
@@ -8728,7 +8728,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     @Test
     public void testCanModifyNetwork_DeviceOwnerCanUpdateDisallowedByOtherUsersNetwork() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         when(mWifiPermissionsUtil.areTwoAppsFromSameUser(anyInt(), anyInt())).thenReturn(false);
         mockIsOrganizationOwnedDeviceAdmin(false);
@@ -8855,6 +8855,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     @Test
     public void testHandleUserSwitchAfterUserStop() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         Context user2Context = mock(Context.class);
         when(user2Context.getSystemService(eq(UserManager.class))).thenReturn(mUserManager);
@@ -8889,7 +8890,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     @Test
     public void testGetConfiguredNetworksCreatedByCurrentUserWithPassword() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
 
         // Setup of two userIds and their mock contexts for handleUserSwitch. User1 is by default
@@ -8970,7 +8971,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     @Test
     public void testUpdateNetwork_privateToShared_multiUserEnhancementFlagOn() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         when(mWifiPermissionsUtil.areTwoAppsFromSameUser(anyInt(), anyInt())).thenReturn(true);
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
@@ -8998,7 +8999,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     @Test
     public void testUpdateNetwork_sharedToPrivate_multiUserEnhancementFlagOn() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         when(mWifiPermissionsUtil.areTwoAppsFromSameUser(anyInt(), anyInt())).thenReturn(true);
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
@@ -9027,7 +9028,7 @@ public class WifiConfigManagerTest extends WifiBaseTest {
      */
     @Test
     public void testUpdateNetworkWithUidAndCurrentUserIdIfNeeded() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
 

@@ -23,14 +23,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import android.net.MacAddress;
 import android.net.wifi.aware.Characteristics;
+import android.net.wifi.util.Environment;
 
 import com.android.server.wifi.DeviceConfigFacade;
 import com.android.server.wifi.WifiBaseTest;
@@ -41,6 +42,8 @@ import com.android.wifi.flags.FeatureFlags;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -53,8 +56,8 @@ import java.util.Set;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+
+
 
 /**
  * Unit test harness for PairingConfigManager.
@@ -81,7 +84,9 @@ public class PairingConfigManagerTest extends WifiBaseTest {
         when(mDeviceConfigFacade.getFeatureFlags()).thenReturn(mFeatureFlags);
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         mPairingConfigManager = new PairingConfigManager(mWifiInjector);
-        verify(mWifiConfigStore).registerStoreData(any());
+        if (Environment.isSdkAtLeastC()) {
+            verify(mWifiConfigStore).registerStoreData(any());
+        }
     }
 
     /**
@@ -95,7 +100,11 @@ public class PairingConfigManagerTest extends WifiBaseTest {
         mPairingConfigManager.removePackage(mPackageName);
         assertFalse(Arrays.equals(nik,
                 mPairingConfigManager.getNikForCallingPackage(mPackageName)));
-        verify(mWifiConfigManager, times(4)).saveToStore();
+        if (Environment.isSdkAtLeastC()) {
+            verify(mWifiConfigManager, times(4)).saveToStore();
+        } else {
+            verify(mWifiConfigManager, never()).saveToStore();
+        }
     }
 
     /**
@@ -119,7 +128,11 @@ public class PairingConfigManagerTest extends WifiBaseTest {
         mPairingConfigManager.removePairedDevice(mPackageName, mAlias);
         assertNull(mPairingConfigManager.getPairedDeviceAlias(mPackageName, mNouce, peerTag,
                 mac));
-        verify(mWifiConfigManager, times(4)).saveToStore();
+        if (Environment.isSdkAtLeastC()) {
+            verify(mWifiConfigManager, times(4)).saveToStore();
+        } else {
+            verify(mWifiConfigManager, never()).saveToStore();
+        }
     }
 
     /**

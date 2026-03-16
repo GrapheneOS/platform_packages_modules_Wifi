@@ -795,7 +795,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
             }
             Log.i(TAG, "User switching to " + userId);
             mCurrentUserId = userId;
-            if (mFeatureFlags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                 mP2pStateMachine.sendMessage(DISABLE_P2P);
             }
         });
@@ -811,7 +811,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
                 return;
             }
             Log.i(TAG, "User " + userId + " stopping");
-            if (mFeatureFlags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                 mP2pStateMachine.sendMessage(DISABLE_P2P);
             }
         });

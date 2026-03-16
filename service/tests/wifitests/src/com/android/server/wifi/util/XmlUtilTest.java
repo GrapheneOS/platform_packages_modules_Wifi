@@ -1025,7 +1025,7 @@ public class XmlUtilTest extends WifiBaseTest {
      */
     @Test
     public void testWifiConfigurationWithAllowedToUpdateByOtherUsers() throws Exception {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         WifiConfiguration config = WifiConfigurationTestUtil.createOpenNetwork();
         when(Flags.multiUserWifiEnhancement()).thenReturn(false);
         config.setAllowedToUpdateByOtherUsers(true);

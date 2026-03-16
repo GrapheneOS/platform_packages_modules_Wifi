@@ -9147,6 +9147,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testHandleUserUnlockWhenScanAlwaysAvailableChanged() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         when(mSettingsStore.isScanAlwaysAvailableToggleEnabled()).thenReturn(false);
         mWifiServiceImpl.checkAndStartWifi();

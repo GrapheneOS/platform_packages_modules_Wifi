@@ -21,6 +21,7 @@ import static com.android.server.wifi.WifiNetworkSelector.NetworkNominator.NOMIN
 import android.annotation.NonNull;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiContext;
+import android.net.wifi.util.Environment;
 import android.util.Log;
 
 import com.android.server.wifi.WifiCandidates.Candidate;
@@ -125,8 +126,8 @@ final class ThroughputScorer implements WifiCandidates.CandidateScorer {
                 : mScoringParams.getUnmeteredNetworkBonus();
 
         int savedNetworkAward = candidate.isEphemeral() ? 0 : mScoringParams.getSavedNetworkBonus();
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-        int privateConfigAward = (candidate.isPrivateConfig() && Flags.multiUserWifiEnhancement())
+        int privateConfigAward = (candidate.isPrivateConfig()
+                && Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement())
                 ? mScoringParams.getPrivateConfigBonus() : 0;
         int trustedAward = TRUSTED_AWARD;
         if (!candidate.isTrusted() || candidate.isRestricted()) {

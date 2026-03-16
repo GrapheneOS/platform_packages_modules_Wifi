@@ -35,6 +35,7 @@ import android.net.wifi.IActionListener;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
+import android.net.wifi.util.Environment;
 import android.net.wifi.util.ScanResultUtil;
 import android.os.Handler;
 import android.os.Looper;
@@ -224,8 +225,7 @@ public class AvailableNetworkNotifier {
             mContext.registerReceiver(
                     mBroadcastReceiver, filter, null /* broadcastPermission */, mHandler);
         }
-        // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-        if (mFeatureFlags.multiUserWifiEnhancement()) {
+        if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
             mWifiSettingsConfigStore.registerChangeListener(mToggleSettingsKey, (key, value) -> {
                 if (mSettingEnabled != value) {
                     mSettingEnabled = value;
@@ -639,8 +639,7 @@ public class AvailableNetworkNotifier {
         public void onChange(boolean selfChange) {
             super.onChange(selfChange);
             mSettingEnabled = getValue();
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (mFeatureFlags.multiUserWifiEnhancement()
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()
                     && mSettingEnabled != mWifiSettingsConfigStore.get(mToggleSettingsKey)) {
                 mWifiSettingsConfigStore.put(mToggleSettingsKey, mSettingEnabled);
             }

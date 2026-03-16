@@ -265,7 +265,7 @@ public class WakeupControllerTest extends WifiBaseTest {
      */
     @Test
     public void verifyToggleSetter() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
 
         initializeWakeupController(false /* enabled */);
@@ -900,7 +900,7 @@ public class WakeupControllerTest extends WifiBaseTest {
 
     @Test
     public void userIsOnboardedBySettingChange() {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
 
         // Initialize as disabled and capture the ContentObserver for its onChange listener.
@@ -962,7 +962,7 @@ public class WakeupControllerTest extends WifiBaseTest {
     @Test
     public void userIsOnboardedByWifiSettingsConfigStoreChange()
             throws Settings.SettingNotFoundException {
-        assumeTrue(Environment.isSdkNewerThanB());
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
 
         // Initialize as disabled and capture the WifiSettingsConfigStore listener.

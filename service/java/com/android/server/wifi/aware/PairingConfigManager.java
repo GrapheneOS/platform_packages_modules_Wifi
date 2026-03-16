@@ -16,10 +16,10 @@
 
 package com.android.server.wifi.aware;
 
+import android.net.wifi.util.Environment;
 import android.net.wifi.util.HexEncoding;
 import android.util.Log;
 
-import com.android.server.wifi.WifiConfigStore;
 import com.android.server.wifi.WifiInjector;
 import com.android.wifi.flags.FeatureFlags;
 
@@ -124,14 +124,14 @@ public class PairingConfigManager implements PairingConfigManagerData.DataSource
     public PairingConfigManager(WifiInjector wifiInjector) {
         mWifiInjector = wifiInjector;
         mFeatureFlags = mWifiInjector.getDeviceConfigFacade().getFeatureFlags();
-        if (mFeatureFlags.multiUserWifiEnhancement()) {
+        if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
             wifiInjector.getWifiConfigStore().registerStoreData(
                     new PairingConfigManagerData(this));
         }
     }
 
     private void saveToStore() {
-        if (!mFeatureFlags.multiUserWifiEnhancement()) {
+        if (!Environment.isSdkAtLeastC() || !mFeatureFlags.multiUserWifiEnhancement()) {
             return;
         }
         if (!mWifiInjector.getWifiConfigManager().saveToStore()) {
