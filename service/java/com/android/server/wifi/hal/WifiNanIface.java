@@ -847,8 +847,7 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          * Indicates that the pairing is finished
          */
         void eventPairingConfirm(int pairingId, boolean accept, int reason, int requestType,
-                boolean enableCache,
-                PairingConfigManager.PairingSecurityAssociationInfo npksa);
+                boolean enableCache);
 
         /**
          * Indicates that the bootstrapping request is from the peer device.
@@ -867,6 +866,14 @@ public class WifiNanIface implements WifiHal.WifiInterface {
          * the suspension mode
          */
         void eventSuspensionModeChanged(boolean isSuspended);
+
+        /**
+         * Indicates that the security association has been received. Will be used for pairing
+         * verification
+         */
+        void eventPairingSecurityAssociationReceived(int pairId,
+                PairingConfigManager.PairingSecurityAssociationInfo npksa);
+
 
         /**
          * Invoked when ranging results are available.

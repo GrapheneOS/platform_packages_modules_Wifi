@@ -670,11 +670,13 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
     public void eventPairingConfirm(NanPairingConfirmInd event) {
         if (!checkFrameworkCallback()) return;
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "eventPairingConfirm: ndpInstanceId=");
+            Log.v(TAG, "eventPairingConfirm: pairingInstanceId=" + event.pairingInstanceId);
         }
         mWifiNanIface.getFrameworkCallback().eventPairingConfirm(event.pairingInstanceId,
                 event.pairingSuccess, WifiNanIface.NanStatusCode.fromAidl(event.status.status),
-                pairingRequestTypeFromAidl(event.requestType), event.enablePairingCache,
+                pairingRequestTypeFromAidl(event.requestType), event.enablePairingCache);
+        mWifiNanIface.getFrameworkCallback().eventPairingSecurityAssociationReceived(event
+                        .pairingInstanceId,
                 createPairingSecurityAssociationInfo(event.npksa));
     }
 

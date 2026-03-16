@@ -4896,13 +4896,16 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (7) Receive confirm event
         mDut.onPairingConfirmNotification(pairId, true, NanStatusCode.SUCCESS,
-                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP, true,
-                new PairingConfigManager.PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
-                        WifiAwareStateManager.NAN_PAIRING_AKM_PASN,
-                        WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP, true
+        );
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onPairingSetupConfirmed(eq(peerIdCaptor.getValue()),
                 eq(true), eq(alias));
+        mDut.onPairingSecurityAssociationReceived(pairId, new PairingConfigManager
+                .PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
+                WifiAwareStateManager.NAN_PAIRING_AKM_PASN,
+                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+        mMockLooper.dispatchAll();
         inOrder.verify(mPairingConfigManager).addPairedDeviceSecurityAssociation(eq(callingPackage),
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
@@ -5054,10 +5057,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (6) Receive confirm event
         mDut.onPairingConfirmNotification(pairId, true, NanStatusCode.SUCCESS,
-                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_VERIFICATION, true,
-                new PairingConfigManager.PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
-                        WifiAwareStateManager.NAN_PAIRING_AKM_SAE,
-                        WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_VERIFICATION, true
+        );
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onPairingVerificationConfirmed(peerIdCaptor.capture(),
                 eq(true), eq(alias));
@@ -5220,13 +5221,16 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onInitiatePairingResponseSuccess(transactionId.getValue(), pairId);
         mMockLooper.dispatchAll();
         mDut.onPairingConfirmNotification(pairId, true, NanStatusCode.SUCCESS,
-                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP, true,
-                new PairingConfigManager.PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
-                        WifiAwareStateManager.NAN_PAIRING_AKM_PASN,
-                        WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP, true
+        );
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onPairingSetupConfirmed(eq(peerIdCaptor.getValue()),
                 eq(true), eq(alias));
+        mDut.onPairingSecurityAssociationReceived(pairId, new PairingConfigManager
+                .PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
+                WifiAwareStateManager.NAN_PAIRING_AKM_PASN,
+                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+        mMockLooper.dispatchAll();
         inOrder.verify(mPairingConfigManager).addPairedDeviceSecurityAssociation(eq(callingPackage),
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
@@ -5370,10 +5374,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onInitiatePairingResponseSuccess(transactionId.getValue(), pairId);
         mMockLooper.dispatchAll();
         mDut.onPairingConfirmNotification(pairId, true, NanStatusCode.SUCCESS,
-                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_VERIFICATION, true,
-                new PairingConfigManager.PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
-                        WifiAwareStateManager.NAN_PAIRING_AKM_SAE,
-                        WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_VERIFICATION, true
+        );
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onPairingVerificationConfirmed(eq(localPeerId),
                 eq(true), eq(alias));
@@ -6650,13 +6652,16 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
         // (7) Receive confirm event
         mDut.onPairingConfirmNotification(pairId, true, NanStatusCode.SUCCESS,
-                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP, true,
-                new PairingConfigManager.PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
-                        WifiAwareStateManager.NAN_PAIRING_AKM_PASN,
-                        WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP, true
+        );
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onPairingSetupConfirmed(eq(peerIdCaptor.getValue()),
                 eq(true), eq(alias));
+        mDut.onPairingSecurityAssociationReceived(pairId, new PairingConfigManager
+                .PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
+                WifiAwareStateManager.NAN_PAIRING_AKM_PASN,
+                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+        mMockLooper.dispatchAll();
         inOrder.verify(mPairingConfigManager).addPairedDeviceSecurityAssociation(eq(callingPackage),
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 
@@ -6850,13 +6855,16 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mDut.onInitiatePairingResponseSuccess(transactionId.getValue(), pairId);
         mMockLooper.dispatchAll();
         mDut.onPairingConfirmNotification(pairId, true, NanStatusCode.SUCCESS,
-                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP, true,
-                new PairingConfigManager.PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
-                        WifiAwareStateManager.NAN_PAIRING_AKM_PASN,
-                        WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+                WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP, true
+        );
         mMockLooper.dispatchAll();
         inOrder.verify(mockSessionCallback).onPairingSetupConfirmed(eq(publicPeerId),
                 eq(true), eq(alias));
+        mDut.onPairingSecurityAssociationReceived(pairId, new PairingConfigManager
+                .PairingSecurityAssociationInfo(mPeerNik, mNik, mPmk,
+                WifiAwareStateManager.NAN_PAIRING_AKM_PASN,
+                WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128));
+        mMockLooper.dispatchAll();
         inOrder.verify(mPairingConfigManager).addPairedDeviceSecurityAssociation(eq(callingPackage),
                 eq(alias), any(PairingConfigManager.PairingSecurityAssociationInfo.class));
 

@@ -53,11 +53,6 @@ parcelable NanPairingConfirmInd {
     boolean enablePairingCache;
 
     /**
-     * The security association negotiated for the pairing, can be cached for future verification.
-     */
-    NpkSecurityAssociation npksa;
-
-    /**
      * Optional vendor-specific parameters. Null value indicates that no vendor data is provided.
      */
     @nullable OuiKeyedData[] vendorData;

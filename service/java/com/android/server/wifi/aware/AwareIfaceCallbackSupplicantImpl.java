@@ -296,8 +296,7 @@ public class AwareIfaceCallbackSupplicantImpl extends ISupplicantNanIfaceEventCa
         }
         mFrameworkCallback.eventPairingConfirm(event.pairingInstanceId,
                 event.pairingSuccess, WifiNanIface.NanStatusCode.fromAidl(event.status.status),
-                pairingRequestTypeFromAidl(event.requestType), event.enablePairingCache,
-                createPairingSecurityAssociationInfo(event.npksa));
+                pairingRequestTypeFromAidl(event.requestType), event.enablePairingCache);
     }
 
     @Override
@@ -315,12 +314,14 @@ public class AwareIfaceCallbackSupplicantImpl extends ISupplicantNanIfaceEventCa
 
     @Override
     @RequiresNoPermission
-    public void eventPairingSecurityAssociationReceived(@NonNull NpkSecurityAssociation npksa)
+    public void eventPairingSecurityAssociationReceived(int discoverySessionId, int pairingId,
+            @NonNull NpkSecurityAssociation npksa)
         throws RemoteException {
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "eventPairingSecurityAssociationReceived: ");
+            Log.v(TAG, "eventPairingSecurityAssociationReceived: pairingId=" + pairingId);
         }
-        // TODO: pass the event information to upper layer
+        mFrameworkCallback.eventPairingSecurityAssociationReceived(
+                pairingId, createPairingSecurityAssociationInfo(npksa));
     }
 
     @Override

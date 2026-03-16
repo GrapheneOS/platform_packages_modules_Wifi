@@ -137,9 +137,12 @@ oneway interface ISupplicantNanIfaceEventCallback {
      * Callback indicating that a NAN identity key has been received after a pairing setup is
      * completed. Received by both Initiator and Responder.
      *
+     * @param discoverId Discovery session ID.
+     * @param pairingInstanceId Pairing instance ID.
      * @param npksa NpkSecurityAssociation containing NPKSA details.
      */
-    void eventPairingSecurityAssociationReceived(in NpkSecurityAssociation npksa);
+    void eventPairingSecurityAssociationReceived(
+            in int discoverId, in int pairingInstanceId, in NpkSecurityAssociation npksa);
 
     /**
      * Callback indicating that a data-path (NDP) setup has been completed.

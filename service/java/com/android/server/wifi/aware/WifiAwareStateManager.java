@@ -315,6 +315,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final int NOTIFICATION_TYPE_ON_BOOTSTRAPPING_CONFIRM = 317;
     private static final int NOTIFICATION_TYPE_ON_SUSPENSION_MODE_CHANGED = 318;
     private static final int NOTIFICATION_TYPE_RANGING_RESULTS = 319;
+    private static final int NOTIFICATION_TYPE_ON_PAIRING_SECURITY_ASSOCIATION_RECEIVED = 320;
 
     private static final SparseArray<String> sSmToString = MessageUtils.findMessageNames(
             new Class[]{WifiAwareStateManager.class},
@@ -469,12 +470,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         public final int mSessionId;
         public final int mPeerId;
         public final String mAlias;
+        public final int mRequestType;
 
-        PairingInfo(int clientId, int sessionId, int peerId, String alias) {
+        PairingInfo(int clientId, int sessionId, int peerId, String alias, int requestType) {
             mClientId = clientId;
             mSessionId = sessionId;
             mPeerId = peerId;
             mAlias = alias;
+            mRequestType = requestType;
         }
     }
 
@@ -2298,16 +2301,26 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
      * Place a callback request on the state machine queue: NAN Pairing confirm received.
      */
     public void onPairingConfirmNotification(int pairingId, boolean accept, int reason,
-            int requestType, boolean enableCache,
-            PairingSecurityAssociationInfo npksa) {
+            int requestType, boolean enableCache) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_NOTIFICATION);
         msg.arg1 = NOTIFICATION_TYPE_ON_PAIRING_CONFIRM;
         msg.arg2 = reason;
-        msg.obj = npksa;
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_PAIRING_REQUEST_ID, pairingId);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_PAIRING_TYPE, requestType);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_PAIRING_CACHE, enableCache);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_PAIRING_ACCEPT, accept);
+        mSm.sendMessage(msg);
+    }
+
+    /**
+     * Place a callback request on the state machine queue: NPKSA received
+     */
+    public void onPairingSecurityAssociationReceived(int pairingId,
+            PairingSecurityAssociationInfo npksa) {
+        Message msg = mSm.obtainMessage(MESSAGE_TYPE_NOTIFICATION);
+        msg.arg1 = NOTIFICATION_TYPE_ON_PAIRING_SECURITY_ASSOCIATION_RECEIVED;
+        msg.arg2 = pairingId;
+        msg.obj = npksa;
         mSm.sendMessage(msg);
     }
 
@@ -2516,6 +2529,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 case NOTIFICATION_TYPE_MATCH_EXPIRED -> "NOTIFICATION_TYPE_MATCH_EXPIRED";
                 case NOTIFICATION_TYPE_ON_PAIRING_REQUEST -> "NOTIFICATION_TYPE_ON_PAIRING_REQUEST";
                 case NOTIFICATION_TYPE_ON_PAIRING_CONFIRM -> "NOTIFICATION_TYPE_ON_PAIRING_CONFIRM";
+                case NOTIFICATION_TYPE_ON_PAIRING_SECURITY_ASSOCIATION_RECEIVED
+                        -> "NOTIFICATION_TYPE_ON_PAIRING_SECURITY_ASSOCIATION_RECEIVED";
                 case NOTIFICATION_TYPE_ON_BOOTSTRAPPING_REQUEST
                         -> "NOTIFICATION_TYPE_ON_BOOTSTRAPPING_REQUEST";
                 case NOTIFICATION_TYPE_ON_BOOTSTRAPPING_CONFIRM
@@ -2611,7 +2626,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                         int pairId = msg.arg1;
                         endPairing(pairId);
                         onPairingConfirmNotification(pairId, false,
-                                NanStatusCode.INTERNAL_FAILURE, msg.arg2, false, null);
+                                NanStatusCode.INTERNAL_FAILURE, msg.arg2, false);
                         mPairingConfirmTimeoutMessages.remove(pairId);
                         return HANDLED;
                     }
@@ -2977,13 +2992,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 case NOTIFICATION_TYPE_ON_PAIRING_CONFIRM: {
                     Bundle data = msg.getData();
                     int reason = msg.arg2;
-                    PairingSecurityAssociationInfo npksa = (PairingSecurityAssociationInfo) msg.obj;
                     int pairId = data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_REQUEST_ID);
                     boolean accept = data.getBoolean(MESSAGE_BUNDLE_KEY_PAIRING_ACCEPT);
                     boolean enableCache = data.getBoolean(MESSAGE_BUNDLE_KEY_PAIRING_CACHE);
                     int requestType = data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_TYPE);
                     boolean success = onPairingConfirmReceivedLocal(pairId, accept, reason,
-                            requestType, enableCache, npksa);
+                            requestType, enableCache);
                     if (success) {
                         WakeupMessage timeout = mPairingConfirmTimeoutMessages.get(pairId);
                         if (timeout != null) {
@@ -2991,6 +3005,12 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             timeout.cancel();
                         }
                     }
+                    break;
+                }
+                case NOTIFICATION_TYPE_ON_PAIRING_SECURITY_ASSOCIATION_RECEIVED: {
+                    PairingSecurityAssociationInfo npksa = (PairingSecurityAssociationInfo) msg.obj;
+                    int pairingId = msg.arg2;
+                    onPairingSecurityAssociationReceivedLocal(pairingId, npksa);
                     break;
                 }
                 case NOTIFICATION_TYPE_ON_BOOTSTRAPPING_CONFIRM: {
@@ -5203,7 +5223,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         PairingInfo pairingInfo = new PairingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
-                data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS));
+                data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS),
+                data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_TYPE));
         int requestId = data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_REQUEST_ID);
 
         WifiAwareDiscoverySessionState session = getClientSession(pairingInfo.mClientId,
@@ -5225,7 +5246,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         PairingInfo pairingInfo = new PairingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
-                data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS));
+                data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS),
+                data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_TYPE));
 
         WifiAwareDiscoverySessionState session = getClientSession(pairingInfo.mClientId,
                 pairingInfo.mSessionId, methodString);
@@ -5278,7 +5300,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         PairingInfo pairingInfo = new PairingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
-                data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS));
+                data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS),
+                data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_TYPE));
 
         WifiAwareDiscoverySessionState session = getClientSession(pairingInfo.mClientId,
                 pairingInfo.mSessionId, methodString);
@@ -5300,7 +5323,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         PairingInfo pairingInfo = new PairingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
-                data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS));
+                data.getString(MESSAGE_BUNDLE_KEY_PAIRING_ALIAS),
+                data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_TYPE));
 
         WifiAwareDiscoverySessionState session = getClientSession(pairingInfo.mClientId,
                 pairingInfo.mSessionId, methodString);
@@ -5867,9 +5891,11 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     }
 
     private boolean onPairingConfirmReceivedLocal(int pairingId, boolean accept, int reason,
-            int requestType, boolean enableCache, PairingSecurityAssociationInfo npksa) {
+            int requestType, boolean enableCache) {
         PairingInfo info = mPairingRequest.get(pairingId);
-        mPairingRequest.remove(pairingId);
+        if (!accept || !enableCache) {
+            mPairingRequest.remove(pairingId);
+        }
         if (info == null) {
             return false;
         }
@@ -5888,19 +5914,32 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     + ", sessionId=" + info.mSessionId);
             return false;
         }
-        session.onPairingConfirmReceived(info.mPeerId, accept, info.mAlias, requestType);
-        if (accept) {
-            if (enableCache && requestType == NAN_PAIRING_REQUEST_TYPE_SETUP) {
-                mPairingConfigManager.addPairedDeviceSecurityAssociation(
-                        client.getCallingPackage(), info.mAlias, npksa);
-                Log.v(TAG, "onPairingConfirmReceivedLocal:" + npksa.toString());
+        session.onPairingConfirmReceived(info.mPeerId, accept, info.mAlias, info.mRequestType);
+        if (!accept) {
+            if (mVerboseLoggingEnabled) {
+                Log.v(TAG, "Pairing request reject, reason=" + reason);
             }
-            return true;
-        }
-        if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "Pairing request reject, reason=" + reason);
         }
         return true;
+    }
+
+    private void onPairingSecurityAssociationReceivedLocal(int pairingId,
+            PairingSecurityAssociationInfo npksa) {
+        PairingInfo info = mPairingRequest.get(pairingId);
+        mPairingRequest.remove(pairingId);
+        if (info == null) {
+            return;
+        }
+        WifiAwareClientState client = mClients.get(info.mClientId);
+        if (client == null) {
+            Log.e(TAG,
+                    "onPairingSecurityAssociationReceivedLocal: no client exists for clientId="
+                            + info.mClientId);
+            return;
+        }
+        mPairingConfigManager.addPairedDeviceSecurityAssociation(client.getCallingPackage(),
+                info.mAlias, npksa);
+        Log.v(TAG, "onPairingSecurityAssociationReceivedLocal:" + npksa.toString());
     }
 
     private void onBootstrappingRequestReceivedLocal(int discoverySessionId, int peerId,
