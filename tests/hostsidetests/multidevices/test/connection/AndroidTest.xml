@@ -28,6 +28,8 @@
 
   <!-- Load the py zip file here instead of the `python_test_host` target. -->
   <option name="mobly_pkg" key="file" value="CtsWifiConnectionTests_py.zip" />
+  <!-- Set the test_path to skip listing test cases before creating the venv -->
+  <option name="test_path" value="__main__.py" />
   <option name="build_apk" key="file" value="wifi_mobly_snippet.apk" />
   <option name="mobly_config" key="file" value="WifiConnectionTestbed.yaml" />
 </configuration>
