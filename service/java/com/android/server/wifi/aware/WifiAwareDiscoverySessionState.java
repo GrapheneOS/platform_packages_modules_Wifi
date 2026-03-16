@@ -510,11 +510,13 @@ public class WifiAwareDiscoverySessionState {
      * @param nik NAN identity key
      * @param pmk credential for the pairing verification
      * @param akm Key exchange method is used for pairing
+     * @param cipherSuite Cipher suite is used for pairing
+     * @param peerNik NIK for peer device, used for verification
      * @return True if the request send succeed.
      */
     public boolean initiatePairing(short transactionId,
             int peerId, String password, int requestType, byte[] nik, byte[] pmk, int akm,
-            int cipherSuite) {
+            int cipherSuite, byte[] peerNik) {
         PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
         if (peerInfo == null) {
             Log.e(TAG, "initiatePairing: attempting to send pairing request to an address which"
@@ -533,7 +535,7 @@ public class WifiAwareDiscoverySessionState {
         boolean success = mWifiAwareNativeApi.initiatePairing(transactionId,
                 peerInfo.mInstanceId, peerInfo.mMac, nik,
                 mPairingConfig != null && mPairingConfig.isPairingCacheEnabled(),
-                requestType, pmk, password, akm, cipherSuite, mPubSubId);
+                requestType, pmk, password, akm, cipherSuite, mPubSubId, peerNik);
         if (!success) {
             if (requestType == NAN_PAIRING_REQUEST_TYPE_VERIFICATION) {
                 return false;
@@ -562,11 +564,13 @@ public class WifiAwareDiscoverySessionState {
      * @param nik NAN identity key
      * @param pmk credential for the pairing verification
      * @param akm Key exchange method is used for pairing
+     * @param cipherSuite Cipher suite is used for pairing
+     * @param peerNik NIK for peer device, used for verification
      * @return True if the request send succeed.
      */
     public boolean respondToPairingRequest(short transactionId, int peerId, int pairingId,
             boolean accept, byte[] nik, int requestType, byte[] pmk, String password, int akm,
-            int cipherSuite) {
+            int cipherSuite, byte[] peerNik) {
         PeerInfo peerInfo = mPeerInfoByRequestorInstanceId.get(peerId);
         if (peerInfo == null) {
             Log.e(TAG, "respondToPairingRequest: attempting to response to message to an "
@@ -584,7 +588,7 @@ public class WifiAwareDiscoverySessionState {
 
         boolean success = mWifiAwareNativeApi.respondToPairingRequest(transactionId, pairingId,
                 accept, nik, mPairingConfig != null && mPairingConfig.isPairingCacheEnabled(),
-                requestType, pmk, password, akm, cipherSuite, mPubSubId, peerInfo.mMac);
+                requestType, pmk, password, akm, cipherSuite, mPubSubId, peerInfo.mMac, peerNik);
         if (!success) {
             if (requestType == NAN_PAIRING_REQUEST_TYPE_VERIFICATION) {
                 return false;

@@ -4888,7 +4888,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
                 eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
                 eq(publishId),
-                eq(peerMac1));
+                eq(peerMac1),
+                isNull());
 
         // (6) Notify response succeed
         mDut.onRespondToPairingIndicationResponseSuccess(transactionId.getValue());
@@ -5049,7 +5050,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_SAE),
                 eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
                 eq(publishId),
-                eq(peerMac1));
+                eq(peerMac1),
+                eq(mPeerNik));
 
         // (5) Notify response succeed
         mDut.onRespondToPairingIndicationResponseSuccess(transactionId.getValue());
@@ -5215,7 +5217,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP), isNull(), isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
                 eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
-                eq(subscribeId));
+                eq(subscribeId), isNull());
 
         // (6) request send success and receive confirm
         mDut.onInitiatePairingResponseSuccess(transactionId.getValue(), pairId);
@@ -5368,7 +5370,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_VERIFICATION), eq(mPmk), isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_SAE),
                 eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
-                eq(subscribeId));
+                eq(subscribeId), eq(mPeerNik));
 
         // (5) request send success and receive confirm
         mDut.onInitiatePairingResponseSuccess(transactionId.getValue(), pairId);
@@ -5410,7 +5412,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 isNull(), anyInt(), isNull(), eq(alias), any(), isNull());
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNative, never()).initiatePairing(anyShort(), anyInt(), any(), any(),
-                anyBoolean(), anyInt(), any(), isNull(), anyInt(), anyInt(),anyByte());
+                anyBoolean(), anyInt(), any(), isNull(), anyInt(), anyInt(), anyByte(), any());
 
         // (8) subscribe termination (from firmware - not app!)
         mDut.onSessionTerminatedNotification(subscribeId, reasonTerminate, false);
@@ -6644,7 +6646,8 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
                 eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
                 eq(publishId),
-                eq(peerMac1));
+                eq(peerMac1),
+                isNull());
 
         // (6) Notify response succeed
         mDut.onRespondToPairingIndicationResponseSuccess(transactionId.getValue());
@@ -6849,7 +6852,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 eq(WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP), isNull(), isNull(),
                 eq(WifiAwareStateManager.NAN_PAIRING_AKM_PASN),
                 eq(WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128),
-                eq((byte)subscribeId));
+                eq((byte) subscribeId), isNull());
 
         // (6) request send success and receive confirm
         mDut.onInitiatePairingResponseSuccess(transactionId.getValue(), pairId);

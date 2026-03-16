@@ -394,6 +394,8 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private static final String MESSAGE_BUNDLE_KEY_IS_LEGACY_API = "is_legacy_api";
     private static final String MESSAGE_BUNDLE_KEY_NDI_INIT_MAC = "ndi_init_mac";
     private static final String MESSAGE_BUNDLE_KEY_NDI_PEER_MAC = "ndi_peer_mac";
+    private static final String MESSAGE_BUNDLE_KEY_PEER_NIK = "peer_nik";
+
     private WifiAwareNativeApi mWifiAwareNativeApi;
     private WifiAwareNativeManager mWifiAwareNativeManager;
 
@@ -1457,18 +1459,18 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         initiateNanPairingRequest(clientId, sessionId, peerId, password, pairingDeviceAlias,
                 NAN_PAIRING_REQUEST_TYPE_SETUP, null,
                 TextUtils.isEmpty(password) ? NAN_PAIRING_AKM_PASN : NAN_PAIRING_AKM_SAE,
-                cipherSuite);
+                cipherSuite, null);
     }
 
     private void initiateNanPairingVerificationRequest(int clientId, int sessionId, int peerId,
-            String pairingDeviceAlias, byte[] pmk, int akm, int cipherSuite) {
+            String pairingDeviceAlias, byte[] pmk, int akm, int cipherSuite, byte[] peerNik) {
         initiateNanPairingRequest(clientId, sessionId, peerId, null, pairingDeviceAlias,
-                NAN_PAIRING_REQUEST_TYPE_VERIFICATION, pmk, akm, cipherSuite);
+                NAN_PAIRING_REQUEST_TYPE_VERIFICATION, pmk, akm, cipherSuite, peerNik);
     }
 
     private void initiateNanPairingRequest(int clientId, int sessionId, int peerId,
             String password, String pairingDeviceAlias, int requestType, byte[] pmk, int akm,
-            int cipherSuite) {
+            int cipherSuite, byte[] peerNik) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_INITIATE_PAIRING_REQUEST;
         msg.arg2 = clientId;
@@ -1480,6 +1482,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_PAIRING_AKM, akm);
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_PAIRING_CIPHER_SUITE, cipherSuite);
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_PAIRING_PMK, pmk);
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_PEER_NIK, peerNik);
         mSm.sendMessage(msg);
     }
 
@@ -1492,20 +1495,20 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         responseNanPairingRequest(clientId, sessionId, peerId, requestId, password,
                 pairingDeviceAlias, NAN_PAIRING_REQUEST_TYPE_SETUP, null,
                 TextUtils.isEmpty(password) ? NAN_PAIRING_AKM_PASN : NAN_PAIRING_AKM_SAE, accept,
-                cipherSuite);
+                cipherSuite, null);
     }
 
     private void responseNanPairingVerificationRequest(int clientId, int sessionId, int peerId,
             int requestId, String pairingDeviceAlias, boolean accept, byte[] pmk, int akm,
-            int cipherSuite) {
+            int cipherSuite, byte[] peerNik) {
         responseNanPairingRequest(clientId, sessionId, peerId, requestId, null,
                 pairingDeviceAlias, NAN_PAIRING_REQUEST_TYPE_VERIFICATION, pmk, akm, accept,
-                cipherSuite);
+                cipherSuite, peerNik);
     }
 
     private void responseNanPairingRequest(int clientId, int sessionId, int peerId, int requestId,
             String password, String pairingDeviceAlias, int requestType, byte[] pmk, int akm,
-            boolean accept, int cipherSuite) {
+            boolean accept, int cipherSuite, byte[] peerNik) {
         Message msg = mSm.obtainMessage(MESSAGE_TYPE_COMMAND);
         msg.arg1 = COMMAND_TYPE_RESPONSE_PAIRING_REQUEST;
         msg.arg2 = clientId;
@@ -1519,6 +1522,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         msg.getData().putInt(MESSAGE_BUNDLE_KEY_PAIRING_CIPHER_SUITE, cipherSuite);
         msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_PAIRING_PMK, pmk);
         msg.getData().putBoolean(MESSAGE_BUNDLE_KEY_PAIRING_ACCEPT, accept);
+        msg.getData().putByteArray(MESSAGE_BUNDLE_KEY_PEER_NIK, peerNik);
         mSm.sendMessage(msg);
     }
 
@@ -3261,9 +3265,11 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     int akm = data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_AKM);
                     int cipherSuite = data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_CIPHER_SUITE);
                     byte[] pmk = data.getByteArray(MESSAGE_BUNDLE_KEY_PAIRING_PMK);
+                    byte[] peerNik = data.getByteArray(MESSAGE_BUNDLE_KEY_PEER_NIK);
+
                     waitForResponse = initiateNanPairingRequestLocal(mCurrentTransactionId,
                             clientId, sessionId, peerId, password, requestType, akm, pmk,
-                            cipherSuite);
+                            cipherSuite, peerNik);
                     break;
                 }
                 case COMMAND_TYPE_RESPONSE_PAIRING_REQUEST: {
@@ -3278,9 +3284,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     int cipherSuite = data.getInt(MESSAGE_BUNDLE_KEY_PAIRING_CIPHER_SUITE);
                     byte[] pmk = data.getByteArray(MESSAGE_BUNDLE_KEY_PAIRING_PMK);
                     boolean accept = data.getBoolean(MESSAGE_BUNDLE_KEY_PAIRING_ACCEPT);
+                    byte[] peerNik = data.getByteArray(MESSAGE_BUNDLE_KEY_PEER_NIK);
                     waitForResponse = respondToPairingRequestLocal(mCurrentTransactionId, clientId,
                             sessionId, peerId, requestId, accept, requestType, pmk, password, akm,
-                            cipherSuite);
+                            cipherSuite, peerNik);
                     break;
                 }
                 case COMMAND_TYPE_INITIATE_BOOTSTRAPPING_REQUEST: {
@@ -4457,7 +4464,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
 
     private boolean initiateNanPairingRequestLocal(short transactionId, int clientId, int sessionId,
             int peerId, String password, int requestType, int akm,
-            byte[] pmk, int cipherSuite) {
+            byte[] pmk, int cipherSuite, byte[] peerNik) {
         if (mVdbg) {
             Log.v(TAG, "initiateNanPairingRequestLocal: transactionId=" + transactionId
                     + ", clientId=" + clientId + ", sessionId=" + sessionId + ", peerId=" + peerId);
@@ -4474,14 +4481,32 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     + clientId + ", sessionId=" + sessionId);
             return false;
         }
+        if (hasActivePairingRequestToPeer(clientId, sessionId, peerId)) {
+            if (mVdbg) {
+                Log.v(TAG, "initiateNanPairingRequestLocal: active pairing request already "
+                        + "exists");
+            }
+            return false;
+        }
         return session.initiatePairing(transactionId, peerId, password, requestType,
                 mPairingConfigManager.getNikForCallingPackage(client.getCallingPackage()),
-                pmk, akm, cipherSuite);
+                pmk, akm, cipherSuite, peerNik);
+    }
+
+    private boolean hasActivePairingRequestToPeer(int clientId, int sessionId, int peerId) {
+        for (int i = 0; i < mPairingRequest.size(); i++) {
+            PairingInfo info = mPairingRequest.valueAt(i);
+            if (info.mClientId == clientId && info.mSessionId == sessionId
+                    && info.mPeerId == peerId) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean respondToPairingRequestLocal(short transactionId, int clientId, int sessionId,
             int peerId, int pairingId, boolean accept, int requestType, byte[] pmk,
-            String password, int akm, int cipherSuite) {
+            String password, int akm, int cipherSuite, byte[] peerNik) {
         if (mVdbg) {
             Log.v(TAG,
                     "respondToPairingRequestLocal: transactionId=" + transactionId + ", clientId="
@@ -4500,10 +4525,17 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     + ", sessionId=" + sessionId);
             return false;
         }
+        if (hasActivePairingRequestToPeer(clientId, sessionId, peerId)) {
+            if (mVdbg) {
+                Log.v(TAG, "initiateNanPairingRequestLocal: active pairing request already "
+                        + "exists");
+            }
+            return false;
+        }
         return session.respondToPairingRequest(transactionId, peerId, pairingId,
                 accept,
                 mPairingConfigManager.getNikForCallingPackage(client.getCallingPackage()),
-                requestType, pmk, password, akm, cipherSuite);
+                requestType, pmk, password, akm, cipherSuite, peerNik);
     }
 
     private boolean initiateBootstrappingRequestLocal(short transactionId, int clientId,
@@ -5735,9 +5767,17 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (securityInfo == null) {
             return;
         }
+        if (hasActivePairingRequestToPeer(data.first.getClientId(), data.second.getSessionId(),
+                peerId)) {
+            if (mVdbg) {
+                Log.v(TAG, "initiateNanPairingRequestLocal: active pairing request already "
+                        + "exists");
+            }
+            return;
+        }
         initiateNanPairingVerificationRequest(data.first.getClientId(), data.second.getSessionId(),
                 peerId, pairingAlias, securityInfo.mNpk, securityInfo.mAkm,
-                securityInfo.mCipherSuite);
+                securityInfo.mCipherSuite, securityInfo.mPeerNik);
     }
 
     private void onMatchExpiredLocal(int pubSubId, int requestorInstanceId) {
@@ -5881,12 +5921,14 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             responseNanPairingVerificationRequest(data.first.getClientId(),
                     data.second.getSessionId(),
                     peerId, pairingId, alias,
-                    true, securityInfo.mNpk, securityInfo.mAkm, securityInfo.mCipherSuite);
+                    true, securityInfo.mNpk, securityInfo.mAkm, securityInfo.mCipherSuite,
+                    securityInfo.mPeerNik);
         } else {
             // If local cache is not found, reject the verification request.
-            responseNanPairingVerificationRequest(data.first.getClientId(), discoverySessionId,
+            responseNanPairingVerificationRequest(data.first.getClientId(),
+                    data.second.getSessionId(),
                     peerId, pairingId, alias,
-                    false, null, 0, WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128);
+                    false, null, 0, WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128, null);
         }
     }
 

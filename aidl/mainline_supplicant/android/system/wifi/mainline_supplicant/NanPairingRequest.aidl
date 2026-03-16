@@ -68,6 +68,11 @@ parcelable NanPairingRequest {
     NanPairingSecurityConfig securityConfig;
 
     /**
+     * The Identity key for pairing from peer, used for pairing verification.
+     */
+    @nullable byte[16] peerIdentityKey;
+
+    /**
      * Optional vendor-specific parameters. Null value indicates that no vendor data is provided.
      */
     @nullable OuiKeyedData[] vendorData;

@@ -130,14 +130,15 @@ public class TestUtils {
 
         public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
                 byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-                String password, int akm, int cipherSuite, byte pubSubID, byte[] peerMac) {
+                String password, int akm, int cipherSuite, byte pubSubID, byte[] peerMac,
+                byte[] peerNik) {
             addTransactionId(transactionId);
             return true;
         }
 
         public boolean initiatePairing(short transactionId, int peerId, byte[] peer,
                 byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-                String password, int akm, int cipherSuite, byte pubSubID) {
+                String password, int akm, int cipherSuite, byte pubSubID, byte[] peerNik) {
             addTransactionId(transactionId);
             return true;
         }
