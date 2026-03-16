@@ -2185,6 +2185,24 @@ message WifiRttLog {
   // Histogram of how long a measurement with aware peer included take.
   repeated HistogramBucket histogram_measurement_duration_with_aware = 6;
 
+  // Histogram of continuous ranging start status
+  repeated RttContinuousRangingStartStatusHistogramBucket
+      histogram_continuous_ranging_start_status = 7;
+
+  // Histogram of continuous ranging session duration
+  repeated HistogramBucket histogram_continuous_ranging_session_duration = 8;
+
+  // Histogram of continuous ranging termination reason
+  repeated RttContinuousRangingTerminationReasonHistogramBucket
+      histogram_continuous_ranging_termination_reason = 9;
+
+  // Histogram of continuous ranging interval
+  repeated HistogramBucket histogram_continuous_ranging_interval = 10;
+
+  // Histogram of continuous ranging result status
+  repeated RttIndividualStatusHistogramBucket
+      histogram_continuous_ranging_result_status = 11;
+
   // Metrics for a RTT to Peer (peer = AP or Wi-Fi Aware)
   message RttToPeerLog {
     // Total number of API calls
@@ -2324,6 +2342,58 @@ message WifiRttLog {
   message RttIndividualStatusHistogramBucket {
     // status type defining the bucket
     optional RttIndividualStatusTypeEnum status_type = 1;
+
+    // number of samples in the bucket
+    optional int32 count = 2;
+  }
+
+  // Status codes for continuous ranging start status
+  enum RttContinuousRangingStartStatusTypeEnum {
+    // RTT start succeeded
+    START_SUCCESS = 0;
+
+    // RTT start failed: generic reason (no further information)
+    FAILURE_REASON_GENERIC = 1;
+
+    // RTT start failed: RTT not available
+    FAILURE_REASON_RTT_NOT_AVAILABLE = 2;
+
+    // RTT start failed: RTT busy
+    FAILURE_REASON_RTT_BUSY = 3;
+
+    // RTT start failed: RTT PD negotiation failed
+    FAILURE_REASON_RTT_PD_NEGOTIATION_FAILED = 4;
+  }
+
+  message RttContinuousRangingStartStatusHistogramBucket {
+    // status type defining the bucket
+    optional RttContinuousRangingStartStatusTypeEnum status_type = 1;
+
+    // number of samples in the bucket
+    optional int32 count = 2;
+  }
+
+  // Status codes for continuous ranging termination reason
+  enum RttContinuousRangingTerminationReasonTypeEnum {
+    // constant to be used by proto
+    STOP_UNKNOWN = 0;
+
+    // RTT termination timed out
+    TIMEOUT = 1;
+
+    // RTT termination requested by user
+    USER_REQUEST = 2;
+
+    // RTT termination aborted due to concurrency
+    ABORT_CONCURRENCY = 3;
+
+    // RTT termination received
+    RECEIVED_RTT_TERMINATE = 4;
+  }
+
+  message RttContinuousRangingTerminationReasonHistogramBucket {
+    // status type defining the bucket
+    optional RttContinuousRangingTerminationReasonTypeEnum status_type = 1;
 
     // number of samples in the bucket
     optional int32 count = 2;

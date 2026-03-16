@@ -17,9 +17,12 @@
 package com.android.server.wifi.rtt;
 
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import android.net.MacAddress;
+import android.net.wifi.rtt.ContinuousRangingResultCallback;
 import android.net.wifi.rtt.RangingRequest;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.rtt.ResponderConfig;
@@ -33,12 +36,18 @@ import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ErrorCollector;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
+
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.server.wifi.proto.WifiStatsLog;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -58,6 +67,8 @@ public class RttMetricsTest extends WifiBaseTest {
     @Rule
     public ErrorCollector collector = new ErrorCollector();
 
+    private MockitoSession mSession;
+
     /**
      * Pre-test configuration. Initialize and install mocks.
      */
@@ -67,6 +78,16 @@ public class RttMetricsTest extends WifiBaseTest {
 
         setTime(1);
         mDut = new RttMetrics(mClock);
+
+        mSession = ExtendedMockito.mockitoSession()
+                .strictness(Strictness.LENIENT)
+                .mockStatic(WifiStatsLog.class)
+                .startMocking();
+    }
+
+    @After
+    public void tearDown() {
+        mSession.finishMocking();
     }
 
     /**
@@ -482,6 +503,98 @@ public class RttMetricsTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that recordContinuousRanging*() records valid metrics.
+     */
+    @Test
+    public void testRecordContinuousRanging() {
+        WifiMetricsProto.WifiRttLog log;
+
+        mDut.clear();
+
+        RangingRequest request = getDummyRangingRequest(1, 0);
+        mDut.recordContinuousRangingRequest(request, 0);
+        mDut.recordContinuousRangingStartStatus(0, request);
+
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                eq(WifiStatsLog.WIFI_CONTINUOUS_RANGING_START_REPORTED),
+                eq(WifiStatsLog.WIFI_CONTINUOUS_RANGING_START_REPORTED__STATUS__SUCCESS),
+                any(boolean[].class), any(boolean[].class), any(int[].class), any(int[].class),
+                any(int[].class), any(int[].class), any(int[].class), any(boolean[].class)
+        ));
+
+        List<RangingResult> resultsSuccess = getDummyRangingResults(
+                WifiRttController.FRAMEWORK_RTT_STATUS_SUCCESS, request, 5, 0); // 5m distance
+        mDut.recordContinuousRangingResults(0, resultsSuccess);
+
+        List<RangingResult> resultsFail = getDummyRangingResults(
+                WifiRttController.FRAMEWORK_RTT_STATUS_FAIL_NO_RSP, request, 0, 0);
+        mDut.recordContinuousRangingResults(0, resultsFail);
+
+        mDut.recordContinuousRangingSession(5000, 200); // 5000ms duration, 200ms interval
+        mDut.recordContinuousRangingSession(1000, 1000); // 1000ms duration, 1000ms interval
+        mDut.recordContinuousRangingSession(12000, 2500); // 12000ms duration, 2500ms interval
+        mDut.recordContinuousRangingTerminationReason(
+                ContinuousRangingResultCallback.TERMINATE_REASON_USER_REQUEST);
+
+        ExtendedMockito.verify(() -> WifiStatsLog.write(
+                eq(WifiStatsLog.WIFI_CONTINUOUS_RANGING_STOP_REPORTED),
+                eq(WifiStatsLog.WIFI_CONTINUOUS_RANGING_STOP_REPORTED__REASON__USER_REQUEST)
+        ));
+
+        log = mDut.consolidateProto();
+
+        // Verify Start Status
+        validateProtoContinuousRangingStartStatusHistBucket("Start Status",
+                log.histogramContinuousRangingStartStatus[0],
+                WifiMetricsProto.WifiRttLog.START_SUCCESS, 1);
+
+        // Verify Result Status
+        validateProtoIndividualStatusHistBucket("Result Status Success",
+                log.histogramContinuousRangingResultStatus[0],
+                WifiMetricsProto.WifiRttLog.SUCCESS, 1);
+        validateProtoIndividualStatusHistBucket("Result Status Fail",
+                log.histogramContinuousRangingResultStatus[1],
+                WifiMetricsProto.WifiRttLog.FAIL_NO_RSP, 1);
+
+        // Verify Session Duration
+        collector.checkThat("histogramContinuousRangingSessionDuration.length",
+                log.histogramContinuousRangingSessionDuration.length, equalTo(3));
+        // bucket [0, 2000)
+        validateProtoHistBucket("Session Duration",
+                log.histogramContinuousRangingSessionDuration[0],
+                0, 2000, 1);
+        // bucket [4000, 6000)
+        validateProtoHistBucket("Session Duration",
+                log.histogramContinuousRangingSessionDuration[1],
+                4000, 6000, 1);
+        // bucket [12000, Integer.MAX_VALUE)
+        validateProtoHistBucket("Session Duration",
+                log.histogramContinuousRangingSessionDuration[2],
+                12000, Integer.MAX_VALUE, 1);
+
+        // Verify Interval
+        collector.checkThat("histogramContinuousRangingInterval.length",
+                log.histogramContinuousRangingInterval.length, equalTo(3));
+        // bucket [0, 500)
+        validateProtoHistBucket("Interval",
+                log.histogramContinuousRangingInterval[0],
+                0, 500, 1);
+        // bucket [1000, 1500)
+        validateProtoHistBucket("Interval",
+                log.histogramContinuousRangingInterval[1],
+                1000, 1500, 1);
+        // bucket [2500, 3000)
+        validateProtoHistBucket("Interval",
+                log.histogramContinuousRangingInterval[2],
+                2500, 3000, 1);
+
+        // Verify Termination Reason
+        validateProtoContinuousRangingTerminationReasonHistBucket("Termination Reason",
+                log.histogramContinuousRangingTerminationReason[0],
+                WifiMetricsProto.WifiRttLog.USER_REQUEST, 1);
+    }
+
+    /**
      * Verify that all overall status codes are recorded correctly.
      */
     @Test
@@ -553,6 +666,20 @@ public class RttMetricsTest extends WifiBaseTest {
     private void validateProtoIndividualStatusHistBucket(String logPrefix,
             WifiMetricsProto.WifiRttLog.RttIndividualStatusHistogramBucket bucket, int status,
             int count) {
+        collector.checkThat(logPrefix + ": statusType", bucket.statusType, equalTo(status));
+        collector.checkThat(logPrefix + ": count", bucket.count, equalTo(count));
+    }
+
+    private void validateProtoContinuousRangingStartStatusHistBucket(String logPrefix,
+            WifiMetricsProto.WifiRttLog.RttContinuousRangingStartStatusHistogramBucket bucket,
+            int status, int count) {
+        collector.checkThat(logPrefix + ": statusType", bucket.statusType, equalTo(status));
+        collector.checkThat(logPrefix + ": count", bucket.count, equalTo(count));
+    }
+
+    private void validateProtoContinuousRangingTerminationReasonHistBucket(String logPrefix,
+            WifiMetricsProto.WifiRttLog.RttContinuousRangingTerminationReasonHistogramBucket bucket,
+            int status, int count) {
         collector.checkThat(logPrefix + ": statusType", bucket.statusType, equalTo(status));
         collector.checkThat(logPrefix + ": count", bucket.count, equalTo(count));
     }
