@@ -456,7 +456,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
 
         pairing_config1 = constants.AwarePairingConfig(
             pairing_setup_enabled=True,
-            pairing_cache_enabled=True,
+            pairing_cache_enabled=False,
             pairing_verification_enabled=True,
             bootstrapping_methods=constants.BootstrappingMethod.PASSPHRASE_KEYPAD,
         )
