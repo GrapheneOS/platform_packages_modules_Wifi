@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.net.wifi.SoftApConfiguration;
+import android.net.wifi.util.Environment;
 import android.util.Log;
 
 import com.android.server.wifi.util.SettingsMigrationDataHolder;
@@ -167,8 +168,7 @@ public abstract class SoftApStoreData implements WifiConfigStore.StoreData {
         public void serializeData(XmlSerializer out,
                 @android.annotation.Nullable WifiConfigStoreEncryptionUtil encryptionUtil)
                 throws XmlPullParserException, IOException {
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (Flags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
                 Log.e(TAG, "Cannot serialize read-only shared SoftApStoreData, which is only"
                         + "used for data migration.");
             } else {
@@ -193,8 +193,7 @@ public abstract class SoftApStoreData implements WifiConfigStore.StoreData {
             if (softApConfig == null) {
                 return;
             }
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (Flags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
                 mDataSource.prepareSharedToPrivateMigrationDataHolder(softApConfig);
             } else {
                 mDataSource.fromDeserialized(softApConfig);
@@ -203,8 +202,7 @@ public abstract class SoftApStoreData implements WifiConfigStore.StoreData {
 
         @Override
         public void resetData() {
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (Flags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
                 // Since SharedStoreData will only load DE data to migration holder and won't write
                 // into cache for user data, reset migration data holder is sufficient.
                 mDataSource.resetMigrationDataHolder();
@@ -215,8 +213,7 @@ public abstract class SoftApStoreData implements WifiConfigStore.StoreData {
 
         @Override
         public boolean hasNewDataToSerialize() {
-            // TODO: b/449013275 Add Environment.isSdkNewerThanB())
-            if (Flags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
                 // SharedDataStore is read-only so there's always no data for serialization.
                 return false;
             } else {

@@ -24,7 +24,6 @@ import static com.android.server.wifi.ml_connected_scorer.Flags.SCAN_TRIGGERING_
 import static com.android.server.wifi.ml_connected_scorer.Flags.SCORE_BREACHING_RSSI_THRESHOLD;
 import static com.android.server.wifi.ml_connected_scorer.Flags.THRESHOLD;
 import static com.android.server.wifi.ml_connected_scorer.Flags.THRESHOLD_HYSTERESIS;
-import static com.android.server.wifi.proto.nano.WifiMetricsProto.WifiIsUnusableEvent.TYPE_UNKNOWN;
 
 import static java.lang.Math.min;
 
@@ -61,8 +60,6 @@ public class MlConnectedScorer extends ConnectedScorer {
     private MlConnectedScorerHelper mHelper;
     private String mLastBssid = null;
     private int mLastFrequency = -1;
-    private boolean mHasDataStall = false;
-
     public MlConnectedScorer(WifiUsabilityClassifierFactory factory,
             MlConnectedScorerHelper helper) {
         mFactory = factory;
@@ -93,13 +90,10 @@ public class MlConnectedScorer extends ConnectedScorer {
                 || mHelper.isRssiLowAndLinkSpeedVeryLow(stats);
         }
 
-        if (!mHasDataStall) {
-            mHasDataStall = stats.getStatusDataStall() != TYPE_UNKNOWN;
-        }
         return ConnectedScoreResult.builder()
                 .setScore((int) score)
-                .setAdjustedScore(mHasDataStall ? 0 : (int) adjustedScore)
-                .setIsWifiUsable(mHasDataStall ? false : mRecommendDefaultNetwork)
+                .setAdjustedScore((int) adjustedScore)
+                .setIsWifiUsable(mRecommendDefaultNetwork)
                 .setShouldTriggerScan(mIsScoreScanThresholdBreach)
                 .setShouldCheckNud(shouldCheckNud)
                 .setShouldBlockBssid(mBlockCurrentBssid)
@@ -255,6 +249,5 @@ public class MlConnectedScorer extends ConnectedScorer {
         mBlockCurrentBssid = false;
         mLastScoreBreachTimeMillis = INVALID_TIMESTAMP_MS;
         mIsScoreTrendingDownwards = false;
-        mHasDataStall = false;
     }
 }

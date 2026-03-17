@@ -1022,6 +1022,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testUserSwitchingDisablesP2p_whenFlagEnabled() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         final int userId = 10;
         // Entering P2pEnabledState will populate the device address to the mThisDevice.
@@ -1052,6 +1053,7 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testUserStopDisablesP2p_forCurrentUser_whenFlagEnabled() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(true);
         final int userId = 10;
         forceP2pEnabled(mClient1);
@@ -8525,6 +8527,36 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
         assertThrows(SecurityException.class,
                 () -> mWifiP2pServiceImpl.registerWifiP2pListener(mP2pListener, TEST_PACKAGE_NAME,
                         mExtras));
+    }
+
+    /**
+     * Verify that onGroupCreationFailed is called if the group is removed before it is formed.
+     */
+    @Test
+    public void testGroupRemovedBeforeGroupFormed() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        forceP2pEnabled(mClient1);
+        mWifiP2pServiceImpl.registerWifiP2pListener(mP2pListener, TEST_PACKAGE_NAME, mBundle);
+        mLooper.dispatchAll();
+
+        WifiP2pGroup group = new WifiP2pGroup();
+        group.setInterface(IFACE_NAME_P2P);
+        group.setIsGroupOwner(false);
+        group.setOwner(mTestWifiP2pDevice);
+        group.setNetworkId(WifiP2pGroup.NETWORK_ID_PERSISTENT);
+
+        // InactiveState -> GroupNegotiationState -> GroupCreatedState
+        sendGroupStartedMsg(group);
+        mLooper.dispatchAll();
+
+        // Group is removed BEFORE it is formed (e.g. before DHCP success)
+        sendGroupRemovedMsg();
+        mLooper.dispatchAll();
+
+        // Should call onGroupCreationFailed, not onGroupRemoved
+        verify(mP2pListener).onGroupCreationFailed(
+                WifiP2pManager.GROUP_CREATION_FAILURE_REASON_GROUP_REMOVED);
+        verify(mP2pListener, never()).onGroupRemoved();
     }
 
     /**

@@ -104,6 +104,7 @@ import android.net.wifi.aware.WifiAwareChannelInfo;
 import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
 import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
+import android.net.wifi.util.Environment;
 import android.net.wifi.util.HexEncoding;
 import android.os.Bundle;
 import android.os.Handler;
@@ -368,7 +369,9 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         assertEquals(StatsManager.PULL_SUCCESS, mPullAtomCallbackArgumentCaptor.getValue()
                 .onPullAtom(WIFI_AWARE_CAPABILITIES, new ArrayList<>()));
         mDut.handleUserSwitch(TEST_USER_ID);
-        verify(mPairingConfigManager).reset();
+        if (Environment.isSdkAtLeastC()) {
+            verify(mPairingConfigManager).reset();
+        }
         reset(mPairingConfigManager);
     }
 
@@ -6419,6 +6422,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
     @Test
     public void testHandleUserSwitch() {
+        assumeTrue(Environment.isSdkAtLeastC());
         int userId = 20;
         mDut.handleUserSwitch(userId);
         mMockLooper.dispatchAll();
@@ -6427,6 +6431,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
     @Test
     public void testHandleUserSwitchSameUser() {
+        assumeTrue(Environment.isSdkAtLeastC());
         mDut.handleUserUnlock(TEST_USER_ID);
         mMockLooper.dispatchAll();
         verify(mPairingConfigManager, never()).reset();
@@ -6434,6 +6439,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
     @Test
     public void testHandleUserStop() {
+        assumeTrue(Environment.isSdkAtLeastC());
         mDut.handleUserStop(TEST_USER_ID);
         mMockLooper.dispatchAll();
         verify(mPairingConfigManager).reset();
@@ -6441,6 +6447,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
     @Test
     public void testHandleUserStopDifferentUser() {
+        assumeTrue(Environment.isSdkAtLeastC());
         int userId = 20;
         mDut.handleUserStop(userId);
         mMockLooper.dispatchAll();
@@ -6449,6 +6456,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
     @Test
     public void testHandleUserSwitchDisableAware() {
+        assumeTrue(Environment.isSdkAtLeastC());
         mDut.enableUsage();
         mMockLooper.dispatchAll();
         assertTrue(mDut.isUsageEnabled());
@@ -6465,6 +6473,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
     @Test
     public void testHandleUserSwitchDisableAwareFlagOff() {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(false);
         mDut.enableUsage();
         mMockLooper.dispatchAll();
@@ -6482,6 +6491,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
     @Test
     public void testHandleUserStopDisableAware() {
+        assumeTrue(Environment.isSdkAtLeastC());
         mDut.enableUsage();
         mMockLooper.dispatchAll();
         assertTrue(mDut.isUsageEnabled());
@@ -6496,6 +6506,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
 
     @Test
     public void testHandleUserStopDisableAwareFlagOff() {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.multiUserWifiEnhancement()).thenReturn(false);
         mDut.enableUsage();
         mMockLooper.dispatchAll();

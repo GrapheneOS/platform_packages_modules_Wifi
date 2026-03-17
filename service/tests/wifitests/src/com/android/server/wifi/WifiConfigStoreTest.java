@@ -491,7 +491,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
 
     private String generateTestStringForAddingNewDataInWriteCommonElementsToXml() {
         StringBuilder sbuf = new StringBuilder();
-        if (Flags.multiUserWifiEnhancement()) {
+        if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
             sbuf.append("<boolean name=\"AllowedToUpdateByOtherUsers\" value=\"false\" />\n");
         }
         if (Environment.isSdkAtLeastC()
@@ -504,7 +504,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
 
     private String generateTestStringForAddingNewDataInWriteToXmlForConfigStore() {
         StringBuilder sbuf = new StringBuilder();
-        if (Flags.multiUserWifiEnhancement()) {
+        if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
             sbuf.append("<int name=\"CreatorUserId\" value=\"10\" />\n");
         }
         return sbuf.toString();
@@ -542,7 +542,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
             List<WifiConfiguration> userConfigs = new ArrayList<>();
             openNetwork.subscriptionId = TEST_SUB_ID;
             // Always configure to non-default value to make sure logic is correct.
-            if (Flags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
                 openNetwork.setCreatorUserId(10);
                 openNetwork.setAllowedToUpdateByOtherUsers(false);
             }
@@ -598,7 +598,7 @@ public class WifiConfigStoreTest extends WifiBaseTest {
             openNetwork.setRandomizedMacAddress(TEST_RANDOMIZED_MAC);
             openNetwork.subscriptionId = TEST_SUB_ID;
             // Always configure to non-default value to make sure logic is correct.
-            if (Flags.multiUserWifiEnhancement()) {
+            if (Environment.isSdkAtLeastC() && Flags.multiUserWifiEnhancement()) {
                 openNetwork.setCreatorUserId(10);
                 openNetwork.setAllowedToUpdateByOtherUsers(false);
             }

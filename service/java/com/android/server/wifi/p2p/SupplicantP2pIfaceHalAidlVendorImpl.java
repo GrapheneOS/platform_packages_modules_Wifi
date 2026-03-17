@@ -114,7 +114,7 @@ public class SupplicantP2pIfaceHalAidlVendorImpl extends SupplicantP2pIfaceHalAi
     @Override
     protected boolean setCurrentUserIdentity(int userId) {
         final String methodStr = "setCurrentUserIdentity";
-        if (!Environment.isSdkNewerThanB() || !Flags.multiUserWifiEnhancement()) {
+        if (!Environment.isSdkAtLeastC() || !Flags.multiUserWifiEnhancement()) {
             return true;
         }
         synchronized (mLock) {

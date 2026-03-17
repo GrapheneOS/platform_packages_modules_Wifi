@@ -994,6 +994,7 @@ public class NetworkListStoreDataTest extends WifiBaseTest {
      */
     @Test
     public void parseNetworkWithInvalidCreatorUidResetsToSystem() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(ActivityManager.getCurrentUser()).thenReturn(TEST_CREATOR_USER_ID);
         when(Flags.multiUserWifiEnhancement()).thenReturn(true);
         WifiConfiguration openNetwork = WifiConfigurationTestUtil.createOpenNetwork();
