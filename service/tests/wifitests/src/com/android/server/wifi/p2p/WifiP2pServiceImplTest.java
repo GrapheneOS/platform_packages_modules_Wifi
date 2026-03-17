@@ -8530,6 +8530,36 @@ public class WifiP2pServiceImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that onGroupCreationFailed is called if the group is removed before it is formed.
+     */
+    @Test
+    public void testGroupRemovedBeforeGroupFormed() throws Exception {
+        assumeTrue(SdkLevel.isAtLeastT());
+        forceP2pEnabled(mClient1);
+        mWifiP2pServiceImpl.registerWifiP2pListener(mP2pListener, TEST_PACKAGE_NAME, mBundle);
+        mLooper.dispatchAll();
+
+        WifiP2pGroup group = new WifiP2pGroup();
+        group.setInterface(IFACE_NAME_P2P);
+        group.setIsGroupOwner(false);
+        group.setOwner(mTestWifiP2pDevice);
+        group.setNetworkId(WifiP2pGroup.NETWORK_ID_PERSISTENT);
+
+        // InactiveState -> GroupNegotiationState -> GroupCreatedState
+        sendGroupStartedMsg(group);
+        mLooper.dispatchAll();
+
+        // Group is removed BEFORE it is formed (e.g. before DHCP success)
+        sendGroupRemovedMsg();
+        mLooper.dispatchAll();
+
+        // Should call onGroupCreationFailed, not onGroupRemoved
+        verify(mP2pListener).onGroupCreationFailed(
+                WifiP2pManager.GROUP_CREATION_FAILURE_REASON_GROUP_REMOVED);
+        verify(mP2pListener, never()).onGroupRemoved();
+    }
+
+    /**
      * Verify that p2p listener group created callback is sent for negotiated GO
      */
     @Test
