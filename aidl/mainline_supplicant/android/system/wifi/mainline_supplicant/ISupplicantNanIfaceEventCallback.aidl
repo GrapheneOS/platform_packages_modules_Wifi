@@ -27,6 +27,7 @@ import android.system.wifi.mainline_supplicant.NanFollowupReceivedInd;
 import android.system.wifi.mainline_supplicant.NanMatchInd;
 import android.system.wifi.mainline_supplicant.NanPairingConfirmInd;
 import android.system.wifi.mainline_supplicant.NanPairingRequestInd;
+import android.system.wifi.mainline_supplicant.NanSchedule;
 import android.system.wifi.mainline_supplicant.NanStatus;
 import android.system.wifi.mainline_supplicant.NpkSecurityAssociation;
 
@@ -138,7 +139,7 @@ oneway interface ISupplicantNanIfaceEventCallback {
      *
      * @param npksa NpkSecurityAssociation containing NPKSA details.
      */
-     void eventPairingSecurityAssociationReceived(in NpkSecurityAssociation npksa);
+    void eventPairingSecurityAssociationReceived(in NpkSecurityAssociation npksa);
 
     /**
      * Callback indicating that a data-path (NDP) setup has been completed.
@@ -173,6 +174,14 @@ oneway interface ISupplicantNanIfaceEventCallback {
     void eventDataPathTerminated(in int ndpInstanceId);
 
     /**
+     * Callback indicating that a peer has changed its schedule
+     *
+     * @param ndpInstanceId Data-path ID peer
+     * @param schedules New schedule from peer.
+     */
+    void eventPeerScheduleUpdated(in byte[6] peerDiscMacAddr, in NanSchedule[] schedules);
+
+    /**
      * Callback invoked in response to a capability request
      * |ISupplicantNanIface.getCapabilitiesRequest|.
      *
@@ -182,7 +191,7 @@ oneway interface ISupplicantNanIfaceEventCallback {
      * @param capabilities Capability data.
      */
     void notifyCapabilitiesResponse(
-        in char id, in NanStatus status, in NanCapabilities capabilities);
+            in char id, in NanStatus status, in NanCapabilities capabilities);
 
     /**
      * Callback invoked in response to a config request |ISupplicantNanIface.configRequest|.
@@ -275,15 +284,15 @@ oneway interface ISupplicantNanIfaceEventCallback {
     void notifyStartSubscribeResponse(in char id, in NanStatus status, in byte sessionId);
 
     /**
-      * Callback invoked to notify the status of the stop publish request from
-      * |ISupplicantNanIface.stopPublishRequest|.
-      *
-      * @param id Command ID corresponding to the original request.
-      * @param status NanStatus of the operation. Possible status codes are:
-      *         |NanStatusCode.SUCCESS|
-      *         |NanStatusCode.INVALID_SESSION_ID|
-      *         |NanStatusCode.INTERNAL_FAILURE|
-      */
+     * Callback invoked to notify the status of the stop publish request from
+     * |ISupplicantNanIface.stopPublishRequest|.
+     *
+     * @param id Command ID corresponding to the original request.
+     * @param status NanStatus of the operation. Possible status codes are:
+     *         |NanStatusCode.SUCCESS|
+     *         |NanStatusCode.INVALID_SESSION_ID|
+     *         |NanStatusCode.INTERNAL_FAILURE|
+     */
     void notifyStopPublishResponse(in char id, in NanStatus status);
 
     /**
@@ -374,7 +383,7 @@ oneway interface ISupplicantNanIfaceEventCallback {
      */
     void notifyRespondToPairingIndicationResponse(in char id, in NanStatus status);
 
-   /**
+    /**
      * Callback invoked in response to a terminate pairing request
      * |ISupplicantNanIface.terminatePairingRequest|.
      *
@@ -430,4 +439,15 @@ oneway interface ISupplicantNanIfaceEventCallback {
      *        |NanStatusCode.INVALID_NDP_ID|
      */
     void notifyTerminateDataPathResponse(in char id, in NanStatus status);
+
+    /**
+     * Callback invoked in response to change NDL schdule request
+     * |ISupplicantNanIface.setSchedule|.
+     * @param id Command ID corresponding to the original request.
+     * @param status NanStatus of the operation. Possible status codes are:
+     *        |NanStatusCode.SUCCESS|
+     *        |NanStatusCode.INVALID_ARGS|
+     *        |NanStatusCode.INTERNAL_FAILURE|
+     */
+    void notifyScheduleUpdated(in char id, in NanStatus status);
 }
