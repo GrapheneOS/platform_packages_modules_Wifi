@@ -40,7 +40,7 @@ RUNTIME_PERMISSIONS = (
     'android.permission.ACCESS_COARSE_LOCATION',
     'android.permission.NEARBY_WIFI_DEVICES',
 )
-PACKAGE_NAME = constants.WIFI_AWARE_SNIPPET_PACKAGE_NAME
+PACKAGE_NAME = constants.WIFI_SNIPPET_PACKAGE_NAME
 _DEFAULT_TIMEOUT = constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds()
 _CALLBACK_NAME = constants.DiscoverySessionCallbackParamsType.CALLBACK_NAME
 _TRANSPORT_TYPE_WIFI_AWARE = (
@@ -288,12 +288,12 @@ class WifiAwareLatencyTest(base_test.BaseTestClass):
                 failed_discoveries = failed_discoveries + 1
                 continue
             finally:
-                self.publisher.wifi_aware_snippet.wifiAwareDetach(p_id)
-                self.subscriber.wifi_aware_snippet.wifiAwareDetach(s_id)
                 self.publisher.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
                     p_disc_id.callback_id)
                 self.subscriber.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
                     s_disc_id.callback_id)
+                self.publisher.wifi_aware_snippet.wifiAwareDetach(p_id)
+                self.subscriber.wifi_aware_snippet.wifiAwareDetach(s_id)
             # collect latency information
             latencies.append(
                 discovered_event.data["timestampMs"] - s_session_event.data["timestampMs"]
@@ -359,14 +359,14 @@ class WifiAwareLatencyTest(base_test.BaseTestClass):
                 failed_discoveries = failed_discoveries + 1
                 continue
             finally:
+                s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
+                    s_disc_id.callback_id)
                 self.subscriber.wifi_aware_snippet.wifiAwareDetach(s_id)
 
             # collect latency information
             latencies.append(
                 discovered_event.data["timestampMs"] - s_session_event.data["timestampMs"]
             )
-            s_dut.wifi_aware_snippet.wifiAwareCloseDiscoverSession(
-                s_disc_id.callback_id)
         filename = f"{csv_name}.csv"
         output_file = os.path.join(self.log_path, filename)
         autils.extract_stats(s_dut,
