@@ -23,21 +23,20 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.hardware.wifi.NanCapabilities;
-import android.hardware.wifi.NanStatus;
-import android.hardware.wifi.NanStatusCode;
-
-import com.android.server.wifi.WifiBaseTest;
-import com.android.server.wifi.aware.Capabilities;
-
 import android.hardware.wifi.NanClusterEventInd;
 import android.hardware.wifi.NanClusterEventType;
 import android.hardware.wifi.NanDataPathConfirmInd;
 import android.hardware.wifi.NanDataPathRequestInd;
 import android.hardware.wifi.NanFollowupReceivedInd;
-import android.hardware.wifi.NanMatchInd;
-import android.hardware.wifi.NanRangingIndication;
 import android.hardware.wifi.NanIdentityResolutionAttribute;
+import android.hardware.wifi.NanMatchInd;
 import android.hardware.wifi.NanPairingConfig;
+import android.hardware.wifi.NanRangingIndication;
+import android.hardware.wifi.NanStatus;
+import android.hardware.wifi.NanStatusCode;
+
+import com.android.server.wifi.WifiBaseTest;
+import com.android.server.wifi.aware.Capabilities;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -318,7 +317,8 @@ public class WifiNanIfaceCallbackAidlImplTest extends WifiBaseTest {
 
         verify(mFrameworkCallbackMock).eventDataPathConfirm(
                 eq(WifiNanIface.NanStatusCode.SUCCESS), eq(event.ndpInstanceId),
-                eq(event.dataPathSetupSuccess), eq(event.peerNdiMacAddr), eq(event.appInfo), any());
+                eq(event.dataPathSetupSuccess), eq(event.peerNdiMacAddr), eq(event.appInfo), any()
+        );
     }
 
     @Test

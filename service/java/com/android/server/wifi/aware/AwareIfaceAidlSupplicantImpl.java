@@ -32,6 +32,7 @@ import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128;
 import static android.net.wifi.aware.Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_256;
 
+import static com.android.net.module.util.MacAddressUtils.createRandomUnicastAddress;
 import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_AKM_SAE;
 import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP;
 import static com.android.server.wifi.hal.WifiNanIface.NanDataPathChannelCfg.CHANNEL_NOT_REQUESTED;
@@ -82,6 +83,8 @@ import com.android.server.wifi.util.HalAidlUtil;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Implementation using the AIDL interface for mainline supplicant.
@@ -106,6 +109,7 @@ public class AwareIfaceAidlSupplicantImpl {
     private String mIfaceName;
     private AwareIfaceCallbackSupplicantImpl mHalCallback;
     private boolean mVerboseLoggingEnabled;
+    private final Map<String, byte[]> mInterfaceAddress = new HashMap<>();
 
     /**
      * Constructor
@@ -259,9 +263,11 @@ public class AwareIfaceAidlSupplicantImpl {
      */
     public boolean createAwareNetworkInterface(short transactionId, String interfaceName) {
         final String methodStr = "createAwareNetworkInterface";
+        byte[] mac = createRandomUnicastAddress().toByteArray();
+        mInterfaceAddress.put(interfaceName, mac);
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
-            mWifiNanIface.createDataInterfaceRequest((char) transactionId, interfaceName);
+            mWifiNanIface.createDataInterfaceRequest((char) transactionId, interfaceName, mac);
             return true;
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
@@ -269,6 +275,13 @@ public class AwareIfaceAidlSupplicantImpl {
             handleServiceSpecificException(e, methodStr);
         }
         return false;
+    }
+
+    /**
+     * Get the mac Address of the NDI
+     */
+    public byte[] getNdiMacAddress(String ifaceName) {
+        return mInterfaceAddress.get(ifaceName);
     }
 
     /**
@@ -452,14 +465,13 @@ public class AwareIfaceAidlSupplicantImpl {
     }
 
     /**
-     * @see ISupplicantNanIface#terminateDataPathRequest(char, int)
+     * @see ISupplicantNanIface#terminateDataPathRequest(char, int, byte[], String)
      */
-    public boolean endDataPath(short transactionId, int ndpId) {
+    public boolean endDataPath(short transactionId, int ndpId, byte[] peer, byte[] ndiInitMac) {
         final String methodStr = "endDataPath";
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
-            // TODO: Add correct peer MAC address passed from the upper framework layer
-            mWifiNanIface.terminateDataPathRequest((char) transactionId, ndpId, new byte[6]);
+            mWifiNanIface.terminateDataPathRequest((char) transactionId, ndpId, peer, ndiInitMac);
             return true;
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);

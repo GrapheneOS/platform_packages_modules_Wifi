@@ -331,7 +331,8 @@ public class AwareIfaceCallbackSupplicantImplTest extends WifiBaseTest {
                 dataPathSetupSuccess,
                 NDI_MAC_ADDR,
                 APP_INFO,
-                expectedChannelInfo);
+                expectedChannelInfo
+        );
     }
 
     @Test
