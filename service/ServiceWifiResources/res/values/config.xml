@@ -195,6 +195,19 @@
     <!-- boolean indicating whether or not to disable shutdown idle instance timer in the bridged mode when connected to a power source -->
     <bool translatable="false" name ="config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenCharging">false</bool>
 
+    <!-- Integer indicating the idle interval in milliseconds for checking SoftAP traffic status.
+         The default value is 0 (disabled). The mechanism will be enabled when this overlay
+         configuration is set to a non-zero value. The minimal value is required to be larger than 9999 (i.e. at least 10 seconds)
+         to avoid impacting the system. -->
+    <integer translatable="false" name="config_wifiFrameworkSoftApTrafficStatusIdleIntervalMilliseconds">0</integer>
+
+    <!-- Integer indicating the maximum number of packets (Tx + Rx) within the polling interval
+         to be considered as idle traffic. This threshold is used only when
+         config_wifiFrameworkSoftApTrafficStatusPollingIntervalMilliseconds is configured to a non-zero value.
+         For example, if this is set to 5, any packet count (Tx + Rx) greater than 5 within the polling
+         interval will be considered an active session. -->
+    <integer translatable="false" name="config_wifiFrameworkSoftApIdleTrafficThresholdPackets">0</integer>
+
     <!-- Integer indicating maximum hardware supported client number of soft ap -->
     <integer translatable="false" name="config_wifiHardwareSoftapMaxClientCount">16</integer>
 
