@@ -502,7 +502,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                         }
                     }
                 }};
-            if (Flags.monitorIntentForAllUsers()) {
+            if (Flags.monitorIntentForAllUsers() && Environment.isSdkAtLeastC()) {
                 mContext.registerReceiverForAllUsers(idleModeChangeReceiver,
                         intentFilter, null, mRttServiceSynchronized.mHandler);
             } else {

@@ -89,6 +89,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.util.Environment;
 import android.net.wifi.util.WifiResourceCache;
 import android.os.BatteryStatsManager;
 import android.os.Build;
@@ -1645,6 +1646,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
      */
     @Test
     public void testWifiStateUnaffectedByAirplaneModeWithRegisterForAllUsers() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.monitorIntentForAllUsers()).thenReturn(true);
         verifyWifiStateUnaffectedByAirplaneMode(true);
     }
@@ -1953,6 +1955,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     @Test
     public void testEcmReceiverFromClientModeWithRegisterForAllUsers()
             throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.monitorIntentForAllUsers()).thenReturn(true);
         ArgumentCaptor<BroadcastReceiver> bcastRxCaptor =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
@@ -2213,6 +2216,7 @@ public class ActiveModeWardenTest extends WifiBaseTest {
     @Test
     public void testEnterEcmOnEmergencyCallStateChangeWithRegisterForAllUsers()
             throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mFeatureFlags.monitorIntentForAllUsers()).thenReturn(true);
         ArgumentCaptor<BroadcastReceiver> bcastRxCaptor =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);

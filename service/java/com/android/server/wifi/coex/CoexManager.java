@@ -49,6 +49,7 @@ import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.ICoexCallback;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.CoexRestriction;
+import android.net.wifi.util.Environment;
 import android.os.Build;
 import android.os.Handler;
 import android.os.PersistableBundle;
@@ -313,7 +314,7 @@ public class CoexManager {
         readTableFromXml();
         IntentFilter filter = new IntentFilter();
         filter.addAction(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED);
-        if (Flags.monitorIntentForAllUsers()) {
+        if (Flags.monitorIntentForAllUsers() && Environment.isSdkAtLeastC()) {
             mContext.registerReceiverForAllUsers(
                     mCarrierConfigChangedReceiver, filter, null, mCallbackHandler);
         } else {

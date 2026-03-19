@@ -410,6 +410,7 @@ public class RttServiceImplTest extends WifiBaseTest {
 
     @Test
     public void testRegisterReceiverForAllUsersWhenFlagOn() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(Flags.monitorIntentForAllUsers()).thenReturn(true);
         mDut.start(mMockLooper.getLooper(), mockClock, mockAwareManager, mockMetrics,
                 mockPermissionUtil, mWifiSettingsConfigStore, mockHalDeviceManager,

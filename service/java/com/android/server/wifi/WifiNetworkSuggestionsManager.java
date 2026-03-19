@@ -717,7 +717,7 @@ public class WifiNetworkSuggestionsManager {
         mIntentFilter.addAction(NOTIFICATION_USER_ALLOWED_APP_INTENT_ACTION);
         mIntentFilter.addAction(NOTIFICATION_USER_DISALLOWED_APP_INTENT_ACTION);
         mIntentFilter.addAction(NOTIFICATION_USER_DISMISSED_INTENT_ACTION);
-        if (Flags.monitorIntentForAllUsers()) {
+        if (Flags.monitorIntentForAllUsers() && Environment.isSdkAtLeastC()) {
             mContext.registerReceiverForAllUsers(mBroadcastReceiver, mIntentFilter, null, handler);
         } else {
             mContext.registerReceiver(mBroadcastReceiver, mIntentFilter, null, handler);

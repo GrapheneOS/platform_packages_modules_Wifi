@@ -29,6 +29,7 @@ import android.media.AudioDeviceAttributes;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.net.wifi.WifiManager;
+import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.telephony.PhoneStateListener;
@@ -288,7 +289,7 @@ public class SarManager {
                         }
                     }
                 }};
-        if (Flags.monitorIntentForAllUsers()) {
+        if (Flags.monitorIntentForAllUsers() && Environment.isSdkAtLeastC()) {
             mContext.registerReceiverForAllUsers(streamDeviceChangedReceiver, filter,
                     null, mHandler);
         } else {

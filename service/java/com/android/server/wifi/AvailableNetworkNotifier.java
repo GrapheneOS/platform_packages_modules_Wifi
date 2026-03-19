@@ -218,7 +218,7 @@ public class AvailableNetworkNotifier {
         filter.addAction(ACTION_CONNECT_TO_NETWORK);
         filter.addAction(ACTION_PICK_WIFI_NETWORK);
         filter.addAction(ACTION_PICK_WIFI_NETWORK_AFTER_CONNECT_FAILURE);
-        if (mFeatureFlags.monitorIntentForAllUsers()) {
+        if (mFeatureFlags.monitorIntentForAllUsers() && Environment.isSdkAtLeastC()) {
             mContext.registerReceiverForAllUsers(
                     mBroadcastReceiver, filter, null /* broadcastPermission */, mHandler);
         } else {
