@@ -950,6 +950,41 @@ public class ClientModeImplTest extends WifiBaseTest {
     }
 
     /**
+     * Verify that MAC randomization is delayed at startup
+     */
+    @Test
+    public void testFirstMacRandomizationIsDelayed() throws Exception {
+        // setStaMacAddress should NOT be called immediately
+        verify(mWifiNative, never()).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
+
+        // Fast forward 30 seconds
+        mLooper.moveTimeForward(30000);
+        mLooper.dispatchAll();
+
+        // Now setStaMacAddress should be called
+        verify(mWifiNative).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
+    }
+
+    /**
+     * Verify that MAC randomization is NOT performed if wifi connects before the delay triggers.
+     */
+    @Test
+    public void testNoMacRandomizationIfConnectedBeforeDelay() throws Exception {
+        // setStaMacAddress should NOT be called immediately
+        verify(mWifiNative, never()).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
+        connect();
+        // wifi connection sets MAC randomization once
+        verify(mWifiNative).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
+
+        // Fast forward 30 seconds
+        mLooper.moveTimeForward(30000);
+        mLooper.dispatchAll();
+
+        // setStaMacAddress should not be called another time
+        verify(mWifiNative).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
+    }
+
+    /**
      * Verifies that configs can be saved when in client mode.
      */
     @Test
@@ -3207,8 +3242,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         verify(mWifiScoreCard).detectAbnormalDisconnection(WIFI_IFACE_NAME);
         verify(mWifiDiagnostics).takeBugReport(anyString(), anyString());
         verify(mWifiNative).disableNetwork(WIFI_IFACE_NAME);
-        // Set MAC address thrice - once at bootup, once for new connection, once for disconnect.
-        verify(mWifiNative, times(3)).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
+        // Set MAC address twice - once for new connection, once for disconnect.
+        verify(mWifiNative, times(2)).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
         // ClientModeManager should only be stopped when in lingering mode
         verify(mClientModeManager, never()).stop();
     }
@@ -4603,10 +4638,7 @@ public class ClientModeImplTest extends WifiBaseTest {
 
         mCmi.sendMessage(ClientModeImpl.CMD_START_CONNECT, 0, 0, TEST_BSSID_STR);
         mLooper.dispatchAll();
-
-        // setStaMacAddress is invoked once when ClientModeImpl starts to prevent leak of factory
-        // MAC.
-        verify(mWifiNative).setStaMacAddress(eq(WIFI_IFACE_NAME), any(MacAddress.class));
+        verify(mWifiNative, never()).setStaMacAddress(eq(WIFI_IFACE_NAME), any(MacAddress.class));
     }
 
     /**
@@ -6598,59 +6630,6 @@ public class ClientModeImplTest extends WifiBaseTest {
      * Verify the MAC address is being randomized at start to prevent leaking the factory MAC.
      */
     @Test
-    public void testRandomizeMacAddressOnStart() throws Exception {
-        ArgumentCaptor<MacAddress> macAddressCaptor = ArgumentCaptor.forClass(MacAddress.class);
-        verify(mWifiNative).setStaMacAddress(anyString(), macAddressCaptor.capture());
-        MacAddress currentMac = macAddressCaptor.getValue();
-
-        assertNotEquals("The currently programmed MAC address should be different from the factory "
-                + "MAC address after ClientModeImpl starts",
-                mCmi.getFactoryMacAddress(), currentMac.toString());
-
-        // Verify interface up will not re-randomize the MAC address again.
-        mCmi.onUpChanged(true);
-        verify(mWifiNative).setStaMacAddress(anyString(), macAddressCaptor.capture());
-    }
-
-    /**
-     * Verify if re-randomizing had failed, then we will retry the next time the interface comes up.
-     */
-    @Test
-    public void testRandomizeMacAddressFailedRetryOnInterfaceUp() throws Exception {
-        // mock setting the MAC address to fail
-        when(mWifiNative.setStaMacAddress(eq(WIFI_IFACE_NAME), any())).thenReturn(false);
-        initializeCmi();
-
-        ArgumentCaptor<MacAddress> macAddressCaptor = ArgumentCaptor.forClass(MacAddress.class);
-        verify(mWifiNative, times(2)).setStaMacAddress(anyString(), macAddressCaptor.capture());
-        MacAddress currentMac = macAddressCaptor.getValue();
-
-        // mock setting the MAC address to succeed
-        when(mWifiNative.setStaMacAddress(eq(WIFI_IFACE_NAME), any()))
-                .then(new AnswerWithArguments() {
-                    public boolean answer(String iface, MacAddress mac) {
-                        when(mWifiNative.getMacAddress(iface)).thenReturn(mac.toString());
-                        return true;
-                    }
-                });
-
-        // Verify interface up will re-randomize the MAC address since the last attempt failed.
-        mCmi.onUpChanged(true);
-        verify(mWifiNative, times(3)).setStaMacAddress(anyString(), macAddressCaptor.capture());
-        assertNotEquals("The currently programmed MAC address should be different from the factory "
-                        + "MAC address after ClientModeImpl starts",
-                mCmi.getFactoryMacAddress(), currentMac.toString());
-
-        // Verify interface up will not re-randomize the MAC address since the last attempt
-        // succeeded.
-        mCmi.onUpChanged(true);
-        verify(mWifiNative, times(3)).setStaMacAddress(anyString(), macAddressCaptor.capture());
-    }
-
-    /**
-     * Verify the MAC address is being randomized at start to prevent leaking the factory MAC.
-     */
-    @Test
     public void testNoRandomizeMacAddressOnStartIfMacRandomizationNotEnabled() throws Exception {
         // reset mWifiNative since initializeCmi() was called in setup()
         resetWifiNative();
@@ -8005,8 +7984,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         // Since we remain in connecting state, we should not disable the network or set random MAC
         // address on disconnect.
         verify(mWifiNative, never()).disableNetwork(WIFI_IFACE_NAME);
-        // Set MAC address thrice - once at bootup, twice for the 2 connections.
-        verify(mWifiNative, times(3)).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
+        // Set MAC address twice for the 2 connections.
+        verify(mWifiNative, times(2)).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
 
         // Send disconnect event for the new network.
         disconnectEventInfo =
@@ -8015,9 +7994,8 @@ public class ClientModeImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
 
         verify(mWifiNative).disableNetwork(WIFI_IFACE_NAME);
-        // Set MAC address thrice - once at bootup, twice for the connections,
-        // once for the disconnect.
-        verify(mWifiNative, times(4)).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
+        // Set MAC address thrice - twice for the connections, once for the disconnect.
+        verify(mWifiNative, times(3)).setStaMacAddress(eq(WIFI_IFACE_NAME), any());
     }
 
     @Test

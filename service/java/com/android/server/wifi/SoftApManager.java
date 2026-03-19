@@ -66,7 +66,7 @@ import com.android.server.wifi.coex.CoexManager.CoexListener;
 import com.android.server.wifi.nl80211.DeviceWiphyCapabilities;
 import com.android.server.wifi.util.ApConfigUtil;
 import com.android.server.wifi.util.WaitingState;
-import com.android.wifi.flags.Flags;
+import com.android.wifi.flags.FeatureFlags;
 import com.android.wifi.resources.R;
 
 import java.io.FileDescriptor;
@@ -186,11 +186,14 @@ public class SoftApManager implements ActiveModeManager {
     private final InterfaceConflictManager mInterfaceConflictManager;
     private final WifiInjector mWifiInjector;
     private final WifiResourceCache mResourceCache;
+    private final FeatureFlags mFeatureFlags;
 
     @VisibleForTesting
     static final long SOFT_AP_PENDING_DISCONNECTION_CHECK_DELAY_MS = 1000;
 
     private static final long SCHEDULE_IDLE_INSTANCE_SHUTDOWN_TIMEOUT_DELAY_MS = 10;
+
+    private static final long MINIMUM_TRAFFIC_STATUS_IDLE_INTERVAL_MILLISECONDS = 10_000;
 
     private String mCountryCode;
 
@@ -270,6 +273,12 @@ public class SoftApManager implements ActiveModeManager {
     private long mDefaultShutdownTimeoutMillis;
 
     private long mDefaultShutdownIdleInstanceInBridgedModeTimeoutMillis;
+
+    private final long mSoftApTrafficStatusIdleIntervalMilliseconds;
+    private final long mSoftApTrafficStatusPollingIntervalMilliseconds;
+    private final long mSoftApIdleTrafficThresholdPackets;
+    private long[] mPacketCounts = new long[4];
+    private int mPacketCountIndex = 0;
 
     private final boolean mIsDisableShutDownBridgedModeIdleInstanceTimerWhenPlugged;
 
@@ -470,6 +479,7 @@ public class SoftApManager implements ActiveModeManager {
         mSoftApNotifier = softApNotifier;
         mWifiNative = wifiNative;
         mWifiInjector = wifiInjector;
+        mFeatureFlags = wifiInjector.getDeviceConfigFacade().getFeatureFlags();
         mCoexManager = coexManager;
         mInterfaceConflictManager = interfaceConflictManager;
         mResourceCache = mContext.getResourceCache();
@@ -529,6 +539,12 @@ public class SoftApManager implements ActiveModeManager {
         mIsDisableShutDownBridgedModeIdleInstanceTimerWhenPlugged = mResourceCache
                 .getBoolean(R.bool
                 .config_wifiFrameworkSoftApDisableBridgedModeShutdownIdleInstanceWhenCharging);
+        mSoftApTrafficStatusIdleIntervalMilliseconds = mResourceCache.getInteger(
+                R.integer.config_wifiFrameworkSoftApTrafficStatusIdleIntervalMilliseconds);
+        mSoftApTrafficStatusPollingIntervalMilliseconds =
+                mSoftApTrafficStatusIdleIntervalMilliseconds / mPacketCounts.length;
+        mSoftApIdleTrafficThresholdPackets = mResourceCache.getInteger(
+                R.integer.config_wifiFrameworkSoftApIdleTrafficThresholdPackets);
         mCmiMonitor = cmiMonitor;
         mActiveModeWarden = activeModeWarden;
         mCmiMonitor.registerListener(mCmiListener);
@@ -567,7 +583,7 @@ public class SoftApManager implements ActiveModeManager {
     }
 
     private boolean useMultilinkMloSoftAp() {
-        if (!Flags.mloSap()) {
+        if (!mFeatureFlags.mloSap()) {
             return false;
         }
         if (SdkLevel.isAtLeastT() && mCurrentSoftApConfiguration != null
@@ -1073,7 +1089,8 @@ public class SoftApManager implements ActiveModeManager {
         return true;
     }
 
-    private class SoftApStateMachine extends StateMachine {
+    @VisibleForTesting
+    public class SoftApStateMachine extends StateMachine {
         // Commands for the state machine.
         public static final int CMD_START = 0;
         public static final int CMD_STOP = 1;
@@ -1094,6 +1111,7 @@ public class SoftApManager implements ActiveModeManager {
         public static final int CMD_DRIVER_COUNTRY_CODE_CHANGED = 17;
         public static final int CMD_DRIVER_COUNTRY_CODE_CHANGE_TIMED_OUT = 18;
         public static final int CMD_PLUGGED_STATE_CHANGED = 19;
+        public static final int CMD_POLL_PACKETS = 20;
 
         private final State mActiveState = new ActiveState();
         private final State mIdleState;
@@ -1193,6 +1211,8 @@ public class SoftApManager implements ActiveModeManager {
                     return "CMD_DRIVER_COUNTRY_CODE_CHANGE_TIMED_OUT";
                 case CMD_PLUGGED_STATE_CHANGED:
                     return "CMD_PLUGGED_STATE_CHANGED";
+                case CMD_POLL_PACKETS:
+                    return "CMD_POLL_PACKETS";
                 case RunnerState.STATE_ENTER_CMD:
                     return "Enter";
                 case RunnerState.STATE_EXIT_CMD:
@@ -1300,8 +1320,7 @@ public class SoftApManager implements ActiveModeManager {
                                             mCurrentSoftApConfiguration,
                                             mCurrentSoftApCapability,
                                             mContext,
-                                            mWifiInjector.getDeviceConfigFacade()
-                                                    .getFeatureFlags());
+                                            mFeatureFlags);
                         }
 
                         // Remove 6GHz from requested bands if security type is restricted
@@ -1768,6 +1787,7 @@ public class SoftApManager implements ActiveModeManager {
              * @param isConnected True for the connection changed to connect, otherwise false.
              */
             private void updateConnectedClients(WifiClient client, boolean isConnected) {
+                int oldClientCount = getConnectedClientList().size();
                 if (client == null) {
                     return;
                 }
@@ -1812,7 +1832,7 @@ public class SoftApManager implements ActiveModeManager {
                         + currentInfoWithClientsChanged);
 
                 if (mSoftApCallback != null) {
-                    if (Flags.softapDisconnectReason() && !isConnected) {
+                    if (mFeatureFlags.softapDisconnectReason() && !isConnected) {
                         // Client successfully disconnected, should also notify callback
                         mWifiMetrics.reportOnClientsDisconnected(client.getDisconnectReason(),
                                 mRequestorWs);
@@ -1833,6 +1853,21 @@ public class SoftApManager implements ActiveModeManager {
                         mConnectedClientWithApInfoMap.get(apInstanceIdentifier).size(),
                         mSpecifiedModeConfiguration.getTargetMode(),
                         mCurrentSoftApInfoMap.get(apInstanceIdentifier));
+
+                int newClientCount = getConnectedClientList().size();
+                if (mFeatureFlags.softapTrafficMonitor()
+                        && mSoftApTrafficStatusIdleIntervalMilliseconds
+                                >= MINIMUM_TRAFFIC_STATUS_IDLE_INTERVAL_MILLISECONDS) {
+                    if (oldClientCount == 0 && newClientCount > 0) {
+                        // first client connects
+                        Arrays.fill(mPacketCounts, 0);
+                        mPacketCountIndex = 0;
+                        sendMessage(CMD_POLL_PACKETS);
+                    } else if (oldClientCount > 0 && newClientCount == 0) {
+                        // last client disconnects
+                        removeMessages(CMD_POLL_PACKETS);
+                    }
+                }
 
                 rescheduleTimeoutMessages(apInstanceIdentifier);
             }
@@ -2366,6 +2401,33 @@ public class SoftApManager implements ActiveModeManager {
                                 rescheduleBothBridgedInstancesTimeoutMessage();
                             }
                         }
+                        break;
+                    case CMD_POLL_PACKETS:
+                        if (!mFeatureFlags.softapTrafficMonitor()
+                                || mSoftApTrafficStatusIdleIntervalMilliseconds
+                                        < MINIMUM_TRAFFIC_STATUS_IDLE_INTERVAL_MILLISECONDS) {
+                            break;
+                        }
+                        long txPackets = mFrameworkFacade.getTxPackets(mApInterfaceName);
+                        long rxPackets = mFrameworkFacade.getRxPackets(mApInterfaceName);
+                        long currentTotalPackets = txPackets + rxPackets;
+
+                        long earliestPackets = mPacketCounts[mPacketCountIndex];
+                        mPacketCounts[mPacketCountIndex] = currentTotalPackets;
+                        mPacketCountIndex = (mPacketCountIndex + 1) % mPacketCounts.length;
+                        long packetDelta = currentTotalPackets - earliestPackets;
+
+                        Log.d(getTag(), "Polling packets: Tx=" + txPackets + ", Rx=" + rxPackets
+                                + ", Delta=" + packetDelta);
+
+                        // Only evaluate after the window has been fully populated.
+                        if (mPacketCounts[mPacketCountIndex] != 0
+                                && packetDelta <= mSoftApIdleTrafficThresholdPackets) {
+                            Log.i(getTag(), "Soft AP idle traffic detected. Shutting down.");
+                            quitNow();
+                        }
+                        sendMessageDelayed(CMD_POLL_PACKETS,
+                                mSoftApTrafficStatusPollingIntervalMilliseconds);
                         break;
                     default:
                         return NOT_HANDLED;
