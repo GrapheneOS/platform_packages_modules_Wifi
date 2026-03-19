@@ -35,7 +35,7 @@ RUNTIME_PERMISSIONS = (
     'android.permission.ACCESS_COARSE_LOCATION',
     'android.permission.NEARBY_WIFI_DEVICES',
 )
-PACKAGE_NAME = constants.WIFI_AWARE_SNIPPET_PACKAGE_NAME
+PACKAGE_NAME = constants.WIFI_SNIPPET_PACKAGE_NAME
 
 # Alias variable.
 _DEFAULT_TIMEOUT = constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds()

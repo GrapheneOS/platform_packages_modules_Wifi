@@ -701,7 +701,7 @@ class WifiAwareNetworkTest(base_test.BaseTestClass):
         # networks.
         if (
             network_specifier_on_pub.psk_passphrase is not None
-            and network_specifier_on_pub.pmk is not None
+            or network_specifier_on_pub.pmk is not None
         ):
             network_specifier_on_pub.port = pub_local_port
         # Step 4.2: Request a Wi-Fi Aware network on each device.
