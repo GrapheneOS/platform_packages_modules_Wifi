@@ -49,6 +49,7 @@ import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.ICoexCallback;
+import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PersistableBundle;
@@ -774,6 +775,7 @@ public class CoexManagerTest extends WifiBaseTest {
      */
     @Test
     public void testGetCoexUnsafeChannels_carrierConfigsChanged_updatesUnsafeChannelsWhenFlagged() {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(Flags.monitorIntentForAllUsers()).thenReturn(true);
         testGetCoexUnsafeChannels_carrierConfigsChanged_updatesUnsafeChannels(true);
     }

@@ -57,6 +57,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.DeviceMobilityState;
 import android.net.wifi.WifiScanner;
+import android.net.wifi.util.Environment;
 import android.net.wifi.util.WifiResourceCache;
 import android.os.BatteryStatsManager;
 import android.os.Build;
@@ -779,7 +780,7 @@ public class ActiveModeWarden {
                 new IntentFilter(LocationManager.MODE_CHANGED_ACTION), null, mHandler);
         boolean trackEmergencyCallState = mResourceCache.getBoolean(
                 R.bool.config_wifi_turn_off_during_emergency_call);
-        if (mFeatureFlags.monitorIntentForAllUsers()) {
+        if (mFeatureFlags.monitorIntentForAllUsers() && Environment.isSdkAtLeastC()) {
             mContext.registerReceiverForAllUsers(airplaneChangedReceiver,
                     new IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED), null, null);
             mContext.registerReceiverForAllUsers(emergencyCallbackModeChangedReceiver,

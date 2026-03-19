@@ -43,6 +43,7 @@ import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiManager;
+import android.net.wifi.util.Environment;
 import android.os.Bundle;
 import android.os.UserHandle;
 import android.util.Pair;
@@ -1068,6 +1069,7 @@ public class WifiDialogManagerTest extends WifiBaseTest {
 
     @Test
     public void testUsingRegisterReceiverForAllUsersWhenFlagEnabled() throws Exception {
+        Assume.assumeTrue(Environment.isSdkAtLeastC());
         when(Flags.monitorIntentForAllUsers()).thenReturn(true);
         mDialogManager = new WifiDialogManager(mWifiContext, mWifiThreadRunner, mFrameworkFacade,
                 mWifiInjector);

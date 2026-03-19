@@ -999,7 +999,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     private void registerBroadcastReceiver(@Nullable BroadcastReceiver receiver,
             IntentFilter filter, @Nullable String broadcastPermission,
             @Nullable Handler scheduler) {
-        if (mFeatureFlags.monitorIntentForAllUsers()) {
+        if (mFeatureFlags.monitorIntentForAllUsers() && Environment.isSdkAtLeastC()) {
             mContext.registerReceiverForAllUsers(receiver, filter, broadcastPermission, scheduler);
         } else {
             mContext.registerReceiver(receiver, filter, broadcastPermission, scheduler);

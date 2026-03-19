@@ -18,6 +18,7 @@ package com.android.server.wifi;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -34,6 +35,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiContext;
 import android.net.wifi.WifiSsid;
+import android.net.wifi.util.Environment;
 import android.os.Handler;
 import android.os.LocaleList;
 
@@ -433,6 +435,7 @@ public class SsidTranslatorTest extends WifiBaseTest{
 
     @Test
     public void testUsingRegisterReceiverForAllUsersWhenFlagEnabled() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(Flags.monitorIntentForAllUsers()).thenReturn(true);
         SsidTranslator ssidTranslator = new SsidTranslator(mWifiContext, mHandler);
         ssidTranslator.handleBootCompleted();
