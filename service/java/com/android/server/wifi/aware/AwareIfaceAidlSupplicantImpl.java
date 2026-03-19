@@ -71,6 +71,7 @@ import android.system.wifi.mainline_supplicant.NanPublishRequest;
 import android.system.wifi.mainline_supplicant.NanRangingIndication;
 import android.system.wifi.mainline_supplicant.NanRespondToDataPathIndicationRequest;
 import android.system.wifi.mainline_supplicant.NanRespondToPairingIndicationRequest;
+import android.system.wifi.mainline_supplicant.NanSchedule;
 import android.system.wifi.mainline_supplicant.NanSubscribeRequest;
 import android.system.wifi.mainline_supplicant.NanTransmitFollowupRequest;
 import android.system.wifi.mainline_supplicant.WifiChannelInfo;
@@ -1024,6 +1025,7 @@ public class AwareIfaceAidlSupplicantImpl {
         if (frameProtectionEnabled) {
             enableFrameProtection(req.securityConfig);
         }
+        req.schedule = new NanSchedule[0];
         return req;
     }
 
@@ -1067,6 +1069,7 @@ public class AwareIfaceAidlSupplicantImpl {
         if (frameProtectionEnabled) {
             enableFrameProtection(req.securityConfig);
         }
+        req.schedule = new NanSchedule[0];
         return req;
     }
 
