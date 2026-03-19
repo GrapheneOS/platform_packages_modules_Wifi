@@ -783,15 +783,16 @@ public class WifiAwareNativeApi implements WifiAwareShellCommand.DelegatedShellC
      * @param transactionId Transaction ID for the transaction - used in the async callback to
      *                      match with the original request.
      * @param pairId The id of the pairing session
+     * @param peerMac The MAC address of the peer
      */
-    public boolean endPairing(short transactionId, int pairId) {
+    public boolean endPairing(short transactionId, int pairId, byte[] peerMac) {
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "endPairing: transactionId=" + transactionId + ", ndpId=" + pairId);
         }
         recordTransactionId(transactionId);
         AwareIfaceAidlSupplicantImpl supplicant = mHal.getSupplicantNanIface();
         if (supplicant != null) {
-            return supplicant.endPairing(transactionId, pairId);
+            return supplicant.endPairing(transactionId, pairId, peerMac);
         }
 
         WifiNanIface iface = mHal.getWifiNanIface();

@@ -421,15 +421,17 @@ public class WifiAwareNativeApiTest extends WifiBaseTest {
 
     @Test
     public void testEndPairing() {
+        byte[] peerMac = HexEncoding.decode("010203040506".toCharArray(), false);
         when(mWifiAwareNativeManagerMock.getSupplicantNanIface()).thenReturn(null);
-        mDut.endPairing((short) 1, 123);
+        mDut.endPairing((short) 1, 123, peerMac);
         verify(mWifiNanIfaceMock).endPairing(eq((short) 1), eq(123));
     }
 
     @Test
     public void testEndPairingWithSupplicant() {
-        mDut.endPairing((short) 1, 123);
-        verify(mAwareIfaceAidlSupplicantImplMock).endPairing(eq((short) 1), eq(123));
+        byte[] peerMac = HexEncoding.decode("010203040506".toCharArray(), false);
+        mDut.endPairing((short) 1, 123, peerMac);
+        verify(mAwareIfaceAidlSupplicantImplMock).endPairing(eq((short) 1), eq(123), eq(peerMac));
     }
 
     @Test

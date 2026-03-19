@@ -532,11 +532,11 @@ public class AwareIfaceAidlSupplicantImpl {
     /**
      * @see ISupplicantNanIface#terminatePairingRequest(char, int)
      */
-    public boolean endPairing(short transactionId, int pairingId) {
+    public boolean endPairing(short transactionId, int pairingId, byte[] peerMac) {
         String methodStr = "endPairing";
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
-            mWifiNanIface.terminatePairingRequest((char) transactionId, pairingId, new byte[6]);
+            mWifiNanIface.terminatePairingRequest((char) transactionId, pairingId, peerMac);
             return true;
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);

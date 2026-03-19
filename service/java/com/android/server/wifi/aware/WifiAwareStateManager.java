@@ -4769,7 +4769,24 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "endPairingLocal: transactionId=" + transactionId + ", pairId=" + pairId);
         }
-        return mWifiAwareNativeApi.endPairing(transactionId, pairId);
+        PairingInfo info = mPairingRequest.get(pairId);
+        if (info == null) {
+            Log.w(TAG, "endPairingLocal: unable to find pair pairId=" + pairId);
+            return false;
+        }
+        WifiAwareDiscoverySessionState session = getClientSession(info.mClientId,
+                info.mSessionId, "endPairingLocal");
+        if (session == null) {
+            Log.w(TAG, "endPairingLocal: unable to find client clientId=" + info.mClientId);
+            return false;
+        }
+        WifiAwareDiscoverySessionState.PeerInfo peerInfo = session.getPeerInfo(info.mPeerId);
+        if (peerInfo == null) {
+            Log.wtf(TAG, "endPairingLocal: with unknown peer=" + info.mPeerId);
+            return false;
+        }
+
+        return mWifiAwareNativeApi.endPairing(transactionId, pairId, peerInfo.mMac);
     }
 
     /*
