@@ -74,6 +74,7 @@ import androidx.annotation.Nullable;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.aware.Capabilities;
+import com.android.server.wifi.aware.PairingConfigManager;
 import com.android.server.wifi.util.HalAidlUtil;
 
 import org.junit.Before;
@@ -209,9 +210,7 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         }
         @Override
         public void eventPairingConfirm(int pairingId, boolean accept, int reason, int requestType,
-                boolean enableCache,
-                com.android.server.wifi.aware.PairingConfigManager.PairingSecurityAssociationInfo
-                npksa) {
+                boolean enableCache) {
         }
         @Override
         public void eventBootstrappingRequest(int discoverySessionId, int peerId,
@@ -226,6 +225,13 @@ public class WifiNanIfaceAidlImplTest extends WifiBaseTest {
         @Override
         public void eventSuspensionModeChanged(boolean isSuspended) {
         }
+
+        @Override
+        public void eventPairingSecurityAssociationReceived(int pairId,
+                PairingConfigManager.PairingSecurityAssociationInfo npksa) {
+
+        }
+
         @Override
         public void notifyRangingResults(ArrayList<android.net.wifi.rtt.RangingResult>
                 rangingResults, byte sessionId) {
