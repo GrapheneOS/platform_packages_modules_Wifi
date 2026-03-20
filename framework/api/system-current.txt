@@ -1,6 +1,5 @@
 // Signature format: 6.0
 // - style=java
-// - flagged-api-inheritance=none
 // - overloaded-method-order=source
 // - strip-java-lang-prefix=legacy
 // - type-argument-spacing=legacy
@@ -671,7 +670,7 @@ package android.net.wifi {
     field public boolean useExternalScores;
   }
 
-  public static class WifiConfiguration.NetworkSelectionStatus {
+  @FlaggedApi("com.android.wifi.flags.un_deprecated_wificonfiguration") public static class WifiConfiguration.NetworkSelectionStatus {
     method public int getDisableReasonCounter(int);
     method public long getDisableTime();
     method public static int getMaxNetworkSelectionDisableReason();
@@ -700,7 +699,7 @@ package android.net.wifi {
     field public static final int NETWORK_SELECTION_TEMPORARY_DISABLED = 1; // 0x1
   }
 
-  public static final class WifiConfiguration.NetworkSelectionStatus.Builder {
+  @FlaggedApi("com.android.wifi.flags.un_deprecated_wificonfiguration") public static final class WifiConfiguration.NetworkSelectionStatus.Builder {
     ctor public WifiConfiguration.NetworkSelectionStatus.Builder();
     method @NonNull public android.net.wifi.WifiConfiguration.NetworkSelectionStatus build();
     method @NonNull public android.net.wifi.WifiConfiguration.NetworkSelectionStatus.Builder setNetworkSelectionDisableReason(int);
@@ -1126,7 +1125,7 @@ package android.net.wifi {
     method @NonNull public java.time.Duration getStationaryScanInterval();
   }
 
-  public static final class WifiManager.ScreenOffScanSchedule.Builder {
+  @FlaggedApi("com.android.wifi.flags.wifi_pno_scan_schedule_api") public static final class WifiManager.ScreenOffScanSchedule.Builder {
     ctor public WifiManager.ScreenOffScanSchedule.Builder();
     method @NonNull public android.net.wifi.WifiManager.ScreenOffScanSchedule build();
     method @NonNull public android.net.wifi.WifiManager.ScreenOffScanSchedule.Builder setMovingScanInterval(@NonNull java.time.Duration);
@@ -1902,7 +1901,7 @@ package android.net.wifi.rtt {
     field public static final int RANGING_SERVICE_ROLE_SEEKER = 1; // 0x1
   }
 
-  public static final class ProximityDetectionConfig.Builder {
+  @FlaggedApi("com.android.wifi.flags.proximity_ranging") public static final class ProximityDetectionConfig.Builder {
     ctor public ProximityDetectionConfig.Builder(int);
     method @NonNull public android.net.wifi.rtt.ProximityDetectionConfig build();
     method @NonNull public android.net.wifi.rtt.ProximityDetectionConfig.Builder setAdvertiserRequireRangeResult(boolean);
@@ -2119,7 +2118,7 @@ package android.net.wifi.usd {
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.usd.ProximityRangingInfo> CREATOR;
   }
 
-  public static final class ProximityRangingInfo.Builder {
+  @FlaggedApi("com.android.wifi.flags.proximity_ranging") public static final class ProximityRangingInfo.Builder {
     ctor public ProximityRangingInfo.Builder();
     method @NonNull public android.net.wifi.usd.ProximityRangingInfo build();
     method @NonNull public android.net.wifi.usd.ProximityRangingInfo.Builder set6GHzSupported(boolean);
@@ -2149,7 +2148,7 @@ package android.net.wifi.usd {
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.usd.PublishConfig> CREATOR;
   }
 
-  public static final class PublishConfig.Builder {
+  @FlaggedApi("android.net.wifi.flags.usd") public static final class PublishConfig.Builder {
     ctor public PublishConfig.Builder(@NonNull String);
     method @NonNull public android.net.wifi.usd.PublishConfig build();
     method @NonNull public android.net.wifi.usd.PublishConfig.Builder setAnnouncementPeriodMillis(@IntRange(from=0) int);

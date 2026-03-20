@@ -1,6 +1,5 @@
 // Signature format: 6.0
 // - style=java
-// - flagged-api-inheritance=none
 // - overloaded-method-order=source
 // - strip-java-lang-prefix=legacy
 // - type-argument-spacing=legacy
@@ -253,7 +252,7 @@ package android.net.wifi {
     field @Deprecated public int wepTxKeyIndex;
   }
 
-  public static class WifiConfiguration.AuthAlgorithm {
+  @FlaggedApi("com.android.wifi.flags.un_deprecated_wificonfiguration") public static class WifiConfiguration.AuthAlgorithm {
     field public static final int LEAP = 2; // 0x2
     field public static final int OPEN = 0; // 0x0
     field public static final int SAE = 3; // 0x3
@@ -262,7 +261,7 @@ package android.net.wifi {
     field public static final String varName = "auth_alg";
   }
 
-  public static class WifiConfiguration.GroupCipher {
+  @FlaggedApi("com.android.wifi.flags.un_deprecated_wificonfiguration") public static class WifiConfiguration.GroupCipher {
     field public static final int CCMP = 3; // 0x3
     field public static final int GCMP_128 = 7; // 0x7
     field public static final int GCMP_256 = 5; // 0x5
@@ -274,13 +273,13 @@ package android.net.wifi {
     field public static final String varName = "group";
   }
 
-  public static class WifiConfiguration.GroupMgmtCipher {
+  @FlaggedApi("com.android.wifi.flags.un_deprecated_wificonfiguration") public static class WifiConfiguration.GroupMgmtCipher {
     field public static final int BIP_CMAC_256 = 0; // 0x0
     field public static final int BIP_GMAC_128 = 1; // 0x1
     field public static final int BIP_GMAC_256 = 2; // 0x2
   }
 
-  public static class WifiConfiguration.KeyMgmt {
+  @FlaggedApi("com.android.wifi.flags.un_deprecated_wificonfiguration") public static class WifiConfiguration.KeyMgmt {
     field public static final int DPP = 17; // 0x11
     field public static final int FILS_SHA256 = 15; // 0xf
     field public static final int FILS_SHA384 = 16; // 0x10
@@ -303,7 +302,7 @@ package android.net.wifi {
     field public static final String varName = "key_mgmt";
   }
 
-  public static class WifiConfiguration.PairwiseCipher {
+  @FlaggedApi("com.android.wifi.flags.un_deprecated_wificonfiguration") public static class WifiConfiguration.PairwiseCipher {
     field public static final int CCMP = 2; // 0x2
     field public static final int GCMP_128 = 5; // 0x5
     field public static final int GCMP_256 = 3; // 0x3
@@ -314,7 +313,7 @@ package android.net.wifi {
     field public static final String varName = "pairwise";
   }
 
-  public static class WifiConfiguration.Protocol {
+  @FlaggedApi("com.android.wifi.flags.un_deprecated_wificonfiguration") public static class WifiConfiguration.Protocol {
     field public static final int RSN = 1; // 0x1
     field public static final int WAPI = 3; // 0x3
     field @Deprecated public static final int WPA = 0; // 0x0
@@ -322,7 +321,7 @@ package android.net.wifi {
     field public static final String varName = "proto";
   }
 
-  public static class WifiConfiguration.Status {
+  @FlaggedApi("com.android.wifi.flags.un_deprecated_wificonfiguration") public static class WifiConfiguration.Status {
     field public static final int CURRENT = 0; // 0x0
     field public static final int DISABLED = 1; // 0x1
     field public static final int ENABLED = 2; // 0x2
@@ -1710,7 +1709,7 @@ package android.net.wifi.p2p {
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.p2p.WifiP2pUsdBasedLocalServiceAdvertisementConfig> CREATOR;
   }
 
-  public static final class WifiP2pUsdBasedLocalServiceAdvertisementConfig.Builder {
+  @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") public static final class WifiP2pUsdBasedLocalServiceAdvertisementConfig.Builder {
     ctor public WifiP2pUsdBasedLocalServiceAdvertisementConfig.Builder();
     method @NonNull public android.net.wifi.p2p.WifiP2pUsdBasedLocalServiceAdvertisementConfig build();
     method @NonNull public android.net.wifi.p2p.WifiP2pUsdBasedLocalServiceAdvertisementConfig.Builder setFrequencyMhz(@IntRange(from=1) int);
@@ -1724,7 +1723,7 @@ package android.net.wifi.p2p {
     field @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.p2p.WifiP2pUsdBasedServiceDiscoveryConfig> CREATOR;
   }
 
-  public static final class WifiP2pUsdBasedServiceDiscoveryConfig.Builder {
+  @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") public static final class WifiP2pUsdBasedServiceDiscoveryConfig.Builder {
     ctor public WifiP2pUsdBasedServiceDiscoveryConfig.Builder();
     method @NonNull public android.net.wifi.p2p.WifiP2pUsdBasedServiceDiscoveryConfig build();
     method @NonNull public android.net.wifi.p2p.WifiP2pUsdBasedServiceDiscoveryConfig.Builder setBand(int);
@@ -1834,7 +1833,7 @@ package android.net.wifi.p2p.nsd {
     field public static final int SERVICE_PROTOCOL_TYPE_GENERIC = 2; // 0x2
   }
 
-  public static final class WifiP2pUsdBasedServiceConfig.Builder {
+  @FlaggedApi("com.android.wifi.flags.wifi_direct_r2") public static final class WifiP2pUsdBasedServiceConfig.Builder {
     ctor public WifiP2pUsdBasedServiceConfig.Builder(@NonNull @Size(min=1) String);
     method @NonNull public android.net.wifi.p2p.nsd.WifiP2pUsdBasedServiceConfig build();
     method @NonNull public android.net.wifi.p2p.nsd.WifiP2pUsdBasedServiceConfig.Builder setServiceProtocolType(@IntRange(from=0, to=255) int);
