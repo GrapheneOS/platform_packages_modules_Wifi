@@ -1,6 +1,5 @@
 // Signature format: 6.0
 // - style=java
-// - overloaded-method-order=source
 // - strip-java-lang-prefix=legacy
 // - type-argument-spacing=legacy
 package android.net.wifi {
@@ -905,8 +904,8 @@ package android.net.wifi {
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void startRestrictingAutoJoinToSubscriptionId(int);
     method @RequiresPermission(android.Manifest.permission.UPDATE_DEVICE_STATS) public boolean startScan(android.os.WorkSource);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void startSubscriptionProvisioning(@NonNull android.net.wifi.hotspot2.OsuProvider, @NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.hotspot2.ProvisioningCallback);
-    method @Deprecated @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_STACK, android.net.NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK}) public boolean startTetheredHotspot(@Nullable android.net.wifi.SoftApConfiguration);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_STACK, android.net.NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK}) public void startTetheredHotspot(@NonNull android.net.TetheringManager.TetheringRequest, @NonNull java.util.concurrent.Executor, @NonNull android.net.wifi.WifiManager.SoftApCallback);
+    method @Deprecated @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_STACK, android.net.NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK}) public boolean startTetheredHotspot(@Nullable android.net.wifi.SoftApConfiguration);
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void stopEasyConnectSession();
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_SETTINGS, android.Manifest.permission.NETWORK_SETUP_WIZARD}) public void stopRestrictingAutoJoinToSubscriptionId();
     method @RequiresPermission(anyOf={android.Manifest.permission.NETWORK_STACK, android.net.NetworkStack.PERMISSION_MAINLINE_NETWORK_STACK}) public boolean stopSoftAp();
@@ -1144,12 +1143,12 @@ package android.net.wifi {
     method public default void onBlockedClientConnecting(@NonNull android.net.wifi.WifiClient, int);
     method public default void onCapabilityChanged(@NonNull android.net.wifi.SoftApCapability);
     method @FlaggedApi("com.android.wifi.flags.softap_disconnect_reason") public default void onClientsDisconnected(@NonNull android.net.wifi.SoftApInfo, @NonNull java.util.List<android.net.wifi.WifiClient>);
-    method @Deprecated public default void onConnectedClientsChanged(@NonNull java.util.List<android.net.wifi.WifiClient>);
     method public default void onConnectedClientsChanged(@NonNull android.net.wifi.SoftApInfo, @NonNull java.util.List<android.net.wifi.WifiClient>);
+    method @Deprecated public default void onConnectedClientsChanged(@NonNull java.util.List<android.net.wifi.WifiClient>);
     method @Deprecated public default void onInfoChanged(@NonNull android.net.wifi.SoftApInfo);
     method public default void onInfoChanged(@NonNull java.util.List<android.net.wifi.SoftApInfo>);
-    method public default void onStateChanged(int, int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") public default void onStateChanged(@NonNull android.net.wifi.SoftApState);
+    method public default void onStateChanged(int, int);
   }
 
   public static interface WifiManager.TrafficStateCallback {
@@ -1165,8 +1164,8 @@ package android.net.wifi {
     method public default void onNetworkSwitchAccepted(int, int, @NonNull String);
     method public default void onNetworkSwitchRejected(int, int, @NonNull String);
     method public void onSetScoreUpdateObserver(@NonNull android.net.wifi.WifiManager.ScoreUpdateObserver);
-    method @Deprecated public default void onStart(int);
     method public default void onStart(@NonNull android.net.wifi.WifiConnectedSessionInfo);
+    method @Deprecated public default void onStart(int);
     method public void onStop(int);
   }
 
@@ -1196,9 +1195,9 @@ package android.net.wifi {
   }
 
   @Deprecated public class WifiNetworkConnectionStatistics implements android.os.Parcelable {
-    ctor @Deprecated public WifiNetworkConnectionStatistics(int, int);
     ctor @Deprecated public WifiNetworkConnectionStatistics();
     ctor @Deprecated public WifiNetworkConnectionStatistics(android.net.wifi.WifiNetworkConnectionStatistics);
+    ctor @Deprecated public WifiNetworkConnectionStatistics(int, int);
     method @Deprecated public int describeContents();
     method @Deprecated public void writeToParcel(android.os.Parcel, int);
     field @Deprecated @NonNull public static final android.os.Parcelable.Creator<android.net.wifi.WifiNetworkConnectionStatistics> CREATOR;
@@ -1251,8 +1250,8 @@ package android.net.wifi {
   }
 
   public class WifiScanner {
-    method @Deprecated public void configureWifiChange(int, int, int, int, int, android.net.wifi.WifiScanner.BssidInfo[]);
     method @Deprecated public void configureWifiChange(android.net.wifi.WifiScanner.WifiChangeSettings);
+    method @Deprecated public void configureWifiChange(int, int, int, int, int, android.net.wifi.WifiScanner.BssidInfo[]);
     method @NonNull @RequiresPermission(android.Manifest.permission.NEARBY_WIFI_DEVICES) public java.util.List<java.lang.Integer> getAvailableChannels(int);
     method @FlaggedApi("com.android.wifi.flags.android_v_wifi_api") @RequiresPermission(allOf={android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.LOCATION_HARDWARE}) public void getCachedScanData(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<android.net.wifi.WifiScanner.ScanData>);
     method @Deprecated @RequiresPermission(android.Manifest.permission.LOCATION_HARDWARE) public boolean getScanResults();
@@ -1355,8 +1354,8 @@ package android.net.wifi {
   }
 
   public static class WifiScanner.ScanData implements android.os.Parcelable {
-    ctor public WifiScanner.ScanData(int, int, android.net.wifi.ScanResult[]);
     ctor public WifiScanner.ScanData(android.net.wifi.WifiScanner.ScanData);
+    ctor public WifiScanner.ScanData(int, int, android.net.wifi.ScanResult[]);
     method public int describeContents();
     method public int getFlags();
     method public int getId();
