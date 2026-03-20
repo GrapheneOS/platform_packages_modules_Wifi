@@ -181,6 +181,9 @@ public class RttServiceImplTest extends WifiBaseTest {
     private ArgumentCaptor<WifiRttController.RttControllerRangingResultsCallback>
             mRangingResultsCbCaptor = ArgumentCaptor.forClass(
             WifiRttController.RttControllerRangingResultsCallback.class);
+    private ArgumentCaptor<ActiveModeWarden.PrimaryClientModeManagerChangedCallback>
+            mPrimaryCmmChangedCallbackCaptor = ArgumentCaptor.forClass(
+            ActiveModeWarden.PrimaryClientModeManagerChangedCallback.class);
 
     private BinderLinkToDeathAnswer mBinderLinkToDeathCounter = new BinderLinkToDeathAnswer();
     private BinderUnlinkToDeathAnswer mBinderUnlinkToDeathCounter = new BinderUnlinkToDeathAnswer();
@@ -356,6 +359,10 @@ public class RttServiceImplTest extends WifiBaseTest {
                 mWifiConfigManager, mSsidTranslator, mWifiNative, mActiveModeWarden,
                 mMockClientModeImplMonitor);
         mMockLooper.dispatchAll();
+        if (Environment.isSdkNewerThanB() && Flags.proximityRanging()) {
+            verify(mActiveModeWarden).registerPrimaryClientModeManagerChangedCallback(
+                    mPrimaryCmmChangedCallbackCaptor.capture());
+        }
         ArgumentCaptor<BroadcastReceiver> bcastRxCaptor = ArgumentCaptor.forClass(
                 BroadcastReceiver.class);
         verify(mockContext).registerReceiver(bcastRxCaptor.capture(),
@@ -2300,8 +2307,8 @@ public class RttServiceImplTest extends WifiBaseTest {
         when(mMockSupplicantRttController.getProximityRangingCapabilities()).thenReturn(
                 mProximityRangingCapabilities);
 
-        // Simulate Wi-Fi enabled state to trigger RTT controller initialization
-        mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+        // Simulate Wi-Fi primary CMM changed to trigger RTT controller initialization
+        mPrimaryCmmChangedCallbackCaptor.getValue().onChange(null, mMockConcreteClientModeManager);
         verify(mMockSupplicantRttController).setProximityRangingDeviceName(
                 eq(mDut.mProximityRangingDeviceName));
         verify(mMockSupplicantRttController).setProximityRangingMacAddress(
@@ -2377,13 +2384,29 @@ public class RttServiceImplTest extends WifiBaseTest {
         reset(mWifiNative, mMockSupplicantRttController);
         mDut.mSupplicantWifiRttController = null;
 
-        // Scenario 4: Wi-Fi ENABLED - createSupplicantWifiRttController returns null
+        // Scenario 4: Wi-Fi DISABLED
+        mDut.setWifiState(WifiManager.WIFI_STATE_DISABLED);
+        assertNull(mDut.mSupplicantWifiRttController);
+    }
+
+    @Test
+    public void testPrimaryCmmChangedCallback() throws Exception {
+        setupRttServiceForProximityRanging();
+
+        mDut.setWifiState(WifiManager.WIFI_STATE_DISABLED);
+        reset(mWifiNative, mMockSupplicantRttController);
+        mDut.mProximityRangingIfaceName = null;
+        mDut.mSupplicantWifiRttController = null; // Clear state for the next test case
+
+        // Scenario 1: Primary CMM changed from null to valid --
+        // createSupplicantWifiRttController returns null
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
                 .thenReturn(true);
-        when(mWifiNative.createSupplicantWifiRttController(TEST_PD_INTERFACE_NAME))
+        when(mWifiNative.createSupplicantWifiRttController(eq(TEST_PD_INTERFACE_NAME)))
                 .thenReturn(null);
 
-        mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+        mPrimaryCmmChangedCallbackCaptor.getValue().onChange(null, mMockConcreteClientModeManager);
+
         assertNull(mDut.mSupplicantWifiRttController);
         verify(mWifiNative).createSupplicantWifiRttController(eq(TEST_PD_INTERFACE_NAME));
         verify(mMockSupplicantRttController, never()).registerRttEventCallback(any());
@@ -2392,25 +2415,23 @@ public class RttServiceImplTest extends WifiBaseTest {
         mDut.setWifiState(WifiManager.WIFI_STATE_DISABLED);
         reset(mWifiNative, mMockSupplicantRttController);
         mDut.mSupplicantWifiRttController = null;
+        mDut.mProximityRangingIfaceName = null;
 
-        // Scenario 5: Wi-Fi ENABLED - initializeSupplicantWifiRttController returns false
+        // Scenario 2: Primary CMM changed from null to valid --
+        // initializeSupplicantWifiRttController returns false
         when(mWifiNative.isSupplicantAidlServiceVersionAtLeast(5))
                 .thenReturn(true);
-        when(mWifiNative.createSupplicantWifiRttController(TEST_PD_INTERFACE_NAME))
+        when(mWifiNative.createSupplicantWifiRttController(eq(TEST_PD_INTERFACE_NAME)))
                 .thenReturn(mMockSupplicantRttController);
         when(mMockSupplicantRttController.getName()).thenReturn(TEST_PD_INTERFACE_NAME);
         when(mMockSupplicantRttController.getProximityRangingCapabilities()).thenReturn(null);
-        // mDut.initializeSupplicantWifiRttController() will return false due to null capabilities
 
-        mDut.setWifiState(WifiManager.WIFI_STATE_ENABLED);
+        mPrimaryCmmChangedCallbackCaptor.getValue().onChange(null, mMockConcreteClientModeManager);
+
         assertNull(mDut.mSupplicantWifiRttController);
         verify(mWifiNative).createSupplicantWifiRttController(eq(TEST_PD_INTERFACE_NAME));
         verify(mMockSupplicantRttController).registerRttEventCallback(
                 mDut.mSupplicantRttEventCallback);
-
-        // Scenario 6: Wi-Fi DISABLED
-        mDut.setWifiState(WifiManager.WIFI_STATE_DISABLED);
-        assertNull(mDut.mSupplicantWifiRttController);
     }
 
     /**
@@ -2674,6 +2695,101 @@ public class RttServiceImplTest extends WifiBaseTest {
         assertEquals(capabilities.isAuthenticatedPasnModeSupported,
                 characteristics.getBoolean(ProximityDetectionCharacteristics
                         .KEY_BOOLEAN_AUTHENTICATED_PASN));
+    }
+
+    @Test
+    public void testPrimaryCmmChangedCallback_nullCmm() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        mPrimaryCmmChangedCallbackCaptor.getValue().onChange(null, null);
+        // Nothing should happen, mSupplicantWifiRttController should not be touched
+        verify(mWifiNative, never()).createSupplicantWifiRttController(anyString());
+    }
+
+    @Test
+    public void testPrimaryCmmChangedCallback_sameIface() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        setupRttServiceForProximityRanging(); // this sets iface to TEST_PD_INTERFACE_NAME
+
+        ConcreteClientModeManager sameCmm = mock(ConcreteClientModeManager.class);
+        when(sameCmm.getInterfaceName()).thenReturn(TEST_PD_INTERFACE_NAME);
+
+        mPrimaryCmmChangedCallbackCaptor.getValue().onChange(null, sameCmm);
+        // Only the initial creation from setup
+        verify(mWifiNative, times(1)).createSupplicantWifiRttController(eq(TEST_PD_INTERFACE_NAME));
+    }
+
+    @Test
+    public void testPrimaryCmmChangedCallback_newIfaceSuccess() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        setupRttServiceForProximityRanging();
+
+        String newIface = "wlan1";
+        ConcreteClientModeManager newCmm = mock(ConcreteClientModeManager.class);
+        when(newCmm.getInterfaceName()).thenReturn(newIface);
+        SupplicantWifiRttController mockNewSupplicantRttController =
+                mock(SupplicantWifiRttController.class);
+        when(mWifiNative.createSupplicantWifiRttController(newIface))
+                .thenReturn(mockNewSupplicantRttController);
+        when(mockNewSupplicantRttController.getName()).thenReturn(newIface);
+        when(mockNewSupplicantRttController.getProximityRangingCapabilities())
+                .thenReturn(mProximityRangingCapabilities);
+        doAnswer(new MockAnswerUtil.AnswerWithArguments() {
+            @SuppressWarnings({"UnusedMethod", "EffectivelyPrivate"})
+            public void answer(byte[] mac) throws Exception {
+                mMockHalMacAddress = mac;
+            }
+        }).when(mockNewSupplicantRttController).setProximityRangingMacAddress(any());
+        doAnswer(new MockAnswerUtil.AnswerWithArguments() {
+            @SuppressWarnings({"UnusedMethod", "EffectivelyPrivate"})
+            public byte[] answer() throws Exception {
+                return mMockHalMacAddress;
+            }
+        }).when(mockNewSupplicantRttController).getProximityRangingMacAddress();
+
+        mPrimaryCmmChangedCallbackCaptor.getValue().onChange(null, newCmm);
+
+        verify(mWifiNative).createSupplicantWifiRttController(newIface);
+        verify(mockNewSupplicantRttController)
+                .registerRttEventCallback(mDut.mSupplicantRttEventCallback);
+        assertEquals(mockNewSupplicantRttController, mDut.mSupplicantWifiRttController);
+    }
+
+    @Test
+    public void testPrimaryCmmChangedCallback_newIfaceFailureCreate() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        setupRttServiceForProximityRanging();
+
+        String newIface = "wlan1";
+        ConcreteClientModeManager newCmm = mock(ConcreteClientModeManager.class);
+        when(newCmm.getInterfaceName()).thenReturn(newIface);
+        when(mWifiNative.createSupplicantWifiRttController(newIface)).thenReturn(null);
+
+        mPrimaryCmmChangedCallbackCaptor.getValue().onChange(null, newCmm);
+
+        verify(mWifiNative).createSupplicantWifiRttController(newIface);
+        assertNull(mDut.mSupplicantWifiRttController);
+    }
+
+    @Test
+    public void testPrimaryCmmChangedCallback_newIfaceFailureInit() throws Exception {
+        assumeTrue(Environment.isSdkNewerThanB());
+        setupRttServiceForProximityRanging();
+
+        String newIface = "wlan1";
+        ConcreteClientModeManager newCmm = mock(ConcreteClientModeManager.class);
+        when(newCmm.getInterfaceName()).thenReturn(newIface);
+        SupplicantWifiRttController mockNewSupplicantRttController =
+                mock(SupplicantWifiRttController.class);
+        when(mWifiNative.createSupplicantWifiRttController(newIface))
+                .thenReturn(mockNewSupplicantRttController);
+        when(mockNewSupplicantRttController.getName()).thenReturn(newIface);
+        when(mockNewSupplicantRttController.getProximityRangingCapabilities())
+                .thenReturn(null); // Causes initialization to fail
+
+        mPrimaryCmmChangedCallbackCaptor.getValue().onChange(null, newCmm);
+
+        verify(mWifiNative).createSupplicantWifiRttController(newIface);
+        assertNull(mDut.mSupplicantWifiRttController);
     }
 
     @Test
