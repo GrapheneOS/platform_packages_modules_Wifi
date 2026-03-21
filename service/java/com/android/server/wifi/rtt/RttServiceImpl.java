@@ -148,10 +148,10 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     private SsidTranslator mWifiSsidTranslator;
     private WifiNative mWifiNative;
     private ActiveModeWarden mActiveModeWarden;
-    private String mSupplicantWifiRttControllerInterfaceName = null;
     private int mCurrentWifiState = WifiManager.WIFI_STATE_UNKNOWN;
     private ClientModeImplMonitor mClientModeImplMonitor;
-    private String mProximityRangingIfaceName = null;
+    @VisibleForTesting
+    String mProximityRangingIfaceName = null;
     @VisibleForTesting
     SupplicantWifiRttController mSupplicantWifiRttController;
     private SupplicantWifiRttController.ProximityRangingCapabilities mProximityRangingCapabilities;
@@ -223,6 +223,56 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                     && clientModeManager.getInterfaceName().equals(mProximityRangingIfaceName)) {
                 mConnectedIfaceMacAddress = null;
             }
+        }
+    }
+
+    private final ActiveModeWarden.PrimaryClientModeManagerChangedCallback
+        mPrimaryCmmChangedCallback =
+            new ActiveModeWarden.PrimaryClientModeManagerChangedCallback() {
+                @Override
+                public void onChange(
+                        @Nullable ConcreteClientModeManager prevPrimaryClientModeManager,
+                        @Nullable ConcreteClientModeManager newPrimaryClientModeManager) {
+                    updateSupplicantRttController(newPrimaryClientModeManager);
+                }
+            };
+
+    private void updateSupplicantRttController(
+            @Nullable ConcreteClientModeManager newPrimaryCmm) {
+        // If no new primary, do nothing. Destruction on Wi-Fi OFF is handled in setWifiState.
+        if (newPrimaryCmm == null) {
+            return;
+        }
+
+        // If the interface name is the same, do nothing.
+        if (newPrimaryCmm.getInterfaceName() != null
+                && newPrimaryCmm.getInterfaceName().equals(mProximityRangingIfaceName)) {
+            Log.i(TAG, "updateSupplicantRttController: new primary CMM has the same"
+                    + "interface name as the current one, no update needed. ifaceName="
+                    + newPrimaryCmm.getInterfaceName());
+            return;
+        }
+        Log.i(TAG, "updateSupplicantRttController: newPrimaryCmm=" + newPrimaryCmm);
+        // The old primary supplicant controller destruction will be handled
+        // by ISupplicant#removeInterface when the old primary CMM is removed.
+        mProximityRangingIfaceName = newPrimaryCmm.getInterfaceName();
+        Log.i(TAG, "Creating new SupplicantWifiRttController for interface: "
+                + mProximityRangingIfaceName);
+        mSupplicantWifiRttController = mWifiNative
+                .createSupplicantWifiRttController(mProximityRangingIfaceName);
+        if (mSupplicantWifiRttController != null) {
+            Log.i(TAG, "Successfully created SupplicantWifiRttController");
+            mSupplicantWifiRttController.registerRttEventCallback(
+                    mSupplicantRttEventCallback);
+            if (!initializeSupplicantWifiRttController()) {
+                Log.e(TAG, "Failed to initialize SupplicantWifiRttController");
+                mSupplicantWifiRttController = null; // Nullify on failure
+                mProximityRangingCapabilities = null;
+                mProximityRangingIfaceName = null;
+            }
+        } else {
+            Log.e(TAG, "Failed to create SupplicantWifiRttController");
+            mProximityRangingIfaceName = null;
         }
     }
 
@@ -482,6 +532,8 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             if (mClientModeImplMonitor != null) {
                 mClientModeImplMonitor.registerListener(new ClientModeImplListenerInternal());
             }
+            mActiveModeWarden
+                    .registerPrimaryClientModeManagerChangedCallback(mPrimaryCmmChangedCallback);
         }
 
         mRttServiceSynchronized.mHandler.post(() -> {
@@ -502,7 +554,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                         }
                     }
                 }};
-            if (Flags.monitorIntentForAllUsers()) {
+            if (Flags.monitorIntentForAllUsers() && Environment.isSdkAtLeastC()) {
                 mContext.registerReceiverForAllUsers(idleModeChangeReceiver,
                         intentFilter, null, mRttServiceSynchronized.mHandler);
             } else {
@@ -596,27 +648,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             return;
         }
         boolean isEnabled = newState == WifiManager.WIFI_STATE_ENABLED;
-        if (isEnabled) {
-            Log.i(TAG, "Wi-Fi Turned ON - Try to create SupplicantWifiRttController");
-            if (mProximityRangingIfaceName != null) {
-                Log.e(TAG, "Wi-Fi Turned ON - Already have interface name set for PD!!!");
-            }
-            mProximityRangingIfaceName =
-                    mActiveModeWarden.getPrimaryClientModeManager().getInterfaceName();
-            mSupplicantWifiRttController = mWifiNative
-                    .createSupplicantWifiRttController(mProximityRangingIfaceName);
-            if (mSupplicantWifiRttController != null) {
-                Log.i(TAG, "Successfully created SupplicantWifiRttController");
-                mSupplicantWifiRttController.registerRttEventCallback(
-                        mSupplicantRttEventCallback);
-                if (!initializeSupplicantWifiRttController()) {
-                    Log.i(TAG, "Failed to initialize SupplicantWifiRttController");
-                    mSupplicantWifiRttController = null;
-                }
-            } else {
-                Log.i(TAG, "Failed to create SupplicantWifiRttController");
-            }
-        } else { // isEnabled is false, so Wi-Fi is disabled
+        if (!isEnabled) { // isEnabled is false, so Wi-Fi is disabled
             Log.i(TAG, "Wi-Fi Turned OFF - Remove SupplicantWifiRttController");
             if (mSupplicantWifiRttController != null) {
                 mRttServiceSynchronized.cleanUpContinuousRangingSessions(0, null,
@@ -941,6 +973,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
     }
 
     boolean initializeSupplicantWifiRttController() {
+        String mSupplicantWifiRttControllerInterfaceName;
         if (VDBG) Log.v(TAG, "initializeSupplicantWifiRttController");
         if (mSupplicantWifiRttController == null) {
             return false;

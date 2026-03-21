@@ -1722,7 +1722,6 @@ public class WifiNetworkFactoryTest extends WifiBaseTest {
      */
     @Test
     public void testNetworkSpecifierHandleUserSelectionReject() throws Exception {
-        when(mFeatureFlags.localOnlyConnectionOptimization()).thenReturn(true);
         sendNetworkRequestAndSetupForUserSelection();
         mWifiNetworkFactory.addLocalOnlyConnectionStatusListener(mLocalOnlyConnectionStatusListener,
                 TEST_PACKAGE_NAME_1, null);

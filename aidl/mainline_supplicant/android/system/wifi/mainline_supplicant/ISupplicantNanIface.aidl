@@ -26,6 +26,7 @@ import android.system.wifi.mainline_supplicant.NanPairingRequest;
 import android.system.wifi.mainline_supplicant.NanPublishRequest;
 import android.system.wifi.mainline_supplicant.NanRespondToDataPathIndicationRequest;
 import android.system.wifi.mainline_supplicant.NanRespondToPairingIndicationRequest;
+import android.system.wifi.mainline_supplicant.NanSchedule;
 import android.system.wifi.mainline_supplicant.NanSubscribeRequest;
 import android.system.wifi.mainline_supplicant.NanTransmitFollowupRequest;
 
@@ -328,4 +329,18 @@ interface ISupplicantNanIface {
      */
     void terminateDataPathRequest(
             in char cmdId, in int ndpInstanceId, in byte[6] peerDiscMacAddr, in byte[6] ndiInitMac);
+
+    /**
+     * Set local NDL schedule.
+     * Asynchronous response is with
+     * |ISupplicantNanIfaceEventCallback.notifyScheduleUpdated|.
+
+     * @param cmdId Command Id to use for this invocation.
+     * @param schedule Local NDL schedule
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_ARGS_INVALID|,
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|
+
+     */
+    void setSchedule(in char cmdId, in NanSchedule[] schedule);
 }

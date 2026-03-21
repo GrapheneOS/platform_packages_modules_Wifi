@@ -24,6 +24,7 @@ import static com.android.server.wifi.HalDeviceManager.HDM_CREATE_IFACE_P2P;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -42,6 +43,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiContext;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.util.Environment;
 import android.os.Message;
 import android.os.WorkSource;
 import android.os.test.TestLooper;
@@ -810,6 +812,7 @@ public class InterfaceConflictManagerTest extends WifiBaseTest{
 
     @Test
     public void testUsingRegisterReceiverForAllUsersWhenFlagEnabled() throws Exception {
+        assumeTrue(Environment.isSdkAtLeastC());
         when(mResources.getBoolean(R.bool.config_wifiUserApprovalNotRequireForDisconnectedP2p))
                 .thenReturn(true);
         when(Flags.monitorIntentForAllUsers()).thenReturn(true);

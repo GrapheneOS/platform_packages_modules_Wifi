@@ -14,8 +14,6 @@ function build_snippets_and_wheel() {
     mkdir -p betowiq/snippets || true
     make wifi_mobly_snippet
     cp $OUT/testcases/wifi_mobly_snippet/${arch}/wifi_mobly_snippet.apk packages/modules/Wifi/tests/hostsidetests/multidevices/betowiq/betowiq/snippets/
-    make wifi_aware_snippet_new
-    cp $OUT/testcases/wifi_aware_snippet_new/${arch}/wifi_aware_snippet_new.apk packages/modules/Wifi/tests/hostsidetests/multidevices/betowiq/betowiq/snippets/
 
     # Build the wheel.
     # Use a hardcoded path here since I failed to make cogd command work

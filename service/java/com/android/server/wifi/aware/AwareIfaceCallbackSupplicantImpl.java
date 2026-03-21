@@ -26,6 +26,7 @@ import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_RE
 
 import android.annotation.NonNull;
 import android.annotation.RequiresNoPermission;
+import android.net.MacAddress;
 import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.Characteristics;
 import android.net.wifi.aware.WifiAwareChannelInfo;
@@ -50,6 +51,7 @@ import android.system.wifi.mainline_supplicant.NanPairingConfig;
 import android.system.wifi.mainline_supplicant.NanPairingConfirmInd;
 import android.system.wifi.mainline_supplicant.NanPairingRequestInd;
 import android.system.wifi.mainline_supplicant.NanPairingRequestType;
+import android.system.wifi.mainline_supplicant.NanSchedule;
 import android.system.wifi.mainline_supplicant.NanStatus;
 import android.system.wifi.mainline_supplicant.NanStatus.NanStatusCode;
 import android.system.wifi.mainline_supplicant.NpkSecurityAssociation;
@@ -294,8 +296,7 @@ public class AwareIfaceCallbackSupplicantImpl extends ISupplicantNanIfaceEventCa
         }
         mFrameworkCallback.eventPairingConfirm(event.pairingInstanceId,
                 event.pairingSuccess, WifiNanIface.NanStatusCode.fromAidl(event.status.status),
-                pairingRequestTypeFromAidl(event.requestType), event.enablePairingCache,
-                createPairingSecurityAssociationInfo(event.npksa));
+                pairingRequestTypeFromAidl(event.requestType), event.enablePairingCache);
     }
 
     @Override
@@ -313,10 +314,23 @@ public class AwareIfaceCallbackSupplicantImpl extends ISupplicantNanIfaceEventCa
 
     @Override
     @RequiresNoPermission
-    public void eventPairingSecurityAssociationReceived(@NonNull NpkSecurityAssociation npksa)
+    public void eventPairingSecurityAssociationReceived(int discoverySessionId, int pairingId,
+            @NonNull NpkSecurityAssociation npksa)
         throws RemoteException {
         if (mVerboseLoggingEnabled) {
-            Log.v(TAG, "eventPairingSecurityAssociationReceived: ");
+            Log.v(TAG, "eventPairingSecurityAssociationReceived: pairingId=" + pairingId);
+        }
+        mFrameworkCallback.eventPairingSecurityAssociationReceived(
+                pairingId, createPairingSecurityAssociationInfo(npksa));
+    }
+
+    @Override
+    @RequiresNoPermission
+    public void eventPeerScheduleUpdated(@NonNull byte[] peerDiscMacAddr,
+            @NonNull NanSchedule[] schedules) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "eventPeerScheduleUpdated: peerDiscMacAddr="
+                    + MacAddress.fromBytes(peerDiscMacAddr));
         }
         // TODO: pass the event information to upper layer
     }
@@ -338,6 +352,15 @@ public class AwareIfaceCallbackSupplicantImpl extends ISupplicantNanIfaceEventCa
             Log.e(TAG, "notifyCapabilitiesResponse: error code=" + status.status + " ("
                     + status.description + ")");
         }
+    }
+
+    @Override
+    @RequiresNoPermission
+    public void notifyScheduleUpdated(char id, NanStatus status) {
+        if (mVerboseLoggingEnabled) {
+            Log.v(TAG, "notifyScheduleUpdated: id=" + id + ", status=" + statusString(status));
+        }
+        // TODO: pass the event information to upper layer
     }
 
     @Override

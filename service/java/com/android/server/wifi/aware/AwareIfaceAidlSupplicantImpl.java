@@ -71,6 +71,7 @@ import android.system.wifi.mainline_supplicant.NanPublishRequest;
 import android.system.wifi.mainline_supplicant.NanRangingIndication;
 import android.system.wifi.mainline_supplicant.NanRespondToDataPathIndicationRequest;
 import android.system.wifi.mainline_supplicant.NanRespondToPairingIndicationRequest;
+import android.system.wifi.mainline_supplicant.NanSchedule;
 import android.system.wifi.mainline_supplicant.NanSubscribeRequest;
 import android.system.wifi.mainline_supplicant.NanTransmitFollowupRequest;
 import android.system.wifi.mainline_supplicant.WifiChannelInfo;
@@ -487,11 +488,12 @@ public class AwareIfaceAidlSupplicantImpl {
      */
     public boolean respondToPairingRequest(short transactionId, int pairingId, boolean accept,
             byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-            String password, int akm, int cipherSuite, byte pubSubId, byte[] peerMac) {
+            String password, int akm, int cipherSuite, byte pubSubId, byte[] peerMac,
+            byte[] peerNik) {
         String methodStr = "respondToPairingRequest";
         NanRespondToPairingIndicationRequest request = createRespondToPairingIndicationRequest(
                 pairingId, accept, pairingIdentityKey, enablePairingCache, requestType, pmk,
-                password, akm, cipherSuite, pubSubId, peerMac);
+                password, akm, cipherSuite, pubSubId, peerMac, peerNik);
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
             mWifiNanIface.respondToPairingIndicationRequest((char) transactionId, request);
@@ -509,11 +511,12 @@ public class AwareIfaceAidlSupplicantImpl {
      */
     public boolean initiateNanPairingRequest(short transactionId, int peerId,
             @NonNull MacAddress peer, byte[] pairingIdentityKey, boolean enablePairingCache,
-            int requestType, byte[] pmk, String password, int akm, int cipherSuite, byte pubSubId) {
+            int requestType, byte[] pmk, String password, int akm, int cipherSuite, byte pubSubId,
+            byte[] peerNik) {
         String methodStr = "initiateNanPairingRequest";
         NanPairingRequest nanPairingRequest = createNanPairingRequest(peerId, peer,
                 pairingIdentityKey, enablePairingCache, requestType, pmk, password, akm,
-                cipherSuite, pubSubId);
+                cipherSuite, pubSubId, peerNik);
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
             mWifiNanIface.initiatePairingRequest((char) transactionId, nanPairingRequest);
@@ -529,11 +532,11 @@ public class AwareIfaceAidlSupplicantImpl {
     /**
      * @see ISupplicantNanIface#terminatePairingRequest(char, int)
      */
-    public boolean endPairing(short transactionId, int pairingId) {
+    public boolean endPairing(short transactionId, int pairingId, byte[] peerMac) {
         String methodStr = "endPairing";
         try {
             if (!checkIfaceAndLogFailure(methodStr)) return false;
-            mWifiNanIface.terminatePairingRequest((char) transactionId, pairingId, new byte[6]);
+            mWifiNanIface.terminatePairingRequest((char) transactionId, pairingId, peerMac);
             return true;
         } catch (RemoteException e) {
             handleRemoteException(e, methodStr);
@@ -1024,6 +1027,7 @@ public class AwareIfaceAidlSupplicantImpl {
         if (frameProtectionEnabled) {
             enableFrameProtection(req.securityConfig);
         }
+        req.schedule = new NanSchedule[0];
         return req;
     }
 
@@ -1067,12 +1071,13 @@ public class AwareIfaceAidlSupplicantImpl {
         if (frameProtectionEnabled) {
             enableFrameProtection(req.securityConfig);
         }
+        req.schedule = new NanSchedule[0];
         return req;
     }
 
     private static NanPairingRequest createNanPairingRequest(int peerId, MacAddress peer,
             byte[] pairingIdentityKey, boolean enablePairingCache, int requestType, byte[] pmk,
-            String password, int akm, int cipherSuite, byte pubSubId) {
+            String password, int akm, int cipherSuite, byte pubSubId, byte[] peerNik) {
         NanPairingRequest request = new NanPairingRequest();
         request.peerId = peerId;
         request.peerDiscMacAddr = peer.toByteArray();
@@ -1082,6 +1087,9 @@ public class AwareIfaceAidlSupplicantImpl {
                 ? NanPairingRequestType.NAN_PAIRING_SETUP
                 : NanPairingRequestType.NAN_PAIRING_VERIFICATION;
         request.discoverySessionId = pubSubId;
+        if (peerNik != null) {
+            request.peerIdentityKey = copyArray(peerNik, 16);
+        }
         request.securityConfig = new NanPairingSecurityConfig();
         request.securityConfig.pmk = new byte[32];
         request.securityConfig.cipherType = getSupplicantCipherSuites(cipherSuite);
@@ -1108,7 +1116,7 @@ public class AwareIfaceAidlSupplicantImpl {
     private static NanRespondToPairingIndicationRequest createRespondToPairingIndicationRequest(
             int pairingInstanceId, boolean accept, byte[] pairingIdentityKey,
             boolean enablePairingCache, int requestType, byte[] pmk, String password, int akm,
-            int cipherSuite, byte pubSubId, byte[] peerMac) {
+            int cipherSuite, byte pubSubId, byte[] peerMac, byte[] peerNik) {
         NanRespondToPairingIndicationRequest request = new NanRespondToPairingIndicationRequest();
         request.pairingInstanceId = pairingInstanceId;
         request.acceptRequest = accept;
@@ -1119,6 +1127,9 @@ public class AwareIfaceAidlSupplicantImpl {
         request.requestType = requestType == NAN_PAIRING_REQUEST_TYPE_SETUP
                 ? NanPairingRequestType.NAN_PAIRING_SETUP
                 : NanPairingRequestType.NAN_PAIRING_VERIFICATION;
+        if (peerNik != null) {
+            request.peerIdentityKey = copyArray(peerNik, 16);
+        }
         request.securityConfig = new NanPairingSecurityConfig();
         request.securityConfig.pmk = new byte[32];
         request.securityConfig.passphrase = new byte[0];

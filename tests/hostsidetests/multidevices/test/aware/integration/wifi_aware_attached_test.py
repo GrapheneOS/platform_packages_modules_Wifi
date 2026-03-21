@@ -32,7 +32,7 @@ RUNTIME_PERMISSIONS = (
     'android.permission.ACCESS_COARSE_LOCATION',
     'android.permission.NEARBY_WIFI_DEVICES',
 )
-PACKAGE_NAME = constants.WIFI_AWARE_SNIPPET_PACKAGE_NAME
+PACKAGE_NAME = constants.WIFI_SNIPPET_PACKAGE_NAME
 snippets_to_load = [
     ('wifi_aware_snippet', PACKAGE_NAME),
     ('wifi', constants.WIFI_SNIPPET_PACKAGE_NAME),
