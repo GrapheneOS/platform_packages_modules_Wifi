@@ -261,6 +261,7 @@ import com.android.server.wifi.WifiServiceImpl.LocalOnlyRequestorCallback;
 import com.android.server.wifi.WifiServiceImpl.SoftApCallbackInternal;
 import com.android.server.wifi.WifiServiceImpl.ThreadStateListener;
 import com.android.server.wifi.WifiServiceImpl.UwbAdapterStateListener;
+import com.android.server.wifi.aware.PairingConfigManager;
 import com.android.server.wifi.b2b.WifiRoamingModeManager;
 import com.android.server.wifi.coex.CoexManager;
 import com.android.server.wifi.entitlement.PseudonymInfo;
@@ -527,6 +528,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
     @Mock TwtManager mTwtManager;
     @Mock WifiResourceCache mResourceCache;
     @Mock WorkSourceHelper mWorkSourceHelper;
+    @Mock PairingConfigManager mPairingConfigManager;
 
     @Rule
     // For frameworks
@@ -586,6 +588,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         when(mWifiInjector.getWifiSettingsBackupRestore()).thenReturn(mWifiSettingsBackupRestore);
         when(mWifiInjector.getBackupRestoreController()).thenReturn(mBackupRestoreController);
         when(mWifiInjector.makeWsHelper(any())).thenReturn(mWorkSourceHelper);
+        when(mWifiInjector.getPairingConfigManager()).thenReturn(mPairingConfigManager);
         when(mHandlerThread.getThreadHandler()).thenReturn(new Handler(mLooper.getLooper()));
         when(mHandlerThread.getLooper()).thenReturn(mLooper.getLooper());
         when(mContext.getResources()).thenReturn(mResources);
@@ -7101,6 +7104,7 @@ public class WifiServiceImplTest extends WifiBaseTest {
         verify(mWifiHealthMonitor).clear();
         verify(mPasspointManager).getProviderConfigs(anyInt(), anyBoolean());
         verify(mContext).resetResourceCache();
+        verify(mPairingConfigManager).reset();
     }
 
     /**
