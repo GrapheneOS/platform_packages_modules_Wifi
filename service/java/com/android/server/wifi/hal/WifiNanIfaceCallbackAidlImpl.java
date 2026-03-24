@@ -672,12 +672,15 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
         if (mVerboseLoggingEnabled) {
             Log.v(TAG, "eventPairingConfirm: pairingInstanceId=" + event.pairingInstanceId);
         }
+        int requestType = pairingRequestTypeFromAidl(event.requestType);
         mWifiNanIface.getFrameworkCallback().eventPairingConfirm(event.pairingInstanceId,
                 event.pairingSuccess, WifiNanIface.NanStatusCode.fromAidl(event.status.status),
-                pairingRequestTypeFromAidl(event.requestType), event.enablePairingCache);
-        mWifiNanIface.getFrameworkCallback().eventPairingSecurityAssociationReceived(event
-                        .pairingInstanceId,
-                createPairingSecurityAssociationInfo(event.npksa));
+                requestType, event.enablePairingCache);
+        if (event.enablePairingCache && requestType ==  NAN_PAIRING_REQUEST_TYPE_SETUP) {
+            mWifiNanIface.getFrameworkCallback().eventPairingSecurityAssociationReceived(event
+                            .pairingInstanceId,
+                    createPairingSecurityAssociationInfo(event.npksa));
+        }
     }
 
     private static PairingSecurityAssociationInfo createPairingSecurityAssociationInfo(

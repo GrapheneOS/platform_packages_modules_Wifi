@@ -187,6 +187,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean mVerboseLoggingEnabled = false;
     private static final short NUM_LOG_RECS = 256;
     private static final short NUM_LOG_RECS_VERBOSE = 1024;
+    private static final long AWARE_SEND_MESSAGE_TIMEOUT = 10_000;
 
     @VisibleForTesting
     public static final String HAL_COMMAND_TIMEOUT_TAG = TAG + " HAL Command Timeout";
@@ -446,7 +447,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     // condition.
     private boolean mAwareIsDisabling = false;
     private final SparseArray<PairingInfo> mPairingRequest = new SparseArray<>();
-    private final SparseArray<BootStrppingInfo> mBootstrappingRequest = new SparseArray<>();
+    private final SparseArray<BootstrappingInfo> mBootstrappingRequest = new SparseArray<>();
     private WifiAwarePullAtomCallback mWifiAwarePullAtomCallback = null;
     private final SparseArray<WifiAwareDiscoverySessionState> mActiveNdps = new SparseArray<>();
     private final SparseIntArray mPendingRequest = new SparseIntArray();
@@ -483,7 +484,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
     }
 
-    private static class BootStrppingInfo {
+    private static class BootstrappingInfo {
         public final int mClientId;
         public final int mSessionId;
         public final int mPeerId;
@@ -491,7 +492,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         public final boolean mIsComeBackFollowUp;
         public final byte[] mSsi;
 
-        BootStrppingInfo(int clientId, int sessionId, int peerId, int method,
+        BootstrappingInfo(int clientId, int sessionId, int peerId, int method,
                 boolean isComeBackFollowUp, byte[] ssi) {
             mClientId = clientId;
             mSessionId = sessionId;
@@ -5393,7 +5394,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         Bundle data = command.getData();
-        BootStrppingInfo info = new BootStrppingInfo(command.arg2,
+        BootstrappingInfo info = new BootstrappingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD),
@@ -5416,7 +5417,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         Bundle data = command.getData();
-        BootStrppingInfo info = new BootStrppingInfo(command.arg2,
+        BootstrappingInfo info = new BootstrappingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD),
@@ -5438,7 +5439,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         }
 
         Bundle data = command.getData();
-        BootStrppingInfo info = new BootStrppingInfo(command.arg2,
+        BootstrappingInfo info = new BootstrappingInfo(command.arg2,
                 data.getInt(MESSAGE_BUNDLE_KEY_SESSION_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_PEER_ID),
                 data.getInt(MESSAGE_BUNDLE_KEY_BOOTSTRAPPING_METHOD),
@@ -5954,6 +5955,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         PairingInfo info = mPairingRequest.get(pairingId);
         if (!accept || !enableCache) {
             mPairingRequest.remove(pairingId);
+        } else {
+            // Clean the pairing info it NPKSA cache is not received in 10s
+            mHandler.postDelayed(() -> mPairingRequest.remove(pairingId),
+                    AWARE_SEND_MESSAGE_TIMEOUT);
         }
         if (info == null) {
             return false;
@@ -5996,6 +6001,10 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                             + info.mClientId);
             return;
         }
+        if (npksa == null) {
+            Log.e(TAG, "onPairingSecurityAssociationReceivedLocal: npksa is null");
+            return;
+        }
         mPairingConfigManager.addPairedDeviceSecurityAssociation(client.getCallingPackage(),
                 info.mAlias, npksa);
         Log.v(TAG, "onPairingSecurityAssociationReceivedLocal:" + npksa.toString());
@@ -6020,7 +6029,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private boolean onBootStrappingConfirmReceivedLocal(int sessionId, int bootstrappingId,
         int reason, int responseCode, int comeBackDelay, int bootstrappingMethod,
         byte[] cookie, byte[] peerDiscMacAddr) {
-        BootStrppingInfo info = mBootstrappingRequest.get(bootstrappingId);
+        BootstrappingInfo info = mBootstrappingRequest.get(bootstrappingId);
         mBootstrappingRequest.remove(bootstrappingId);
         boolean accept = responseCode == NAN_BOOTSTRAPPING_ACCEPT;
 
