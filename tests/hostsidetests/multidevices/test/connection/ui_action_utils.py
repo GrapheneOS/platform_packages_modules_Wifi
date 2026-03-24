@@ -15,6 +15,41 @@ from connection import constants
 _UI_OPERATION_TIMEOUT = datetime.timedelta(seconds=10)
 _UI_RESPONGE_TIMEOUT = datetime.timedelta(seconds=3)
 _WAIT_SCROLLABLE_TIMEOUT = datetime.timedelta(seconds=10)
+_WAIT_CONNECTION_DIALOG_TIMEOUT = datetime.timedelta(seconds=20)
+
+
+def _wait_for_network_request_dialog_exist(
+    device: android_device.AndroidDevice,
+    ssid: str,
+    selector: dict,
+) -> bool:
+  """Waits for the network request dialog exists.
+
+  The network request dialog varies across OEM brands and form factors. Thus we
+  wait until any of the following conditions are met to confirm the dialog is
+  present:
+  * An element matching the given selector exists.
+  * A scrollable object exists.
+  * The Wi-Fi SSID is detected.
+
+  Args:
+    device: Android device controller instance.
+    ssid: The SSID of the Wi-Fi network.
+    selector: The selector to match the element.
+
+  Returns:
+    True if the network request dialog exists, False otherwise.
+  """
+  def whether_network_request_dialog_exists() -> bool:
+    return any([
+        device.ui(**selector).exists,
+        device.ui(scrollable=True).exists,
+        device.ui(text=ssid).exists,
+    ])
+  return test_utils.wait_until(
+      condition=whether_network_request_dialog_exists,
+      timeout=_WAIT_CONNECTION_DIALOG_TIMEOUT
+  )
 
 
 def click_connect_in_connection_dialog(
@@ -25,24 +60,25 @@ def click_connect_in_connection_dialog(
 ) -> None:
   """Clicks Connect in wifi connection dialog.
 
-  go/hsv/6077908610187264 is an example showing the dialog this method handles.
+  Examples showing the dialog this method handles:
+  * go/hsv/6077908610187264 (Android phone)
+  * go/hsv/5855822797078528 (Android Auto)
+  * go/hsv/6294400027066368 (Android Watch hsv before scrolling),
+    go/hsv/6699984895344640 (Android Watch hsv after scrolling)
   """
   # TODO: b/433456977 - Set up a unique resource-id to improve robustness.
-  connection_dialog_ssid_text = device.ui(text=ssid)
   if connect_button_text is None:
     selector = {'textMatches': r"(?i)^(Connect|OK)$"}
   else:
     selector = {'text': connect_button_text}
   try:
+    # Wait for the network request dialog to appear
+    asserts.assert_true(
+      _wait_for_network_request_dialog_exist(device, ssid, selector),
+      msg='Failed to wait for the network request dialog to appear',
+    )
     # On watch devices, it might need to swipe down to show the
     # confirm button on screen, then it can be clicked.
-    if test_utils.is_watch_device(device):
-      device.ui(scrollable=True).wait.exists(_WAIT_SCROLLABLE_TIMEOUT)
-    else:
-      asserts.assert_true(
-          connection_dialog_ssid_text.wait.exists(_UI_OPERATION_TIMEOUT),
-          msg='Failed to find wifi connection dialog',
-      )
     device.ui(scrollable=True).scroll.down(**selector)
 
     click_success = False
@@ -51,10 +87,10 @@ def click_connect_in_connection_dialog(
     if device.ui(**selector).exists:
       click_success = device.ui(**selector).click()
     else:
-      click_success = connection_dialog_ssid_text.click()
+      click_success = device.ui(text=ssid).click()
     asserts.assert_true(
-        click_success,
-        msg='Failed to click the connect button in wifi connection dialog',
+      click_success,
+      msg='Failed to click the connect button in wifi connection dialog',
     )
   except (errors.BaseError, asserts.signals.TestFailure):
     capture_hsv_snapshot(
@@ -72,31 +108,29 @@ def click_pattern_matched_wifi_in_connection_dialog(
 ) -> None:
   """Clicks pattern matched wifi in connection dialog.
 
-  go/hsv/4632544036257792 and go/hsv/6467167670239232 are examples showing the
-  dialog this method handles.
+  Examples showing the dialog this method handles:
+  * go/hsv/4632544036257792 and go/hsv/6467167670239232 (Android phone)
+  * go/hsv/4553738197925888 (Android watch)
   """
-  pattern_matched_wifi = device.ui(text=ssid)
   if select_button_text is None:
     selector = {'textMatches': r"(?i)^(Connect|OK)$"}
   else:
     selector = {'text': select_button_text}
 
+  # Wait for the network request dialog appears
+  asserts.assert_true(
+    _wait_for_network_request_dialog_exist(device, ssid, selector),
+    msg='Failed to wait for the network request dialog to appear',
+  )
   # On watch devices, it might need to swipe down to show the
   # confirm button on screen, then it can be clicked.
-  if test_utils.is_watch_device(device):
-    device.ui(scrollable=True).wait.exists(_WAIT_SCROLLABLE_TIMEOUT)
-  else:
-    asserts.assert_true(
-      pattern_matched_wifi.wait.exists(_UI_OPERATION_TIMEOUT),
-      msg='Failed to find pattern matched wifi connection dialog',
-    )
   device.ui(scrollable=True).scroll.down(**selector)
 
   click_success = False
   if device.ui(**selector).exists:
     click_success = device.ui(**selector).click()
   else:
-    click_success = pattern_matched_wifi.click()
+    click_success = device.ui(text=ssid).click()
     # Try clicking `Connect` to handle OEM UI customization. We don't have a
     # better way besides having a try since:
     # 1. `click_success` is True even when clicking it does not take effect.
