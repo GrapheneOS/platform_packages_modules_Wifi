@@ -7,6 +7,7 @@ from typing import Any
 
 
 BSSID_MASK = 'ff:ff:ff:ff:ff:00'
+
 WIFI_SCAN_TIMEOUT = datetime.timedelta(seconds=30)
 REQUEST_NETWORK_TIMEOUT = datetime.timedelta(minutes=3)
 REQUEST_NETWORK_TIMEOUT_MS = int(
@@ -91,12 +92,11 @@ class BssidPattern:
       result['bssid_mask'] = self.bssid_mask
     return result
 
-
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=False)
 class NetworkSpecifier:
   """Network specification.
 
-  https://developer.android.com/reference/android/net/wifi/WifiNetworkSuggestion.Builder
+  https://developer.android.com/reference/android/net/wifi/WifiNetworkSpecifier.Builder
   """
 
   ssid: str | None = None
@@ -104,6 +104,7 @@ class NetworkSpecifier:
   ssid_pattern: PatternMatcher | None = None
   bssid_pattern: BssidPattern | None = None
   psk: str | None = None
+  wpa3_passphrase: str | None = None
 
   def to_dict(self) -> dict[str, Any]:
     """Returns a dict representation of NetworkSpecifier."""
@@ -118,6 +119,9 @@ class NetworkSpecifier:
       result['bssid_pattern'] = self.bssid_pattern.to_dict()
     if self.psk:
       result['psk'] = self.psk
+    if self.wpa3_passphrase:
+      result['wpa3_passphrase'] = self.wpa3_passphrase
+
     return result
 
 
@@ -131,6 +135,7 @@ class NetworkSuggestion:
   ssid: str
   bssid: str | None = None
   psk: str | None = None
+  wpa3_passphrase: str | None = None
   is_hidden_ssid: bool | None = None
   is_metered: bool | None = None
   is_app_interaction_required: bool | None = None
