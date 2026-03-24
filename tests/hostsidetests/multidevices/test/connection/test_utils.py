@@ -49,6 +49,29 @@ def load_snippet(device: android_device.AndroidDevice):
   test_utils.drop_shell_permission(device, ensure_mbs_initialized=True)
 
 
+def wait_until(
+    condition: Callable[[], bool],
+    timeout: datetime.timedelta,
+    interval: datetime.timedelta = _SHORT_DELAY_TIME_BETWEEN_ACTIONS,
+) -> bool:
+  """Waits until the condition is met or timeout occurs without raising.
+
+  Args:
+    condition: Represents the condition to wait for.
+    timeout: The maximum time to wait.
+    interval: Time to sleep between condition checks.
+
+  Returns:
+    True if the condition is met within the timeout, False otherwise.
+  """
+  end_time = time.monotonic() + timeout.total_seconds()
+  while time.monotonic() < end_time:
+    if condition():
+      return True
+    time.sleep(interval.total_seconds())
+  return False
+
+
 def wait_until_or_assert(
     condition: Callable[[], bool],
     error_msg: str,
