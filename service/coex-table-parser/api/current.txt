@@ -1,6 +1,5 @@
 // Signature format: 6.0
 // - style=java
-// - strip-java-lang-prefix=legacy
 package com.android.server.wifi.coex {
 
   public class DefaultChannels {
@@ -62,13 +61,13 @@ package com.android.server.wifi.coex {
   public class Override2g {
     ctor public Override2g();
     method public java.util.List<com.android.server.wifi.coex.OverrideCategory2g> getCategory();
-    method public java.util.List<java.lang.Integer> getChannel();
+    method public java.util.List<Integer> getChannel();
   }
 
   public class Override5g {
     ctor public Override5g();
     method public java.util.List<com.android.server.wifi.coex.OverrideCategory5g> getCategory();
-    method public java.util.List<java.lang.Integer> getChannel();
+    method public java.util.List<Integer> getChannel();
   }
 
   public enum OverrideCategory2g {
