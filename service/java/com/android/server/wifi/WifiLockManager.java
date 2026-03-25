@@ -16,6 +16,8 @@
 
 package com.android.server.wifi;
 
+import static android.net.wifi.WifiManager.MAX_LOCK_TAG_LENGTH;
+
 import android.annotation.NonNull;
 import android.app.ActivityManager;
 import android.content.Context;
@@ -1224,6 +1226,14 @@ public class WifiLockManager {
         mVerboseLoggingEnabled = verboseEnabled;
     }
 
+    private static String trimLockTagIfNeeded(String lockTag) {
+        if (lockTag == null || lockTag.length() <= MAX_LOCK_TAG_LENGTH) {
+            return lockTag;
+        }
+        Log.w(TAG, "Trimming lock tag from original size " + lockTag.length());
+        return lockTag.substring(0, MAX_LOCK_TAG_LENGTH);
+    }
+
     private class WifiLock implements IBinder.DeathRecipient {
         String mTag;
         int mUid;
@@ -1233,7 +1243,7 @@ public class WifiLockManager {
         long mAcqTimestamp;
 
         WifiLock(int lockMode, String tag, IBinder binder, WorkSource ws) {
-            mTag = tag;
+            mTag = trimLockTagIfNeeded(tag);
             mBinder = binder;
             mUid = Binder.getCallingUid();
             mMode = lockMode;
