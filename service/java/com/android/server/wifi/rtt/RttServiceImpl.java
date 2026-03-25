@@ -2376,12 +2376,49 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             }
 
             try {
-                // TODO: post-process results if needed, similar to one-shot ranging
-                mRttMetrics.recordContinuousRangingResults(cmdId, results);
-                session.mCallback.onRangingResults(results);
+                List<RangingResult> finalResults = postProcessContinuousRangingResults(
+                    session.mRequest, results);
+                mRttMetrics.recordContinuousRangingResults(cmdId, finalResults);
+                session.mCallback.onRangingResults(finalResults);
             } catch (RemoteException e) {
                 Log.e(TAG, "onContinuousRangingResults: callback exception -- " + e);
             }
+        }
+
+        @SuppressLint("NewApi")
+        private List<RangingResult> postProcessContinuousRangingResults(
+            RangingRequest request, List<RangingResult> results)
+        {
+            if (request == null || results == null) {
+                Log.w(TAG, "postProcessContinuousRangingResults: invalid input: request=" + request
+                        + ", results=" + results);
+                return new ArrayList<>();
+            }
+
+            // Should only have 1 result in the list
+            if (results.size() != 1 || request.mRttPeers.size() != 1) {
+                Log.w(TAG, "postProcessContinuousRangingResults: invalid input: request=" +
+                        request + ", result size=" + results.size() + ", results=" +
+                        Arrays.toString(results.toArray()) + ", request peers=" +
+                        request.mRttPeers);
+                return new ArrayList<>();
+            }
+
+            RangingResult result = results.get(0);
+            // Only 1 peer will be in the RangingRequest
+            ResponderConfig peer = request.mRttPeers.get(0);
+            RangingResult.Builder builder = new RangingResult.Builder(result);
+
+            if (Flags.proximityRangingImpl() && peer.getUsdPeerId() != -1) {
+                builder.setUsdPeerId(peer.getUsdPeerId());
+            } else {
+                builder.setMacAddress(peer.getMacAddress());
+            }
+
+            List<RangingResult> finalResults = new ArrayList<>(request.mRttPeers.size());
+            finalResults.add(builder.build());
+
+            return finalResults;
         }
 
         @SuppressLint("NewApi")

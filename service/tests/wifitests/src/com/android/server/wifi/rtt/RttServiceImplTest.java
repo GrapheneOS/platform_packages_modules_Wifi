@@ -2266,6 +2266,137 @@ public class RttServiceImplTest extends WifiBaseTest {
     }
 
     @Test
+    public void testContinuousRangingResultsWithUsdPeerId() throws Exception {
+        setupRttServiceForProximityRanging();
+        RangingRequest request = RttTestUtils.getDummyContinuousRangingRequestWithUsdPeerId();
+        IContinuousRangingResultCallback callback = mock(IContinuousRangingResultCallback.class);
+        IBinder binder = mock(IBinder.class);
+        when(callback.asBinder()).thenReturn(binder);
+
+        // USD peer ID translation to MAC
+        when(mUsdRequestManager.getMacAddressFromUsdPeerId(1234))
+                .thenReturn(TEST_STA_MAC_ADDRESS.toByteArray());
+        when(mMockSupplicantRttController.rangeRequest(anyInt(), any(RangingRequest.class)))
+                .thenReturn(true);
+
+        mDut.startContinuousRanging(binder, mPackageName, mFeatureId, mDefaultWs, request,
+                callback);
+        mMockLooper.dispatchAll();
+
+        verify(mMockSupplicantRttController).rangeRequest(mIntCaptor.capture(), any());
+        int cmdId = mIntCaptor.getValue();
+
+        // Create HAL ranging results using the translated MAC address
+        List<RangingResult> halResults = new ArrayList<>();
+        halResults.add(new RangingResult.Builder()
+                .setStatus(WifiRttController.FRAMEWORK_RTT_STATUS_SUCCESS)
+                .setMacAddress(TEST_STA_MAC_ADDRESS)
+                .setDistanceMm(100)
+                .build());
+
+        // Simulate HAL sending the results
+        mDut.mSupplicantRttEventCallback.onRangingResults(cmdId, halResults);
+        mMockLooper.dispatchAll();
+
+        // Verify the callback receives the results with USD peer ID mapped back
+        verify(callback).onRangingResults(mListCaptor.capture());
+        List<RangingResult> appResults = mListCaptor.getValue();
+        assertEquals(1, appResults.size());
+        RangingResult appResult = appResults.get(0);
+
+        assertEquals(RangingResult.STATUS_SUCCESS, appResult.getStatus());
+        assertEquals(TEST_STA_MAC_ADDRESS, appResult.getMacAddress());
+        assertEquals(1234, appResult.getUsdPeerId());
+        assertEquals(100, appResult.getDistanceMm());
+    }
+
+    @Test
+    public void testContinuousRangingResults_nullResults() throws Exception {
+        setupRttServiceForProximityRanging();
+        RangingRequest request = RttTestUtils.getDummyContinuousRangingRequest();
+        IContinuousRangingResultCallback callback = mock(IContinuousRangingResultCallback.class);
+        IBinder binder = mock(IBinder.class);
+        when(callback.asBinder()).thenReturn(binder);
+        when(mMockSupplicantRttController.rangeRequest(anyInt(), any(RangingRequest.class)))
+                .thenReturn(true);
+
+        mDut.startContinuousRanging(binder, mPackageName, mFeatureId, mDefaultWs, request,
+                callback);
+        mMockLooper.dispatchAll();
+
+        verify(mMockSupplicantRttController).rangeRequest(mIntCaptor.capture(), any());
+        int cmdId = mIntCaptor.getValue();
+
+        // Pass null results
+        mDut.mSupplicantRttEventCallback.onRangingResults(cmdId, null);
+        mMockLooper.dispatchAll();
+
+        verify(callback).onRangingResults(mListCaptor.capture());
+        assertTrue(mListCaptor.getValue().isEmpty());
+    }
+
+    @Test
+    public void testContinuousRangingResults_emptyResults() throws Exception {
+        setupRttServiceForProximityRanging();
+        RangingRequest request = RttTestUtils.getDummyContinuousRangingRequest();
+        IContinuousRangingResultCallback callback = mock(IContinuousRangingResultCallback.class);
+        IBinder binder = mock(IBinder.class);
+        when(callback.asBinder()).thenReturn(binder);
+        when(mMockSupplicantRttController.rangeRequest(anyInt(), any(RangingRequest.class)))
+                .thenReturn(true);
+
+        mDut.startContinuousRanging(binder, mPackageName, mFeatureId, mDefaultWs, request,
+                callback);
+        mMockLooper.dispatchAll();
+
+        verify(mMockSupplicantRttController).rangeRequest(mIntCaptor.capture(), any());
+        int cmdId = mIntCaptor.getValue();
+
+        // Pass empty results
+        mDut.mSupplicantRttEventCallback.onRangingResults(cmdId, new ArrayList<>());
+        mMockLooper.dispatchAll();
+
+        verify(callback).onRangingResults(mListCaptor.capture());
+        assertTrue(mListCaptor.getValue().isEmpty());
+    }
+
+    @Test
+    public void testContinuousRangingResults_multipleResults() throws Exception {
+        setupRttServiceForProximityRanging();
+        RangingRequest request = RttTestUtils.getDummyContinuousRangingRequest();
+        IContinuousRangingResultCallback callback = mock(IContinuousRangingResultCallback.class);
+        IBinder binder = mock(IBinder.class);
+        when(callback.asBinder()).thenReturn(binder);
+        when(mMockSupplicantRttController.rangeRequest(anyInt(), any(RangingRequest.class)))
+                .thenReturn(true);
+
+        mDut.startContinuousRanging(binder, mPackageName, mFeatureId, mDefaultWs, request,
+                callback);
+        mMockLooper.dispatchAll();
+
+        verify(mMockSupplicantRttController).rangeRequest(mIntCaptor.capture(), any());
+        int cmdId = mIntCaptor.getValue();
+
+        // Pass multiple results
+        List<RangingResult> halResults = new ArrayList<>();
+        halResults.add(new RangingResult.Builder()
+                .setStatus(WifiRttController.FRAMEWORK_RTT_STATUS_SUCCESS)
+                .setMacAddress(TEST_STA_MAC_ADDRESS)
+                .setDistanceMm(100)
+                .build());
+        halResults.add(new RangingResult.Builder()
+                .setStatus(WifiRttController.FRAMEWORK_RTT_STATUS_SUCCESS)
+                .setMacAddress(TEST_STA_MAC_ADDRESS)
+                .setDistanceMm(200)
+                .build());
+        mDut.mSupplicantRttEventCallback.onRangingResults(cmdId, halResults);
+        mMockLooper.dispatchAll();
+
+        verify(callback).onRangingResults(mListCaptor.capture());
+        assertTrue(mListCaptor.getValue().isEmpty());
+    }
+
+    @Test
     public void testStartContinuousRangingWithUsdPeerIdNotFound() throws Exception {
         setupRttServiceForProximityRanging();
         RangingRequest request = RttTestUtils.getDummyContinuousRangingRequestWithUsdPeerId();
