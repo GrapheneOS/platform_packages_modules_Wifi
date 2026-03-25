@@ -6260,7 +6260,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
         // - discovery window: minimum value if specified, 0 (disable) is considered an infinity
         boolean support5gBand = false;
         boolean support6gBand = false;
-        int masterPreference = -1;
+        int masterPreference = 0;
         boolean clusterIdValid = false;
         int clusterLow = 0;
         int clusterHigh = ConfigRequest.CLUSTER_ID_MAX;
@@ -6323,7 +6323,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                 vendorData = cr.getVendorData();
             }
         }
-        masterPreference = masterPreference == -1 ? mMasterPref : masterPreference;
+        masterPreference = masterPreference == 0 ? mMasterPref : masterPreference;
         ConfigRequest.Builder builder = new ConfigRequest.Builder().setSupport5gBand(support5gBand)
                 .setMasterPreference(masterPreference).setClusterLow(clusterLow)
                 .setClusterHigh(clusterHigh);

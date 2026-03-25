@@ -55,7 +55,6 @@ class NetworkRequestTests(base_test.BaseTestClass):
     )
     # set the wifi snippet to foreground
     self.ad.wifi.utilityBringToForeground()
-    test_utils.drop_shell_permission(ad, ensure_mbs_initialized=True)
     test_utils.enable_wifi_verbose_logging(ad)
     test_utils.set_screen_on_and_unlock(ad)
     # Make sure location mode is on before triggering any Wi-Fi scan.
@@ -140,6 +139,12 @@ class NetworkRequestTests(base_test.BaseTestClass):
     self.ad.wifi.connectivityUnregisterNetwork(self.request_networkid)
     self.ad.services.create_output_excerpts_all(self.current_test_info)
 
+    # Without unloading, a failed test sometimes causes subsequent tests to fail. Thus
+    # unload snippet to clean state.
+    self.ad.unload_snippet('wifi')
+    test_utils.load_snippet(self.ad)
+    self.ad.wifi.wifiSetScanThrottleState(False)
+
   def on_fail(self, record: records.TestResultRecord) -> None:
     self.ad.take_bug_report(destination=self.current_test_info.output_path)
 
@@ -164,14 +169,17 @@ class NetworkRequestTests(base_test.BaseTestClass):
     wifi_info = self.ap_helper.get_or_start_wifi()
 
     # DUT scans for the WiFi and verify the WiFi is discovered.
-    wifi_utils.wait_for_expected_wifi_discovered(
+    scan_result = wifi_utils.wait_for_expected_wifi_discovered(
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
-    # Set up the network request parameters.
-    network_specifier = constants.NetworkSpecifier(
-        ssid=wifi_info.ssid, bssid=wifi_info.bssid, psk=wifi_info.password
+    network_specifier = wifi_utils.create_network_specifier(
+        ssid=wifi_info.ssid,
+        bssid=wifi_info.bssid,
+        password=wifi_info.password,
+        scan_result=scan_result,
     )
+
     network_request = constants.NetworkRequest(
         network_specifier=network_specifier,
         remove_capability=constants.NetworkCapabilities.NET_CAPABILITY_INTERNET,
@@ -232,8 +240,8 @@ class NetworkRequestTests(base_test.BaseTestClass):
     """
     wifi_info = self.ap_helper.get_or_start_wifi()
 
-    # DUT scans for the WiFi and verify the Wifi is discovered.
-    wifi_utils.wait_for_expected_wifi_discovered(
+    # DUT scans for the WiFi and verify the WiFi is discovered.
+    scan_result = wifi_utils.wait_for_expected_wifi_discovered(
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
@@ -245,13 +253,16 @@ class NetworkRequestTests(base_test.BaseTestClass):
         bssid=wifi_info.bssid,
         bssid_mask=constants.BSSID_MASK,
     )
-    network_specifier_pattern = constants.NetworkSpecifier(
+
+    network_specifier = wifi_utils.create_network_specifier(
         ssid_pattern=ssid_pattern,
         bssid_pattern=bssid_pattern,
-        psk=wifi_info.password,
+        password=wifi_info.password,
+        scan_result=scan_result,
     )
+
     network_request = constants.NetworkRequest(
-        network_specifier=network_specifier_pattern,
+        network_specifier=network_specifier,
         remove_capability=constants.NetworkCapabilities.NET_CAPABILITY_INTERNET,
         transport_type=constants.TransportType.TRANSPORT_WIFI,
     )
@@ -361,14 +372,17 @@ class NetworkRequestTests(base_test.BaseTestClass):
       invalid_psk = 'invalid_psk2'
 
     # DUT scans for the WiFi and verify the WiFi is discovered.
-    wifi_utils.wait_for_expected_wifi_discovered(
+    scan_result = wifi_utils.wait_for_expected_wifi_discovered(
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
-    # Set up the network request parameters.
-    network_specifier = constants.NetworkSpecifier(
-        ssid=wifi_info.ssid, bssid=wifi_info.bssid, psk=invalid_psk
+    network_specifier = wifi_utils.create_network_specifier(
+        ssid=wifi_info.ssid,
+        bssid=wifi_info.bssid,
+        password=invalid_psk,
+        scan_result=scan_result
     )
+
     network_request = constants.NetworkRequest(
         network_specifier=network_specifier,
         remove_capability=constants.NetworkCapabilities.NET_CAPABILITY_INTERNET,

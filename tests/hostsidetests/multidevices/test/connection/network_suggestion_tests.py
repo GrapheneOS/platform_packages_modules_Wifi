@@ -163,17 +163,21 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     wifi_info = self.ap_helper.get_or_start_wifi()
 
     # DUT scans for the WiFi and verify the WiFi is discovered.
-    wifi_utils.wait_for_expected_wifi_discovered(
+    scan_result = wifi_utils.wait_for_expected_wifi_discovered(
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
-    is_bssid_set = False
-    network_suggestion = constants.NetworkSuggestion(
+    # Create network suggestion
+    network_suggestion = wifi_utils.create_network_suggestion(
         ssid=wifi_info.ssid,
-        psk=wifi_info.password,
-        is_hidden_ssid=False,
+        password=wifi_info.password,
+        scan_result=scan_result,
         is_metered=False,
+        is_hidden_ssid=False,
     )
+
+    is_bssid_set = False
+
     network_suggestion_array = [network_suggestion.to_dict()]
     network_request = constants.NetworkRequest(
         transport_type=constants.TransportType.TRANSPORT_WIFI,
@@ -246,19 +250,22 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     wifi_info = self.ap_helper.get_or_start_wifi()
 
     # DUT scans for the WiFi and verify the WiFi is discovered.
-    wifi_utils.wait_for_expected_wifi_discovered(
+    scan_result = wifi_utils.wait_for_expected_wifi_discovered(
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
-    # Set up the network suggestion parameters.
-    is_bssid_set = True
-    network_suggestion = constants.NetworkSuggestion(
+    # Create network suggestion
+    network_suggestion = wifi_utils.create_network_suggestion(
         ssid=wifi_info.ssid,
+        password=wifi_info.password,
+        scan_result=scan_result,
         bssid=wifi_info.bssid,
-        psk=wifi_info.password,
-        is_hidden_ssid=False,
         is_metered=False,
+        is_hidden_ssid=False
     )
+
+    is_bssid_set = True
+
     network_suggestion_array = [network_suggestion.to_dict()]
     network_request = constants.NetworkRequest(
         transport_type=constants.TransportType.TRANSPORT_WIFI,
@@ -334,19 +341,22 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     wifi_info = self.ap_helper.get_or_start_wifi()
 
     # DUT scans for the WiFi and verify the WiFi is discovered.
-    wifi_utils.wait_for_expected_wifi_discovered(
+    scan_result = wifi_utils.wait_for_expected_wifi_discovered(
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
-    # Set up the network suggestion parameters.
-    is_bssid_set = False
-    network_suggestion = constants.NetworkSuggestion(
+    # Create network suggestion
+    network_suggestion = wifi_utils.create_network_suggestion(
         ssid=wifi_info.ssid,
-        psk=wifi_info.password,
-        is_hidden_ssid=False,
+        password=wifi_info.password,
+        scan_result=scan_result,
         is_metered=False,
+        is_hidden_ssid=False,
         is_app_interaction_required=True,
     )
+
+    is_bssid_set = False
+
     network_suggestion_array = [network_suggestion.to_dict()]
     network_request = constants.NetworkRequest(
         transport_type=constants.TransportType.TRANSPORT_WIFI,
@@ -432,16 +442,21 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
       invalid_psk = 'invalid_psk2'
 
     # DUT scans for the WiFi and verify the WiFi is discovered.
-    wifi_utils.wait_for_expected_wifi_discovered(
+    scan_result = wifi_utils.wait_for_expected_wifi_discovered(
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
-    network_suggestion = constants.NetworkSuggestion(
+    # Create network suggestion
+    network_suggestion = wifi_utils.create_network_suggestion(
         ssid=wifi_info.ssid,
-        psk=invalid_psk,
-        is_hidden_ssid=False,
+        password=invalid_psk,
+        scan_result=scan_result,
         is_metered=False,
+        is_hidden_ssid=False,
     )
+
+    is_bssid_set = False
+
     network_suggestion_array = [network_suggestion.to_dict()]
 
     network_request = constants.NetworkRequest(
@@ -532,18 +547,20 @@ class NetworkSuggestionTests(base_test.BaseTestClass):
     wifi_info = self.ap_helper.get_or_start_wifi()
 
     # DUT scans for the WiFi and verify the WiFi is discovered.
-    wifi_utils.wait_for_expected_wifi_discovered(
+    scan_result = wifi_utils.wait_for_expected_wifi_discovered(
         self.ad, wifi_info.ssid, wifi_info.bssid
     )
 
-    # Set up the network suggestion parameters.
-    is_bssid_set = False
-    network_suggestion = constants.NetworkSuggestion(
+    network_suggestion = wifi_utils.create_network_suggestion(
         ssid=wifi_info.ssid,
-        psk=wifi_info.password,
+        password=wifi_info.password,
+        scan_result=scan_result,
         is_hidden_ssid=False,
         is_metered=False,
     )
+
+    is_bssid_set = False
+
     network_suggestion_array = [network_suggestion.to_dict()]
     network_request = constants.NetworkRequest(
         transport_type=constants.TransportType.TRANSPORT_WIFI,

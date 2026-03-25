@@ -5,6 +5,7 @@ import logging
 import os
 import time
 
+from connection import test_utils
 from mobly import asserts
 from mobly.controllers import android_device
 from snippet_uiautomator import errors
@@ -13,6 +14,7 @@ from connection import constants
 
 _UI_OPERATION_TIMEOUT = datetime.timedelta(seconds=10)
 _UI_RESPONGE_TIMEOUT = datetime.timedelta(seconds=3)
+_WAIT_SCROLLABLE_TIMEOUT = datetime.timedelta(seconds=10)
 
 
 def click_connect_in_connection_dialog(
@@ -26,15 +28,32 @@ def click_connect_in_connection_dialog(
   go/hsv/6077908610187264 is an example showing the dialog this method handles.
   """
   # TODO: b/433456977 - Set up a unique resource-id to improve robustness.
-  connection_dialog = device.ui(text=ssid)
+  connection_dialog_ssid_text = device.ui(text=ssid)
+  if connect_button_text is None:
+    selector = {'textMatches': r"(?i)^(Connect|OK)$"}
+  else:
+    selector = {'text': connect_button_text}
   try:
+    # On watch devices, it might need to swipe down to show the
+    # confirm button on screen, then it can be clicked.
+    if test_utils.is_watch_device(device):
+      device.ui(scrollable=True).wait.exists(_WAIT_SCROLLABLE_TIMEOUT)
+    else:
+      asserts.assert_true(
+          connection_dialog_ssid_text.wait.exists(_UI_OPERATION_TIMEOUT),
+          msg='Failed to find wifi connection dialog',
+      )
+    device.ui(scrollable=True).scroll.down(**selector)
+
+    click_success = False
+    # Try different methods to click the confirm button since it's
+    # Settings UI and can be customized by OEMs.
+    if device.ui(**selector).exists:
+      click_success = device.ui(**selector).click()
+    else:
+      click_success = connection_dialog_ssid_text.click()
     asserts.assert_true(
-        connection_dialog.wait.exists(_UI_OPERATION_TIMEOUT),
-        msg='Failed to find wifi connection dialog',
-    )
-    connect_button_text = connect_button_text or 'Connect'
-    asserts.assert_true(
-        device.ui(text=connect_button_text).click(),
+        click_success,
         msg='Failed to click the connect button in wifi connection dialog',
     )
   except (errors.BaseError, asserts.signals.TestFailure):
@@ -57,13 +76,25 @@ def click_pattern_matched_wifi_in_connection_dialog(
   dialog this method handles.
   """
   pattern_matched_wifi = device.ui(text=ssid)
-  asserts.assert_true(
+  if select_button_text is None:
+    selector = {'textMatches': r"(?i)^(Connect|OK)$"}
+  else:
+    selector = {'text': select_button_text}
+
+  # On watch devices, it might need to swipe down to show the
+  # confirm button on screen, then it can be clicked.
+  if test_utils.is_watch_device(device):
+    device.ui(scrollable=True).wait.exists(_WAIT_SCROLLABLE_TIMEOUT)
+  else:
+    asserts.assert_true(
       pattern_matched_wifi.wait.exists(_UI_OPERATION_TIMEOUT),
       msg='Failed to find pattern matched wifi connection dialog',
-  )
+    )
+  device.ui(scrollable=True).scroll.down(**selector)
+
   click_success = False
-  if select_button_text:
-    click_success = device.ui(text=select_button_text).click()
+  if device.ui(**selector).exists:
+    click_success = device.ui(**selector).click()
   else:
     click_success = pattern_matched_wifi.click()
     # Try clicking `Connect` to handle OEM UI customization. We don't have a
@@ -73,8 +104,8 @@ def click_pattern_matched_wifi_in_connection_dialog(
     #    since there's a short timeout for user to respond to this dialog.
     click_success |= device.ui(text='Connect').click()
   asserts.assert_true(
-      click_success,
-      msg='Failed to select matched Wi-Fi when using a pattern network request.'
+    click_success,
+    msg='Failed to select matched Wi-Fi when using a pattern network request.'
   )
 
 
@@ -92,20 +123,30 @@ def allow_network_suggestion_in_dialog(
 
   go/hsv/4858200577802240 is an example showing the dialog this method handles.
   """
-  allow_button_text = allow_button_text or 'Allow'
+  if allow_button_text is None:
+    selector = {'textMatches': r"(?i)^allow$"}
+  else:
+    selector = {'text': allow_button_text}
+
   try:
+    if test_utils.is_watch_device(device):
+      device.ui(scrollable=True).wait.exists(_WAIT_SCROLLABLE_TIMEOUT)
+    else:
+      asserts.assert_true(
+          device.ui(**selector).wait.exists(datetime.timedelta(seconds=10)),
+          msg='Failed to find network suggestion in dialog',
+      )
+    device.ui(scrollable=True).scroll.down(**selector)
+
     asserts.assert_true(
-        device.ui(textContains=allow_button_text).wait.exists(
-            constants.CALLBACK_TIMEOUT
-        ),
-        msg='Failed to find network suggestion in dialog',
+        device.ui(**selector).click(),
+        msg='Failed to click the allow button in wifi suggestion dialog.'
     )
-    device.ui(text=allow_button_text).click()
   except (errors.BaseError, asserts.signals.TestFailure):
     capture_hsv_snapshot(
-        device,
-        prefix='allow_adding_network_suggestion',
-        output_path=hsv_output_path_when_failed,
+      device,
+      prefix='allow_adding_network_suggestion',
+      output_path=hsv_output_path_when_failed,
     )
     raise
 
@@ -125,27 +166,38 @@ def close_failed_to_connect_wifi_dialog(
 ) -> None:
   """Closes failed to connect wifi dialog."""
   if device.ui(textContains='No devices found.').wait.exists(
-      _UI_OPERATION_TIMEOUT
+      datetime.timedelta(seconds=5)
   ):
-    capture_hsv_snapshot(
-        device,
-        prefix='No devices found.',
-        output_path=hsv_output_path_when_failed,
-    )
-    text = button_no_device_found or 'Cancel'
-    device.ui(text=text).click()
-  if device.ui(textContains='Something came up.').wait.exists(
-      _UI_OPERATION_TIMEOUT
-  ):
-    capture_hsv_snapshot(
-        device,
-        prefix='Something came up',
-        output_path=hsv_output_path_when_failed,
-    )
-    if button_something_came_up:
-      device.ui(textMatches=button_something_came_up).click()
+    if button_no_device_found is not None:
+      selector = {'text': button_no_device_found}
     else:
-      device.ui(textMatches='Cancel|OK').click()
+      selector = {'textMatches': r"(?i)^Cancel$"}
+
+    if device.ui(scrollable=True).exists:
+      device.ui(scrollable=True).scroll.down(**selector)
+    if not device.ui(**selector).click():
+      capture_hsv_snapshot(
+          device,
+          prefix='No devices found dialog.',
+          output_path=hsv_output_path_when_failed,
+      )
+
+  if device.ui(textContains='Something came up.').wait.exists(
+      datetime.timedelta(seconds=5)
+  ):
+    if button_something_came_up is not None:
+      selector = {'text': button_something_came_up}
+    else:
+      selector = {'textMatches': r"(?i)^(Cancel|OK)$"}
+
+    if device.ui(scrollable=True).exists:
+      device.ui(scrollable=True).scroll.down(**selector)
+    if not device.ui(**selector).click():
+      capture_hsv_snapshot(
+          device,
+          prefix='click_something_came_up_dialog',
+          output_path=hsv_output_path_when_failed,
+      )
 
 
 def capture_hsv_snapshot(

@@ -1,4 +1,5 @@
-// Signature format: 2.0
+// Signature format: 6.0
+// - style=java
 package android.net.wifi {
 
   @RestrictedForEnvironment(environments=android.annotation.RestrictedForEnvironment.ENVIRONMENT_SDK_RUNTIME, from=android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) public class WifiManager {

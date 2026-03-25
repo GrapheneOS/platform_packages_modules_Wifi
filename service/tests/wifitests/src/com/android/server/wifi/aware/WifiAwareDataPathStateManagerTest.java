@@ -2173,7 +2173,8 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             throws Exception {
         final IWifiAwareManager mockAwareService = mock(IWifiAwareManager.class);
         final WifiAwareManager mgr = new WifiAwareManager(mMockContext, mockAwareService);
-        final ConfigRequest configRequest = new ConfigRequest.Builder().build();
+        final ConfigRequest configRequest = new ConfigRequest.Builder().setMasterPreference(5)
+                .build();
         final PublishConfig publishConfig = new PublishConfig.Builder().build();
         final SubscribeConfig subscribeConfig = new SubscribeConfig.Builder().build();
 
@@ -2262,7 +2263,8 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             byte[] pmk, String passphrase, int requestId, int port, int transportProtocol)
             throws Exception {
         final IWifiAwareManager mockAwareService = mock(IWifiAwareManager.class);
-        final ConfigRequest configRequest = new ConfigRequest.Builder().build();
+        final ConfigRequest configRequest = new ConfigRequest.Builder().setMasterPreference(5)
+                .build();
         final WifiAwareManager mgr = new WifiAwareManager(mMockContext, mockAwareService);
 
         ArgumentCaptor<WifiAwareSession> sessionCaptor = ArgumentCaptor.forClass(
@@ -2358,7 +2360,8 @@ public class WifiAwareDataPathStateManagerTest extends WifiBaseTest {
             int maxNdiInterfaces, int clientId, InOrder inOrder, InOrder inOrderM)
             throws Exception {
         final int pid = 2000;
-        final ConfigRequest configRequest = new ConfigRequest.Builder().build();
+        final ConfigRequest configRequest = new ConfigRequest.Builder().setMasterPreference(5)
+                .build();
 
         ArgumentCaptor<Short> transactionId = ArgumentCaptor.forClass(Short.class);
         ArgumentCaptor<Messenger> messengerCaptor = ArgumentCaptor.forClass(Messenger.class);
