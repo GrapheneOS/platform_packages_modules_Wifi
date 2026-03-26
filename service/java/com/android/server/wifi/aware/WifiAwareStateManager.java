@@ -4694,7 +4694,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
             WifiAwareNetworkSpecifier networkSpecifier, byte[] peerDiscoveryMac, int peerId,
             int clientId, int sessionId, AwareDataPathRequest request, byte[] ndiInitMac) {
         WifiAwareDataPathSecurityConfig securityConfig;
-        boolean isLegacyApi = request == null;
+        boolean isLegacyApi = networkSpecifier != null;
         if (!accept) {
             securityConfig = null;
         } else {
