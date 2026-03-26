@@ -17,6 +17,8 @@
 package com.android.server.wifi.ml_connected_scorer;
 
 import static com.android.server.wifi.Clock.INVALID_TIMESTAMP_MS;
+import static com.android.server.wifi.ml_connected_scorer.Flags.EXIT_DATA_STALL_COUNT;
+import static com.android.server.wifi.ml_connected_scorer.Flags.EXIT_DATA_STALL_SPEED_THRESHOLD_KBPS;
 import static com.android.server.wifi.ml_connected_scorer.Flags.HYSTERESIS_NETWORK_STATUS_CHANGE_MILLIS;
 import static com.android.server.wifi.ml_connected_scorer.Flags.MIN_TIME_TO_WAIT_BEFORE_BLOCK_BSSID_MILLIS;
 import static com.android.server.wifi.ml_connected_scorer.Flags.RSSI_THRESHOLD_NO_HYSTERESIS_NETWORK_STATUS_CHANGE_DBM;
@@ -24,6 +26,7 @@ import static com.android.server.wifi.ml_connected_scorer.Flags.SCAN_TRIGGERING_
 import static com.android.server.wifi.ml_connected_scorer.Flags.SCORE_BREACHING_RSSI_THRESHOLD;
 import static com.android.server.wifi.ml_connected_scorer.Flags.THRESHOLD;
 import static com.android.server.wifi.ml_connected_scorer.Flags.THRESHOLD_HYSTERESIS;
+import static com.android.server.wifi.proto.nano.WifiMetricsProto.WifiIsUnusableEvent.TYPE_UNKNOWN;
 
 import static java.lang.Math.min;
 
@@ -35,6 +38,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.server.wifi.ConnectedScoreResult;
 import com.android.server.wifi.ConnectedScorer;
+import com.android.wifi.flags.FeatureFlags;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
@@ -58,12 +62,17 @@ public class MlConnectedScorer extends ConnectedScorer {
     private boolean mIsScoreTrendingDownwards = false;
     private WifiUsabilityClassifierFactory mFactory; // the factory used to get the classifier
     private MlConnectedScorerHelper mHelper;
+    private FeatureFlags mFeatureFlags;
     private String mLastBssid = null;
     private int mLastFrequency = -1;
+    private boolean mHasDataStall = false;
+    private int mExitDataStallCount = 0;
+
     public MlConnectedScorer(WifiUsabilityClassifierFactory factory,
-            MlConnectedScorerHelper helper) {
+            MlConnectedScorerHelper helper, FeatureFlags featureFlags) {
         mFactory = factory;
         mHelper = helper;
+        mFeatureFlags = featureFlags;
     }
 
     /**
@@ -90,14 +99,39 @@ public class MlConnectedScorer extends ConnectedScorer {
                 || mHelper.isRssiLowAndLinkSpeedVeryLow(stats);
         }
 
-        return ConnectedScoreResult.builder()
-                .setScore((int) score)
-                .setAdjustedScore((int) adjustedScore)
-                .setIsWifiUsable(mRecommendDefaultNetwork)
-                .setShouldTriggerScan(mIsScoreScanThresholdBreach)
-                .setShouldCheckNud(shouldCheckNud)
-                .setShouldBlockBssid(mBlockCurrentBssid)
-                .build();
+        // Data stall handling
+        if (stats.getStatusDataStall() != TYPE_UNKNOWN) {
+            mHasDataStall = true;
+            mExitDataStallCount = 0;
+        } else if (mHasDataStall) {
+            if (wifiInfo.getCalculatedTxKbps() >= EXIT_DATA_STALL_SPEED_THRESHOLD_KBPS
+                    && wifiInfo.getCalculatedRxKbps() >= EXIT_DATA_STALL_SPEED_THRESHOLD_KBPS) {
+                mExitDataStallCount++;
+            }
+            if (mExitDataStallCount >= EXIT_DATA_STALL_COUNT) {
+                mHasDataStall = false;
+            }
+        }
+
+        if (mFeatureFlags.handleL2DataStallInMlScorer()) {
+            return ConnectedScoreResult.builder()
+                    .setScore((int) score)
+                    .setAdjustedScore(mHasDataStall ? 0 : (int) adjustedScore)
+                    .setIsWifiUsable(mHasDataStall ? false : mRecommendDefaultNetwork)
+                    .setShouldTriggerScan(mHasDataStall ? true : !mRecommendDefaultNetwork)
+                    .setShouldCheckNud(shouldCheckNud)
+                    .setShouldBlockBssid(mBlockCurrentBssid)
+                    .build();
+        } else {
+            return ConnectedScoreResult.builder()
+                    .setScore((int) score)
+                    .setAdjustedScore((int) adjustedScore)
+                    .setIsWifiUsable(mRecommendDefaultNetwork)
+                    .setShouldTriggerScan(mIsScoreScanThresholdBreach)
+                    .setShouldCheckNud(shouldCheckNud)
+                    .setShouldBlockBssid(mBlockCurrentBssid)
+                    .build();
+        }
     }
 
     /**
@@ -249,5 +283,7 @@ public class MlConnectedScorer extends ConnectedScorer {
         mBlockCurrentBssid = false;
         mLastScoreBreachTimeMillis = INVALID_TIMESTAMP_MS;
         mIsScoreTrendingDownwards = false;
+        mHasDataStall = false;
+        mExitDataStallCount = 0;
     }
 }

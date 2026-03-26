@@ -934,7 +934,7 @@ public class WifiInjector {
                 mWifiMonitor, ifaceName, clientModeManager, mBroadcastQueue);
         supplicantStateTracker.enableVerboseLogging(verboseLoggingEnabled);
         MlConnectedScorer mlConnectedScorer = new MlConnectedScorer(mWifiUsabilityClassifierFactory,
-                new MlConnectedScorerHelper());
+                new MlConnectedScorerHelper(), mFeatureFlags);
         return new ClientModeImpl(mContext, mWifiMetrics, mClock,
                 mWifiScoreCard, mWifiStateTracker, mWifiPermissionsUtil, mWifiConfigManager,
                 mPasspointManager, mWifiMonitor, mWifiDiagnostics,

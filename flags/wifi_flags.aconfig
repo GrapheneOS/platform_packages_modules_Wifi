@@ -544,3 +544,10 @@ flag {
     description: "Monitoring softap traffic stats and shut it down when there is no active packets "
     bug: "475658391"
 }
+
+flag {
+    name: "handle_l2_data_stall_in_ml_scorer"
+    namespace: "wifi"
+    description: "Handle L2 data stall in ML scorer"
+    bug: "458195756"
+}
