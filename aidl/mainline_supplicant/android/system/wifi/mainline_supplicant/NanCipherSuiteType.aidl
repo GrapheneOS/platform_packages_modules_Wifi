@@ -46,11 +46,12 @@ enum NanCipherSuiteType {
     /**
      *  NCS-GTK-CCMP-128
      */
-    // GROUP_KEY_CCMP_128_MASK = 1 << 5,
+    GROUP_KEY_CCMP_128_MASK = 1 << 5,
+
     /**
      *  NCS-GTK-GCMP-256
      */
-    // GROUP_KEY_GCMP_256_MASK = 1 << 6,
+    GROUP_KEY_GCMP_256_MASK = 1 << 6,
 
     /**
      *  NCS-PK-PASN-128

@@ -63,7 +63,7 @@ def click_connect_in_connection_dialog(
   Examples showing the dialog this method handles:
   * go/hsv/6077908610187264 (Android phone)
   * go/hsv/5855822797078528 (Android Auto)
-  * go/hsv/6294400027066368 (Android Watch hsv before scrolling),
+  * go/hsv/6274000308142080 (Android Watch hsv before scrolling),
     go/hsv/6699984895344640 (Android Watch hsv after scrolling)
   """
   # TODO: b/433456977 - Set up a unique resource-id to improve robustness.
@@ -110,7 +110,7 @@ def click_pattern_matched_wifi_in_connection_dialog(
 
   Examples showing the dialog this method handles:
   * go/hsv/4632544036257792 and go/hsv/6467167670239232 (Android phone)
-  * go/hsv/4553738197925888 (Android watch)
+  * go/hsv/5992525331431424 (Android watch)
   """
   if select_button_text is None:
     selector = {'textMatches': r"(?i)^(Connect|OK)$"}
@@ -156,6 +156,7 @@ def allow_network_suggestion_in_dialog(
   """Allows network suggestion in dialog.
 
   go/hsv/4858200577802240 is an example showing the dialog this method handles.
+  go/hsv/5429575378010112 (Android watch)
   """
   if allow_button_text is None:
     selector = {'textMatches': r"(?i)^allow$"}

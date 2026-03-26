@@ -459,7 +459,7 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
     private String mLastCountryCode = null;
     private Boolean mIs5gAwareSupported = null;
     private final SecureRandom mRandom = new SecureRandom();
-    private final int mMasterPref = mRandom.nextInt(128);
+    private final int mMasterPref = mRandom.nextInt(126) + 2;
 
     /**
      * Current logged in user ID.
