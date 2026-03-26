@@ -16,13 +16,18 @@
 
 package com.android.server.wifi.hal;
 
+import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_SETUP;
+import static com.android.server.wifi.aware.WifiAwareStateManager.NAN_PAIRING_REQUEST_TYPE_VERIFICATION;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.hardware.wifi.NanCapabilities;
+import android.hardware.wifi.NanCipherSuiteType;
 import android.hardware.wifi.NanClusterEventInd;
 import android.hardware.wifi.NanClusterEventType;
 import android.hardware.wifi.NanDataPathConfirmInd;
@@ -30,10 +35,14 @@ import android.hardware.wifi.NanDataPathRequestInd;
 import android.hardware.wifi.NanFollowupReceivedInd;
 import android.hardware.wifi.NanIdentityResolutionAttribute;
 import android.hardware.wifi.NanMatchInd;
+import android.hardware.wifi.NanPairingAkm;
 import android.hardware.wifi.NanPairingConfig;
+import android.hardware.wifi.NanPairingConfirmInd;
+import android.hardware.wifi.NanPairingRequestType;
 import android.hardware.wifi.NanRangingIndication;
 import android.hardware.wifi.NanStatus;
 import android.hardware.wifi.NanStatusCode;
+import android.hardware.wifi.NpkSecurityAssociation;
 
 import com.android.server.wifi.WifiBaseTest;
 import com.android.server.wifi.aware.Capabilities;
@@ -341,5 +350,82 @@ public class WifiNanIfaceCallbackAidlImplTest extends WifiBaseTest {
 
         verify(mFrameworkCallbackMock).eventDisabled(
                 WifiNanIface.NanStatusCode.UNSUPPORTED_CONCURRENCY_NAN_DISABLED);
+    }
+
+    /**
+     * Verifies that eventPairingSecurityAssociationReceived is called when pairing cache is enabled
+     * and the request type is SETUP.
+     */
+    @Test
+    public void testEventPairingConfirm_SetupRequestWithCache_CallsSecurityAssociationReceived() {
+        NanPairingConfirmInd event = new NanPairingConfirmInd();
+        event.pairingInstanceId = 10;
+        event.pairingSuccess = true;
+        event.status = new NanStatus();
+        event.status.status = NanStatusCode.SUCCESS;
+        event.requestType = NanPairingRequestType.NAN_PAIRING_SETUP;
+        event.enablePairingCache = true;
+        event.npksa = new NpkSecurityAssociation();
+        event.npksa.peerNanIdentityKey = new byte[16];
+        event.npksa.localNanIdentityKey = new byte[16];
+        event.npksa.npk = new byte[16];
+        event.npksa.akm = NanPairingAkm.SAE;
+        event.npksa.cipherType = NanCipherSuiteType.PUBLIC_KEY_PASN_128_MASK;
+
+        mDut.eventPairingConfirm(event);
+
+        verify(mFrameworkCallbackMock).eventPairingConfirm(eq(event.pairingInstanceId),
+                eq(event.pairingSuccess), eq(WifiNanIface.NanStatusCode.SUCCESS),
+                eq(NAN_PAIRING_REQUEST_TYPE_SETUP), eq(event.enablePairingCache));
+        verify(mFrameworkCallbackMock).eventPairingSecurityAssociationReceived(
+                eq(event.pairingInstanceId), any());
+    }
+
+    /**
+     * Verifies that eventPairingSecurityAssociationReceived is NOT called when the request type
+     * is VERIFICATION, even if pairing cache is enabled.
+     */
+    @Test
+    public void testEventPairingConfirm_VerificationRequestWithCache_DoesNotCallSecurityAssociationReceived() {
+        NanPairingConfirmInd event = new NanPairingConfirmInd();
+        event.pairingInstanceId = 10;
+        event.pairingSuccess = true;
+        event.status = new NanStatus();
+        event.status.status = NanStatusCode.SUCCESS;
+        event.requestType = NanPairingRequestType.NAN_PAIRING_VERIFICATION;
+        event.enablePairingCache = true;
+        event.npksa = new NpkSecurityAssociation();
+
+        mDut.eventPairingConfirm(event);
+
+        verify(mFrameworkCallbackMock).eventPairingConfirm(eq(event.pairingInstanceId),
+                eq(event.pairingSuccess), eq(WifiNanIface.NanStatusCode.SUCCESS),
+                eq(NAN_PAIRING_REQUEST_TYPE_VERIFICATION), eq(event.enablePairingCache));
+        verify(mFrameworkCallbackMock, never()).eventPairingSecurityAssociationReceived(
+                anyInt(), any());
+    }
+
+    /**
+     * Verifies that eventPairingSecurityAssociationReceived is NOT called when pairing cache
+     * is disabled, even if the request type is SETUP.
+     */
+    @Test
+    public void testEventPairingConfirm_SetupRequestWithoutCache_DoesNotCallSecurityAssociationReceived() {
+        NanPairingConfirmInd event = new NanPairingConfirmInd();
+        event.pairingInstanceId = 10;
+        event.pairingSuccess = true;
+        event.status = new NanStatus();
+        event.status.status = NanStatusCode.SUCCESS;
+        event.requestType = NanPairingRequestType.NAN_PAIRING_SETUP;
+        event.enablePairingCache = false;
+        event.npksa = new NpkSecurityAssociation();
+
+        mDut.eventPairingConfirm(event);
+
+        verify(mFrameworkCallbackMock).eventPairingConfirm(eq(event.pairingInstanceId),
+                eq(event.pairingSuccess), eq(WifiNanIface.NanStatusCode.SUCCESS),
+                eq(NAN_PAIRING_REQUEST_TYPE_SETUP), eq(event.enablePairingCache));
+        verify(mFrameworkCallbackMock, never()).eventPairingSecurityAssociationReceived(
+                anyInt(), any());
     }
 }
