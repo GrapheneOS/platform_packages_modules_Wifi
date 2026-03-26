@@ -57,7 +57,7 @@ BITS_TO_MBPS = 1000000
 class WifiAwareTestConstants:
     """Constants for Wi-Fi Aware test."""
 
-    SERVICE_NAME = 'CtsVerifierTestService'
+    SERVICE_NAME = 'CtsVerifierTestService-%s' % utils.rand_ascii_str(5)
     MATCH_FILTER_BYTES = 'bytes used for matching'.encode('utf-8')
     PUB_SSI = 'Extra bytes in the publisher discovery'.encode('utf-8')
     SUB_SSI = 'Arbitrary bytes for the subscribe discovery'.encode('utf-8')
@@ -121,6 +121,11 @@ class DiscoverySessionCallbackMethodType(enum.StrEnum):
     PAIRING_VERIFICATION_FAILED = 'onPairingVerificationFailed'
     BOOTSTRAPPING_SUCCEEDED = 'onBootstrappingSucceeded'
     BOOTSTRAPPING_FAILED = 'onBootstrappingFailed'
+    DATA_PATH_REQUEST_RECEIVED = 'onDataPathRequestReceived'
+    DATA_PATH_CONNECTED = 'onDataPathConnected'
+    DATA_PATH_REQUEST_FAILURE = 'onDataPathRequestFailed'
+    DATA_PATH_DISCONNECTED = 'onDataPathDisconnected'
+
     # Event for the publish or subscribe step: triggered by onPublishStarted or SUBSCRIBE_STARTED or
     # onSessionConfigFailed
     DISCOVER_RESULT = 'discoveryResult'
@@ -541,7 +546,7 @@ class WifiAwareDataPathSecurityConfig:
 
     https://developer.android.com/reference/android/net/wifi/aware/WifiAwareNetworkSpecifier
     """
-
+    psk_passphrase: str | None = None
     pmk: str | None = None
     cipher_suite: Characteristics | None = (
         Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128
@@ -553,10 +558,32 @@ class WifiAwareDataPathSecurityConfig:
             del result['pmk']
         if not self.cipher_suite:
             del result['cipher_suite']
+        if not self.psk_passphrase:
+            del result['psk_passphrase']
         else:
             result['cipher_suite'] = self.cipher_suite.value
         return result
 
+
+@dataclasses.dataclass(frozen=False)
+class AwareDataPathRequest:
+    port: int | None = None
+    transport_protocol: int | None = None
+    data_path_security_config: WifiAwareDataPathSecurityConfig | None = None
+
+    def to_dict(self) -> dict:
+        result = dataclasses.asdict(self)
+        if not self.port:
+            del result['port']
+        if not self.transport_protocol:
+            del result['transport_protocol']
+        if not self.data_path_security_config:
+            del result['data_path_security_config']
+        else:
+            result['data_path_security_config'] = (
+                self.data_path_security_config.to_dict()
+            )
+        return result
 
 @dataclasses.dataclass(frozen=False)
 class WifiAwareNetworkSpecifier:
