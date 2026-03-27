@@ -228,7 +228,7 @@ public class SavedNetworkNominator implements WifiNetworkSelector.NetworkNominat
         for (Pair<ScanDetail, WifiConfiguration> candidate : candidates) {
             WifiConfiguration config = candidate.second;
             if (config.fromWifiNetworkSuggestion) {
-                return;
+                continue;
             }
             if (!config.allowAutojoin) {
                 continue;
