@@ -20,6 +20,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
+import android.net.wifi.aware.AwareDataPathRequest;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
@@ -157,6 +158,8 @@ public class WifiAwareSnippetConverter extends Converter {
             return WifiAwareJsonDeserializer.jsonToPublishConfig(jsonObject);
         } else if (type == NetworkRequest.class) {
             return WifiAwareJsonDeserializer.jsonToNetworkRequest(jsonObject);
+        } else if (type == AwareDataPathRequest.class) {
+            return  WifiAwareJsonDeserializer.jsonToAwareDataPathRequest(jsonObject);
         }
         // If the type is not recognized, you can throw an exception or return null
         // depending on your application's needs.
