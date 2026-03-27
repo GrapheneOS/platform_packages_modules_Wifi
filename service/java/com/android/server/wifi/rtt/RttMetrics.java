@@ -301,20 +301,11 @@ public class RttMetrics {
     }
 
     /**
-     * Record a continuous ranging request.
-     */
-    public void recordContinuousRangingRequest(RangingRequest request, int failureReason) {
-        mNumStartContinuousRangingCalls++;
-        if (failureReason != 0) {
-            recordContinuousRangingStartStatus(failureReason, request);
-        }
-    }
-
-    /**
      * Record the start status of a continuous ranging session.
      */
     @SuppressLint("NewApi")
     public void recordContinuousRangingStartStatus(int status, RangingRequest request) {
+        mNumStartContinuousRangingCalls++;
         int protoStatus = convertContinuousRangingStartStatusToProtoEnum(status);
         mContinuousRangingStartStatusHistogram.put(protoStatus,
                 mContinuousRangingStartStatusHistogram.get(protoStatus) + 1);

@@ -453,6 +453,24 @@ public class UsdRequestManager {
     }
 
     /**
+     * Gets mac address from the global peer map. Returns null if peer does not exist.
+     */
+    @Nullable
+    public byte[] getMacAddressFromUsdPeerId(int usdPeerId) {
+        UsdPeer peer = getPeerFromGlobalMap(usdPeerId);
+        if (peer == null) {
+            Log.w(TAG, "getMacAddressFromUsdPeerId: Could not find peer for handle "
+                + usdPeerId);
+            return null;
+        }
+        if (peer.peerMacAddress == null) {
+            Log.w(TAG, "getMacAddressFromUsdPeerId: Peer found but MAC address is null" +
+                    "for handle " + usdPeerId);
+            return null;
+        }
+        return peer.peerMacAddress.toByteArray();
+    }
+    /**
      * Constructor.
      */
     public UsdRequestManager(UsdNativeManager usdNativeManager, WifiThreadRunner wifiThreadRunner,
