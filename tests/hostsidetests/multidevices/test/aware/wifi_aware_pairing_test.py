@@ -780,11 +780,7 @@ class WifiAwarePairingTest(base_test.BaseTestClass):
             request_id,
             pub_peer_id,
         )
-        # Step 4.3: Both devices get pairing failure callback.
-        pub_session_handler.waitAndGet(
-            event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_SETUP_FAILED,
-            timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
-        )
+        # Step 4.3: subscriber gets pairing failure callback.
         sub_session_handler.waitAndGet(
             event_name=constants.DiscoverySessionCallbackMethodType.PAIRING_SETUP_FAILED,
             timeout=constants.WAIT_WIFI_STATE_TIME_OUT.total_seconds(),
