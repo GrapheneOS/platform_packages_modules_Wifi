@@ -403,6 +403,18 @@ public final class Characteristics implements Parcelable {
      */
     public static final int WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_256 = 1 << 5;
 
+    /**
+     * Wi-Fi Aware supported cipher suite representing GTK 128: 128 bit group key.
+     * @hide
+     */
+    public static final int WIFI_AWARE_CIPHER_SUITE_GTK_128 = 1 << 6;
+
+    /**
+     * Wi-Fi Aware supported cipher suite representing GTK 256: 256 bit group key.
+     * @hide
+     */
+    public static final int WIFI_AWARE_CIPHER_SUITE_GTK_256 = 1 << 7;
+
     /** @hide */
     @IntDef(flag = true, prefix = { "WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_" }, value = {
             WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_128,

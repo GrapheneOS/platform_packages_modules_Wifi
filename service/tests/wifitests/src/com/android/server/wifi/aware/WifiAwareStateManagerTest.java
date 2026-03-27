@@ -31,6 +31,8 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.staticMockM
 import static com.android.server.wifi.WifiSettingsConfigStore.D2D_ALLOWED_WHEN_INFRA_STA_DISABLED;
 import static com.android.server.wifi.aware.WifiAwareDiscoverySessionState.INVALID_INSTANCE_ID;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_CAPABILITIES;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_CAPABILITIES__IS_PERIODIC_RANGING_SUPPORTED__TRI_STATE_FALSE;
+import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_CAPABILITIES__IS_PERIODIC_RANGING_SUPPORTED__TRI_STATE_TRUE;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__EXPIRED;
 import static com.android.server.wifi.proto.WifiStatsLog.WIFI_AWARE_PEER_FOUND_REPORTED__RESULT__PEER_FOUND;
 
@@ -69,6 +71,7 @@ import static org.mockito.Mockito.when;
 
 import android.app.AppOpsManager;
 import android.app.StatsManager;
+import android.util.StatsEvent;
 import android.app.test.MockAnswerUtil;
 import android.app.test.TestAlarmManager;
 import android.content.AttributionSource;
@@ -147,6 +150,7 @@ import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.WifiThreadRunner;
 import com.android.server.wifi.hal.WifiNanIface.NanRangingIndication;
 import com.android.server.wifi.hal.WifiNanIface.NanStatusCode;
+import com.android.server.wifi.proto.WifiStatsLog;
 import com.android.server.wifi.util.NetdWrapper;
 import com.android.server.wifi.util.WaitingState;
 import com.android.server.wifi.util.WifiPermissionsUtil;
@@ -254,6 +258,7 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
                 .strictness(Strictness.LENIENT)
                 .mockStatic(WifiInjector.class)
                 .mockStatic(NetlinkUtils.class)
+                .mockStatic(WifiStatsLog.class)
                 .startMocking();
 
         when(WifiInjector.getInstance()).thenReturn(mWifiInjector);
@@ -6309,6 +6314,28 @@ public class WifiAwareStateManagerTest extends WifiBaseTest {
         mMockLooper.dispatchAll();
         inOrder.verify(mMockNativeManager).releaseAware();
         verifyNoMoreInteractions(mockCallback1, mockCallback2, mMockNative);
+    }
+
+    /**
+     * Verify that the WIFI_AWARE_CAPABILITIES atom is pulled correctly with all fields.
+     */
+    @Test
+    public void testWifiAwareCapabilitiesPullFields() {
+        StatsManager.StatsPullAtomCallback callback = mPullAtomCallbackArgumentCaptor.getValue();
+        List<StatsEvent> data = new ArrayList<>();
+        assertEquals(StatsManager.PULL_SUCCESS, callback.onPullAtom(WIFI_AWARE_CAPABILITIES, data));
+
+        ExtendedMockito.verify(() -> WifiStatsLog.buildStatsEvent(
+                WIFI_AWARE_CAPABILITIES,
+                true, // isInstantCommunicationModeSupported
+                true, // isNanPairingSupported
+                true, // isSuspensionSupported
+                0,    // supportedCipherSuites
+                1,    // maxNdiInterfaces
+                8,    // maxNdpSessions
+                2,   // maxPublishes
+                WIFI_AWARE_CAPABILITIES__IS_PERIODIC_RANGING_SUPPORTED__TRI_STATE_FALSE
+        ), atLeastOnce());
     }
 
     @Test
