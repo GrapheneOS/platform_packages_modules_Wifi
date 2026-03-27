@@ -54,6 +54,7 @@ public class Capabilities {
     public int supportedPeriodicRangingIntervals =
             Characteristics.SUPPORTED_PERIODIC_RANGING_INTERVAL_NONE;
     public int ndpSessionLimit;
+    public int gtkCipherSuites;
 
     /**
      * Converts the internal capabilities to a parcelable & potentially app-facing
@@ -113,6 +114,7 @@ public class Capabilities {
         j.put("maxSubscribeInterfaceAddresses", maxSubscribeInterfaceAddresses);
         j.put("supportedCipherSuites", supportedDataPathCipherSuites);
         j.put("supportedPairingCipherSuites", supportedPairingCipherSuites);
+        j.put("gtkCipherSuites", gtkCipherSuites);
         j.put("isInstantCommunicationModeSupported", isInstantCommunicationModeSupported);
         j.put("isSetClusterIdSupported", isSetClusterIdSupported);
         j.put("isNanPairingSupported", isNanPairingSupported);
@@ -155,6 +157,8 @@ public class Capabilities {
                 + supportedDataPathCipherSuites
                 + ", supportedPairingCipherSuites="
                 + supportedPairingCipherSuites
+                + ", gtkCipherSuites="
+                + gtkCipherSuites
                 + ", isInstantCommunicationModeSupport="
                 + isInstantCommunicationModeSupported
                 + ", isNanPairingSupported="
