@@ -36,4 +36,6 @@ public final class Flags {
     public static final int TX_PKT_COUNT_FOR_UPDATE_STATS_THRESHOLD = 3;
     public static final int LINK_SPEED_LOW_MBPS = 18;
     public static final int LINK_SPEED_VERY_LOW_MBPS = 6;
+    public static final int EXIT_DATA_STALL_COUNT = 3;
+    public static final int EXIT_DATA_STALL_SPEED_THRESHOLD_KBPS = 20000;
 }

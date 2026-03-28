@@ -772,6 +772,8 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
                 capabilities.supportedCipherSuites);
         frameworkCapabilities.supportedPairingCipherSuites = toPublicPairingCipherSuites(
                 capabilities.supportedCipherSuites);
+        frameworkCapabilities.gtkCipherSuites = toPublicGtkCipherSuites(
+                capabilities.supportedCipherSuites);
         frameworkCapabilities.isInstantCommunicationModeSupported =
                 capabilities.instantCommunicationModeSupportFlag;
         frameworkCapabilities.isNanPairingSupported = capabilities.supportsPairing;
@@ -845,6 +847,17 @@ public class WifiNanIfaceCallbackAidlImpl extends IWifiNanIfaceEventCallback.Stu
             publicCipherSuites |= Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_PK_PASN_256;
         }
 
+        return publicCipherSuites;
+    }
+
+    private static int toPublicGtkCipherSuites(int nativeCipherSuites) {
+        int publicCipherSuites = 0;
+        if ((nativeCipherSuites & NanCipherSuiteType.GROUP_KEY_CCMP_128_MASK) != 0) {
+            publicCipherSuites |= Characteristics.WIFI_AWARE_CIPHER_SUITE_GTK_128;
+        }
+        if ((nativeCipherSuites & NanCipherSuiteType.GROUP_KEY_GCMP_256_MASK) != 0) {
+            publicCipherSuites |= Characteristics.WIFI_AWARE_CIPHER_SUITE_GTK_256;
+        }
         return publicCipherSuites;
     }
 

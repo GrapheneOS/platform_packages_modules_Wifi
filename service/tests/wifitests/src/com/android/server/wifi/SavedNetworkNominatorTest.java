@@ -306,6 +306,29 @@ public class SavedNetworkNominatorTest extends WifiBaseTest {
     }
 
     /**
+     * Ensure that we do not nominate passpoint networks from wifi network suggestions.
+     */
+    @Test
+    public void ignorePasspointNetworksFromWifiNetworkSuggestion() {
+        ScanDetail scanDetail1 = mock(ScanDetail.class);
+        List<ScanDetail> scanDetails = Arrays.asList(scanDetail1);
+        WifiConfiguration configuration1 = mock(WifiConfiguration.class);
+        WifiConfiguration configuration2 = mock(WifiConfiguration.class);
+        configuration1.allowAutojoin = false;
+        configuration1.fromWifiNetworkSuggestion = true;
+        configuration2.allowAutojoin = true;
+        configuration2.fromWifiNetworkSuggestion = false;
+        List<Pair<ScanDetail, WifiConfiguration>> passpointCandidates =
+                Arrays.asList(Pair.create(scanDetail1, configuration1),
+                Pair.create(scanDetail1, configuration2));
+        mSavedNetworkNominator.nominateNetworks(
+                scanDetails, passpointCandidates, false, true, true, Collections.emptySet(),
+                mOnConnectableListener
+        );
+        verify(mOnConnectableListener).onConnectable(any(), any());
+    }
+
+    /**
      * Verify if a network is metered and with non-data sim, will not nominate as a candidate.
      */
     @Test

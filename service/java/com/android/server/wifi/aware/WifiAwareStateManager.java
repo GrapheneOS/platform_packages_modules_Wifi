@@ -5212,7 +5212,9 @@ public class WifiAwareStateManager implements WifiAwareShellCommand.DelegatedShe
                     mCapabilities.isInstantCommunicationModeSupported,
                     mCapabilities.isNanPairingSupported,
                     mCapabilities.isSuspensionSupported,
-                    mCapabilities.supportedDataPathCipherSuites,
+                    mCapabilities.supportedDataPathCipherSuites
+                    | mCapabilities.supportedPairingCipherSuites
+                    | mCapabilities.gtkCipherSuites,
                     mCapabilities.maxNdiInterfaces,
                     mCapabilities.maxNdpSessions,
                     mCapabilities.maxPublishes,
