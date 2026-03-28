@@ -303,6 +303,45 @@ def _wait_for_discovery(
     )
     return discover_data.data[constants.WifiAwareSnippetParams.PEER_ID]
 
+def wait_data_path_request(
+    publisher: android_device.AndroidDevice,
+    pub_session_handler: callback_handler_v2.CallbackHandlerV2,
+) -> int:
+    event_name = constants.DiscoverySessionCallbackMethodType.DATA_PATH_REQUEST_RECEIVED
+    event_data = pub_session_handler.waitAndGet(
+        event_name=event_name, timeout=_DEFAULT_TIMEOUT
+    )
+    return event_data.data[constants.WifiAwareSnippetParams.PEER_ID]
+
+def wait_data_path_connect(
+        device: android_device.AndroidDevice,
+        session_handler: callback_handler_v2.CallbackHandlerV2,
+) -> int:
+    event_name = constants.DiscoverySessionCallbackMethodType.DATA_PATH_CONNECTED
+    event_data = session_handler.waitAndGet(
+        event_name=event_name, timeout=_DEFAULT_TIMEOUT
+    )
+    return event_data.data[constants.WifiAwareSnippetParams.PEER_ID]
+
+def wait_data_path_connection_failure(
+        device: android_device.AndroidDevice,
+        session_handler: callback_handler_v2.CallbackHandlerV2,
+) -> int:
+    event_name = constants.DiscoverySessionCallbackMethodType.DATA_PATH_REQUEST_FAILURE
+    event_data = session_handler.waitAndGet(
+        event_name=event_name, timeout=_DEFAULT_TIMEOUT
+    )
+    return event_data.data[constants.WifiAwareSnippetParams.PEER_ID]
+
+def wait_data_path_disconnect(
+        device: android_device.AndroidDevice,
+        session_handler: callback_handler_v2.CallbackHandlerV2,
+) -> int:
+    event_name = constants.DiscoverySessionCallbackMethodType.DATA_PATH_DISCONNECTED
+    event_data = session_handler.waitAndGet(
+        event_name=event_name, timeout=_DEFAULT_TIMEOUT
+    )
+    return event_data.data[constants.WifiAwareSnippetParams.PEER_ID]
 
 def send_msg_through_discovery_session(
     sender: android_device.AndroidDevice,

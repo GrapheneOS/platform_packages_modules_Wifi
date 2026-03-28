@@ -22,6 +22,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiNetworkSuggestion;
+import android.net.wifi.aware.AwareDataPathRequest;
 import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.PeerHandle;
 import android.net.wifi.aware.PublishConfig;
@@ -451,7 +452,7 @@ public class WifiAwareJsonDeserializer {
             builder.setPmk(jsonObject.getString(PMK).getBytes(StandardCharsets.UTF_8));
         }
         if (jsonObject.has(DATA_PATH_SECURITY_CONFIG)) {
-            builder.setDataPathSecurityConfig(jsonToDataPathSSecurityConfig(
+            builder.setDataPathSecurityConfig(jsonToDataPathSecurityConfig(
                     jsonObject.getJSONObject(DATA_PATH_SECURITY_CONFIG)));
         }
         if (jsonObject.has(CHANNEL_FREQUENCY_M_HZ)) {
@@ -463,12 +464,38 @@ public class WifiAwareJsonDeserializer {
     }
 
     /**
+     * Converts JSON object to {@link AwareDataPathRequest}.
+     * @param jsonObject corresponding to AwareDataPathRequest in
+     * @return AwareDataPathRequest object
+     */
+    public static AwareDataPathRequest jsonToAwareDataPathRequest(JSONObject jsonObject)
+            throws JSONException {
+        AwareDataPathRequest.Builder builder = new AwareDataPathRequest.Builder();
+        if (jsonObject == null) {
+            return builder.build();
+        }
+        if (jsonObject.has(PORT)) {
+            builder.setPort(jsonObject.getInt(PORT));
+        }
+        if (jsonObject.has(TRANSPORT_PROTOCOL)) {
+            builder.setTransportProtocol(jsonObject.getInt(TRANSPORT_PROTOCOL));
+        }
+        if (jsonObject.has(DATA_PATH_SECURITY_CONFIG)) {
+            builder.setDataPathSecurityConfig(jsonToDataPathSecurityConfig(
+                    jsonObject.getJSONObject(DATA_PATH_SECURITY_CONFIG)));
+        }
+        return builder.build();
+    }
+
+
+
+    /**
      * Converts request from JSON object to {@link WifiAwareDataPathSecurityConfig}.
      *
      * @param jsonObject corresponding to WifiAwareNetworkSpecifier in
      *                   tests/hostsidetests/multidevices/test/aware/constants.py
      */
-    private static WifiAwareDataPathSecurityConfig jsonToDataPathSSecurityConfig(
+    private static WifiAwareDataPathSecurityConfig jsonToDataPathSecurityConfig(
             @NonNull JSONObject jsonObject
     ) throws JSONException {
         WifiAwareDataPathSecurityConfig.Builder builder = null;
@@ -483,6 +510,10 @@ public class WifiAwareJsonDeserializer {
         if (jsonObject.has(SECURITY_CONFIG_PMK)) {
             byte[] pmk = jsonObject.getString(SECURITY_CONFIG_PMK).getBytes(StandardCharsets.UTF_8);
             builder.setPmk(pmk);
+        }
+        if (jsonObject.has(PSK_PASSPHRASE)) {
+            String pskPassphrase = jsonObject.getString(PSK_PASSPHRASE);
+            builder.setPskPassphrase(pskPassphrase);
         }
         return builder.build();
 

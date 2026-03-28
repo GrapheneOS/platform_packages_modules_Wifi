@@ -71,6 +71,7 @@ public class UsdServiceImpl extends IUsdManager.Stub {
                 mWifiInjector.getWifiThreadRunner(),
                 mWifiInjector.getActiveModeWarden(),
                 mWifiInjector.getClock(), mWifiInjector.getAlarmManager());
+        mWifiInjector.setUsdRequestManager(mUsdRequestManager);
         mWifiThreadRunner = mWifiInjector.getWifiThreadRunner();
         Log.i(TAG, "start");
     }

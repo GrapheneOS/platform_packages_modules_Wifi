@@ -95,10 +95,12 @@ import com.android.server.wifi.HalDeviceManager;
 import com.android.server.wifi.SsidTranslator;
 import com.android.server.wifi.SystemBuildProperties;
 import com.android.server.wifi.WifiConfigManager;
+import com.android.server.wifi.WifiInjector;
 import com.android.server.wifi.WifiNative;
 import com.android.server.wifi.WifiSettingsConfigStore;
 import com.android.server.wifi.hal.WifiRttController;
 import com.android.server.wifi.proto.nano.WifiMetricsProto;
+import com.android.server.wifi.usd.UsdRequestManager;
 import com.android.server.wifi.util.StringUtil;
 import com.android.server.wifi.util.WifiPermissionsUtil;
 import com.android.wifi.flags.Flags;
@@ -2181,61 +2183,142 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             executeNextRangingRequestIfPossible(true);
         }
 
+        private void handleContinuousRangingRequestFailure(
+                IContinuousRangingResultCallback callback, IBinder binder,
+                IBinder.DeathRecipient dr, int failureReason) {
+            try {
+                callback.onRangingFailure(failureReason);
+            } catch (RemoteException e) {
+                Log.e(TAG, "handleContinuousRangingRequestFailure: callback exception -- " + e);
+            }
+            try {
+                binder.unlinkToDeath(dr, 0);
+            } catch (NoSuchElementException e) {
+                Log.e(TAG, "handleContinuousRangingRequestFailure: unlinkToDeath failed -- " + e);
+            }
+        }
+
         @SuppressLint("NewApi")
-        private int validateContinuousRangingRequest(
-                RangingRequest request) {
+        private RangingRequest validateAndUpdateContinuousRangingRequest(
+                RangingRequest request, IContinuousRangingResultCallback callback,
+                IBinder binder, IBinder.DeathRecipient dr) {
             if (mSupplicantWifiRttController == null) {
-                Log.e(TAG, "validateContinuousRangingRequest:"
+                Log.e(TAG, "validateAndUpdateContinuousRangingRequest:"
                         + " SupplicantWifiRttController is null");
-                return ContinuousRangingResultCallback.FAILURE_REASON_RTT_NOT_AVAILABLE;
+                mRttMetrics.recordContinuousRangingStartStatus(
+                        ContinuousRangingResultCallback.FAILURE_REASON_RTT_NOT_AVAILABLE,
+                        request);
+                handleContinuousRangingRequestFailure(callback, binder, dr,
+                        ContinuousRangingResultCallback.FAILURE_REASON_RTT_NOT_AVAILABLE);
+                return null;
             }
             if (!mContinuousRangingSessions.isEmpty()) {
-                Log.e(TAG, "validateContinuousRangingRequest:"
+                Log.e(TAG, "validateAndUpdateContinuousRangingRequest:"
                         + " another continuous rtt session is active");
-                return ContinuousRangingResultCallback.FAILURE_REASON_RTT_BUSY;
+                mRttMetrics.recordContinuousRangingStartStatus(
+                        ContinuousRangingResultCallback.FAILURE_REASON_RTT_BUSY,
+                        request);
+                handleContinuousRangingRequestFailure(callback, binder, dr,
+                        ContinuousRangingResultCallback.FAILURE_REASON_RTT_BUSY);
+                return null;
             }
             if (!mRttRequestQueue.isEmpty()) {
-                Log.e(TAG, "validateContinuousRangingRequest:"
+                Log.e(TAG, "validateAndUpdateContinuousRangingRequest:"
                         + " another single shot rtt session is active");
-                return ContinuousRangingResultCallback.FAILURE_REASON_RTT_BUSY;
+                mRttMetrics.recordContinuousRangingStartStatus(
+                        ContinuousRangingResultCallback.FAILURE_REASON_RTT_BUSY,
+                        request);
+                handleContinuousRangingRequestFailure(callback, binder, dr,
+                        ContinuousRangingResultCallback.FAILURE_REASON_RTT_BUSY);
+                return null;
             }
             // More validation, specific to continuous ranging
             ResponderConfig responder = request.mRttPeers.get(0);
             if (responder.responderType != RESPONDER_STA) {
                 Log.e(TAG, "Responder type must be RESPONDER_STA for continuous ranging");
-                return ContinuousRangingResultCallback.FAILURE_REASON_GENERIC;
+                mRttMetrics.recordContinuousRangingStartStatus(
+                        ContinuousRangingResultCallback.FAILURE_REASON_GENERIC,
+                        request);
+                handleContinuousRangingRequestFailure(callback, binder, dr,
+                        ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
+                return null;
             }
-            if (responder.getMacAddress() == null) {
-                // TODO: USD peer ID might be supported in future
-                Log.e(TAG, "Responder must have a MAC address for continuous ranging");
-                return ContinuousRangingResultCallback.FAILURE_REASON_GENERIC;
+            if (responder.getMacAddress() == null && responder.getUsdPeerId() == -1) {
+                Log.e(TAG, "Responder must have a MAC address or USD Peer ID for" +
+                    " continuous ranging");
+                mRttMetrics.recordContinuousRangingStartStatus(
+                        ContinuousRangingResultCallback.FAILURE_REASON_GENERIC,
+                        request);
+                handleContinuousRangingRequestFailure(callback, binder, dr,
+                        ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
+                return null;
+            }
+            if (responder.getUsdPeerId() != -1 && !Flags.proximityRangingImpl()) {
+                Log.e(TAG, "The proximityRangingImpl flag must be enabled for USD" +
+                    "based continuous ranging");
+                mRttMetrics.recordContinuousRangingStartStatus(
+                        ContinuousRangingResultCallback.FAILURE_REASON_RTT_NOT_AVAILABLE,
+                        request);
+                handleContinuousRangingRequestFailure(callback, binder, dr,
+                        ContinuousRangingResultCallback.FAILURE_REASON_RTT_NOT_AVAILABLE);
+                return null;
             }
             // For now, require both secure ranging and PD config
             if (responder.getSecureRangingConfig() == null
                     || responder.getProximityDetectionConfig() == null) {
                 Log.e(TAG, "Responder must have secure ranging and proximity detection config");
-                return ContinuousRangingResultCallback.FAILURE_REASON_GENERIC;
+                mRttMetrics.recordContinuousRangingStartStatus(
+                        ContinuousRangingResultCallback.FAILURE_REASON_GENERIC,
+                        request);
+                handleContinuousRangingRequestFailure(callback, binder, dr,
+                        ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
+                return null;
             }
-            return 0;
+
+            // Fill in MacAddress for UsdPeer
+            RangingRequest.Builder newRequestBuilder = new RangingRequest.Builder();
+
+            if (responder.getMacAddress() == null && responder.getUsdPeerId() != -1) {
+                UsdRequestManager usdRequestManager =
+                        WifiInjector.getInstance().getUsdRequestManager();
+                if (usdRequestManager == null) {
+                    Log.e(TAG, "validateAndUpdateContinuousRangingRequest: UsdRequestManager"
+                        + "is null");
+                    mRttMetrics.recordContinuousRangingStartStatus(
+                            ContinuousRangingResultCallback.FAILURE_REASON_GENERIC,
+                        request);
+                    handleContinuousRangingRequestFailure(callback, binder, dr,
+                            ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
+                    return null;
+                }
+                // Request MAC address from USD request manager.
+                byte[] macAddressBytes =
+                    usdRequestManager.getMacAddressFromUsdPeerId(responder.getUsdPeerId());
+                if (macAddressBytes == null) {
+                    mRttMetrics.recordContinuousRangingStartStatus(
+                            ContinuousRangingResultCallback.FAILURE_REASON_GENERIC,
+                        request);
+                    handleContinuousRangingRequestFailure(callback, binder, dr,
+                            ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
+                    return null;
+                }
+                ResponderConfig.Builder newResponderBuilder = new ResponderConfig.Builder(responder)
+                    .setMacAddress(MacAddress.fromBytes(macAddressBytes));
+                newRequestBuilder.addResponder(new ResponderConfig(newResponderBuilder));
+            } else {
+                newRequestBuilder.addResponder(responder);
+            }
+            return newRequestBuilder.build();
         }
 
+        @SuppressLint("NewApi")
         private void queueContinuousRangingRequest(int uid, WorkSource workSource, IBinder binder,
                 IBinder.DeathRecipient dr, String callingPackage, String callingFeatureId,
                 RangingRequest request, IContinuousRangingResultCallback callback) {
 
-            int failureReason = validateContinuousRangingRequest(request);
-            mRttMetrics.recordContinuousRangingRequest(request, failureReason);
-            if (failureReason != 0) {
-                try {
-                    callback.onRangingFailure(failureReason);
-                } catch (RemoteException e) {
-                    // ignored
-                }
-                try {
-                    binder.unlinkToDeath(dr, 0);
-                } catch (NoSuchElementException e) {
-                    Log.e(TAG, "queueContinuousRangingRequest: unlinkToDeath failed -- " + e);
-                }
+            RangingRequest updatedRequest = validateAndUpdateContinuousRangingRequest(
+                    request, callback, binder, dr);
+            if (updatedRequest == null) {
                 return;
             }
 
@@ -2246,7 +2329,7 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             newRequest.mDr = dr;
             newRequest.mCallingPackage = callingPackage;
             newRequest.mCallingFeatureId = callingFeatureId;
-            newRequest.mRequest = request;
+            newRequest.mRequest = updatedRequest;
             newRequest.mCallback = callback;
             newRequest.mCmdId = mNextCommandId++;
             newRequest.mStartTimeMillis = mClock.getElapsedSinceBootMillis();
@@ -2259,20 +2342,11 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
                         mClock.getElapsedSinceBootMillis() + HAL_PROXIMITY_RANGING_TIMEOUT_MS);
             } else {
                 Log.e(TAG, "queueContinuousRangingRequest: rangeRequest call failed");
-                try {
-                    mRttMetrics.recordContinuousRangingStartStatus(
+                mRttMetrics.recordContinuousRangingStartStatus(
                             ContinuousRangingResultCallback.FAILURE_REASON_GENERIC,
                             newRequest.mRequest);
-                    callback.onRangingFailure(
-                            ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
-                } catch (RemoteException e) {
-                    // ignored
-                }
-                try {
-                    binder.unlinkToDeath(dr, 0);
-                } catch (NoSuchElementException e) {
-                    Log.e(TAG, "queueContinuousRangingRequest: unlinkToDeath failed -- " + e);
-                }
+                handleContinuousRangingRequestFailure(callback, binder, dr,
+                        ContinuousRangingResultCallback.FAILURE_REASON_GENERIC);
             }
         }
 
@@ -2302,12 +2376,49 @@ public class RttServiceImpl extends IWifiRttManager.Stub {
             }
 
             try {
-                // TODO: post-process results if needed, similar to one-shot ranging
-                mRttMetrics.recordContinuousRangingResults(cmdId, results);
-                session.mCallback.onRangingResults(results);
+                List<RangingResult> finalResults = postProcessContinuousRangingResults(
+                    session.mRequest, results);
+                mRttMetrics.recordContinuousRangingResults(cmdId, finalResults);
+                session.mCallback.onRangingResults(finalResults);
             } catch (RemoteException e) {
                 Log.e(TAG, "onContinuousRangingResults: callback exception -- " + e);
             }
+        }
+
+        @SuppressLint("NewApi")
+        private List<RangingResult> postProcessContinuousRangingResults(
+            RangingRequest request, List<RangingResult> results)
+        {
+            if (request == null || results == null) {
+                Log.w(TAG, "postProcessContinuousRangingResults: invalid input: request=" + request
+                        + ", results=" + results);
+                return new ArrayList<>();
+            }
+
+            // Should only have 1 result in the list
+            if (results.size() != 1 || request.mRttPeers.size() != 1) {
+                Log.w(TAG, "postProcessContinuousRangingResults: invalid input: request=" +
+                        request + ", result size=" + results.size() + ", results=" +
+                        Arrays.toString(results.toArray()) + ", request peers=" +
+                        request.mRttPeers);
+                return new ArrayList<>();
+            }
+
+            RangingResult result = results.get(0);
+            // Only 1 peer will be in the RangingRequest
+            ResponderConfig peer = request.mRttPeers.get(0);
+            RangingResult.Builder builder = new RangingResult.Builder(result);
+
+            if (Flags.proximityRangingImpl() && peer.getUsdPeerId() != -1) {
+                builder.setUsdPeerId(peer.getUsdPeerId());
+            } else {
+                builder.setMacAddress(peer.getMacAddress());
+            }
+
+            List<RangingResult> finalResults = new ArrayList<>(request.mRttPeers.size());
+            finalResults.add(builder.build());
+
+            return finalResults;
         }
 
         @SuppressLint("NewApi")

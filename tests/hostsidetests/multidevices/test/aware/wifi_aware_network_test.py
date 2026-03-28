@@ -613,6 +613,176 @@ class WifiAwareNetworkTest(base_test.BaseTestClass):
             ),
         )
 
+    def test_aware_data_path_new_api_accept(self):
+        wifi_test_utils.skip_if_not_meet_min_sdk_level(self.publisher, 37)
+        wifi_test_utils.skip_if_not_meet_min_sdk_level(self.subscriber, 37)
+        pub_config=constants.PublishConfig(
+            service_specific_info=_PUB_SSI,
+            match_filter=_MATCH_FILTER,
+            publish_type=constants.PublishType.UNSOLICITED,
+            ranging_enabled=False,
+        )
+        sub_config=constants.SubscribeConfig(
+            service_specific_info=_SUB_SSI,
+            match_filter=_MATCH_FILTER,
+            subscribe_type=constants.SubscribeType.PASSIVE,
+        )
+
+        # Step 1: Attach Wi-Fi Aware sessions.
+        pub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.publisher, pub_config.ranging_enabled
+        )
+        sub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.subscriber, pub_config.ranging_enabled
+        )
+
+        # Step 2: Publisher publishes an Wi-Fi Aware service, subscriber
+        # subscribes to it. Wait for service discovery.
+        (
+            pub_session,
+            pub_session_handler,
+            sub_session,
+            sub_session_handler,
+            sub_peer,
+        ) = aware_snippet_utils.publish_and_subscribe(
+            publisher=self.publisher,
+            pub_config=pub_config,
+            pub_attach_session=pub_attach_session,
+            subscriber=self.subscriber,
+            sub_config=sub_config,
+            sub_attach_session=sub_attach_session,
+        )
+
+        # Step 3: Send messages through the discovery sessions.
+        msg = _MSG_SUB_TO_PUB.format(random_id=utils.rand_ascii_str(5))
+        pub_peer = aware_snippet_utils.send_msg_through_discovery_session(
+            sender=self.subscriber,
+            sender_discovery_session_handler=sub_session_handler,
+            receiver=self.publisher,
+            receiver_discovery_session_handler=pub_session_handler,
+            discovery_session=sub_session,
+            peer_on_sender=sub_peer,
+            send_message=msg,
+        )
+        self.subscriber.log.info(
+            'Sent a message to peer %d through discovery session.',
+            sub_peer,
+        )
+        msg = _MSG_PUB_TO_SUB.format(random_id=utils.rand_ascii_str(5))
+        aware_snippet_utils.send_msg_through_discovery_session(
+            sender=self.publisher,
+            sender_discovery_session_handler=pub_session_handler,
+            receiver=self.subscriber,
+            receiver_discovery_session_handler=sub_session_handler,
+            discovery_session=pub_session,
+            peer_on_sender=pub_peer,
+            send_message=msg,
+        )
+        self.publisher.log.info(
+            'Sent a message to peer %d through discovery session.',
+            pub_peer,
+        )
+        data_path_request = constants.AwareDataPathRequest(
+            data_path_security_config=constants.WifiAwareDataPathSecurityConfig(
+                psk_passphrase=_PASSWORD,
+            )
+        )
+        self.subscriber.wifi.wifiAwareInitiateDataPathRequest(sub_session, sub_peer,
+            data_path_request.to_dict())
+        aware_snippet_utils.wait_data_path_request(self.publisher, pub_session_handler)
+        self.publisher.wifi.wifiAwareAcceptDataPathRequest(pub_session, pub_peer,
+            data_path_request.to_dict())
+        aware_snippet_utils.wait_data_path_connect(self.publisher, pub_session_handler)
+        aware_snippet_utils.wait_data_path_connect(self.subscriber, sub_session_handler)
+        self.publisher.wifi.wifiAwareReleaseDataPath(pub_session, pub_peer)
+        aware_snippet_utils.wait_data_path_disconnect(self.subscriber, sub_session_handler)
+        # Clean up Wi-Fi Aware resources.
+        self.publisher.wifi.wifiAwareCloseDiscoverSession(pub_session)
+        self.subscriber.wifi.wifiAwareCloseDiscoverSession(sub_session)
+        self.publisher.wifi.wifiAwareDetach(pub_attach_session)
+        self.subscriber.wifi.wifiAwareDetach(sub_attach_session)
+
+
+    def test_aware_data_path_new_api_reject(self):
+        wifi_test_utils.skip_if_not_meet_min_sdk_level(self.publisher, 37)
+        wifi_test_utils.skip_if_not_meet_min_sdk_level(self.subscriber, 37)
+        pub_config=constants.PublishConfig(
+            service_specific_info=_PUB_SSI,
+            match_filter=_MATCH_FILTER,
+            publish_type=constants.PublishType.UNSOLICITED,
+            ranging_enabled=False,
+        )
+        sub_config=constants.SubscribeConfig(
+            service_specific_info=_SUB_SSI,
+            match_filter=_MATCH_FILTER,
+            subscribe_type=constants.SubscribeType.PASSIVE,
+        )
+
+        # Step 1: Attach Wi-Fi Aware sessions.
+        pub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.publisher, pub_config.ranging_enabled
+        )
+        sub_attach_session, _ = aware_snippet_utils.start_attach(
+            self.subscriber, pub_config.ranging_enabled
+        )
+
+        # Step 2: Publisher publishes an Wi-Fi Aware service, subscriber
+        # subscribes to it. Wait for service discovery.
+        (
+            pub_session,
+            pub_session_handler,
+            sub_session,
+            sub_session_handler,
+            sub_peer,
+        ) = aware_snippet_utils.publish_and_subscribe(
+            publisher=self.publisher,
+            pub_config=pub_config,
+            pub_attach_session=pub_attach_session,
+            subscriber=self.subscriber,
+            sub_config=sub_config,
+            sub_attach_session=sub_attach_session,
+        )
+
+        # Step 3: Send messages through the discovery sessions.
+        msg = _MSG_SUB_TO_PUB.format(random_id=utils.rand_ascii_str(5))
+        pub_peer = aware_snippet_utils.send_msg_through_discovery_session(
+            sender=self.subscriber,
+            sender_discovery_session_handler=sub_session_handler,
+            receiver=self.publisher,
+            receiver_discovery_session_handler=pub_session_handler,
+            discovery_session=sub_session,
+            peer_on_sender=sub_peer,
+            send_message=msg,
+        )
+        self.subscriber.log.info(
+            'Sent a message to peer %d through discovery session.',
+            sub_peer,
+        )
+        msg = _MSG_PUB_TO_SUB.format(random_id=utils.rand_ascii_str(5))
+        aware_snippet_utils.send_msg_through_discovery_session(
+            sender=self.publisher,
+            sender_discovery_session_handler=pub_session_handler,
+            receiver=self.subscriber,
+            receiver_discovery_session_handler=sub_session_handler,
+            discovery_session=pub_session,
+            peer_on_sender=pub_peer,
+            send_message=msg,
+        )
+        self.publisher.log.info(
+            'Sent a message to peer %d through discovery session.',
+            pub_peer,
+        )
+        data_path_request = constants.AwareDataPathRequest(
+            data_path_security_config=constants.WifiAwareDataPathSecurityConfig(
+                psk_passphrase=_PASSWORD,
+            )
+        )
+        self.subscriber.wifi.wifiAwareInitiateDataPathRequest(sub_session, sub_peer,
+            data_path_request.to_dict())
+        aware_snippet_utils.wait_data_path_request(self.publisher, pub_session_handler)
+        self.publisher.wifi.wifiAwareRejectDataPathRequest(pub_session, pub_peer)
+        aware_snippet_utils.wait_data_path_connection_failure(self.subscriber, sub_session_handler)
+
     def _test_wifi_aware_network(
         self,
         pub_config: constants.PublishConfig,

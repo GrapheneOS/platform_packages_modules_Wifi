@@ -27,6 +27,7 @@ import android.util.Log;
 import android.util.SparseIntArray;
 import android.util.Xml;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.server.wifi.util.ApConfigUtil;
@@ -74,11 +75,17 @@ public class SoftApBackupRestore {
 
     private final Context mContext;
     private final SettingsMigrationDataHolder mSettingsMigrationDataHolder;
+    private int mMaxSupportedControlClientNumber = 1000;
 
     public SoftApBackupRestore(Context context,
             SettingsMigrationDataHolder settingsMigrationDataHolder) {
         mContext = context;
         mSettingsMigrationDataHolder = settingsMigrationDataHolder;
+    }
+
+    @VisibleForTesting
+    public void setMaxSupportedControlClientNumber(int num) {
+        mMaxSupportedControlClientNumber = num;
     }
 
     /**
@@ -222,9 +229,11 @@ public class SoftApBackupRestore {
                 configBuilder.setShutdownTimeoutMillis(shutDownMillis);
                 configBuilder.setClientControlByUserEnabled(in.readBoolean());
                 int numberOfBlockedClient = in.readInt();
+                Log.i(TAG, "Restoring " + numberOfBlockedClient + " blocked client list");
                 List<MacAddress> blockedList = new ArrayList<>(
                         macAddressListFromByteArray(in, numberOfBlockedClient));
                 int numberOfAllowedClient = in.readInt();
+                Log.i(TAG, "Restoring " + numberOfAllowedClient + " allowed client list");
                 List<MacAddress> allowedList = new ArrayList<>(
                         macAddressListFromByteArray(in, numberOfAllowedClient));
                 configBuilder.setBlockedClientList(blockedList);
@@ -255,8 +264,10 @@ public class SoftApBackupRestore {
             }
             return configBuilder.build();
         } catch (IOException | BackupUtils.BadVersionException
-                | IllegalArgumentException | XmlPullParserException e) {
-            Log.e(TAG, "Invalid backup data received, Exception: " + e);
+                | IllegalArgumentException | XmlPullParserException
+                | OutOfMemoryError e) {
+            Log.e(TAG, "Invalid backup data received, data.length = " + data.length
+                    + ", Exception: " + e);
         }
         return null;
     }
@@ -273,11 +284,16 @@ public class SoftApBackupRestore {
 
     private List<MacAddress> macAddressListFromByteArray(DataInputStream in, int numberOfClients)
             throws IOException {
-        List<MacAddress> macList = new ArrayList<>();
+        int arraySize = Math.min(numberOfClients, mMaxSupportedControlClientNumber);
+        List<MacAddress> macList = new ArrayList<>(arraySize);
         for (int i = 0; i < numberOfClients; i++) {
             byte[] mac = new byte[ETHER_ADDR_LEN];
             in.read(mac, 0, ETHER_ADDR_LEN);
-            macList.add(MacAddress.fromBytes(mac));
+            if (i < mMaxSupportedControlClientNumber) {
+                macList.add(MacAddress.fromBytes(mac));
+            } else {
+                Log.i(TAG, "Drop " + MacAddress.fromBytes(mac) + " from Softap B&R");
+            }
         }
         return macList;
     }

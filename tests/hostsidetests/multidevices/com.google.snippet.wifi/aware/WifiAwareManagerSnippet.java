@@ -31,9 +31,10 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.aware.AttachCallback;
+import android.net.wifi.aware.AwareDataPathRequest;
+import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.Characteristics;
 import android.net.wifi.aware.DiscoverySession;
-import android.net.wifi.aware.AwarePairingConfig;
 import android.net.wifi.aware.DiscoverySessionCallback;
 import android.net.wifi.aware.IdentityChangedListener;
 import android.net.wifi.aware.PeerHandle;
@@ -43,6 +44,7 @@ import android.net.wifi.aware.ServiceDiscoveryInfo;
 import android.net.wifi.aware.SubscribeConfig;
 import android.net.wifi.aware.SubscribeDiscoverySession;
 import android.net.wifi.aware.WifiAwareManager;
+import android.net.wifi.aware.WifiAwareNetworkInfo;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.net.wifi.aware.WifiAwareSession;
 import android.net.wifi.rtt.RangingRequest;
@@ -572,6 +574,41 @@ public class WifiAwareManagerSnippet implements Snippet {
             event.getData().putInt("lostReason", reason);
             EventCache.getInstance().postEvent(event);
         }
+
+        @Override
+        public void onDataPathConnected(@NonNull PeerHandle peerHandle,
+                @NonNull WifiAwareNetworkInfo info) {
+            SnippetEvent event = new SnippetEvent(mCallBackId, "onDataPathConnected");
+            event.getData().putInt("peerId", peerHandle.hashCode());
+            EventCache.getInstance().postEvent(event);
+        }
+
+        @Override
+        public void onDataPathRequestFailed(@NonNull PeerHandle peerHandle,
+                int reason) {
+            SnippetEvent event = new SnippetEvent(mCallBackId, "onDataPathRequestFailed");
+            event.getData().putString("discoverySessionId", mCallBackId);
+            event.getData().putInt("peerId", peerHandle.hashCode());
+            event.getData().putInt("lostReason", reason);
+            EventCache.getInstance().postEvent(event);
+
+        }
+
+        @Override
+        public void onDataPathDisconnected(@NonNull PeerHandle peerHandle) {
+            SnippetEvent event = new SnippetEvent(mCallBackId, "onDataPathDisconnected");
+            event.getData().putString("discoverySessionId", mCallBackId);
+            event.getData().putInt("peerId", peerHandle.hashCode());
+            EventCache.getInstance().postEvent(event);
+        }
+
+        @Override
+        public void onDataPathRequestReceived(@NonNull PeerHandle peerHandle) {
+            SnippetEvent event = new SnippetEvent(mCallBackId, "onDataPathRequestReceived");
+            event.getData().putString("discoverySessionId", mCallBackId);
+            event.getData().putInt("peerId", peerHandle.hashCode());
+            EventCache.getInstance().postEvent(event);
+        }
     }
 
     private WifiAwareSession getWifiAwareSession(String sessionId)
@@ -1091,5 +1128,41 @@ public class WifiAwareManagerSnippet implements Snippet {
         mWifiAwareManager.resetPairedDevices();
     }
 
+    @Rpc(description = "Initiate a Wi-Fi Aware data path request.")
+    public void wifiAwareInitiateDataPathRequest(String discoverySessionId, int peerId,
+            AwareDataPathRequest request) throws WifiAwareManagerSnippetException {
+        SubscribeDiscoverySession session = (SubscribeDiscoverySession)
+                getDiscoverySession(discoverySessionId);
+        PeerHandle handle = getPeerHandler(peerId);
+        session.initiateDataPathRequest(handle, request);
+    }
+
+    @Rpc(description = "Accept a Wi-Fi Aware data path request.")
+    public void wifiAwareAcceptDataPathRequest(String discoverySessionId, int peerId,
+            AwareDataPathRequest request)
+            throws WifiAwareManagerSnippetException {
+        PublishDiscoverySession session = (PublishDiscoverySession)
+                getDiscoverySession(discoverySessionId);
+        PeerHandle handle = getPeerHandler(peerId);
+        session.acceptDataPathRequest(handle, request);
+    }
+
+    @Rpc(description = "Reject a Wi-Fi Aware data path request.")
+    public void wifiAwareRejectDataPathRequest(String discoverySessionId, int peerId)
+            throws WifiAwareManagerSnippetException {
+        PublishDiscoverySession session = (PublishDiscoverySession)
+                getDiscoverySession(discoverySessionId);
+        PeerHandle handle = getPeerHandler(peerId);
+        session.rejectDataPathRequest(handle);
+    }
+
+    @Rpc(description = "Release a Wi-Fi Aware data path.")
+    public void wifiAwareReleaseDataPath(String discoverySessionId, int peerId)
+            throws WifiAwareManagerSnippetException {
+        PublishDiscoverySession session = (PublishDiscoverySession)
+                getDiscoverySession(discoverySessionId);
+        PeerHandle handle = getPeerHandler(peerId);
+        session.releaseDataPath(handle);
+    }
 }
 
