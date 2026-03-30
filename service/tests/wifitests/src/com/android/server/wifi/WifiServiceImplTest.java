@@ -9713,9 +9713,9 @@ public class WifiServiceImplTest extends WifiBaseTest {
         mLooper.dispatchAll();
         verify(mWifiConfigManager).startRestrictingAutoJoinToSubscriptionId(1);
         verify(mWifiConnectivityManager).clearCachedCandidates();
-        verify(localOnlyCmm, never()).disconnect();
-        verify(secondaryTransientCmm).disconnect();
-        verify(mClientModeManager).disconnect();
+        verify(localOnlyCmm, never()).disconnect(anyInt());
+        verify(secondaryTransientCmm).disconnect(anyInt());
+        verify(mClientModeManager).disconnect(anyInt());
     }
 
     /**
