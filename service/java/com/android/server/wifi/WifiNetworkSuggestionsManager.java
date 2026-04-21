@@ -78,6 +78,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -950,6 +951,12 @@ public class WifiNetworkSuggestionsManager {
         if (!validateCarrierNetworkSuggestions(networkSuggestions, uid, packageName, carrierId)) {
             Log.e(TAG, "bad wifi suggestion from app: " + packageName);
             return WifiManager.STATUS_NETWORK_SUGGESTIONS_ERROR_ADD_NOT_ALLOWED;
+        }
+        // Clear vendor data from the suggestions as no API to set it.
+        if (SdkLevel.isAtLeastV()) {
+            for (WifiNetworkSuggestion wns : networkSuggestions) {
+                wns.wifiConfiguration.setVendorData(Collections.emptyList());
+            }
         }
         for (WifiNetworkSuggestion wns : networkSuggestions) {
             wns.wifiConfiguration.convertLegacyFieldsToSecurityParamsIfNeeded();
