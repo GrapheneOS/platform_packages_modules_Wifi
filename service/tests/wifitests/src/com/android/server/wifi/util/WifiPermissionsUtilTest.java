@@ -2122,4 +2122,48 @@ public class WifiPermissionsUtilTest extends WifiBaseTest {
         when(UserHandle.getUserHandleForUid(eq(otherCallingUid))).thenReturn(testUserHandle);
         assertTrue(codeUnderTest.areTwoAppsFromSameUser(TEST_CALLING_UID, otherCallingUid));
     }
+
+    @Test
+    public void testIsSystem() throws Exception {
+        mSession =
+                ExtendedMockito.mockitoSession()
+                        .mockStatic(Process.class, withSettings().lenient())
+                        .strictness(Strictness.LENIENT)
+                        .startMocking();
+        setupTestCase();
+        WifiPermissionsUtil codeUnderTest =
+                new WifiPermissionsUtil(
+                        mMockPermissionsWrapper, mMockContext, mMockUserManager, mWifiInjector);
+
+        // 1. SdkSandboxUid
+        if (SdkLevel.isAtLeastT()) {
+            when(Process.isSdkSandboxUid(TEST_CALLING_UID)).thenReturn(true);
+            assertFalse(codeUnderTest.isSystem(TEST_PACKAGE_NAME, TEST_CALLING_UID));
+            when(Process.isSdkSandboxUid(TEST_CALLING_UID)).thenReturn(false);
+        }
+
+        // 2. PrivateComputeCoreUid
+        if (SdkLevel.isAtLeastC()) {
+            when(Process.isPrivateComputeCoreUid(TEST_CALLING_UID)).thenReturn(true);
+            assertFalse(codeUnderTest.isSystem(TEST_PACKAGE_NAME, TEST_CALLING_UID));
+            when(Process.isPrivateComputeCoreUid(TEST_CALLING_UID)).thenReturn(false);
+        }
+
+        // 3. System App
+        ApplicationInfo appInfo = new ApplicationInfo();
+        appInfo.flags = ApplicationInfo.FLAG_SYSTEM;
+        when(mMockContext.getPackageManager()).thenReturn(mMockPkgMgr);
+        when(mMockPkgMgr.getApplicationInfoAsUser(eq(TEST_PACKAGE_NAME), anyInt(), any()))
+                .thenReturn(appInfo);
+        assertTrue(codeUnderTest.isSystem(TEST_PACKAGE_NAME, TEST_CALLING_UID));
+
+        // 4. Non-System App
+        appInfo.flags = 0;
+        assertFalse(codeUnderTest.isSystem(TEST_PACKAGE_NAME, TEST_CALLING_UID));
+
+        // 5. NameNotFoundException
+        when(mMockPkgMgr.getApplicationInfoAsUser(eq(TEST_PACKAGE_NAME), anyInt(), any()))
+                .thenThrow(new PackageManager.NameNotFoundException());
+        assertFalse(codeUnderTest.isSystem(TEST_PACKAGE_NAME, TEST_CALLING_UID));
+    }
 }

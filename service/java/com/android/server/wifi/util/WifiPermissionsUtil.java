@@ -1165,6 +1165,10 @@ public class WifiPermissionsUtil {
             if (SdkLevel.isAtLeastT() && Process.isSdkSandboxUid(uid)) {
                 return false;
             }
+            if (SdkLevel.isAtLeastC() && Process.isPrivateComputeCoreUid(uid)) {
+                Log.w(TAG, "isSystem: isPrivateComputeCoreUid, returning false");
+                return false;
+            }
             ApplicationInfo info = mContext.getPackageManager().getApplicationInfoAsUser(
                     packageName, 0, UserHandle.getUserHandleForUid(uid));
             return (info.flags & APP_INFO_FLAGS_SYSTEM_APP) != 0;
