@@ -6211,7 +6211,9 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                             return;
                         }
                         String pkgName = uri.getSchemeSpecificPart();
-                        PackageManager pm = context.getPackageManager();
+                        final UserHandle user = UserHandle.of(UserHandle.getUserId(uid));
+                        final Context userContext = context.createContextAsUser(user, 0);
+                        PackageManager pm = userContext.getPackageManager();
                         PackageInfo packageInfo = null;
                         try {
                             packageInfo = pm.getPackageInfo(pkgName, 0);
