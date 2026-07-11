@@ -75,6 +75,7 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
+import android.app.KeyguardManager;
 import android.app.admin.DevicePolicyManager;
 import android.app.admin.WifiSsidPolicy;
 import android.app.compat.CompatChanges;
@@ -291,6 +292,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     @VisibleForTesting
     static final int AUTO_DISABLE_SHOW_KEY_COUNTDOWN_MILLIS = 24 * 60 * 60 * 1000;
     private static final int CHANNEL_USAGE_WEAK_SCAN_RSSI_DBM = -80;
+    // Matches hidden UserHandle.USER_NULL.
+    private static final int NULL_USER_ID = -10000;
 
     private static final int SCORER_BINDING_STATE_INVALID = -1;
     // The system is brining up the scorer service.
@@ -555,6 +558,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     private final WifiDataStall mWifiDataStall;
     private final WifiNative mWifiNative;
     private final SimRequiredNotifier mSimRequiredNotifier;
+    private final SoftApNotifier mSoftApNotifier;
+    private @Nullable KeyguardManager mKeyguardManager;
     private final MakeBeforeBreakManager mMakeBeforeBreakManager;
     private final LastCallerInfoManager mLastCallerInfoManager;
     private final @NonNull WifiDialogManager mWifiDialogManager;
@@ -568,6 +573,9 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     private boolean mIsLocationModeEnabled;
     private boolean mDoesCurrentUserEnableScanAlwaysAvailable = false;
     private boolean mIsFirstDeviceUnlock = true;
+    private boolean mHasPendingSoftApUserSwitchNotification;
+    // Tracks the foreground user before per-user Wi-Fi state is updated.
+    private int mLastForegroundUserId = UserHandle.SYSTEM.getIdentifier();
 
     private WifiNetworkSelectionConfig mNetworkSelectionConfig;
     private ApplicationQosPolicyRequestHandler mApplicationQosPolicyRequestHandler;
@@ -825,6 +833,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         mConnectHelper = wifiInjector.getConnectHelper();
         mWifiGlobals = wifiInjector.getWifiGlobals();
         mSimRequiredNotifier = wifiInjector.getSimRequiredNotifier();
+        mSoftApNotifier = new SoftApNotifier(mContext, mFrameworkFacade,
+                mWifiInjector.getWifiNotificationManager());
         mWifiCarrierInfoManager = wifiInjector.getWifiCarrierInfoManager();
         mWifiPseudonymManager = wifiInjector.getWifiPseudonymManager();
         mMakeBeforeBreakManager = mWifiInjector.getMakeBeforeBreakManager();
@@ -981,6 +991,7 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 mWifiTetheringDisallowed = mUserManager.getUserRestrictions()
                         .getBoolean(UserManager.DISALLOW_WIFI_TETHERING);
             }
+            registerSoftApUserSwitchNotificationReceiver();
 
             // Adding optimizations of only receiving broadcasts when wifi is enabled
             // can result in race conditions when apps toggle wifi in the background
@@ -1003,6 +1014,42 @@ public class WifiServiceImpl extends IWifiManager.Stub {
             mContext.registerReceiverForAllUsers(receiver, filter, broadcastPermission, scheduler);
         } else {
             mContext.registerReceiver(receiver, filter, broadcastPermission, scheduler);
+        }
+    }
+
+    private void registerSoftApUserSwitchNotificationReceiver() {
+        if (!Environment.isSdkAtLeastC() || !mFeatureFlags.multiUserWifiEnhancement()) {
+            return;
+        }
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_USER_UNLOCKED);
+        intentFilter.addAction(Intent.ACTION_USER_SWITCHED);
+        intentFilter.addAction(Intent.ACTION_USER_PRESENT);
+        // ACTION_USER_UNLOCKED is sent to the unlocked user, so Wi-Fi has to listen for all users.
+        mContext.registerReceiverForAllUsers(
+                new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        handleSoftApUserSwitchNotificationBroadcast(intent);
+                    }
+                },
+                intentFilter,
+                null,
+                new Handler(mWifiHandlerThread.getLooper()));
+    }
+
+    private void handleSoftApUserSwitchNotificationBroadcast(@NonNull Intent intent) {
+        String action = intent.getAction();
+        if (Intent.ACTION_USER_UNLOCKED.equals(action)
+                || Intent.ACTION_USER_SWITCHED.equals(action)) {
+            int userId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, NULL_USER_ID);
+            int currentUserId = mWifiInjector.getWifiPermissionsWrapper().getCurrentUser();
+            if (userId == currentUserId) {
+                maybePostPendingSoftApUserSwitchNotification(userId, action);
+            }
+        } else if (Intent.ACTION_USER_PRESENT.equals(action)) {
+            int currentUserId = mWifiInjector.getWifiPermissionsWrapper().getCurrentUser();
+            maybePostPendingSoftApUserSwitchNotification(currentUserId, action);
         }
     }
 
@@ -1219,6 +1266,12 @@ public class WifiServiceImpl extends IWifiManager.Stub {
         Log.d(TAG, "Handle user switch " + userId);
 
         mWifiThreadRunner.post(() -> {
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()
+                    && mLastForegroundUserId != userId
+                    && isTetheredSoftApStarted()) {
+                mHasPendingSoftApUserSwitchNotification = true;
+            }
+            mLastForegroundUserId = userId;
             mWifiConfigManager.handleUserSwitch(userId);
             resetNotificationManager();
             if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
@@ -1227,6 +1280,42 @@ public class WifiServiceImpl extends IWifiManager.Stub {
                 mSettingsConfigStore.handleUserSwitch(userId);
             }
         }, TAG + "#handleUserSwitch");
+    }
+
+    private boolean isTetheredSoftApStarted() {
+        SoftApManager softApManager = mActiveModeWarden.getTetheredSoftApManager();
+        return softApManager != null && softApManager.isStarted();
+    }
+
+    private @Nullable KeyguardManager getKeyguardManager() {
+        if (mKeyguardManager == null) {
+            // KeyguardManager can be unavailable during early Wi-Fi service initialization.
+            mKeyguardManager = mContext.getSystemService(KeyguardManager.class);
+        }
+        return mKeyguardManager;
+    }
+
+    private boolean isUserReadyForSoftApUserSwitchNotification(int userId, String action) {
+        boolean userUnlocked = mUserManager.isUserUnlocked(UserHandle.of(userId));
+        if (!userUnlocked || Intent.ACTION_USER_PRESENT.equals(action)) {
+            return userUnlocked;
+        }
+        KeyguardManager keyguardManager = getKeyguardManager();
+        return keyguardManager != null && !keyguardManager.isKeyguardLocked();
+    }
+
+    private void maybePostPendingSoftApUserSwitchNotification(int userId, String action) {
+        if (userId == NULL_USER_ID) {
+            return;
+        }
+        if (!mHasPendingSoftApUserSwitchNotification) {
+            return;
+        }
+        if (!isUserReadyForSoftApUserSwitchNotification(userId, action)) {
+            return;
+        }
+        mSoftApNotifier.showSoftApUserSwitchNotification();
+        mHasPendingSoftApUserSwitchNotification = false;
     }
 
     public void handleUserUnlock(int userId) {
@@ -1253,6 +1342,11 @@ public class WifiServiceImpl extends IWifiManager.Stub {
     public void handleUserStop(int userId) {
         Log.d(TAG, "Handle user stop " + userId);
         mWifiThreadRunner.post(() -> {
+            if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()
+                    && mLastForegroundUserId == userId
+                    && isTetheredSoftApStarted()) {
+                mHasPendingSoftApUserSwitchNotification = true;
+            }
             mWifiConfigManager.handleUserStop(userId);
             if (Environment.isSdkAtLeastC() && mFeatureFlags.multiUserWifiEnhancement()) {
                 mActiveModeWarden.handleUserStop(userId);

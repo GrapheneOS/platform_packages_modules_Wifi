@@ -1,3 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- A notification is shown when softap is turned off because the foreground user changed. -->
+    <string name="wifi_softap_user_switch_title">Hotspot turned off</string>
+    <string name="wifi_softap_user_switch_summary_with_settings">Hotspot was turned off after switching users. Tap to modify.</string>
 </resources>
