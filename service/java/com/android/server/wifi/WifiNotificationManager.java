@@ -124,6 +124,8 @@ public class WifiNotificationManager {
      */
     public void notify(int id, Notification notification) {
         if (mNotificationManager == null) {
+            Log.w(TAG, "Dropping Wi-Fi notification for current user because NotificationManager "
+                    + "is not initialized; id=" + id);
             return;
         }
         mNotificationManager.notify(NOTIFICATION_TAG, id, notification);

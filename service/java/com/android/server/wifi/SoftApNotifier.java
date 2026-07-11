@@ -67,14 +67,36 @@ public class SoftApNotifier {
         mNotificationManager.cancel(NOTIFICATION_ID_SOFTAP_AUTO_DISABLED);
     }
 
+    /**
+     * Show notification to notify user softap disabled because the foreground user changed.
+     */
+    public void showSoftApUserSwitchNotification() {
+        mNotificationManager.notify(NOTIFICATION_ID_SOFTAP_AUTO_DISABLED,
+                buildSoftApUserSwitchNotification());
+    }
+
+    private Notification buildSoftApUserSwitchNotification() {
+        String title = mContext.getResources().getString(
+                R.string.wifi_softap_user_switch_title);
+        String contentSummary = mContext.getResources().getString(
+                R.string.wifi_softap_user_switch_summary_with_settings);
+
+        return makeSoftApNotificationBuilder(title, contentSummary).build();
+    }
+
     private Notification buildSoftApShutdownTimeoutExpiredNotification() {
         String title = mContext.getResources().getString(
                 R.string.wifi_softap_auto_shutdown_timeout_expired_title);
         String contentSummary = mContext.getResources().getString(
                 R.string.wifi_softap_auto_shutdown_timeout_expired_summary);
 
-        return mFrameworkFacade.makeNotificationBuilder(mContext,
-                WifiService.NOTIFICATION_NETWORK_STATUS)
+        return makeSoftApNotificationBuilder(title, contentSummary).build();
+    }
+
+    private Notification.Builder makeSoftApNotificationBuilder(String title,
+            String contentSummary) {
+        return mFrameworkFacade.makeNotificationBuilder(
+                mContext, WifiService.NOTIFICATION_NETWORK_STATUS)
                 .setSmallIcon(Icon.createWithResource(mContext.getWifiOverlayApkPkgName(),
                         R.drawable.ic_wifi_settings))
                 .setContentTitle(title)
@@ -85,8 +107,7 @@ public class SoftApNotifier {
                 .setLocalOnly(true)
                 .setColor(mContext.getResources().getColor(
                         android.R.color.system_notification_accent_color, mContext.getTheme()))
-                .setAutoCancel(true)
-                .build();
+                .setAutoCancel(true);
     }
 
     private PendingIntent launchWifiTetherSettings() {
