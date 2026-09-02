@@ -1076,6 +1076,7 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         // get the DisplayId of the caller (if available)
         int displayId = Display.DEFAULT_DISPLAY;
         if (mWifiPermissionsUtil.isSystem(packageName, callerUid)) {
+            this.mWifiPermissionsUtil.checkPackage(callerUid, packageName);
             displayId = extras.getInt(WifiP2pManager.EXTRA_PARAM_KEY_DISPLAY_ID,
                     Display.DEFAULT_DISPLAY);
         }
@@ -1210,11 +1211,18 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         if (listener == null) {
             throw new IllegalArgumentException("listener should not be null");
         }
-        mWifiPermissionsUtil.enforceNearbyDevicesPermission(
-                extras.getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE), false,
-                TAG + " registerWifiP2pListener");
+        AttributionSource source = extras != null
+            ? (AttributionSource) extras.getParcelable(WifiManager.EXTRA_PARAM_KEY_ATTRIBUTION_SOURCE, AttributionSource.class)
+            : null;
+        if (source == null) {
+            throw new IllegalArgumentException("AttributionSource should not be null");
+        }
+        if (!source.checkCallingUid()) {
+            throw new SecurityException("AttributionSource UID does not match calling UID");
+        }
+        mWifiPermissionsUtil.enforceNearbyDevicesPermission(source, false, TAG + " registerWifiP2pListener");
         Log.i(TAG, "registerWifiP2pListener uid=" + Binder.getCallingUid());
-        mWifiP2pListeners.register(listener);
+        mWifiP2pListeners.register(listener, source);
     }
 
     /**
@@ -1294,7 +1302,17 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         int numCallbacks = mWifiP2pListeners.beginBroadcast();
         for (int i = 0; i < numCallbacks; i++) {
             try {
-                mWifiP2pListeners.getBroadcastItem(i).onPersistentGroupsChanged(p2pGroupList);
+                AttributionSource source = (AttributionSource) mWifiP2pListeners.getBroadcastCookie(i);
+                if (source == null) {
+                    Log.e("WifiP2pService", "No attribution source for listener, skipping broadcast");
+                    continue;
+                }
+                IWifiP2pListener listener = this.mWifiP2pListeners.getBroadcastItem(i);
+                if (!checkNetworkSettingsOrNetworkStackOrReadWifiCredentialPermission(source.getUid())) {
+                    listener.onPersistentGroupsChanged(new WifiP2pGroupList());
+                } else {
+                    listener.onPersistentGroupsChanged(this.mP2pStateMachine.maybeEraseOwnDeviceAddress(p2pGroupList, source.getUid()));
+                }
             } catch (RemoteException e) {
                 Log.e(TAG, "Failure calling onPersistentGroupsChanged" + e);
             }
@@ -6274,7 +6292,8 @@ public class WifiP2pServiceImpl extends IWifiP2pManager.Stub {
         private boolean checkNearbyDevicesPermission(int uid, String packageName, Bundle extras,
                 String message, Object attributionSource) {
             if (extras != null
-                    && extras.getBoolean(WifiP2pManager.EXTRA_PARAM_KEY_INTERNAL_MESSAGE)) {
+                    && extras.getBoolean(WifiP2pManager.EXTRA_PARAM_KEY_INTERNAL_MESSAGE)
+                    && uid == Process.myUid()) {
                 // bypass permission check for internal call.
                 return true;
             }

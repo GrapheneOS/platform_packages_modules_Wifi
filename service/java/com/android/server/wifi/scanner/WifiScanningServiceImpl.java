@@ -1486,6 +1486,12 @@ public class WifiScanningServiceImpl extends IWifiScanner.Stub {
                             + " does not have permission to set type");
                     return false;
                 }
+                if (SdkLevel.isAtLeastC()
+                        && !settings.getVendorIes().isEmpty()
+                        && Process.isPrivateComputeCoreUid(ci.getUid())) {
+                    Log.e(TAG, "Failing single scan because app " + ci.getUid() + " does not have permission to set vendor IEs");
+                    return false;
+                }
             }
             return true;
         }
